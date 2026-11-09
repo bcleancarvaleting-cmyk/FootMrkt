@@ -87,9 +87,17 @@ describe("football competition end to end (spec §6, §17)", () => {
     const entries = await db.competitionEntry.findMany({ where: { competitionId: open.id }, orderBy: { rank: "asc" } });
     expect(entries.map((e) => e.rank)).toEqual(entries[0].finalPoints === entries[1].finalPoints ? [1, 1] : [1, 2]);
     expect(await db.cardInstance.count({ where: { lock: "COMPETITION" } })).toBe(0);
+    // "Points won for you": per card, per account, and they add up to each manager's final score.
+    for (const e of entries) {
+      const sum = await db.cardPoints.aggregate({ where: { entryId: e.id }, _sum: { points: true } });
+      expect(sum._sum.points ?? 0).toBe(e.finalPoints);
+      expect(await db.cardPoints.count({ where: { entryId: e.id, userId: { not: e.userId } } })).toBe(0);
+    }
     // DEV rewards were granted, once.
     expect(await db.packEntitlement.count({ where: { source: "REWARD" } })).toBe(2);
+    const cardPointRows = await db.cardPoints.count();
     expect((await settleCompetition(open.id)).alreadySettled).toBe(true);
+    expect(await db.cardPoints.count()).toBe(cardPointRows);
     expect(await db.packEntitlement.count({ where: { source: "REWARD" } })).toBe(2);
 
     // Score reproduces from stored source events, even after a later correction arrives.

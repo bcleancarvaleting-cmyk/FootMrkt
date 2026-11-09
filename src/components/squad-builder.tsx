@@ -287,6 +287,7 @@ export function SquadBuilder({
                     </span>
                     <span className="block truncate text-[11px] text-faint">
                       {c.clubShort} · {c.fixture ?? "no fixture"}
+                      {c.pointsForYou ? ` · ${c.pointsForYou} pts won for you` : ""}
                       {!ok && ` · ${c.unavailableReason ?? `${c.category.toLowerCase()} not allowed`}`}
                     </span>
                   </span>

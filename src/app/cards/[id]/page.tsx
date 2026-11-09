@@ -29,6 +29,15 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
   const [view] = await enrichCards([card]);
   const favourite = user ? !!(await db.favouriteCard.findUnique({ where: { userId_cardId: { userId: user.id, cardId: id } } })) : false;
   const listing = card.listings[0];
+  const pointsHistory =
+    isOwner && user
+      ? await db.cardPoints.findMany({
+          where: { cardId: id, userId: user.id },
+          include: { entry: { include: { competition: true } } },
+          orderBy: { settledAt: "desc" },
+          take: 20,
+        })
+      : [];
   const signals = (latest?.signals ?? {}) as Record<string, unknown>;
   const competition =
     card.lock === "COMPETITION" && card.lockRef
@@ -122,6 +131,29 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
             </div>
           )}
         </section>
+
+        {isOwner && (
+          <section className="panel p-5">
+            <div className="mb-3 flex items-baseline justify-between">
+              <h2 className="font-bold">Points won for you</h2>
+              <span className="text-2xl font-black text-lime">{view.pointsForYou ?? 0}</span>
+            </div>
+            {pointsHistory.length ? (
+              <ul className="space-y-1 text-sm">
+                {pointsHistory.map((p) => (
+                  <li key={p.id} className="flex justify-between gap-4">
+                    <Link href={`/competitions/${p.entry.competitionId}`} className="text-muted hover:text-fg">
+                      {p.entry.competition.name}
+                    </Link>
+                    <b>{p.points} pts</b>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-faint">Pick this card in a squad — its points will build up here after each settled gameweek.</p>
+            )}
+          </section>
+        )}
 
         {competition && (
           <p className="text-sm text-muted">

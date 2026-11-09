@@ -45,7 +45,8 @@ export async function revalueAll(now = new Date()) {
         .map((s) => ({ priceMinor: s.soldPriceMinor ?? 0, buyerId: s.buyerId ?? "", sellerId: s.sellerId })),
       previousMp: previous?.valueMp ?? null,
     });
-    if (!previous || previous.valueMp !== r.valueMp) {
+    // Snapshot every run (even when unchanged) so each card has a complete value history.
+    {
       await db.mPValuation.create({
         data: {
           playerId: t.playerId,

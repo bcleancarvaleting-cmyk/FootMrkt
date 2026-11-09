@@ -27,15 +27,38 @@ export async function acquisitionLabels(cardIds: string[]) {
   return out;
 }
 
-/** Turn DB cards into view models with value, trend and acquisition. */
+/** Points each card has won for its *current* owner (per account: a new owner starts at 0). */
+export async function pointsForOwners(cards: Array<{ id: string; ownerId: string | null }>) {
+  const owned = cards.filter((c) => c.ownerId);
+  const out = new Map<string, number>();
+  if (!owned.length) return out;
+  const rows = await db.cardPoints.groupBy({
+    by: ["cardId", "userId"],
+    where: { cardId: { in: owned.map((c) => c.id) }, userId: { in: [...new Set(owned.map((c) => c.ownerId!))] } },
+    _sum: { points: true },
+  });
+  for (const c of owned) {
+    const r = rows.find((x) => x.cardId === c.id && x.userId === c.ownerId);
+    out.set(c.id, r?._sum.points ?? 0);
+  }
+  return out;
+}
+
+/** Turn DB cards into view models with value, trend, acquisition and points won for the owner. */
 export async function enrichCards(cards: CardWithTemplate[]): Promise<CardView[]> {
-  const [trends, acquired] = await Promise.all([
+  const [trends, acquired, points] = await Promise.all([
     valueTrends(cards.map((c) => ({ playerId: c.template.playerId, category: c.template.category }))),
     acquisitionLabels(cards.filter((c) => c.ownerId).map((c) => c.id)),
+    pointsForOwners(cards),
   ]);
   return cards.map((c) => {
     const t = trends.get(valueKey(c.template.playerId, c.template.category));
-    return toCardView(c, { valueMp: t?.mp ?? null, trendPct: t?.trendPct ?? null, acquired: acquired.get(c.id) ?? null });
+    return toCardView(c, {
+      valueMp: t?.mp ?? null,
+      trendPct: t?.trendPct ?? null,
+      acquired: acquired.get(c.id) ?? null,
+      pointsForYou: points.get(c.id) ?? null,
+    });
   });
 }
 

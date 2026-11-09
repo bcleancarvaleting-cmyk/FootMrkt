@@ -130,6 +130,13 @@ export async function settleCompetition(competitionId: string, actorId: string |
     for (const e of entries) {
       const score = await scoreEntry(tx, e.id);
       await tx.scoreCalculation.create({ data: calcData(e.id, "FINAL", score) });
+      // "Points won for you": what each card actually counted for this manager.
+      await tx.cardPoints.createMany({
+        data: score.selections
+          .filter((sel) => sel.counted)
+          .map((sel) => ({ userId: e.userId, cardId: sel.cardId, playerId: sel.playerId, entryId: e.id, points: sel.points })),
+        skipDuplicates: true,
+      });
       totals.push({ id: e.id, userId: e.userId, total: score.total });
     }
     totals.sort((a, b) => b.total - a.total);

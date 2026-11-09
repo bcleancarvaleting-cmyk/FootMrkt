@@ -29,6 +29,11 @@ export interface CardView {
   trendPct: number | null;
   /** How the current owner got it: "Starter", "Packed", "Paid £4.50", … */
   acquired: string | null;
+  /** Points this card has won for its current owner in settled competitions (null = not owned). */
+  pointsForYou: number | null;
+  imageUrl: string | null;
+  imageCredit: string | null;
+  squadNumber: number | null;
   tradeable: boolean;
   lock: "NONE" | "LISTED" | "COMPETITION";
   lockRef: string | null;
@@ -53,6 +58,9 @@ type CardLike = {
       lastName: string;
       position: string;
       nationality: string;
+      squadNumber?: number | null;
+      imageUrl?: string | null;
+      imageCredit?: string | null;
       club: {
         code: string;
         shortName: string;
@@ -68,7 +76,14 @@ type CardLike = {
 
 export function toCardView(
   c: CardLike,
-  extra: { valueMp?: number | null; trendPct?: number | null; acquired?: string | null; favourite?: boolean; duplicateCount?: number } = {},
+  extra: {
+    valueMp?: number | null;
+    trendPct?: number | null;
+    acquired?: string | null;
+    pointsForYou?: number | null;
+    favourite?: boolean;
+    duplicateCount?: number;
+  } = {},
 ): CardView {
   const p = c.template.player;
   return {
@@ -94,6 +109,10 @@ export function toCardView(
     valueMp: extra.valueMp ?? null,
     trendPct: extra.trendPct ?? null,
     acquired: extra.acquired ?? null,
+    pointsForYou: extra.pointsForYou ?? null,
+    imageUrl: p.imageUrl ?? null,
+    imageCredit: p.imageCredit ?? null,
+    squadNumber: p.squadNumber ?? null,
     tradeable: c.tradeStatus === "TRADEABLE",
     lock: c.lock as CardView["lock"],
     lockRef: c.lockRef,

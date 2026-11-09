@@ -55,6 +55,7 @@ model User {
   completions       CollectionCompletion[]
   favourites        FavouriteCard[]
   walletEntries     WalletEntry[]
+  cardPoints        CardPoints[]
   auditActions      AdminAuditLog[]
 }
 
@@ -150,6 +151,9 @@ model Player {
   displayName  String
   position     Position
   squadNumber  Int?
+  // Licensed headshot. Null until image rights are confirmed (spec §10); cards show a kit graphic instead.
+  imageUrl     String?
+  imageCredit  String?
   nationality  String
   dateOfBirth  DateTime?
   rightsStatus RightsStatus @default(PLACEHOLDER)
@@ -158,6 +162,7 @@ model Player {
   createdAt    DateTime     @default(now())
 
   templates  CardTemplate[]
+  cardPoints CardPoints[]
   stats      PlayerMatchStat[]
   valuations MPValuation[]
   selections CompetitionSelection[]
@@ -238,6 +243,7 @@ model CardInstance {
   listings     MarketListing[]
   selections   CompetitionSelection[]
   favourites   FavouriteCard[]
+  points       CardPoints[]
 
   @@unique([templateId, serial])
   @@index([supplyState])
@@ -607,8 +613,28 @@ model CompetitionEntry {
 
   selections   CompetitionSelection[]
   calculations ScoreCalculation[]
+  cardPoints   CardPoints[]
 
   @@unique([competitionId, userId])
+}
+
+// Points a card actually counted for its manager in a settled competition ("points won for you").
+// Written once at settlement; per account — if the card changes hands the new owner starts at 0.
+model CardPoints {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  user      User             @relation(fields: [userId], references: [id])
+  cardId    String           @db.Uuid
+  card      CardInstance     @relation(fields: [cardId], references: [id])
+  playerId  String           @db.Uuid
+  player    Player           @relation(fields: [playerId], references: [id])
+  entryId   String           @db.Uuid
+  entry     CompetitionEntry @relation(fields: [entryId], references: [id])
+  points    Float
+  settledAt DateTime         @default(now())
+
+  @@unique([entryId, cardId])
+  @@index([userId, cardId])
 }
 
 enum SelectionSlot {

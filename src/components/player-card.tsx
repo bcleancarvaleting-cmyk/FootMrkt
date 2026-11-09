@@ -28,67 +28,114 @@ export function tierStyle(c: CardView["category"]) {
 }
 
 /**
- * A COLLECTR card. Identity, tier, club and indicative value only — no FIFA-style ratings or
- * attributes (spec §4.1). No player photography until image rights are confirmed (spec §10).
+ * A COLLECTR card face: position, player image, name, MP value (with trend) and the points this
+ * card has won for its owner. No FIFA-style ratings (spec §4.1).
+ * The image is the licensed headshot when one is set (Player.imageUrl); until image rights are
+ * in place it shows the player's shirt in club colours with their squad number.
  */
 export function PlayerCard({ card, size = "md", className = "" }: { card: CardView; size?: "sm" | "md" | "lg"; className?: string }) {
   const t = TIER[card.category];
-  const initials = `${card.firstName[0] ?? ""}${card.lastName[0] ?? ""}`;
   const w = size === "sm" ? "w-32" : size === "lg" ? "w-60" : "w-44";
+  const small = size === "sm";
   return (
     <div
-      className={`relative ${w} aspect-[3/4] select-none overflow-hidden rounded-2xl bg-gradient-to-b p-[2px] ring-1 ${t.frame} ${t.ring} ${
+      className={`relative ${w} aspect-[5/7] select-none overflow-hidden rounded-2xl bg-gradient-to-b p-[2px] ring-1 ${t.frame} ${t.ring} ${
         card.category === "GOLD" ? "shadow-[0_0_24px_-6px_rgba(236,199,90,0.5)]" : ""
       } ${className}`}
     >
-      <div className="relative flex h-full flex-col rounded-[14px] bg-gradient-to-b from-ink-850/40 via-ink-900/90 to-ink-950 p-2.5">
-        <div className="flex items-start justify-between">
-          <span className={`rounded-md bg-ink-950/70 px-1.5 py-0.5 text-[10px] font-black tracking-wider ${t.text}`}>{card.position}</span>
+      <div className="relative flex h-full flex-col rounded-[14px] bg-gradient-to-b from-ink-850/40 via-ink-900/90 to-ink-950">
+        {/* Position · club · tier */}
+        <div className="flex items-center justify-between px-2.5 pt-2.5">
+          <span className={`rounded-md bg-ink-950/75 px-1.5 py-0.5 font-black tracking-wider ${small ? "text-[10px]" : "text-xs"} ${t.text}`}>
+            {card.position}
+          </span>
           <ClubBadge
             short={card.clubShort}
             primary={card.clubPrimary}
             secondary={card.clubSecondary}
             crestUrl={card.crestUrl}
-            size={size === "sm" ? 16 : size === "lg" ? 28 : 20}
+            size={small ? 16 : size === "lg" ? 26 : 20}
             title={card.clubName ?? undefined}
           />
           <span className={`text-[9px] font-bold uppercase tracking-[0.18em] ${t.text}`}>{t.label}</span>
         </div>
-        <div className="flex flex-1 items-center justify-center">
-          <div
-            className={`flex aspect-square w-[52%] items-center justify-center rounded-full bg-gradient-to-br ${t.frame} text-ink-950 shadow-inner`}
-          >
-            <span className={`font-black ${size === "sm" ? "text-xl" : size === "lg" ? "text-4xl" : "text-2xl"} text-ink-950/80`}>
-              {initials}
+
+        {/* Player image */}
+        <div className="relative mx-2.5 mt-1.5 flex flex-1 items-end justify-center overflow-hidden rounded-xl bg-gradient-to-b from-white/5 to-transparent">
+          <PlayerImage card={card} />
+          <div className="pointer-events-none absolute bottom-1 left-1 flex flex-col items-start gap-1">
+            {card.lock === "COMPETITION" && <Badge tone="lime">In squad</Badge>}
+            {card.lock === "LISTED" && <Badge tone="warn">Listed</Badge>}
+          </div>
+          {(card.acquired || card.edition === "STARTER") && !small && (
+            <span className="absolute bottom-1 right-1 rounded bg-ink-950/85 px-1.5 text-[9px] font-semibold text-muted">
+              {card.edition === "STARTER" ? "Starter · locked" : card.acquired}
             </span>
-          </div>
+          )}
         </div>
-        <div className="text-center">
-          <div className={`truncate font-bold leading-tight ${size === "sm" ? "text-xs" : "text-sm"}`}>{card.name}</div>
-          <div className="truncate text-[10px] text-muted">
-            {card.clubName ?? "Free agent"}
-          </div>
+
+        {/* Name */}
+        <div className="px-2.5 pt-1.5 text-center">
+          <div className={`truncate font-bold leading-tight ${small ? "text-xs" : "text-sm"}`}>{card.name}</div>
+          <div className="truncate text-[10px] text-muted">{card.clubName ?? "Free agent"}</div>
         </div>
-        <div className="mt-1.5 flex items-end justify-between border-t border-white/10 pt-1.5">
-          <div>
-            <div className="flex items-baseline gap-1 text-[11px] font-bold text-lime">
+
+        {/* MP value · points won for you */}
+        <div className="mx-2.5 mb-2 mt-1.5 grid grid-cols-2 gap-1 border-t border-white/10 pt-1.5">
+          <div className="min-w-0">
+            <div className="flex items-baseline gap-1 whitespace-nowrap text-[11px] font-bold text-lime">
               {mpLabel(card.valueMp)} <Trend pct={card.trendPct} />
             </div>
-            <div className="text-[9px] text-faint">{moneyRef(card.valueMp)} indicative</div>
+            <div className="truncate text-[9px] text-faint">{moneyRef(card.valueMp)}</div>
           </div>
-          <div className="text-right text-[9px] text-faint">
-            {card.acquired && <div className="font-semibold text-muted">{card.acquired}</div>}
-            #{card.serial}
-            {card.maxSupply ? `/${card.maxSupply}` : ""}
+          <div className="min-w-0 text-right" title="Points this card has won for you in settled competitions">
+            {card.pointsForYou !== null ? (
+              <>
+                <div className={`text-[11px] font-black ${card.pointsForYou > 0 ? "text-fg" : card.pointsForYou < 0 ? "text-danger" : "text-faint"}`}>
+                  {formatPts(card.pointsForYou)} pts
+                </div>
+                <div className="truncate text-[9px] text-faint">won for you</div>
+              </>
+            ) : (
+              <div className="text-[9px] text-faint">
+                #{card.serial}
+                {card.maxSupply ? `/${card.maxSupply}` : ""}
+              </div>
+            )}
           </div>
-        </div>
-        <div className="pointer-events-none absolute inset-x-0 top-8 flex flex-col items-center gap-1">
-          {card.edition === "STARTER" && <Badge tone="muted">Starter · untradeable</Badge>}
-          {card.lock === "COMPETITION" && <Badge tone="lime">In squad</Badge>}
-          {card.lock === "LISTED" && <Badge tone="warn">Listed</Badge>}
         </div>
       </div>
     </div>
+  );
+}
+
+const formatPts = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+
+/** Licensed headshot if available, otherwise the player's shirt in club colours with their number. */
+export function PlayerImage({ card }: { card: CardView }) {
+  if (card.imageUrl) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover object-top" title={card.imageCredit ?? undefined} />;
+  }
+  const num = card.squadNumber ?? "";
+  return (
+    <svg viewBox="0 0 100 92" className="h-[88%] w-auto max-w-full" role="img" aria-label={`${card.name} — photo not yet available`}>
+      <title>{`${card.name} — licensed photo not yet available`}</title>
+      {/* head */}
+      <circle cx="50" cy="24" r="14" fill="var(--color-ink-700)" />
+      <rect x="44" y="34" width="12" height="8" fill="var(--color-ink-700)" />
+      {/* shirt */}
+      <path
+        d="M14 92 L14 60 C14 50 22 44 32 42 L42 40 C45 46 55 46 58 40 L68 42 C78 44 86 50 86 60 L86 92 Z"
+        fill={card.clubPrimary}
+        stroke={card.clubSecondary}
+        strokeWidth="1.5"
+      />
+      <path d="M42 40 C45 46 55 46 58 40" fill="none" stroke={card.clubSecondary} strokeWidth="2.5" />
+      <text x="50" y="78" textAnchor="middle" fontSize="22" fontWeight="900" fontFamily="system-ui, sans-serif" fill={card.clubSecondary}>
+        {num}
+      </text>
+    </svg>
   );
 }
 

@@ -16,7 +16,9 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset --force && tsx prisma/seed.ts",
     "jobs": "tsx scripts/jobs.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "images:import": "tsx scripts/import-player-images.ts",
+    "data:import": "python3 scripts/import_wikipedia.py"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",

@@ -32,6 +32,17 @@ Seeded admin: `admin@collectr.dev` / `collectr-admin` (override with `SEED_ADMIN
 4. Back as the player: final score, auto-subs, rank, and (dev only) a reward pack. MP values are recalculated.
 5. **Admin → Create next gameweek** and go again.
 
+### Player images
+
+Cards show a licensed headshot when `Player.imageUrl` is set; until then they show the player's shirt in club colours with their squad number. Load licensed images in bulk:
+
+```bash
+npm run images:import -- images.csv --dry-run   # columns: club_code,player_name,image_url,credit
+npm run images:import -- images.csv
+```
+
+Refresh squads from Wikipedia with `npm run data:import` (writes `prisma/data/football-2026-27.json`).
+
 ### Tests
 
 ```bash

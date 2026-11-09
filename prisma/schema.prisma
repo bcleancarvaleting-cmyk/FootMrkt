@@ -1,0 +1,734 @@
+// COLLECTR — core data model (spec §14).
+//
+// Design notes
+// - Player identity (Player) is stored separately from card designs (CardTemplate),
+//   issued copies (CardInstance) and ownership history (CardOwnership).
+// - A CardInstance is always in exactly one supply state. Ownership/lock invariants
+//   are additionally enforced by CHECK constraints and partial unique indexes added
+//   by hand in the migration SQL (Prisma cannot express them in schema).
+// - Rule sets (pack configs, roster rules, scoring rules) are versioned and the
+//   version/snapshot used is stored on every result so history is reproducible.
+// - All timestamps are UTC.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────────── Accounts ─────────────────────────────
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+model User {
+  id                     String     @id @default(uuid()) @db.Uuid
+  email                  String     @unique
+  passwordHash           String
+  displayName            String     @unique
+  role                   UserRole   @default(USER)
+  status                 UserStatus @default(ACTIVE)
+  emailVerifiedAt        DateTime?
+  emailVerificationToken String?    @unique
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
+
+  sessions          Session[]
+  cards             CardInstance[]       @relation("CardOwner")
+  ownerships        CardOwnership[]
+  packEntitlements  PackEntitlement[]
+  packOpenings      PackOpening[]
+  entries           CompetitionEntry[]
+  listings          MarketListing[]      @relation("Seller")
+  purchases         MarketListing[]      @relation("Buyer")
+  orders            Order[]
+  completions       CollectionCompletion[]
+  favourites        FavouriteCard[]
+  auditActions      AdminAuditLog[]
+}
+
+model Session {
+  id        String   @id // sha256 of the session token; the raw token only lives in the cookie
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model FeatureFlag {
+  key       String   @id
+  enabled   Boolean
+  updatedAt DateTime @updatedAt
+}
+
+// ───────────────────────────── Sports catalogue ─────────────────────────────
+
+model Sport {
+  id        String   @id @default(uuid()) @db.Uuid
+  code      String   @unique // "football" (darts and future worlds slot in here)
+  name      String
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  leagues      League[]
+  players      Player[]
+  packSkus     PackSku[]
+  gameweeks    Gameweek[]
+  competitions Competition[]
+  sets         CollectionSet[]
+  releases     SupplyRelease[]
+}
+
+model League {
+  id         String  @id @default(uuid()) @db.Uuid
+  sportId    String  @db.Uuid
+  sport      Sport   @relation(fields: [sportId], references: [id])
+  code       String  @unique
+  name       String
+  country    String
+  tier       Int // 1 = top flight
+  isTopFlight Boolean
+
+  clubs Club[]
+}
+
+model Club {
+  id        String @id @default(uuid()) @db.Uuid
+  leagueId  String @db.Uuid
+  league    League @relation(fields: [leagueId], references: [id])
+  code      String @unique
+  name      String
+  shortName String
+  // Simulation-only strength used by the DEV simulated data provider. Never shown as a rating.
+  simStrength Int @default(50)
+
+  players      Player[]
+  homeFixtures Fixture[] @relation("HomeClub")
+  awayFixtures Fixture[] @relation("AwayClub")
+}
+
+enum Position {
+  GK
+  DEF
+  MID
+  ATT
+}
+
+// PLACEHOLDER = fictional/dev data. Real players must not be marked LICENSED until rights are confirmed (spec §10).
+enum RightsStatus {
+  PLACEHOLDER
+  PENDING
+  LICENSED
+}
+
+model Player {
+  id           String       @id @default(uuid()) @db.Uuid
+  sportId      String       @db.Uuid
+  sport        Sport        @relation(fields: [sportId], references: [id])
+  clubId       String?      @db.Uuid
+  club         Club?        @relation(fields: [clubId], references: [id])
+  firstName    String
+  lastName     String
+  displayName  String
+  position     Position
+  nationality  String
+  dateOfBirth  DateTime?
+  rightsStatus RightsStatus @default(PLACEHOLDER)
+  active       Boolean      @default(true)
+  providerRefs Json         @default("{}") // { "<provider>": "<external id>" }
+  createdAt    DateTime     @default(now())
+
+  templates  CardTemplate[]
+  stats      PlayerMatchStat[]
+  valuations MPValuation[]
+  selections CompetitionSelection[]
+
+  @@index([sportId, position])
+}
+
+// ───────────────────────────── Cards ─────────────────────────────
+
+enum CardCategory {
+  BRONZE
+  SILVER
+  GOLD
+}
+
+enum CardEdition {
+  STANDARD // released into the controlled supply pool
+  STARTER // minted on registration; permanently NON_TRADEABLE
+}
+
+model CardTemplate {
+  id        String       @id @default(uuid()) @db.Uuid
+  playerId  String       @db.Uuid
+  player    Player       @relation(fields: [playerId], references: [id])
+  category  CardCategory
+  edition   CardEdition  @default(STANDARD)
+  version   Int          @default(1)
+  design    Json         @default("{}")
+  maxSupply Int? // hard cap on instances that may ever be minted (null = uncapped)
+  active    Boolean      @default(true)
+  createdAt DateTime     @default(now())
+
+  instances    CardInstance[]
+  requirements CollectionRequirement[]
+
+  @@unique([playerId, category, edition, version])
+}
+
+// Exactly one state at a time (spec §7.1 supply reconciliation).
+enum CardSupplyState {
+  AVAILABLE // released, in the pack pool, never owned yet
+  RECIRCULATING // returned via collection completion, in the pack pool again
+  HELD // owned by a user (see ownerId)
+  RETIRED // permanently out of circulation
+}
+
+enum TradeStatus {
+  TRADEABLE
+  NON_TRADEABLE
+}
+
+// A held card can be in at most one activity at a time.
+enum CardLock {
+  NONE
+  LISTED
+  COMPETITION
+}
+
+model CardInstance {
+  id          String          @id @default(uuid()) @db.Uuid
+  templateId  String          @db.Uuid
+  template    CardTemplate    @relation(fields: [templateId], references: [id])
+  serial      Int
+  supplyState CardSupplyState
+  tradeStatus TradeStatus     @default(TRADEABLE)
+  ownerId     String?         @db.Uuid
+  owner       User?           @relation("CardOwner", fields: [ownerId], references: [id])
+  lock        CardLock        @default(NONE)
+  lockRef     String? // id of the listing / competition entry holding the lock
+  releaseId   String?         @db.Uuid
+  release     SupplyRelease?  @relation(fields: [releaseId], references: [id])
+  recycledCount Int           @default(0)
+  mintedAt    DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  ownerships   CardOwnership[]
+  packCards    PackOpeningCard[]
+  listings     MarketListing[]
+  selections   CompetitionSelection[]
+  favourites   FavouriteCard[]
+
+  @@unique([templateId, serial])
+  @@index([supplyState])
+  @@index([ownerId])
+}
+
+enum AcquisitionKind {
+  STARTER_PACK
+  PACK
+  MARKET
+  ADMIN
+}
+
+enum ReleaseKind {
+  MARKET_SALE
+  COLLECTION_COMPLETION
+  ADMIN
+}
+
+model CardOwnership {
+  id           String           @id @default(uuid()) @db.Uuid
+  cardId       String           @db.Uuid
+  card         CardInstance     @relation(fields: [cardId], references: [id])
+  userId       String           @db.Uuid
+  user         User             @relation(fields: [userId], references: [id])
+  acquiredVia  AcquisitionKind
+  acquiredRef  String?
+  acquiredAt   DateTime         @default(now())
+  releasedVia  ReleaseKind?
+  releasedRef  String?
+  releasedAt   DateTime?
+
+  @@index([cardId])
+  @@index([userId])
+}
+
+model FavouriteCard {
+  userId    String       @db.Uuid
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardId    String       @db.Uuid
+  card      CardInstance @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+
+  @@id([userId, cardId])
+}
+
+// Indicative valuation per player+category. MP is NOT cash (spec §4.2).
+model MPValuation {
+  id         String       @id @default(uuid()) @db.Uuid
+  playerId   String       @db.Uuid
+  player     Player       @relation(fields: [playerId], references: [id])
+  category   CardCategory
+  valueMp    Int
+  method     String // algorithm id + version, e.g. "mp-v1"
+  signals    Json // every input used, so the number is explainable/auditable
+  computedAt DateTime     @default(now())
+
+  @@index([playerId, category, computedAt])
+}
+
+// ───────────────────────────── Packs ─────────────────────────────
+
+enum PackKind {
+  STARTER
+  REGULAR
+}
+
+model PackSku {
+  id         String   @id @default(uuid()) @db.Uuid
+  sportId    String   @db.Uuid
+  sport      Sport    @relation(fields: [sportId], references: [id])
+  code       String // stable SKU code, e.g. "football-bronze"
+  version    Int
+  name       String
+  kind       PackKind
+  priceMinor Int // pence; 0 for free packs
+  currency   String   @default("GBP")
+  config     Json // validated by src/domain/packs/config.ts
+  active     Boolean  @default(true)
+  startsAt   DateTime?
+  endsAt     DateTime?
+  createdAt  DateTime @default(now())
+
+  entitlements PackEntitlement[]
+  openings     PackOpening[]
+
+  @@unique([code, version])
+}
+
+enum EntitlementSource {
+  STARTER
+  PURCHASE
+  REWARD
+  ADMIN_GRANT
+  DEV
+}
+
+enum EntitlementStatus {
+  UNOPENED
+  OPENED
+  REVOKED
+}
+
+// An unopened pack a user is entitled to. Opening consumes it exactly once.
+model PackEntitlement {
+  id         String            @id @default(uuid()) @db.Uuid
+  userId     String            @db.Uuid
+  user       User              @relation(fields: [userId], references: [id])
+  packSkuId  String            @db.Uuid
+  packSku    PackSku           @relation(fields: [packSkuId], references: [id])
+  source     EntitlementSource
+  sourceRef  String            @unique // e.g. order id, "starter:<userId>", reward id — prevents duplicate grants
+  status     EntitlementStatus @default(UNOPENED)
+  createdAt  DateTime          @default(now())
+  openedAt   DateTime?
+
+  opening PackOpening?
+
+  @@index([userId, status])
+}
+
+model PackOpening {
+  id             String          @id @default(uuid()) @db.Uuid
+  userId         String          @db.Uuid
+  user           User            @relation(fields: [userId], references: [id])
+  packSkuId      String          @db.Uuid
+  packSku        PackSku         @relation(fields: [packSkuId], references: [id])
+  entitlementId  String          @unique @db.Uuid
+  entitlement    PackEntitlement @relation(fields: [entitlementId], references: [id])
+  pricePaidMinor Int
+  paymentRef     String?
+  configSnapshot Json // the exact pack rules applied
+  rngAudit       Json // every random draw: pool size, index, result
+  createdAt      DateTime        @default(now())
+
+  cards PackOpeningCard[]
+
+  @@index([userId, createdAt])
+}
+
+model PackOpeningCard {
+  id            String       @id @default(uuid()) @db.Uuid
+  packOpeningId String       @db.Uuid
+  packOpening   PackOpening  @relation(fields: [packOpeningId], references: [id])
+  cardId        String       @db.Uuid
+  card          CardInstance @relation(fields: [cardId], references: [id])
+  slotIndex     Int
+  category      CardCategory
+
+  @@unique([packOpeningId, slotIndex])
+}
+
+// ───────────────────────────── Supply ─────────────────────────────
+
+enum ReleaseStatus {
+  SCHEDULED
+  PAUSED
+  EXECUTED
+  CANCELLED
+}
+
+model SupplyRelease {
+  id           String        @id @default(uuid()) @db.Uuid
+  sportId      String        @db.Uuid
+  sport        Sport         @relation(fields: [sportId], references: [id])
+  scheduledFor DateTime
+  status       ReleaseStatus @default(SCHEDULED)
+  plan         Json // { perTemplate: { BRONZE: n, SILVER: n, GOLD: n }, overrides: { [templateId]: n } }
+  executedAt   DateTime?
+  cardsMinted  Int           @default(0)
+  createdAt    DateTime      @default(now())
+
+  cards CardInstance[]
+
+  @@index([status, scheduledFor])
+}
+
+// ───────────────────────────── Collections (Binder sets) ─────────────────────────────
+
+model CollectionSet {
+  id          String   @id @default(uuid()) @db.Uuid
+  sportId     String   @db.Uuid
+  sport       Sport    @relation(fields: [sportId], references: [id])
+  code        String   @unique
+  name        String
+  description String
+  reward      Json? // TO CONFIRM (spec §8.1). null = no reward.
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  requirements CollectionRequirement[]
+  completions  CollectionCompletion[]
+}
+
+model CollectionRequirement {
+  id         String        @id @default(uuid()) @db.Uuid
+  setId      String        @db.Uuid
+  set        CollectionSet @relation(fields: [setId], references: [id])
+  templateId String        @db.Uuid
+  template   CardTemplate  @relation(fields: [templateId], references: [id])
+  quantity   Int           @default(1)
+
+  @@unique([setId, templateId])
+}
+
+model CollectionCompletion {
+  id          String        @id @default(uuid()) @db.Uuid
+  setId       String        @db.Uuid
+  set         CollectionSet @relation(fields: [setId], references: [id])
+  userId      String        @db.Uuid
+  user        User          @relation(fields: [userId], references: [id])
+  cardIds     Json
+  idempotencyKey String     @unique
+  completedAt DateTime      @default(now())
+
+  @@index([userId])
+}
+
+// ───────────────────────────── Real-world data ─────────────────────────────
+
+enum GameweekStatus {
+  UPCOMING
+  OPEN
+  LOCKED
+  PROVISIONAL
+  SETTLED
+}
+
+model Gameweek {
+  id        String         @id @default(uuid()) @db.Uuid
+  sportId   String         @db.Uuid
+  sport     Sport          @relation(fields: [sportId], references: [id])
+  season    String
+  number    Int
+  startsAt  DateTime
+  endsAt    DateTime
+  status    GameweekStatus @default(UPCOMING)
+
+  fixtures     Fixture[]
+  competitions Competition[]
+
+  @@unique([sportId, season, number])
+}
+
+enum FixtureStatus {
+  SCHEDULED
+  LIVE
+  FINISHED
+  POSTPONED
+  ABANDONED
+}
+
+model Fixture {
+  id                String        @id @default(uuid()) @db.Uuid
+  gameweekId        String        @db.Uuid
+  gameweek          Gameweek      @relation(fields: [gameweekId], references: [id])
+  provider          String
+  providerFixtureId String
+  homeClubId        String        @db.Uuid
+  homeClub          Club          @relation("HomeClub", fields: [homeClubId], references: [id])
+  awayClubId        String        @db.Uuid
+  awayClub          Club          @relation("AwayClub", fields: [awayClubId], references: [id])
+  kickoffAt         DateTime
+  status            FixtureStatus @default(SCHEDULED)
+  homeGoals         Int?
+  awayGoals         Int?
+  finalisedAt       DateTime?
+
+  stats PlayerMatchStat[]
+
+  @@unique([provider, providerFixtureId])
+  @@index([gameweekId])
+}
+
+// Raw provider payloads, stored once. Replays of the same providerEventId are ignored.
+model ProviderEvent {
+  id              String   @id @default(uuid()) @db.Uuid
+  provider        String
+  providerEventId String
+  kind            String
+  payload         Json
+  payloadHash     String
+  receivedAt      DateTime @default(now())
+  processedAt     DateTime?
+
+  @@unique([provider, providerEventId])
+}
+
+// Normalised stat line for a player in a fixture. Corrections add a new revision; only
+// the highest revision is "current", so resent/corrected events can never double count.
+model PlayerMatchStat {
+  id              String   @id @default(uuid()) @db.Uuid
+  fixtureId       String   @db.Uuid
+  fixture         Fixture  @relation(fields: [fixtureId], references: [id])
+  playerId        String   @db.Uuid
+  player          Player   @relation(fields: [playerId], references: [id])
+  revision        Int
+  isCurrent       Boolean
+  stats           Json // NormalisedStatLine
+  sourceEventId   String // ProviderEvent.providerEventId
+  createdAt       DateTime @default(now())
+
+  @@unique([fixtureId, playerId, revision])
+  @@index([playerId, isCurrent])
+}
+
+// ───────────────────────────── Competitions ─────────────────────────────
+
+enum CompetitionFormat {
+  OPEN
+  BRONZE_ONLY
+  SILVER_ONLY
+  GOLD_ONLY
+}
+
+enum CompetitionStatus {
+  UPCOMING
+  OPEN
+  LOCKED
+  PROVISIONAL
+  SETTLED
+  CANCELLED
+}
+
+model Competition {
+  id           String            @id @default(uuid()) @db.Uuid
+  sportId      String            @db.Uuid
+  sport        Sport             @relation(fields: [sportId], references: [id])
+  gameweekId   String            @db.Uuid
+  gameweek     Gameweek          @relation(fields: [gameweekId], references: [id])
+  code         String            @unique
+  name         String
+  format       CompetitionFormat
+  rosterRules  String // roster rule-set id, e.g. "football-roster-v1"
+  scoringRules String // scoring rule-set id, e.g. "football-scoring-v1-draft"
+  rewards      Json              @default("[]") // TO CONFIRM; [] = no rewards
+  entryOpensAt DateTime
+  locksAt      DateTime
+  status       CompetitionStatus @default(UPCOMING)
+  settledAt    DateTime?
+  createdAt    DateTime          @default(now())
+
+  entries CompetitionEntry[]
+
+  @@index([gameweekId])
+}
+
+enum EntryStatus {
+  ACTIVE
+  WITHDRAWN
+}
+
+model CompetitionEntry {
+  id                String           @id @default(uuid()) @db.Uuid
+  competitionId     String           @db.Uuid
+  competition       Competition      @relation(fields: [competitionId], references: [id])
+  userId            String           @db.Uuid
+  user              User             @relation(fields: [userId], references: [id])
+  formation         String
+  status            EntryStatus      @default(ACTIVE)
+  provisionalPoints Float?
+  finalPoints       Float?
+  rank              Int?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  selections   CompetitionSelection[]
+  calculations ScoreCalculation[]
+
+  @@unique([competitionId, userId])
+}
+
+enum SelectionSlot {
+  STARTER
+  BENCH
+}
+
+model CompetitionSelection {
+  id         String           @id @default(uuid()) @db.Uuid
+  entryId    String           @db.Uuid
+  entry      CompetitionEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  cardId     String           @db.Uuid
+  card       CardInstance     @relation(fields: [cardId], references: [id])
+  playerId   String           @db.Uuid
+  player     Player           @relation(fields: [playerId], references: [id])
+  slot       SelectionSlot
+  position   Position
+  order      Int // starters: pitch order; bench: 1..4 = Sub 1..Sub 4
+
+  @@unique([entryId, cardId])
+  @@unique([entryId, slot, order])
+}
+
+enum ScoreKind {
+  PROVISIONAL
+  FINAL
+}
+
+model ScoreCalculation {
+  id          String           @id @default(uuid()) @db.Uuid
+  entryId     String           @db.Uuid
+  entry       CompetitionEntry @relation(fields: [entryId], references: [id])
+  kind        ScoreKind
+  ruleVersion String
+  totalPoints Float
+  breakdown   Json // per-player points, events and substitutions applied
+  inputStatIds Json // PlayerMatchStat ids used — the score is reproducible from these + ruleVersion
+  inputHash   String
+  createdAt   DateTime         @default(now())
+
+  @@index([entryId, createdAt])
+}
+
+// ───────────────────────────── Market & payments (feature-flagged) ─────────────────────────────
+
+enum ListingStatus {
+  ACTIVE
+  SOLD
+  CANCELLED
+  EXPIRED
+}
+
+model MarketListing {
+  id               String        @id @default(uuid()) @db.Uuid
+  cardId           String        @db.Uuid
+  card             CardInstance  @relation(fields: [cardId], references: [id])
+  sellerId         String        @db.Uuid
+  seller           User          @relation("Seller", fields: [sellerId], references: [id])
+  askingPriceMinor Int
+  currency         String        @default("GBP")
+  status           ListingStatus @default(ACTIVE)
+  expiresAt        DateTime
+  buyerId          String?       @db.Uuid
+  buyer            User?         @relation("Buyer", fields: [buyerId], references: [id])
+  soldPriceMinor   Int?
+  soldAt           DateTime?
+  createdAt        DateTime      @default(now())
+
+  @@index([status, createdAt])
+  @@index([cardId])
+}
+
+enum OrderKind {
+  PACK_PURCHASE
+  MARKET_PURCHASE
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model Order {
+  id             String      @id @default(uuid()) @db.Uuid
+  userId         String      @db.Uuid
+  user           User        @relation(fields: [userId], references: [id])
+  kind           OrderKind
+  refId          String // pack SKU id or listing id
+  amountMinor    Int
+  currency       String      @default("GBP")
+  status         OrderStatus @default(PENDING)
+  provider       String
+  providerRef    String?     @unique
+  idempotencyKey String      @unique
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([userId])
+}
+
+// Webhook events from the payment provider. Unique providerEventId makes replays no-ops.
+model PaymentEvent {
+  id              String   @id @default(uuid()) @db.Uuid
+  provider        String
+  providerEventId String
+  type            String
+  orderId         String?  @db.Uuid
+  payload         Json
+  receivedAt      DateTime @default(now())
+
+  @@unique([provider, providerEventId])
+}
+
+// ───────────────────────────── Admin ─────────────────────────────
+
+model AdminAuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @db.Uuid // null = system job
+  actor      User?    @relation(fields: [actorId], references: [id])
+  action     String
+  entityType String
+  entityId   String?
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([entityType, entityId])
+}

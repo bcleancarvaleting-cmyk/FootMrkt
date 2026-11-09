@@ -1,0 +1,84 @@
+import { describe, expect, it } from "vitest";
+import { FOOTBALL_PACKS } from "@/config/packs";
+import { advertisedGuarantee, cardCount, categoryRank, parsePackConfig } from "@/domain/packs/config";
+import { honoursGuarantees, planPack } from "@/domain/packs/compose";
+import { seededRandom } from "@/domain/random";
+
+const pack = (code: string) => parsePackConfig(FOOTBALL_PACKS.find((p) => p.code === code)!.config);
+
+describe("pack configs", () => {
+  it("all seeded configs are valid", () => {
+    for (const p of FOOTBALL_PACKS) expect(() => parsePackConfig(p.config)).not.toThrow();
+  });
+
+  it("regular packs have six cards, starter has eleven", () => {
+    expect(cardCount(pack("football-bronze"))).toBe(6);
+    expect(cardCount(pack("football-silver"))).toBe(6);
+    expect(cardCount(pack("football-gold"))).toBe(6);
+    expect(cardCount(pack("football-starter"))).toBe(11);
+  });
+
+  it("advertises the guaranteed floor", () => {
+    expect(advertisedGuarantee(pack("football-gold"))).toEqual({ BRONZE: 6, SILVER: 6, GOLD: 2 });
+    expect(advertisedGuarantee(pack("football-silver"))).toEqual({ BRONZE: 6, SILVER: 6, GOLD: 0 });
+  });
+
+  it("rejects upgrades that are not above the base category", () => {
+    expect(() =>
+      parsePackConfig({ mode: "POOL", slots: [{ label: "x", count: 1, base: "SILVER", upgrades: [{ category: "BRONZE", chanceBp: 10 }] }] }),
+    ).toThrow();
+  });
+
+  it("rejects tradeable starter (MINT) packs", () => {
+    expect(() => parsePackConfig({ mode: "MINT", nonTradeable: false, slots: [{ label: "x", count: 1, base: "BRONZE" }] })).toThrow();
+  });
+});
+
+describe("planPack", () => {
+  it("never plans a slot below its guaranteed floor, across many rolls", () => {
+    for (const code of ["football-bronze", "football-silver", "football-gold", "football-starter"]) {
+      const cfg = pack(code);
+      for (let seed = 0; seed < 500; seed++) {
+        const plan = planPack(cfg, seededRandom(seed));
+        expect(plan).toHaveLength(cardCount(cfg));
+        for (const s of plan) expect(categoryRank[s.category]).toBeGreaterThanOrEqual(categoryRank[s.guaranteedCategory]);
+      }
+    }
+  });
+
+  it("upgrades happen at roughly the configured rate", () => {
+    const cfg = pack("football-bronze");
+    let silvers = 0;
+    const n = 4000;
+    for (let seed = 0; seed < n; seed++) silvers += planPack(cfg, seededRandom(seed)).filter((s) => s.category === "SILVER").length;
+    expect(silvers / n).toBeGreaterThan(0.2);
+    expect(silvers / n).toBeLessThan(0.3);
+  });
+
+  it("starter pack always has exactly one top-flight Bronze slot and full positional coverage", () => {
+    const cfg = pack("football-starter");
+    for (let seed = 0; seed < 500; seed++) {
+      const plan = planPack(cfg, seededRandom(seed));
+      const tf = plan.filter((s) => s.filters.topFlightOnly);
+      expect(tf).toHaveLength(1);
+      expect(tf[0].category).toBe("BRONZE");
+      const positions = plan.flatMap((s) => s.filters.positions ?? []);
+      expect(positions.filter((p) => p === "GK").length).toBeGreaterThanOrEqual(1);
+      expect(positions.filter((p) => p === "DEF").length).toBeGreaterThanOrEqual(2);
+      expect(positions.filter((p) => p === "MID").length).toBeGreaterThanOrEqual(2);
+      expect(positions.filter((p) => p === "ATT").length).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it("gold-pack Golds are top-flight only", () => {
+    const plan = planPack(pack("football-gold"), seededRandom(1));
+    expect(plan.slice(0, 2).every((s) => s.category === "GOLD" && s.filters.topFlightOnly)).toBe(true);
+  });
+
+  it("honoursGuarantees detects a downgrade", () => {
+    const plan = planPack(pack("football-gold"), seededRandom(1));
+    const ok = plan.map((p) => p.category);
+    expect(honoursGuarantees(plan, ok)).toBe(true);
+    expect(honoursGuarantees(plan, ["SILVER", ...ok.slice(1)])).toBe(false);
+  });
+});

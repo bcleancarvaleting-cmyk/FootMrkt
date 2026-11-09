@@ -1,0 +1,76 @@
+import type { CardCategory, Prisma } from "@/generated/prisma/client";
+import { getScoringRules, scorePlayer, toStatLine } from "@/domain/football/scoring";
+import { VALUATION_CONFIG, computeMp } from "@/domain/valuation/mp";
+import { db } from "./db";
+
+const FORM_GAMEWEEKS = 3;
+
+/** Recompute indicative MP for every player+category with a STANDARD template. */
+export async function revalueAll(now = new Date()) {
+  const templates = await db.cardTemplate.findMany({
+    where: { edition: "STANDARD", active: true },
+    include: { player: { include: { club: { include: { league: true } } } } },
+  });
+  const supply = await db.cardInstance.groupBy({ by: ["templateId"], _count: { _all: true }, where: { supplyState: { not: "RETIRED" } } });
+  const supplyBy = new Map(supply.map((s) => [s.templateId, s._count._all]));
+  const settledGws = await db.gameweek.findMany({ where: { status: "SETTLED" }, orderBy: [{ season: "desc" }, { number: "desc" }], take: FORM_GAMEWEEKS });
+  const stats = await db.playerMatchStat.findMany({
+    where: { isCurrent: true, fixture: { gameweekId: { in: settledGws.map((g) => g.id) } } },
+    include: { fixture: true },
+  });
+  const rules = getScoringRules("football-scoring-v1-draft");
+  const since = new Date(now.getTime() - 30 * 24 * 3600_000);
+  const sales = await db.marketListing.findMany({
+    where: { status: "SOLD", soldAt: { gte: since } },
+    include: { card: { include: { template: true } } },
+  });
+
+  let written = 0;
+  for (const t of templates) {
+    const perGw = settledGws.map((gw) => {
+      const lines = stats.filter((s) => s.playerId === t.playerId && s.fixture.gameweekId === gw.id).map((s) => toStatLine(s.stats));
+      return scorePlayer(rules, t.player.position, lines).points;
+    });
+    const previous = await db.mPValuation.findFirst({
+      where: { playerId: t.playerId, category: t.category },
+      orderBy: { computedAt: "desc" },
+    });
+    const r = computeMp({
+      category: t.category,
+      leagueTier: t.player.club?.league.tier ?? 4,
+      issuedSupply: supplyBy.get(t.id) ?? 0,
+      recentGameweekPoints: perGw,
+      recentSales: sales
+        .filter((s) => s.card.template.playerId === t.playerId && s.card.template.category === t.category)
+        .map((s) => ({ priceMinor: s.soldPriceMinor ?? 0, buyerId: s.buyerId ?? "", sellerId: s.sellerId })),
+      previousMp: previous?.valueMp ?? null,
+    });
+    if (!previous || previous.valueMp !== r.valueMp) {
+      await db.mPValuation.create({
+        data: {
+          playerId: t.playerId,
+          category: t.category,
+          valueMp: r.valueMp,
+          method: VALUATION_CONFIG.method,
+          signals: r.signals as Prisma.InputJsonValue,
+          computedAt: now,
+        },
+      });
+      written++;
+    }
+  }
+  return { templates: templates.length, written };
+}
+
+/** Latest MP for many player+category pairs. */
+export async function latestValues(keys: Array<{ playerId: string; category: CardCategory }>) {
+  if (!keys.length) return new Map<string, number>();
+  const playerIds = [...new Set(keys.map((k) => k.playerId))];
+  const rows = await db.$queryRaw<Array<{ playerId: string; category: CardCategory; valueMp: number }>>`
+    SELECT DISTINCT ON ("playerId", category) "playerId", category, "valueMp"
+    FROM "MPValuation" WHERE "playerId" = ANY(${playerIds}::uuid[])
+    ORDER BY "playerId", category, "computedAt" DESC`;
+  return new Map(rows.map((r) => [`${r.playerId}:${r.category}`, r.valueMp]));
+}
+
+export const valueKey = (playerId: string, category: string) => `${playerId}:${category}`;

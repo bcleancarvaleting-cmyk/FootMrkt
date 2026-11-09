@@ -32,7 +32,7 @@ export const FOOTBALL_PACKS: PackSkuSeed[] = [
       mode: "MINT",
       nonTradeable: true,
       uniquePlayers: true,
-      // TO CONFIRM: exact Bronze/Silver mix. Currently ~30% chance per slot of Silver.
+      // Approved 9 Nov 2026: ~30% chance per slot of Silver.
       // One Bronze slot is forced to a top-flight player ("lower-value Premier League player").
       topFlightRequirement: { count: 1, category: "BRONZE" },
       slots: [

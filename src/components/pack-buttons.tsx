@@ -1,0 +1,62 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { buyPackAction, claimDevPackAction, openPackAction } from "@/app/actions/game";
+import { ResultText } from "./action-button";
+import type { ActionResult } from "@/app/actions/result";
+
+export function OpenPackButton({ entitlementId, label = "Open pack" }: { entitlementId: string; label?: string }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [res, setRes] = useState<ActionResult<unknown> | null>(null);
+  return (
+    <span className="inline-flex flex-col gap-1">
+      <button
+        className="btn-primary"
+        disabled={pending}
+        onClick={() =>
+          start(async () => {
+            const r = await openPackAction(entitlementId);
+            if (r.ok) router.push(`/packs/opening/${r.data.openingId}`);
+            else setRes(r);
+          })
+        }
+      >
+        {pending ? "Opening…" : label}
+      </button>
+      {res && <ResultText result={res} />}
+    </span>
+  );
+}
+
+export function DevPackButton({ skuCode }: { skuCode: string }) {
+  const [pending, start] = useTransition();
+  const [res, setRes] = useState<ActionResult<unknown> | null>(null);
+  return (
+    <span className="inline-flex flex-col gap-1">
+      <button className="btn-ghost border-dashed text-xs" disabled={pending} onClick={() => start(async () => setRes(await claimDevPackAction(skuCode)))}>
+        {pending ? "…" : "DEV: claim free"}
+      </button>
+      {res && <ResultText result={res} />}
+    </span>
+  );
+}
+
+export function BuyPackButton({ skuCode, price, enabled }: { skuCode: string; price: string; enabled: boolean }) {
+  const [pending, start] = useTransition();
+  const [res, setRes] = useState<ActionResult<unknown> | null>(null);
+  return (
+    <span className="inline-flex flex-col gap-1">
+      <button
+        className="btn-primary"
+        disabled={!enabled || pending}
+        title={enabled ? undefined : "Paid packs are not available yet"}
+        onClick={() => start(async () => setRes(await buyPackAction(skuCode, crypto.randomUUID())))}
+      >
+        {pending ? "…" : `Buy ${price}`}
+      </button>
+      {res && <ResultText result={res} />}
+    </span>
+  );
+}

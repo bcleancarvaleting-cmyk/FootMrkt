@@ -1,0 +1,114 @@
+import { notFound } from "next/navigation";
+import { requireUser } from "@/server/auth/session";
+import { playerProfile } from "@/server/binder";
+import { DomainError } from "@/server/errors";
+import { POSITION_LABEL, ageFrom, fmtDate } from "@/lib/view";
+import { indicativeMoney } from "@/domain/valuation/mp";
+
+export const metadata = { title: "Player" };
+
+export default async function PlayerPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireUser();
+  const { id } = await params;
+  if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
+  const { player, matches, values } = await playerProfile(id).catch((e) => {
+    if (e instanceof DomainError) notFound();
+    throw e;
+  });
+  const played = matches.filter((m) => m.line.minutes > 0);
+  const total = played.reduce((s, m) => s + m.points.points, 0);
+  const age = ageFrom(player.dateOfBirth);
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="eyebrow">{POSITION_LABEL[player.position]}</p>
+        <h1 className="text-3xl font-black">
+          {player.firstName} {player.lastName}
+        </h1>
+        <p className="text-muted">
+          {player.club?.name ?? "Free agent"} · {player.club?.league.name} · {player.nationality}
+          {age !== null && ` · ${age}`}
+        </p>
+        {player.rightsStatus === "PLACEHOLDER" && <p className="mt-1 text-xs text-warn">Placeholder player for development — not a real person.</p>}
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-4">
+        <Kpi label="Apps (last 20)" value={played.length} />
+        <Kpi label="Goals" value={played.reduce((s, m) => s + m.line.goals, 0)} />
+        <Kpi label="Assists" value={played.reduce((s, m) => s + m.line.assists, 0)} />
+        <Kpi label="Avg points" value={played.length ? (total / played.length).toFixed(1) : "—"} />
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        {player.templates.map((t) => {
+          const mp = values.get(`${player.id}:${t.category}`);
+          return (
+            <span key={t.id} className="chip">
+              {t.category} card · {mp ? `${mp} MP (≈ ${indicativeMoney(mp)})` : "no value yet"}
+            </span>
+          );
+        })}
+      </div>
+
+      <section className="panel overflow-x-auto">
+        <table className="w-full min-w-[640px] text-sm">
+          <thead className="text-left text-xs uppercase tracking-wider text-faint">
+            <tr className="table-row">
+              {["GW", "Match", "Min", "G", "A", "Saves", "Tkl", "Cards", "Pts"].map((h) => (
+                <th key={h} className="px-3 py-2 font-medium">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {matches.map(({ stat, line, points }) => {
+              const f = stat.fixture;
+              const home = f.homeClubId === player.clubId;
+              return (
+                <tr key={stat.id} className="table-row">
+                  <td className="px-3 py-2 text-faint">{f.gameweek.number}</td>
+                  <td className="px-3 py-2">
+                    {home ? "vs" : "@"} {home ? f.awayClub.shortName : f.homeClub.shortName}{" "}
+                    <span className="text-faint">
+                      {f.homeGoals ?? "-"}–{f.awayGoals ?? "-"} · {fmtDate(f.kickoffAt, { dateStyle: "short" })}
+                    </span>
+                    {stat.revision > 1 && <span className="ml-1 text-[10px] text-warn">corrected r{stat.revision}</span>}
+                  </td>
+                  <td className="px-3 py-2">{line.minutes}</td>
+                  <td className="px-3 py-2">{line.goals || ""}</td>
+                  <td className="px-3 py-2">{line.assists || ""}</td>
+                  <td className="px-3 py-2">{line.saves || ""}</td>
+                  <td className="px-3 py-2">{line.tackles || ""}</td>
+                  <td className="px-3 py-2">
+                    {"🟨".repeat(line.yellowCards)}
+                    {"🟥".repeat(line.redCards)}
+                  </td>
+                  <td className="px-3 py-2 font-bold text-lime" title={points.items.map((i) => `${i.event}: ${i.points}`).join("\n")}>
+                    {line.minutes ? points.points : "–"}
+                  </td>
+                </tr>
+              );
+            })}
+            {!matches.length && (
+              <tr>
+                <td colSpan={9} className="px-3 py-6 text-center text-faint">
+                  No match data yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </section>
+    </div>
+  );
+}
+
+function Kpi({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="panel p-4">
+      <div className="label">{label}</div>
+      <div className="text-2xl font-black">{value}</div>
+    </div>
+  );
+}

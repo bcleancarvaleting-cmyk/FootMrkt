@@ -1,26 +1,105 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+/* COLLECTR — premium dark charcoal with restrained neon-lime accents (spec §1). */
+@theme {
+  --color-ink-950: #0a0b0d;
+  --color-ink-900: #111317;
+  --color-ink-850: #16181d;
+  --color-ink-800: #1b1e24;
+  --color-ink-700: #272b33;
+  --color-ink-600: #363b45;
+  --color-fg: #eceef1;
+  --color-muted: #9aa1ad;
+  --color-faint: #6b7280;
+  --color-lime: #c8f53c;
+  --color-lime-dim: #9fc42c;
+  --color-mint: #9ef0b4;
+  --color-danger: #ff6b6b;
+  --color-warn: #f5c451;
+  --color-bronze: #c98b5b;
+  --color-bronze-deep: #6b4126;
+  --color-silver: #cfd6de;
+  --color-silver-deep: #5a6370;
+  --color-gold: #ecc75a;
+  --color-gold-deep: #7a5a12;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: var(--color-ink-950);
+  color: var(--color-fg);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  background-image: radial-gradient(1200px 500px at 70% -10%, rgb(200 245 60 / 0.06), transparent 60%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: rgb(200 245 60 / 0.3);
+}
+
+@utility panel {
+  @apply rounded-2xl border border-ink-700 bg-ink-900/80;
+}
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40;
+}
+@utility btn-primary {
+  @apply btn bg-lime text-ink-950 hover:bg-lime-dim;
+}
+@utility btn-ghost {
+  @apply btn border border-ink-600 text-fg hover:border-lime/60 hover:text-lime;
+}
+@utility btn-danger {
+  @apply btn border border-danger/50 text-danger hover:bg-danger/10;
+}
+@utility input {
+  @apply w-full rounded-xl border border-ink-600 bg-ink-850 px-3 py-2 text-sm text-fg placeholder:text-faint focus:border-lime focus:outline-none;
+}
+@utility label {
+  @apply mb-1 block text-xs font-medium tracking-wider text-muted uppercase;
+}
+@utility chip {
+  @apply inline-flex items-center gap-1 rounded-full border border-ink-600 px-2 py-0.5 text-[11px] font-medium text-muted;
+}
+@utility eyebrow {
+  @apply text-[11px] font-semibold tracking-[0.2em] text-lime uppercase;
+}
+@utility table-row {
+  @apply border-b border-ink-700/70 last:border-0;
+}
+
+@keyframes card-reveal {
+  0% {
+    transform: perspective(800px) rotateY(90deg) scale(0.9);
+    opacity: 0;
+  }
+  100% {
+    transform: perspective(800px) rotateY(0) scale(1);
+    opacity: 1;
+  }
+}
+.animate-reveal {
+  animation: card-reveal 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes gold-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(236 199 90 / 0);
+  }
+  50% {
+    box-shadow: 0 0 32px 4px rgb(236 199 90 / 0.35);
+  }
+}
+.animate-gold {
+  animation: gold-glow 2.2s ease-in-out infinite;
 }

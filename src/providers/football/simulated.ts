@@ -192,7 +192,7 @@ export function simulateMatch(
   const lambdas = [1.25 * Math.sqrt(sh / sa) + 0.2, 1.25 * Math.sqrt(sa / sh)];
   const score = [0, 0];
 
-  const onPitchAt = (lineup: readonly OnPitch[], minute: number) => lineup.filter((p) => p.on <= minute && p.off > minute);
+  const onPitchAt = (lineup: readonly OnPitch[], minute: number) => lineup.filter((p) => p.on < minute && p.off >= minute);
 
   teams.forEach((t, ti) => {
     const opp = teams[1 - ti];

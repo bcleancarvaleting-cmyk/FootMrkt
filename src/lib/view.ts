@@ -1,0 +1,114 @@
+import { indicativeMoney } from "@/domain/valuation/mp";
+
+export type Category = "BRONZE" | "SILVER" | "GOLD";
+export type Pos = "GK" | "DEF" | "MID" | "ATT";
+
+/** Serializable card view model shared by server pages and client components. */
+export interface CardView {
+  id: string;
+  playerId: string;
+  name: string;
+  firstName: string;
+  lastName: string;
+  position: Pos;
+  category: Category;
+  edition: "STANDARD" | "STARTER";
+  clubCode: string | null;
+  clubShort: string | null;
+  clubName: string | null;
+  leagueName: string | null;
+  topFlight: boolean;
+  nationality: string;
+  serial: number;
+  maxSupply: number | null;
+  valueMp: number | null;
+  tradeable: boolean;
+  lock: "NONE" | "LISTED" | "COMPETITION";
+  lockRef: string | null;
+  favourite?: boolean;
+  duplicateCount?: number;
+}
+
+type CardLike = {
+  id: string;
+  serial: number;
+  tradeStatus: string;
+  lock: string;
+  lockRef: string | null;
+  template: {
+    category: string;
+    edition: string;
+    maxSupply: number | null;
+    player: {
+      id: string;
+      displayName: string;
+      firstName: string;
+      lastName: string;
+      position: string;
+      nationality: string;
+      club: { code: string; shortName: string; name: string; league: { name: string; isTopFlight: boolean } } | null;
+    };
+  };
+};
+
+export function toCardView(c: CardLike, extra: { valueMp?: number | null; favourite?: boolean; duplicateCount?: number } = {}): CardView {
+  const p = c.template.player;
+  return {
+    id: c.id,
+    playerId: p.id,
+    name: p.displayName,
+    firstName: p.firstName,
+    lastName: p.lastName,
+    position: p.position as Pos,
+    category: c.template.category as Category,
+    edition: c.template.edition as CardView["edition"],
+    clubCode: p.club?.code ?? null,
+    clubShort: p.club?.shortName ?? null,
+    clubName: p.club?.name ?? null,
+    leagueName: p.club?.league.name ?? null,
+    topFlight: p.club?.league.isTopFlight ?? false,
+    nationality: p.nationality,
+    serial: c.serial,
+    maxSupply: c.template.maxSupply,
+    valueMp: extra.valueMp ?? null,
+    tradeable: c.tradeStatus === "TRADEABLE",
+    lock: c.lock as CardView["lock"],
+    lockRef: c.lockRef,
+    favourite: extra.favourite,
+    duplicateCount: extra.duplicateCount,
+  };
+}
+
+export function mpLabel(mp: number | null): string {
+  return mp === null ? "— MP" : `${mp} MP`;
+}
+
+export function moneyRef(mp: number | null): string {
+  return mp === null ? "" : `≈ ${indicativeMoney(mp)}`;
+}
+
+export function gbp(minor: number): string {
+  return `£${(minor / 100).toFixed(2)}`;
+}
+
+export const POSITION_LABEL: Record<Pos, string> = { GK: "Goalkeeper", DEF: "Defender", MID: "Midfielder", ATT: "Attacker" };
+
+export function fmtDate(d: Date | string, opts: Intl.DateTimeFormatOptions = { dateStyle: "medium", timeStyle: "short" }) {
+  return new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", ...opts }).format(new Date(d));
+}
+
+export function relativeTime(d: Date | string): string {
+  const ms = new Date(d).getTime() - Date.now();
+  const abs = Math.abs(ms);
+  const unit = abs < 3600_000 ? ["minute", 60_000] : abs < 86_400_000 ? ["hour", 3600_000] : ["day", 86_400_000];
+  return new Intl.RelativeTimeFormat("en-GB", { numeric: "auto" }).format(Math.round(ms / (unit[1] as number)), unit[0] as Intl.RelativeTimeFormatUnit);
+}
+
+/** A Date `hours` before now (request time). */
+export function hoursAgo(hours: number): Date {
+  return new Date(Date.now() - hours * 3600_000);
+}
+
+export function ageFrom(dob: Date | null): number | null {
+  return dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 86_400_000)) : null;
+}

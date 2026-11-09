@@ -4,12 +4,15 @@ import { db } from "@/server/db";
 import { isEnabled } from "@/server/flags";
 import { fmtDate, gbp } from "@/lib/view";
 import { balanceMinor, fmtMp, walletHistory } from "@/server/wallet";
+import { respondInviteAction } from "@/app/actions/moderation";
+import { ActionButton } from "@/components/action-button";
+import { pendingInvite } from "@/server/moderation";
 
 export const metadata = { title: "Profile" };
 
 export default async function ProfilePage() {
   const user = await requireUser();
-  const [orders, entries, devTools, credit, ledger] = await Promise.all([
+  const [orders, entries, devTools, credit, ledger, invite] = await Promise.all([
     db.order.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 20 }),
     db.competitionEntry.findMany({
       where: { userId: user.id, finalPoints: { not: null } },
@@ -20,6 +23,7 @@ export default async function ProfilePage() {
     isEnabled("DEV_TOOLS"),
     balanceMinor(user.id),
     walletHistory(user.id),
+    pendingInvite(user.id),
   ]);
   const seasonPoints = entries.reduce((s, e) => s + (e.finalPoints ?? 0), 0);
   return (
@@ -31,6 +35,24 @@ export default async function ProfilePage() {
           {user.email} · joined {fmtDate(user.createdAt, { dateStyle: "long" })}
         </p>
       </div>
+
+      {invite && (
+        <div className="panel flex flex-wrap items-center justify-between gap-4 border-gold/50 p-5">
+          <div>
+            <p className="eyebrow">Invitation</p>
+            <p className="font-bold">{invite.invitedBy.displayName} has invited you to be a chat moderator.</p>
+            <p className="text-sm text-muted">Moderators review reported messages and can remove them. Please follow the community rules.</p>
+          </div>
+          <div className="flex gap-2">
+            <ActionButton action={respondInviteAction.bind(null, invite.id, true)} className="btn-gold">
+              Accept
+            </ActionButton>
+            <ActionButton action={respondInviteAction.bind(null, invite.id, false)} className="btn-ghost">
+              Decline
+            </ActionButton>
+          </div>
+        </div>
+      )}
 
       {!user.emailVerified && (
         <div className="panel border-warn/40 p-4 text-sm">

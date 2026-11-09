@@ -18,6 +18,7 @@ export async function acquisitionLabels(cardIds: string[]) {
   const orders = orderIds.length ? await db.order.findMany({ where: { id: { in: orderIds } } }) : [];
   for (const o of owns) {
     if (o.acquiredVia === "STARTER_PACK") out.set(o.cardId, "Starter");
+    else if (o.acquiredVia === "WEEKLY_PACK") out.set(o.cardId, "Weekly");
     else if (o.acquiredVia === "PACK") out.set(o.cardId, "Packed");
     else if (o.acquiredVia === "MARKET") {
       const order = orders.find((x) => x.id === o.acquiredRef);

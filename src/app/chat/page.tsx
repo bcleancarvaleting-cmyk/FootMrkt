@@ -3,6 +3,7 @@ import { ChatRoom } from "@/components/chat-room";
 import { CHAT_ROOMS, CHAT_RULES } from "@/config/chat";
 import { requireUser } from "@/server/auth/session";
 import { isRoom, listMessages } from "@/server/chat";
+import { canModerate } from "@/server/moderation";
 import { db } from "@/server/db";
 import { hoursAgo } from "@/lib/view";
 
@@ -44,8 +45,15 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
           );
         })}
       </div>
-      <p className="hidden text-sm text-muted sm:block">{current.blurb}</p>
-      <ChatRoom key={room} room={room} initial={messages} me={{ id: user.id, isAdmin: user.role === "ADMIN" }} maxLength={CHAT_RULES.maxLength} />
+      <div className="flex items-center justify-between gap-3">
+        <p className="hidden text-sm text-muted sm:block">{current.blurb}</p>
+        {canModerate(user.role) && (
+          <Link href="/moderation" className="text-xs font-extrabold uppercase tracking-[0.16em] text-gold">
+            Moderation queue →
+          </Link>
+        )}
+      </div>
+      <ChatRoom key={room} room={room} initial={messages} me={{ id: user.id, isMod: canModerate(user.role) }} maxLength={CHAT_RULES.maxLength} />
     </div>
   );
 }

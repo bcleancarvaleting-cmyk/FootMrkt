@@ -36,6 +36,7 @@ interface DataClub {
   short: string;
   primaryColour: string;
   secondaryColour: string;
+  kit: Record<string, unknown>;
   revision: string;
   players: DataPlayer[];
 }
@@ -95,6 +96,7 @@ async function main() {
           shortName: c.short,
           primaryColour: c.primaryColour,
           secondaryColour: c.secondaryColour,
+          kit: c.kit as object,
           sourceRef: `wikipedia:${c.article}@${c.revision}`,
           simStrength: Math.round(100 - lg.tier * 12 + rng.int(20)),
         },

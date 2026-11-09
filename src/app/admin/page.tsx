@@ -9,7 +9,10 @@ import {
   setFlagAction,
   simulateAction,
 } from "@/app/actions/admin";
+import { revokeModeratorAction } from "@/app/actions/moderation";
 import { ActionButton } from "@/components/action-button";
+import { InviteModeratorForm } from "@/components/moderator-admin";
+import { moderatorRoster } from "@/server/moderation";
 import { FLAG_DEFINITIONS, type FlagKey } from "@/config/flags";
 import { requireAdmin } from "@/server/auth/session";
 import { db } from "@/server/db";
@@ -24,6 +27,7 @@ export default async function AdminPage() {
   await requireAdmin();
   const sport = await footballSport();
   const day = hoursAgo(24);
+  const roster = await moderatorRoster();
   const [users, newUsers, openings, openings24, listings, flags, supply, gameweeks, releases, auditLog, providerEvents, staleFixtures] = await Promise.all([
     db.user.count(),
     db.user.count({ where: { createdAt: { gte: day } } }),
@@ -204,6 +208,41 @@ export default async function AdminPage() {
           </div>
         </section>
       </div>
+
+      <section className="panel p-5">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-bold">Chat moderators</h2>
+          <a href="/moderation" className="text-xs font-extrabold uppercase tracking-[0.16em] text-gold">
+            Moderation queue →
+          </a>
+        </div>
+        <p className="mb-3 text-sm text-muted">Admins moderate by default. Anyone else needs an invitation, which they accept from their profile.</p>
+        <InviteModeratorForm />
+        <ul className="mt-4 divide-y divide-ink-700 text-sm">
+          {roster.mods.map((m) => (
+            <li key={m.id} className="flex items-center justify-between py-2">
+              <span>
+                {m.displayName} <span className="chip ml-1">{m.role === "ADMIN" ? "Admin" : "Moderator"}</span>
+              </span>
+              {m.role === "MODERATOR" && (
+                <ActionButton action={revokeModeratorAction.bind(null, m.id)} className="btn-ghost px-3 py-1.5 text-[10px]" confirm="Remove moderator access?">
+                  Revoke
+                </ActionButton>
+              )}
+            </li>
+          ))}
+          {roster.invites.map((i) => (
+            <li key={i.id} className="flex items-center justify-between py-2 text-muted">
+              <span>
+                {i.user.displayName} <span className="chip ml-1">Invited by {i.invitedBy.displayName}</span>
+              </span>
+              <ActionButton action={revokeModeratorAction.bind(null, i.userId)} className="btn-ghost px-3 py-1.5 text-[10px]">
+                Cancel
+              </ActionButton>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <section className="panel p-5">
         <h2 className="mb-3 text-lg font-bold">Audit log</h2>

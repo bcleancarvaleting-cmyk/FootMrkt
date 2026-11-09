@@ -35,7 +35,8 @@ export default function HowItWorks() {
           unique numbered copy with its own ownership history.
         </p>
         <p>
-          New managers get a free 11-card Starter Pack. Starter cards are yours to play with but are permanently locked to your account.
+          New managers get a free 11-card Starter Pack, and every manager can claim a <b>free Weekly Pack</b> of 6 extra players. Starter
+          and Weekly cards are yours to play with but are permanently locked to your account.
         </p>
         <p>
           Gold Packs always contain at least <b>2 Gold</b> top-flight players — sometimes 3 or 4 — with the rest Bronze or Silver.

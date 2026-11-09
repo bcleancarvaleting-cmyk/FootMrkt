@@ -1,0 +1,99 @@
+import { beforeEach, describe, expect, it } from "vitest";
+import { db } from "@/server/db";
+import { postMessage, removeMessage, reportMessage, listMessages } from "@/server/chat";
+import { inviteModerator, keepMessage, respondToInvite, revokeModerator } from "@/server/moderation";
+import { openPack } from "@/server/packs";
+import { applyMarketValues } from "@/server/tiering";
+import { claimWeeklyPack } from "@/server/weekly";
+import { setProgress } from "@/server/collections";
+import { buildWorld, makeUser, resetDb } from "./fixtures";
+
+beforeEach(async () => {
+  await resetDb();
+  await buildWorld();
+});
+
+async function admin() {
+  const u = await makeUser();
+  await db.user.update({ where: { id: u.userId }, data: { role: "ADMIN" } });
+  return u.userId;
+}
+
+describe("weekly free pack", () => {
+  it("one per week, untradeable minted cards, a new one next week", async () => {
+    const { userId } = await makeUser();
+    const now = new Date("2026-11-10T12:00:00Z");
+    const a = await claimWeeklyPack(userId, now);
+    const b = await claimWeeklyPack(userId, new Date("2026-11-14T20:00:00Z"));
+    expect(b.id).toBe(a.id);
+    const opened = await openPack(userId, a.id);
+    expect(opened.cards).toHaveLength(6);
+    const cards = await db.cardInstance.findMany({ where: { id: { in: opened.cards.map((c) => c.cardId) } }, include: { template: true, ownerships: true } });
+    expect(cards.every((c) => c.tradeStatus === "NON_TRADEABLE" && c.template.edition === "STARTER")).toBe(true);
+    expect(cards.every((c) => c.ownerships[0].acquiredVia === "WEEKLY_PACK")).toBe(true);
+    const next = await claimWeeklyPack(userId, new Date("2026-11-17T09:00:00Z"));
+    expect(next.id).not.toBe(a.id);
+    expect(await db.packEntitlement.count({ where: { userId, source: "WEEKLY" } })).toBe(2);
+  });
+
+  it("weekly cards never count towards sets", async () => {
+    const { userId } = await makeUser();
+    const ent = await claimWeeklyPack(userId);
+    const opened = await openPack(userId, ent.id);
+    const card = await db.cardInstance.findUniqueOrThrow({ where: { id: opened.cards[0].cardId }, include: { template: true } });
+    const std = await db.cardTemplate.findFirstOrThrow({ where: { playerId: card.template.playerId, edition: "STANDARD" } });
+    const sportId = (await db.sport.findFirstOrThrow()).id;
+    await db.collectionSet.create({ data: { sportId, code: "w", name: "W", description: "", requirements: { create: [{ templateId: std.id }] } } });
+    expect((await setProgress(userId))[0].complete).toBe(false);
+  });
+});
+
+describe("moderators by invitation", () => {
+  it("admin invites, manager accepts, can moderate; revoke removes access", async () => {
+    const adminId = await admin();
+    const mod = await makeUser("helper");
+    const writer = await makeUser("writer");
+    await expect(removeMessage({ id: mod.userId, role: "USER" }, (await postMessage(writer.userId, "dugout", "hi")).id)).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+    const { invite } = await inviteModerator(adminId, "helper");
+    await expect(inviteModerator(adminId, "helper")).rejects.toMatchObject({ code: "PENDING" });
+    await expect(inviteModerator(mod.userId, "writer")).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await respondToInvite(mod.userId, invite.id, true);
+    const me = await db.user.findUniqueOrThrow({ where: { id: mod.userId } });
+    expect(me.role).toBe("MODERATOR");
+
+    const msg = await postMessage(writer.userId, "dugout", "borderline");
+    for (let i = 0; i < 3; i++) await reportMessage((await makeUser()).userId, msg.id);
+    expect((await listMessages("dugout")).find((m) => m.id === msg.id)?.removed).toBe(true);
+    await keepMessage(me, msg.id);
+    expect((await listMessages("dugout")).find((m) => m.id === msg.id)?.removed).toBe(false);
+    await removeMessage(me, msg.id);
+
+    await revokeModerator(adminId, mod.userId);
+    expect((await db.user.findUniqueOrThrow({ where: { id: mod.userId } })).role).toBe("USER");
+    expect(await db.adminAuditLog.count({ where: { action: { startsWith: "moderator." } } })).toBe(3);
+  });
+
+  it("declined invites leave the role unchanged", async () => {
+    const adminId = await admin();
+    const u = await makeUser("nothanks");
+    const { invite } = await inviteModerator(adminId, "nothanks");
+    await respondToInvite(u.userId, invite.id, false);
+    expect((await db.user.findUniqueOrThrow({ where: { id: u.userId } })).role).toBe("USER");
+    await expect(respondToInvite(u.userId, invite.id, true)).rejects.toMatchObject({ code: "NOT_FOUND" });
+  });
+});
+
+describe("market-value tiering", () => {
+  it("re-tiers future supply and keeps issued cards", async () => {
+    const tpl = await db.cardTemplate.findFirstOrThrow({ where: { category: "BRONZE", edition: "STANDARD" } });
+    const issuedBefore = await db.cardInstance.count({ where: { templateId: tpl.id } });
+    const r = await applyMarketValues([{ playerId: tpl.playerId, valueGbp: 45_000_000, source: "test", at: new Date() }]);
+    expect(r.retiered).toBe(1);
+    const active = await db.cardTemplate.findMany({ where: { playerId: tpl.playerId, edition: "STANDARD", active: true } });
+    expect(active.map((t) => t.category)).toEqual(["GOLD"]);
+    expect(await db.cardInstance.count({ where: { templateId: tpl.id } })).toBe(issuedBefore);
+    expect((await db.player.findUniqueOrThrow({ where: { id: tpl.playerId } })).marketValueGbp).toBe(45_000_000);
+    expect((await applyMarketValues([{ playerId: tpl.playerId, valueGbp: 50_000_000, source: "test", at: new Date() }])).retiered).toBe(0);
+  });
+});

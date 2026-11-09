@@ -114,7 +114,10 @@ Things the spec marks **TO CONFIRM / PROPOSED** are implemented as configuration
 | MP valuation | 1 MP ≈ £1 reference, base by tier × scarcity × form × league, blended with median of eligible sales, ±15% damping per run | `src/domain/valuation/mp.ts` |
 | Weekly supply | 6 Bronze / 3 Silver / 1 Gold per card design per week, capped by `maxSupply` | `src/server/supply.ts` |
 | Collection rewards | **Confirmed:** 10 MP credit (≈ £10) per completed set, spendable on packs; append-only ledger, never withdrawable | `src/server/wallet.ts` |
-| Card tiers for real players | Proposed proxy: league + squad number (PL 1–11 Gold, 12–30 Silver; Championship 1–11 Silver; rest Bronze) | `src/config/tiers.ts` |
+| Weekly free pack | **Confirmed:** 1 untradeable 6-card pack per manager per week (Monday 00:00 UK reset); minted, doesn't count for sets | `src/server/weekly.ts` |
+| Chat moderators | **Confirmed:** admins moderate; others only by admin invitation they accept; admins can revoke | `src/server/moderation.ts` |
+| Kits & badges | Home-kit colours from club infoboxes + curated stripes/hoops/halves/quarters; lookalike generic badges (no copied crests) | `scripts/import_wikipedia.py`, `src/components/kit-shirt.tsx` |
+| Card tiers for real players | **Confirmed:** by market value — Gold ≥ £20m, Silver ≥ £2m (thresholds proposed). Load values with `npm run values:import`; squad-number fallback until then | `src/config/tiers.ts` |
 
 ### Blockers (deliberately not faked)
 

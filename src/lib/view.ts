@@ -1,4 +1,5 @@
 import { indicativeMoney } from "@/domain/valuation/mp";
+import { type Kit, toKit } from "./kit";
 
 export type Category = "BRONZE" | "SILVER" | "GOLD";
 export type Pos = "GK" | "DEF" | "MID" | "ATT";
@@ -18,6 +19,7 @@ export interface CardView {
   clubName: string | null;
   clubPrimary: string;
   clubSecondary: string;
+  kit: Kit;
   crestUrl: string | null;
   leagueName: string | null;
   topFlight: boolean;
@@ -68,6 +70,7 @@ type CardLike = {
         primaryColour?: string;
         secondaryColour?: string;
         crestUrl?: string | null;
+        kit?: unknown;
         league: { name: string; isTopFlight: boolean };
       } | null;
     };
@@ -100,6 +103,7 @@ export function toCardView(
     clubName: p.club?.name ?? null,
     clubPrimary: p.club?.primaryColour ?? "#2a2f38",
     clubSecondary: p.club?.secondaryColour ?? "#ffffff",
+    kit: toKit(p.club?.kit, p.club?.primaryColour ?? "#2a2f38", p.club?.secondaryColour ?? "#ffffff"),
     crestUrl: p.club?.crestUrl ?? null,
     leagueName: p.club?.league.name ?? null,
     topFlight: p.club?.league.isTopFlight ?? false,

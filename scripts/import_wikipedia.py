@@ -60,6 +60,82 @@ NAT = {
 
 POS = {"GK": "GK", "DF": "DEF", "MF": "MID", "FW": "ATT"}
 
+# Traditional home-shirt designs that Wikipedia stores as images. [pattern, pattern colour, base colour]
+# Patterns are generic (stripes/hoops/halves/quarters) — no badges, sponsors or maker marks.
+KIT_PATTERNS = {
+    "Newcastle United": ["stripes", "#111111", "#FFFFFF"],
+    "Brentford": ["stripes", "#E30613", "#FFFFFF"],
+    "Sunderland": ["stripes", "#EB172B", "#FFFFFF"],
+    "Stoke City": ["stripes", "#E03A3E", "#FFFFFF"],
+    "Sheffield United": ["stripes", "#EE2737", "#FFFFFF"],
+    "West Bromwich Albion": ["stripes", "#122F67", "#FFFFFF"],
+    "Sheffield Wednesday": ["stripes", "#2B66B1", "#FFFFFF"],
+    "Huddersfield Town": ["stripes", "#0E63AD", "#FFFFFF"],
+    "Brighton & Hove Albion": ["stripes", "#0057B8", "#FFFFFF"],
+    "Southampton": ["stripes", "#D71920", "#FFFFFF"],
+    "Lincoln City": ["stripes", "#D2001F", "#FFFFFF"],
+    "Exeter City": ["stripes", "#D2001F", "#FFFFFF"],
+    "Notts County": ["stripes", "#111111", "#FFFFFF"],
+    "Grimsby Town": ["stripes", "#111111", "#FFFFFF"],
+    "Hartlepool United": ["stripes", "#0055A5", "#FFFFFF"],
+    "Colchester United": ["stripes", "#0055A5", "#FFFFFF"],
+    "Altrincham": ["stripes", "#D2001F", "#FFFFFF"],
+    "Queens Park Rangers": ["hoops", "#1D5BA4", "#FFFFFF"],
+    "Doncaster Rovers": ["hoops", "#E2001A", "#FFFFFF"],
+    "Blackburn Rovers": ["halves", "#009EE0", "#FFFFFF"],
+    "Woking": ["halves", "#D2001F", "#FFFFFF"],
+    "Bristol Rovers": ["quarters", "#003B8E", "#FFFFFF"],
+    "Wycombe Wanderers": ["quarters", "#0A1F44", "#88BBE3"],
+}
+
+
+# Home kits missing from the infobox: body, sleeves, shorts, socks.
+KIT_COLOURS = {
+    "Leeds United": ["#FFFFFF", "#FFFFFF", "#FFFFFF", "#FFFFFF"],
+    "Bristol City": ["#E21B23", "#E21B23", "#FFFFFF", "#E21B23"],
+    "Shrewsbury Town": ["#004A9C", "#004A9C", "#004A9C", "#004A9C"],
+    "York City": ["#C8102E", "#C8102E", "#0A1F44", "#C8102E"],
+    "Gateshead": ["#FFFFFF", "#FFFFFF", "#111111", "#FFFFFF"],
+}
+
+
+def hexcol(v):
+    v = (v or "").strip().lstrip("#")
+    return "#" + v.upper() if re.fullmatch(r"[0-9A-Fa-f]{6}", v) else None
+
+
+def home_kit(wikitext, name, fallback):
+    """Home kit from the club infobox (body, sleeves, shorts) plus a pattern."""
+    get = lambda k: (re.search(r"\|\s*" + k + r"\s*=\s*([^\n|]*)", wikitext) or [None, ""])[1]
+    body = hexcol(get("body1")) or fallback.get("primary") or "#2A2F38"
+    sleeves = hexcol(get("leftarm1")) or body
+    shorts = hexcol(get("shorts1")) or fallback.get("secondary") or "#FFFFFF"
+    socks = hexcol(get("socks1")) or shorts
+    pat = get("pattern_b1").lower()
+    kit = {"body": body, "sleeves": sleeves, "shorts": shorts, "socks": socks, "pattern": "plain", "patternColour": None}
+    for key in ("stripes", "hoops", "halves", "quarters"):
+        if key.rstrip("s") in pat:
+            kit["pattern"] = key
+            colour = re.match(r"_?(red|blue|black|white|yellow|green|navy|amber|claret|sky)", pat)
+            named = {"red": "#D2001F", "blue": "#0055A5", "black": "#111111", "white": "#FFFFFF", "yellow": "#FFD200",
+                     "green": "#00843D", "navy": "#122F67", "amber": "#FFB000", "claret": "#7A263A", "sky": "#88BBE3"}
+            kit["patternColour"] = named.get(colour.group(1)) if colour else shorts
+    if name in KIT_COLOURS:
+        b, sl, sh, so = KIT_COLOURS[name]
+        kit.update({"body": b, "sleeves": sl, "shorts": sh, "socks": so})
+    # Stripes the same colour as the shirt would be invisible: draw them on white.
+    rgb = lambda h: [int(h[i:i + 2], 16) for i in (1, 3, 5)]
+    close = lambda a, b: sum(abs(x - y) for x, y in zip(rgb(a), rgb(b))) < 120
+    if kit["pattern"] != "plain" and kit["patternColour"] and close(kit["patternColour"], kit["body"]):
+        kit["body"] = "#FFFFFF"
+    if name in KIT_PATTERNS:
+        p, c, base = KIT_PATTERNS[name]
+        kit.update({"pattern": p, "patternColour": c, "body": base})
+    # A kit whose body and sleeves match a near-black default carries no information: use squad colours.
+    if kit["body"] == "#2A2F38" and fallback.get("primary"):
+        kit["body"] = kit["sleeves"] = fallback["primary"]
+    return kit
+
 
 def fetch_batch(titles):
     ctx = ssl.create_default_context(cafile=os.environ.get("SSL_CERT_FILE") or "/root/.ccr/ca-bundle.crt") if os.path.exists("/root/.ccr/ca-bundle.crt") else ssl.create_default_context()
@@ -260,8 +336,13 @@ def main():
             players, colours = squad(page["wikitext"])
             c["short"] = short_code(c["name"], used)
             used.add(c["short"])
-            c["primaryColour"] = colours.get("primary", "#2A2F38")
-            c["secondaryColour"] = colours.get("secondary", "#FFFFFF")
+            kit = home_kit(re.sub(r"<!--.*?-->", "", page["wikitext"], flags=re.S), c["name"], colours)
+            c["kit"] = kit
+            # Club colours (badge, accents) follow the home shirt.
+            c["primaryColour"] = kit["patternColour"] if kit["pattern"] != "plain" and kit["body"] == "#FFFFFF" else kit["body"]
+            c["secondaryColour"] = kit["body"] if c["primaryColour"] != kit["body"] else (kit["sleeves"] if kit["sleeves"] != kit["body"] else kit["shorts"])
+            if c["secondaryColour"] == c["primaryColour"]:
+                c["secondaryColour"] = "#FFFFFF" if c["primaryColour"] != "#FFFFFF" else "#111111"
             c["revision"] = page["timestamp"]
             c["players"] = players
             print(f"{l['code']:4} {c['short']} {c['name']:28} {len(players):3} players", file=sys.stderr)

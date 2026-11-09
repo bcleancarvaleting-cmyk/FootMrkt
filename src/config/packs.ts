@@ -12,13 +12,14 @@ export interface PackSkuSeed {
   code: string;
   version: number;
   name: string;
-  kind: "STARTER" | "REGULAR";
+  kind: "STARTER" | "WEEKLY" | "REGULAR";
   priceMinor: number;
   config: PackConfig;
   blurb: string;
 }
 
 export const STARTER_PACK_CODE = "football-starter";
+export const WEEKLY_PACK_CODE = "football-weekly";
 
 export const FOOTBALL_PACKS: PackSkuSeed[] = [
   {
@@ -44,6 +45,29 @@ export const FOOTBALL_PACKS: PackSkuSeed[] = [
         { label: "Sub MID", count: 1, base: "BRONZE", filters: { positions: ["MID"] }, upgrades: [{ category: "SILVER", chanceBp: 3000 }] },
         { label: "Sub ATT", count: 1, base: "BRONZE", filters: { positions: ["ATT"] }, upgrades: [{ category: "SILVER", chanceBp: 3000 }] },
         { label: "Sub GK", count: 1, base: "BRONZE", filters: { positions: ["GK"] }, upgrades: [] },
+      ],
+    },
+  },
+  {
+    code: WEEKLY_PACK_CODE,
+    version: 1,
+    name: "Weekly Free Pack",
+    kind: "WEEKLY",
+    priceMinor: 0,
+    blurb: "6 extra players, free every week. Untradeable — for building your squad.",
+    // Product decision (9 Nov 2026): one free untradeable pack per manager per week. Cards are
+    // minted fresh (they don't drain the tradeable supply) and can't be sold or used in sets.
+    // Odds mirror the Bronze Pack (approved odds).
+    config: {
+      mode: "MINT",
+      nonTradeable: true,
+      uniquePlayers: true,
+      slots: [
+        { label: "DEF", count: 1, base: "BRONZE", filters: { positions: ["DEF"] }, upgrades: [] },
+        { label: "MID", count: 1, base: "BRONZE", filters: { positions: ["MID"] }, upgrades: [] },
+        { label: "ATT", count: 1, base: "BRONZE", filters: { positions: ["ATT"] }, upgrades: [] },
+        { label: "Any", count: 2, base: "BRONZE", upgrades: [] },
+        { label: "Any+", count: 1, base: "BRONZE", upgrades: [{ category: "SILVER", chanceBp: 2500 }] },
       ],
     },
   },

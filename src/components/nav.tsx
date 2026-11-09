@@ -28,6 +28,11 @@ export async function Header({ theme }: { theme: Theme }) {
           <Link href="/how-it-works" className="rounded-full px-3 py-1.5 text-muted hover:text-fg">
             How it works
           </Link>
+          {(user?.role === "ADMIN" || user?.role === "MODERATOR") && (
+            <Link href="/moderation" className="rounded-full px-3 py-1.5 text-muted hover:text-fg">
+              Moderation
+            </Link>
+          )}
           {user?.role === "ADMIN" && (
             <Link href="/admin" className="rounded-full px-3 py-1.5 text-muted hover:text-fg">
               Admin

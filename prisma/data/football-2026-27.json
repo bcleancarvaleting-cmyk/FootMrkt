@@ -1,7 +1,7 @@
 {
  "season": "2026-27",
  "source": "English Wikipedia, CC BY-SA 4.0 — development data only; see scripts/import_wikipedia.py",
- "generatedAt": "2026-11-09T19:39:08Z",
+ "generatedAt": "2026-11-09T20:22:34Z",
  "leagues": [
   {
    "code": "EPL",
@@ -14,7 +14,15 @@
      "article": "Arsenal F.C.",
      "name": "Arsenal",
      "short": "ARS",
-     "primaryColour": "#CC0000",
+     "kit": {
+      "body": "#F00000",
+      "sleeves": "#FFFFFF",
+      "shorts": "#FFFFFF",
+      "socks": "#F00000",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#F00000",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-07T02:43:49Z",
      "players": [
@@ -185,8 +193,16 @@
      "article": "Aston Villa F.C.",
      "name": "Aston Villa",
      "short": "AVL",
-     "primaryColour": "#670E36",
-     "secondaryColour": "#F8F8F8",
+     "kit": {
+      "body": "#69091C",
+      "sleeves": "#69091C",
+      "shorts": "#BBD5F2",
+      "socks": "#BBD5F2",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#69091C",
+     "secondaryColour": "#BBD5F2",
      "revision": "2026-11-09T00:31:07Z",
      "players": [
       {
@@ -391,7 +407,15 @@
      "article": "AFC Bournemouth",
      "name": "Bournemouth",
      "short": "BOU",
-     "primaryColour": "#E20E0E",
+     "kit": {
+      "body": "#000000",
+      "sleeves": "#000000",
+      "shorts": "#000000",
+      "socks": "#000000",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#000000",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-05T21:17:22Z",
      "players": [
@@ -597,7 +621,15 @@
      "article": "Brentford F.C.",
      "name": "Brentford",
      "short": "BRE",
-     "primaryColour": "#D00000",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FFFFFF",
+      "shorts": "#000000",
+      "socks": "#000000",
+      "pattern": "stripes",
+      "patternColour": "#E30613"
+     },
+     "primaryColour": "#E30613",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-09T05:25:38Z",
      "players": [
@@ -810,7 +842,15 @@
      "article": "Brighton & Hove Albion F.C.",
      "name": "Brighton & Hove Albion",
      "short": "BHA",
-     "primaryColour": "#0054A6",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#1144DD",
+      "shorts": "#1144DD",
+      "socks": "#1144DD",
+      "pattern": "stripes",
+      "patternColour": "#0057B8"
+     },
+     "primaryColour": "#0057B8",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-05T08:57:59Z",
      "players": [
@@ -1030,7 +1070,15 @@
      "article": "Chelsea F.C.",
      "name": "Chelsea",
      "short": "CHE",
-     "primaryColour": "#002FCC",
+     "kit": {
+      "body": "#14349B",
+      "sleeves": "#14349B",
+      "shorts": "#14349B",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#14349B",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-10-24T15:47:50Z",
      "players": [
@@ -1250,8 +1298,16 @@
      "article": "Coventry City F.C.",
      "name": "Coventry City",
      "short": "COV",
-     "primaryColour": "#AAD0FF",
-     "secondaryColour": "#000080",
+     "kit": {
+      "body": "#62B5E5",
+      "sleeves": "#62B5E5",
+      "shorts": "#62B5E5",
+      "socks": "#62B5E5",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#62B5E5",
+     "secondaryColour": "#FFFFFF",
      "revision": "2026-10-31T16:58:22Z",
      "players": [
       {
@@ -1470,8 +1526,16 @@
      "article": "Crystal Palace F.C.",
      "name": "Crystal Palace",
      "short": "CRY",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FFFFFF",
+      "shorts": "#FFFFFF",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFFFFF",
+     "secondaryColour": "#111111",
      "revision": "2026-11-09T19:28:51Z",
      "players": [
       {
@@ -1676,6 +1740,14 @@
      "article": "Everton F.C.",
      "name": "Everton",
      "short": "EVE",
+     "kit": {
+      "body": "#0000FF",
+      "sleeves": "#0000FF",
+      "shorts": "#FFFFFF",
+      "socks": "#0000FF",
+      "pattern": "plain",
+      "patternColour": null
+     },
      "primaryColour": "#0000FF",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-10-24T11:04:43Z",
@@ -1833,8 +1905,16 @@
      "article": "Fulham F.C.",
      "name": "Fulham",
      "short": "FUL",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FFFFFF",
+      "shorts": "#000000",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFFFFF",
+     "secondaryColour": "#000000",
      "revision": "2026-11-06T22:52:28Z",
      "players": [
       {
@@ -2025,8 +2105,16 @@
      "article": "Hull City A.F.C.",
      "name": "Hull City",
      "short": "HUL",
-     "primaryColour": "#FFAF00",
-     "secondaryColour": "#000000",
+     "kit": {
+      "body": "#000000",
+      "sleeves": "#000000",
+      "shorts": "#FFFFFF",
+      "socks": "#000000",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#000000",
+     "secondaryColour": "#FFFFFF",
      "revision": "2026-10-31T18:00:35Z",
      "players": [
       {
@@ -2266,7 +2354,15 @@
      "article": "Ipswich Town F.C.",
      "name": "Ipswich Town",
      "short": "IPS",
-     "primaryColour": "#0333F0",
+     "kit": {
+      "body": "#0333A0",
+      "sleeves": "#0333A0",
+      "shorts": "#FFFFFF",
+      "socks": "#0333A0",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#0333A0",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-03T19:33:59Z",
      "players": [
@@ -2472,8 +2568,16 @@
      "article": "Leeds United F.C.",
      "name": "Leeds United",
      "short": "LEE",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FFFFFF",
+      "shorts": "#FFFFFF",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFFFFF",
+     "secondaryColour": "#111111",
      "revision": "2026-11-08T23:38:00Z",
      "players": [
       {
@@ -2650,7 +2754,15 @@
      "article": "Liverpool F.C.",
      "name": "Liverpool",
      "short": "LIV",
-     "primaryColour": "#D10A11",
+     "kit": {
+      "body": "#8F1E32",
+      "sleeves": "#8F1E32",
+      "shorts": "#8F1E32",
+      "socks": "#8F1E32",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#8F1E32",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-04T18:37:30Z",
      "players": [
@@ -2877,7 +2989,15 @@
      "article": "Manchester City F.C.",
      "name": "Manchester City",
      "short": "MCI",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#98C6EB",
+      "sleeves": "#98C6EB",
+      "shorts": "#FFFFFF",
+      "socks": "#1C214F",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#98C6EB",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-01T15:55:46Z",
      "players": [
@@ -3069,7 +3189,15 @@
      "article": "Manchester United F.C.",
      "name": "Manchester United",
      "short": "MUN",
-     "primaryColour": "#E20E0E",
+     "kit": {
+      "body": "#FF0000",
+      "sleeves": "#FF0000",
+      "shorts": "#FFFFFF",
+      "socks": "#000000",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FF0000",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-05T21:06:10Z",
      "players": [
@@ -3289,7 +3417,15 @@
      "article": "Newcastle United F.C.",
      "name": "Newcastle United",
      "short": "NEW",
-     "primaryColour": "#201929",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FFFFFF",
+      "shorts": "#000000",
+      "socks": "#000000",
+      "pattern": "stripes",
+      "patternColour": "#111111"
+     },
+     "primaryColour": "#111111",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-05T15:19:52Z",
      "players": [
@@ -3481,7 +3617,15 @@
      "article": "Nottingham Forest F.C.",
      "name": "Nottingham Forest",
      "short": "NFO",
-     "primaryColour": "#DD0000",
+     "kit": {
+      "body": "#D70926",
+      "sleeves": "#D70926",
+      "shorts": "#FFFFFF",
+      "socks": "#D70926",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#D70926",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-07T19:37:02Z",
      "players": [
@@ -3659,7 +3803,15 @@
      "article": "Sunderland A.F.C.",
      "name": "Sunderland",
      "short": "SUN",
-     "primaryColour": "#DD0000",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FF0000",
+      "shorts": "#000000",
+      "socks": "#000000",
+      "pattern": "stripes",
+      "patternColour": "#EB172B"
+     },
+     "primaryColour": "#EB172B",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-07T10:54:07Z",
      "players": [
@@ -3872,8 +4024,16 @@
      "article": "Tottenham Hotspur F.C.",
      "name": "Tottenham Hotspur",
      "short": "TOT",
-     "primaryColour": "#000080",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FFFFFF",
+      "shorts": "#FFFFFF",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFFFFF",
+     "secondaryColour": "#111111",
      "revision": "2026-11-08T12:59:04Z",
      "players": [
       {
@@ -4094,7 +4254,15 @@
      "article": "Birmingham City F.C.",
      "name": "Birmingham City",
      "short": "BIR",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#0000FF",
+      "sleeves": "#0000FF",
+      "shorts": "#FFFFFF",
+      "socks": "#0000FF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#0000FF",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-10-23T09:13:45Z",
      "players": [
@@ -4293,7 +4461,15 @@
      "article": "Blackburn Rovers F.C.",
      "name": "Blackburn Rovers",
      "short": "BLB",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#1F97E6",
+      "shorts": "#1F97E6",
+      "socks": "#1F97E6",
+      "pattern": "halves",
+      "patternColour": "#009EE0"
+     },
+     "primaryColour": "#009EE0",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-10-25T19:10:54Z",
      "players": [
@@ -4499,8 +4675,16 @@
      "article": "Bolton Wanderers F.C.",
      "name": "Bolton Wanderers",
      "short": "BOL",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FFFFFF",
+      "shorts": "#FFFFFF",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFFFFF",
+     "secondaryColour": "#111111",
      "revision": "2026-11-04T08:36:33Z",
      "players": [
       {
@@ -4691,7 +4875,15 @@
      "article": "Bristol City F.C.",
      "name": "Bristol City",
      "short": "BRC",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#E21B23",
+      "sleeves": "#E21B23",
+      "shorts": "#FFFFFF",
+      "socks": "#E21B23",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#E21B23",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-07T06:35:33Z",
      "players": [
@@ -4904,8 +5096,16 @@
      "article": "Burnley F.C.",
      "name": "Burnley",
      "short": "BUR",
+     "kit": {
+      "body": "#970045",
+      "sleeves": "#970045",
+      "shorts": "#FFFFFF",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
      "primaryColour": "#970045",
-     "secondaryColour": "#ADD8E6",
+     "secondaryColour": "#FFFFFF",
      "revision": "2026-11-08T18:13:09Z",
      "players": [
       {
@@ -5103,6 +5303,14 @@
      "article": "Cardiff City F.C.",
      "name": "Cardiff City",
      "short": "CAR",
+     "kit": {
+      "body": "#0000FF",
+      "sleeves": "#0000FF",
+      "shorts": "#FFFFFF",
+      "socks": "#0000FF",
+      "pattern": "plain",
+      "patternColour": null
+     },
      "primaryColour": "#0000FF",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-10-16T16:39:19Z",
@@ -5295,7 +5503,15 @@
      "article": "Charlton Athletic F.C.",
      "name": "Charlton Athletic",
      "short": "CHA",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FF0000",
+      "sleeves": "#FF0000",
+      "shorts": "#FFFFFF",
+      "socks": "#FF0000",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FF0000",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-09T08:06:20Z",
      "players": [
@@ -5522,8 +5738,16 @@
      "article": "Derby County F.C.",
      "name": "Derby County",
      "short": "DER",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FFFFFF",
+      "shorts": "#000000",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFFFFF",
+     "secondaryColour": "#000000",
      "revision": "2026-11-06T21:58:36Z",
      "players": [
       {
@@ -5763,7 +5987,15 @@
      "article": "Lincoln City F.C.",
      "name": "Lincoln City",
      "short": "LIN",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#CE131A",
+      "shorts": "#1C1819",
+      "socks": "#EC1C40",
+      "pattern": "stripes",
+      "patternColour": "#D2001F"
+     },
+     "primaryColour": "#D2001F",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-10-19T07:20:32Z",
      "players": [
@@ -5969,7 +6201,15 @@
      "article": "Middlesbrough F.C.",
      "name": "Middlesbrough",
      "short": "MID",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FF0000",
+      "sleeves": "#FF0000",
+      "shorts": "#FF0000",
+      "socks": "#FF0000",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FF0000",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-10-31T08:29:46Z",
      "players": [
@@ -6168,7 +6408,15 @@
      "article": "Millwall F.C.",
      "name": "Millwall",
      "short": "MIL",
-     "primaryColour": "#15317E",
+     "kit": {
+      "body": "#000F36",
+      "sleeves": "#000F36",
+      "shorts": "#FFFFFF",
+      "socks": "#000F36",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#000F36",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-04T17:52:00Z",
      "players": [
@@ -6395,8 +6643,16 @@
      "article": "Norwich City F.C.",
      "name": "Norwich City",
      "short": "NOR",
-     "primaryColour": "#FFF000",
-     "secondaryColour": "#000000",
+     "kit": {
+      "body": "#FFFF00",
+      "sleeves": "#FFFF00",
+      "shorts": "#009A40",
+      "socks": "#FFFF00",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFFF00",
+     "secondaryColour": "#009A40",
      "revision": "2026-11-07T20:16:26Z",
      "players": [
       {
@@ -6629,6 +6885,14 @@
      "article": "Portsmouth F.C.",
      "name": "Portsmouth",
      "short": "POR",
+     "kit": {
+      "body": "#0000FF",
+      "sleeves": "#0000FF",
+      "shorts": "#FFFFFF",
+      "socks": "#FF0000",
+      "pattern": "plain",
+      "patternColour": null
+     },
      "primaryColour": "#0000FF",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-10-19T13:23:52Z",
@@ -6856,8 +7120,16 @@
      "article": "Preston North End F.C.",
      "name": "Preston North End",
      "short": "PNE",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FFFFFF",
+      "shorts": "#000055",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFFFFF",
+     "secondaryColour": "#000055",
      "revision": "2026-11-09T18:12:15Z",
      "players": [
       {
@@ -7055,7 +7327,15 @@
      "article": "Queens Park Rangers F.C.",
      "name": "Queens Park Rangers",
      "short": "QPR",
-     "primaryColour": "#0066CC",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#0066CC",
+      "shorts": "#FFFFFF",
+      "socks": "#FFFFFF",
+      "pattern": "hoops",
+      "patternColour": "#1D5BA4"
+     },
+     "primaryColour": "#1D5BA4",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-04T05:01:47Z",
      "players": [
@@ -7247,7 +7527,15 @@
      "article": "Sheffield United F.C.",
      "name": "Sheffield United",
      "short": "SHU",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FF0000",
+      "shorts": "#000000",
+      "socks": "#FF0000",
+      "pattern": "stripes",
+      "patternColour": "#EE2737"
+     },
+     "primaryColour": "#EE2737",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-05T09:28:13Z",
      "players": [
@@ -7467,7 +7755,15 @@
      "article": "Southampton F.C.",
      "name": "Southampton",
      "short": "SOT",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#2A2F38",
+      "shorts": "#FFFFFF",
+      "socks": "#FFFFFF",
+      "pattern": "stripes",
+      "patternColour": "#D71920"
+     },
+     "primaryColour": "#D71920",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-09T12:14:38Z",
      "players": [
@@ -7652,7 +7948,15 @@
      "article": "Stoke City F.C.",
      "name": "Stoke City",
      "short": "STK",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FFFFFF",
+      "shorts": "#FFFFFF",
+      "socks": "#FF0000",
+      "pattern": "stripes",
+      "patternColour": "#E03A3E"
+     },
+     "primaryColour": "#E03A3E",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-03T23:55:43Z",
      "players": [
@@ -7851,8 +8155,16 @@
      "article": "Swansea City A.F.C.",
      "name": "Swansea City",
      "short": "SWA",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FFFFFF",
+      "shorts": "#FFFFFF",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFFFFF",
+     "secondaryColour": "#111111",
      "revision": "2026-11-05T00:06:27Z",
      "players": [
       {
@@ -8043,8 +8355,16 @@
      "article": "Watford F.C.",
      "name": "Watford",
      "short": "WAT",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FDF200",
+      "sleeves": "#FDF200",
+      "shorts": "#FF0000",
+      "socks": "#FF0000",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FDF200",
+     "secondaryColour": "#FF0000",
      "revision": "2026-10-17T08:18:12Z",
      "players": [
       {
@@ -8249,7 +8569,15 @@
      "article": "West Bromwich Albion F.C.",
      "name": "West Bromwich Albion",
      "short": "WBA",
-     "primaryColour": "#000080",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#091453",
+      "shorts": "#FFFFFF",
+      "socks": "#091453",
+      "pattern": "stripes",
+      "patternColour": "#122F67"
+     },
+     "primaryColour": "#122F67",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-08T18:58:59Z",
      "players": [
@@ -8413,7 +8741,15 @@
      "article": "West Ham United F.C.",
      "name": "West Ham United",
      "short": "WHU",
-     "primaryColour": "#7D2838",
+     "kit": {
+      "body": "#7E1823",
+      "sleeves": "#7E1823",
+      "shorts": "#FFFFFF",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#7E1823",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-09T08:43:46Z",
      "players": [
@@ -8619,7 +8955,15 @@
      "article": "Wolverhampton Wanderers F.C.",
      "name": "Wolverhampton Wanderers",
      "short": "WOL",
-     "primaryColour": "#F9A01B",
+     "kit": {
+      "body": "#F4B125",
+      "sleeves": "#F4B125",
+      "shorts": "#000000",
+      "socks": "#F4B125",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#F4B125",
      "secondaryColour": "#000000",
      "revision": "2026-11-04T23:21:15Z",
      "players": [
@@ -8825,7 +9169,15 @@
      "article": "Wrexham A.F.C.",
      "name": "Wrexham",
      "short": "WRE",
-     "primaryColour": "#B90013",
+     "kit": {
+      "body": "#FF0000",
+      "sleeves": "#FF0000",
+      "shorts": "#FF0000",
+      "socks": "#FF0000",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FF0000",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-09T01:15:30Z",
      "players": [
@@ -9047,7 +9399,15 @@
      "article": "AFC Wimbledon",
      "name": "AFC Wimbledon",
      "short": "WIM",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#0000FF",
+      "sleeves": "#0000FF",
+      "shorts": "#0000FF",
+      "socks": "#0000FF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#0000FF",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-10-28T10:26:28Z",
      "players": [
@@ -9274,7 +9634,15 @@
      "article": "Barnsley F.C.",
      "name": "Barnsley",
      "short": "BAR",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FF0000",
+      "sleeves": "#FF0000",
+      "shorts": "#FF0000",
+      "socks": "#FF0000",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FF0000",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-02T21:10:29Z",
      "players": [
@@ -9466,7 +9834,15 @@
      "article": "Blackpool F.C.",
      "name": "Blackpool",
      "short": "BPL",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FF6600",
+      "sleeves": "#FF6600",
+      "shorts": "#FFFFFF",
+      "socks": "#FF6600",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FF6600",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-05T18:31:06Z",
      "players": [
@@ -9686,8 +10062,16 @@
      "article": "Bradford City A.F.C.",
      "name": "Bradford City",
      "short": "BRA",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFD700",
+      "sleeves": "#FFD700",
+      "shorts": "#000000",
+      "socks": "#000000",
+      "pattern": "stripes",
+      "patternColour": "#000000"
+     },
+     "primaryColour": "#FFD700",
+     "secondaryColour": "#000000",
      "revision": "2026-11-02T13:38:19Z",
      "players": [
       {
@@ -9885,8 +10269,16 @@
      "article": "Bromley F.C.",
      "name": "Bromley",
      "short": "BRO",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FFFFFF",
+      "shorts": "#FFFFFF",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFFFFF",
+     "secondaryColour": "#111111",
      "revision": "2026-11-07T07:26:31Z",
      "players": [
       {
@@ -10133,7 +10525,15 @@
      "article": "Burton Albion F.C.",
      "name": "Burton Albion",
      "short": "BUA",
-     "primaryColour": "#FFD700",
+     "kit": {
+      "body": "#F7B206",
+      "sleeves": "#F7B206",
+      "shorts": "#000000",
+      "socks": "#F7B206",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#F7B206",
      "secondaryColour": "#000000",
      "revision": "2026-10-12T10:41:10Z",
      "players": [
@@ -10318,8 +10718,16 @@
      "article": "Cambridge United F.C.",
      "name": "Cambridge United",
      "short": "CAM",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FAA419",
+      "sleeves": "#FAA419",
+      "shorts": "#000000",
+      "socks": "#000000",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FAA419",
+     "secondaryColour": "#000000",
      "revision": "2026-10-14T09:15:51Z",
      "players": [
       {
@@ -10517,7 +10925,15 @@
      "article": "Doncaster Rovers F.C.",
      "name": "Doncaster Rovers",
      "short": "DON",
-     "primaryColour": "#0000DD",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FF0000",
+      "shorts": "#000000",
+      "socks": "#FF0000",
+      "pattern": "hoops",
+      "patternColour": "#E2001A"
+     },
+     "primaryColour": "#E2001A",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-10-20T09:47:11Z",
      "players": [
@@ -10737,7 +11153,15 @@
      "article": "Huddersfield Town A.F.C.",
      "name": "Huddersfield Town",
      "short": "HUD",
-     "primaryColour": "#0072CE",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#037FF8",
+      "shorts": "#FFFFFF",
+      "socks": "#000000",
+      "pattern": "stripes",
+      "patternColour": "#0E63AD"
+     },
+     "primaryColour": "#0E63AD",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-10-31T15:54:31Z",
      "players": [
@@ -10943,7 +11367,15 @@
      "article": "Leicester City F.C.",
      "name": "Leicester City",
      "short": "LEI",
-     "primaryColour": "#2B55DB",
+     "kit": {
+      "body": "#0000FF",
+      "sleeves": "#0000FF",
+      "shorts": "#0000FF",
+      "socks": "#0000FF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#0000FF",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-09T14:49:58Z",
      "players": [
@@ -11156,7 +11588,15 @@
      "article": "Leyton Orient F.C.",
      "name": "Leyton Orient",
      "short": "LEY",
-     "primaryColour": "#E00000",
+     "kit": {
+      "body": "#FF0000",
+      "sleeves": "#FF0000",
+      "shorts": "#FF0000",
+      "socks": "#FF0000",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FF0000",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-07T11:51:14Z",
      "players": [
@@ -11390,6 +11830,14 @@
      "article": "Luton Town F.C.",
      "name": "Luton Town",
      "short": "LUT",
+     "kit": {
+      "body": "#FF3300",
+      "sleeves": "#FF3300",
+      "shorts": "#FFFFFF",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
      "primaryColour": "#FF3300",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-07T13:08:01Z",
@@ -11610,8 +12058,16 @@
      "article": "Mansfield Town F.C.",
      "name": "Mansfield Town",
      "short": "MAN",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFE100",
+      "sleeves": "#FFE100",
+      "shorts": "#0000FF",
+      "socks": "#FFE100",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFE100",
+     "secondaryColour": "#0000FF",
      "revision": "2026-11-03T07:40:13Z",
      "players": [
       {
@@ -11795,8 +12251,16 @@
      "article": "Milton Keynes Dons F.C.",
      "name": "Milton Keynes Dons",
      "short": "MKD",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FFFFFF",
+      "shorts": "#FFFFFF",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFFFFF",
+     "secondaryColour": "#111111",
      "revision": "2026-11-05T02:37:14Z",
      "players": [
       {
@@ -12029,7 +12493,15 @@
      "article": "Notts County F.C.",
      "name": "Notts County",
      "short": "NCO",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FFFFFF",
+      "shorts": "#000000",
+      "socks": "#000000",
+      "pattern": "stripes",
+      "patternColour": "#111111"
+     },
+     "primaryColour": "#111111",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-10-28T10:15:17Z",
      "players": [
@@ -12263,8 +12735,16 @@
      "article": "Oxford United F.C.",
      "name": "Oxford United",
      "short": "OXF",
-     "primaryColour": "#FFF300",
-     "secondaryColour": "#001958",
+     "kit": {
+      "body": "#F9E758",
+      "sleeves": "#000040",
+      "shorts": "#000040",
+      "socks": "#F9E758",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#F9E758",
+     "secondaryColour": "#000040",
      "revision": "2026-11-08T17:20:09Z",
      "players": [
       {
@@ -12469,7 +12949,15 @@
      "article": "Peterborough United F.C.",
      "name": "Peterborough United",
      "short": "PET",
-     "primaryColour": "#2B55DB",
+     "kit": {
+      "body": "#0044FF",
+      "sleeves": "#0044FF",
+      "shorts": "#0044FF",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#0044FF",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-09T13:41:53Z",
      "players": [
@@ -12717,7 +13205,15 @@
      "article": "Plymouth Argyle F.C.",
      "name": "Plymouth Argyle",
      "short": "PLY",
-     "primaryColour": "#00563F",
+     "kit": {
+      "body": "#003C2B",
+      "sleeves": "#003C2B",
+      "shorts": "#FFFFFF",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#003C2B",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-08T16:56:11Z",
      "players": [
@@ -12888,6 +13384,14 @@
      "article": "Reading F.C.",
      "name": "Reading",
      "short": "REA",
+     "kit": {
+      "body": "#0000FF",
+      "sleeves": "#0000FF",
+      "shorts": "#0000FF",
+      "socks": "#0000FF",
+      "pattern": "plain",
+      "patternColour": null
+     },
      "primaryColour": "#0000FF",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-06T20:40:02Z",
@@ -13087,7 +13591,15 @@
      "article": "Sheffield Wednesday F.C.",
      "name": "Sheffield Wednesday",
      "short": "SHW",
-     "primaryColour": "#0000DD",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#0257BD",
+      "shorts": "#000000",
+      "socks": "#0257BD",
+      "pattern": "stripes",
+      "patternColour": "#2B66B1"
+     },
+     "primaryColour": "#2B66B1",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-05T12:50:34Z",
      "players": [
@@ -13321,8 +13833,16 @@
      "article": "Stevenage F.C.",
      "name": "Stevenage",
      "short": "STE",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FF0000",
+      "shorts": "#FF0000",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFFFFF",
+     "secondaryColour": "#FF0000",
      "revision": "2026-10-15T07:53:48Z",
      "players": [
       {
@@ -13527,7 +14047,15 @@
      "article": "Stockport County F.C.",
      "name": "Stockport County",
      "short": "STP",
-     "primaryColour": "#0033CC",
+     "kit": {
+      "body": "#0044FF",
+      "sleeves": "#0044FF",
+      "shorts": "#FFFFFF",
+      "socks": "#0044FF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#0044FF",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-02T14:49:42Z",
      "players": [
@@ -13775,7 +14303,15 @@
      "article": "Wigan Athletic F.C.",
      "name": "Wigan Athletic",
      "short": "WIG",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#0000FF",
+      "sleeves": "#0000FF",
+      "shorts": "#0000FF",
+      "socks": "#0000FF",
+      "pattern": "stripes",
+      "patternColour": "#0055A5"
+     },
+     "primaryColour": "#0000FF",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-10-15T18:44:20Z",
      "players": [
@@ -14002,8 +14538,16 @@
      "article": "Wycombe Wanderers F.C.",
      "name": "Wycombe Wanderers",
      "short": "WYC",
-     "primaryColour": "#99CCFF",
-     "secondaryColour": "#1F326F",
+     "kit": {
+      "body": "#88BBE3",
+      "sleeves": "#05003A",
+      "shorts": "#05003A",
+      "socks": "#05003A",
+      "pattern": "quarters",
+      "patternColour": "#0A1F44"
+     },
+     "primaryColour": "#88BBE3",
+     "secondaryColour": "#05003A",
      "revision": "2026-10-21T22:25:46Z",
      "players": [
       {
@@ -14210,7 +14754,15 @@
      "article": "Accrington Stanley F.C.",
      "name": "Accrington Stanley",
      "short": "ACC",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FF0000",
+      "sleeves": "#FF0000",
+      "shorts": "#FF0000",
+      "socks": "#FF0000",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FF0000",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-08T14:03:10Z",
      "players": [
@@ -14416,8 +14968,16 @@
      "article": "Barnet F.C.",
      "name": "Barnet",
      "short": "BRN",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FF5C00",
+      "sleeves": "#FF5C00",
+      "shorts": "#000000",
+      "socks": "#000000",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FF5C00",
+     "secondaryColour": "#000000",
      "revision": "2026-10-16T16:40:07Z",
      "players": [
       {
@@ -14615,7 +15175,15 @@
      "article": "Bristol Rovers F.C.",
      "name": "Bristol Rovers",
      "short": "BRR",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#000099",
+      "shorts": "#000099",
+      "socks": "#000099",
+      "pattern": "quarters",
+      "patternColour": "#003B8E"
+     },
+     "primaryColour": "#003B8E",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-10-09T18:27:02Z",
      "players": [
@@ -14793,8 +15361,16 @@
      "article": "Cheltenham Town F.C.",
      "name": "Cheltenham Town",
      "short": "CHL",
-     "primaryColour": "#E00000",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FFFFFF",
+      "shorts": "#FF0000",
+      "socks": "#FF0000",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFFFFF",
+     "secondaryColour": "#FF0000",
      "revision": "2026-11-04T03:48:21Z",
      "players": [
       {
@@ -14992,7 +15568,15 @@
      "article": "Chesterfield F.C.",
      "name": "Chesterfield",
      "short": "CHS",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#0042FF",
+      "sleeves": "#0042FF",
+      "shorts": "#FFFFFF",
+      "socks": "#0042FF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#0042FF",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-05T08:26:42Z",
      "players": [
@@ -15226,7 +15810,15 @@
      "article": "Colchester United F.C.",
      "name": "Colchester United",
      "short": "COL",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#0000FF",
+      "shorts": "#FFFFFF",
+      "socks": "#FFFFFF",
+      "pattern": "stripes",
+      "patternColour": "#0055A5"
+     },
+     "primaryColour": "#0055A5",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-10-16T05:29:56Z",
      "players": [
@@ -15418,7 +16010,15 @@
      "article": "Crawley Town F.C.",
      "name": "Crawley Town",
      "short": "CRA",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FF0000",
+      "sleeves": "#FF0000",
+      "shorts": "#FF0000",
+      "socks": "#FF0000",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FF0000",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-09T18:39:24Z",
      "players": [
@@ -15631,7 +16231,15 @@
      "article": "Crewe Alexandra F.C.",
      "name": "Crewe Alexandra",
      "short": "CRE",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FF0000",
+      "sleeves": "#FF0000",
+      "shorts": "#FFFFFF",
+      "socks": "#FF0000",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FF0000",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-02T13:19:48Z",
      "players": [
@@ -15830,7 +16438,15 @@
      "article": "Exeter City F.C.",
      "name": "Exeter City",
      "short": "EXE",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FF0000",
+      "shorts": "#000000",
+      "socks": "#FFFFFF",
+      "pattern": "stripes",
+      "patternColour": "#D2001F"
+     },
+     "primaryColour": "#D2001F",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-10-25T13:20:49Z",
      "players": [
@@ -16043,7 +16659,15 @@
      "article": "Fleetwood Town F.C.",
      "name": "Fleetwood Town",
      "short": "FLE",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FF0000",
+      "sleeves": "#FFFFFF",
+      "shorts": "#FFFFFF",
+      "socks": "#FF0000",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FF0000",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-10-31T01:30:29Z",
      "players": [
@@ -16207,7 +16831,15 @@
      "article": "Gillingham F.C.",
      "name": "Gillingham",
      "short": "GIL",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#0000FF",
+      "sleeves": "#0000FF",
+      "shorts": "#FFFFFF",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#0000FF",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-07T14:34:13Z",
      "players": [
@@ -16469,7 +17101,15 @@
      "article": "Grimsby Town F.C.",
      "name": "Grimsby Town",
      "short": "GRI",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#000000",
+      "shorts": "#000000",
+      "socks": "#FFFFFF",
+      "pattern": "stripes",
+      "patternColour": "#111111"
+     },
+     "primaryColour": "#111111",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-08T05:59:30Z",
      "players": [
@@ -16696,8 +17336,16 @@
      "article": "Newport County A.F.C.",
      "name": "Newport County",
      "short": "NEC",
-     "primaryColour": "#FFAF00",
-     "secondaryColour": "#000000",
+     "kit": {
+      "body": "#FFC840",
+      "sleeves": "#FFC840",
+      "shorts": "#FFC840",
+      "socks": "#FFC840",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFC840",
+     "secondaryColour": "#FFFFFF",
      "revision": "2026-11-03T19:24:57Z",
      "players": [
       {
@@ -16902,7 +17550,15 @@
      "article": "Northampton Town F.C.",
      "name": "Northampton Town",
      "short": "NRT",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#72202B",
+      "sleeves": "#72202B",
+      "shorts": "#FFFFFF",
+      "socks": "#72202B",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#72202B",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-10-07T14:19:45Z",
      "players": [
@@ -17101,7 +17757,15 @@
      "article": "Oldham Athletic A.F.C.",
      "name": "Oldham Athletic",
      "short": "OLD",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#0044FF",
+      "sleeves": "#0044FF",
+      "shorts": "#0044FF",
+      "socks": "#0044FF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#0044FF",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-10-28T12:59:09Z",
      "players": [
@@ -17307,8 +17971,16 @@
      "article": "Port Vale F.C.",
      "name": "Port Vale",
      "short": "POV",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FFFFFF",
+      "shorts": "#000000",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFFFFF",
+     "secondaryColour": "#000000",
      "revision": "2026-11-05T17:42:38Z",
      "players": [
       {
@@ -17520,7 +18192,15 @@
      "article": "Rochdale A.F.C.",
      "name": "Rochdale",
      "short": "ROC",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#0000FF",
+      "sleeves": "#0000FF",
+      "shorts": "#FFFFFF",
+      "socks": "#FFFFFF",
+      "pattern": "stripes",
+      "patternColour": "#111111"
+     },
+     "primaryColour": "#0000FF",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-10-23T17:09:55Z",
      "players": [
@@ -17789,7 +18469,15 @@
      "article": "Rotherham United F.C.",
      "name": "Rotherham United",
      "short": "ROT",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FF0000",
+      "sleeves": "#FFFFFF",
+      "shorts": "#FFFFFF",
+      "socks": "#FF0000",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FF0000",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-06T23:46:00Z",
      "players": [
@@ -18030,7 +18718,15 @@
      "article": "Salford City F.C.",
      "name": "Salford City",
      "short": "SAL",
-     "primaryColour": "#F68712",
+     "kit": {
+      "body": "#FF5500",
+      "sleeves": "#FF5500",
+      "shorts": "#FF5500",
+      "socks": "#FF5500",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FF5500",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-09T08:30:19Z",
      "players": [
@@ -18264,7 +18960,15 @@
      "article": "Shrewsbury Town F.C.",
      "name": "Shrewsbury Town",
      "short": "SHR",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#004A9C",
+      "sleeves": "#004A9C",
+      "shorts": "#004A9C",
+      "socks": "#004A9C",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#004A9C",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-09T14:48:48Z",
      "players": [
@@ -18491,7 +19195,15 @@
      "article": "Swindon Town F.C.",
      "name": "Swindon Town",
      "short": "SWI",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#EF0000",
+      "sleeves": "#EF0000",
+      "shorts": "#FFFFFF",
+      "socks": "#EF0000",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#EF0000",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-10-22T21:54:08Z",
      "players": [
@@ -18725,8 +19437,16 @@
      "article": "Tranmere Rovers F.C.",
      "name": "Tranmere Rovers",
      "short": "TRA",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FFFFFF",
+      "shorts": "#FFFFFF",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFFFFF",
+     "secondaryColour": "#111111",
      "revision": "2026-10-09T11:07:04Z",
      "players": [
       {
@@ -18938,8 +19658,16 @@
      "article": "Walsall F.C.",
      "name": "Walsall",
      "short": "WAL",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#ED1B2F",
+      "sleeves": "#000000",
+      "shorts": "#FFFFFF",
+      "socks": "#ED1B2F",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#ED1B2F",
+     "secondaryColour": "#000000",
      "revision": "2026-10-28T10:23:15Z",
      "players": [
       {
@@ -19144,8 +19872,16 @@
      "article": "York City F.C.",
      "name": "York City",
      "short": "YOR",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#C8102E",
+      "sleeves": "#C8102E",
+      "shorts": "#0A1F44",
+      "socks": "#C8102E",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#C8102E",
+     "secondaryColour": "#0A1F44",
      "revision": "2026-11-01T10:35:15Z",
      "players": [
       {
@@ -19394,8 +20130,16 @@
      "article": "AFC Fylde",
      "name": "AFC Fylde",
      "short": "FYL",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FFFFFF",
+      "shorts": "#FFFFFF",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFFFFF",
+     "secondaryColour": "#111111",
      "revision": "2026-10-31T00:12:05Z",
      "players": [
       {
@@ -19614,7 +20358,15 @@
      "article": "Aldershot Town F.C.",
      "name": "Aldershot Town",
      "short": "ALD",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FF0000",
+      "sleeves": "#FF0000",
+      "shorts": "#FF0000",
+      "socks": "#FF0000",
+      "pattern": "stripes",
+      "patternColour": "#0055A5"
+     },
+     "primaryColour": "#FF0000",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-08T18:18:56Z",
      "players": [
@@ -19806,7 +20558,15 @@
      "article": "Altrincham F.C.",
      "name": "Altrincham",
      "short": "ALT",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FF0000",
+      "shorts": "#000000",
+      "socks": "#FFFFFF",
+      "pattern": "stripes",
+      "patternColour": "#D2001F"
+     },
+     "primaryColour": "#D2001F",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-06T15:15:13Z",
      "players": [
@@ -20019,8 +20779,16 @@
      "article": "Barrow A.F.C.",
      "name": "Barrow",
      "short": "BA2",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FFFFFF",
+      "shorts": "#0074FF",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFFFFF",
+     "secondaryColour": "#0074FF",
      "revision": "2026-10-14T19:28:44Z",
      "players": [
       {
@@ -20197,8 +20965,16 @@
      "article": "Boreham Wood F.C.",
      "name": "Boreham Wood",
      "short": "BWD",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FFFFFF",
+      "shorts": "#FFFFFF",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFFFFF",
+     "secondaryColour": "#111111",
      "revision": "2026-11-04T15:40:13Z",
      "players": [
       {
@@ -20361,6 +21137,14 @@
      "article": "Boston United F.C.",
      "name": "Boston United",
      "short": "BOS",
+     "kit": {
+      "body": "#FFD700",
+      "sleeves": "#FFD700",
+      "shorts": "#000000",
+      "socks": "#FFD700",
+      "pattern": "stripes",
+      "patternColour": "#000000"
+     },
      "primaryColour": "#FFD700",
      "secondaryColour": "#000000",
      "revision": "2026-10-16T07:24:08Z",
@@ -20546,7 +21330,15 @@
      "article": "Carlisle United F.C.",
      "name": "Carlisle United",
      "short": "CRL",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#0000FF",
+      "sleeves": "#0000FF",
+      "shorts": "#0000FF",
+      "socks": "#0000FF",
+      "pattern": "stripes",
+      "patternColour": "#D2001F"
+     },
+     "primaryColour": "#0000FF",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-05T01:01:51Z",
      "players": [
@@ -20752,8 +21544,16 @@
      "article": "Eastleigh F.C.",
      "name": "Eastleigh",
      "short": "EAS",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#0000FF",
+      "shorts": "#0000FF",
+      "socks": "#0000FF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFFFFF",
+     "secondaryColour": "#0000FF",
      "revision": "2026-11-07T10:28:19Z",
      "players": [
       {
@@ -20944,7 +21744,15 @@
      "article": "FC Halifax Town",
      "name": "FC Halifax Town",
      "short": "HAL",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#0000FF",
+      "sleeves": "#0000FF",
+      "shorts": "#0000FF",
+      "socks": "#0000FF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#0000FF",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-08T05:53:10Z",
      "players": [
@@ -21122,7 +21930,15 @@
      "article": "Forest Green Rovers F.C.",
      "name": "Forest Green Rovers",
      "short": "FGR",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#AFFF2F",
+      "sleeves": "#AFFF2F",
+      "shorts": "#AFFF2F",
+      "socks": "#AFFF2F",
+      "pattern": "stripes",
+      "patternColour": "#111111"
+     },
+     "primaryColour": "#AFFF2F",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-05T20:28:46Z",
      "players": [
@@ -21363,8 +22179,16 @@
      "article": "Gateshead F.C.",
      "name": "Gateshead",
      "short": "GAT",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FFFFFF",
+      "shorts": "#111111",
+      "socks": "#FFFFFF",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFFFFF",
+     "secondaryColour": "#111111",
      "revision": "2026-11-06T15:14:21Z",
      "players": [
       {
@@ -21555,8 +22379,16 @@
      "article": "Harrogate Town A.F.C.",
      "name": "Harrogate Town",
      "short": "HAR",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFF700",
+      "sleeves": "#000000",
+      "shorts": "#000000",
+      "socks": "#000000",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFF700",
+     "secondaryColour": "#000000",
      "revision": "2026-11-07T09:14:23Z",
      "players": [
       {
@@ -21754,7 +22586,15 @@
      "article": "Hartlepool United F.C.",
      "name": "Hartlepool United",
      "short": "HRT",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#0000FF",
+      "shorts": "#0000FF",
+      "socks": "#0000FF",
+      "pattern": "stripes",
+      "patternColour": "#0055A5"
+     },
+     "primaryColour": "#0055A5",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-09T14:40:37Z",
      "players": [
@@ -21967,7 +22807,15 @@
      "article": "Hornchurch F.C.",
      "name": "Hornchurch",
      "short": "HOR",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FF0000",
+      "shorts": "#FF0000",
+      "socks": "#FF0000",
+      "pattern": "stripes",
+      "patternColour": "#D2001F"
+     },
+     "primaryColour": "#D2001F",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-08T21:22:53Z",
      "players": [
@@ -22173,8 +23021,16 @@
      "article": "Kidderminster Harriers F.C.",
      "name": "Kidderminster Harriers",
      "short": "KID",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FFFFFF",
+      "shorts": "#FF0000",
+      "socks": "#FF0000",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFFFFF",
+     "secondaryColour": "#FF0000",
      "revision": "2026-11-07T12:42:45Z",
      "players": [
       {
@@ -22365,8 +23221,16 @@
      "article": "Scunthorpe United F.C.",
      "name": "Scunthorpe United",
      "short": "SCU",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#A70C1C",
+      "sleeves": "#80BFFF",
+      "shorts": "#80BFFF",
+      "socks": "#80BFFF",
+      "pattern": "stripes",
+      "patternColour": "#88BBE3"
+     },
+     "primaryColour": "#A70C1C",
+     "secondaryColour": "#80BFFF",
      "revision": "2026-11-07T13:22:49Z",
      "players": [
       {
@@ -22564,8 +23428,16 @@
      "article": "Solihull Moors F.C.",
      "name": "Solihull Moors",
      "short": "SOL",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#FFDD00",
+      "sleeves": "#0000FF",
+      "shorts": "#0000FF",
+      "socks": "#FFDD00",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFDD00",
+     "secondaryColour": "#0000FF",
      "revision": "2026-11-09T17:54:00Z",
      "players": [
       {
@@ -22721,8 +23593,16 @@
      "article": "Southend United F.C.",
      "name": "Southend United",
      "short": "SOU",
-     "primaryColour": "#2A2F38",
-     "secondaryColour": "#FFFFFF",
+     "kit": {
+      "body": "#1C375F",
+      "sleeves": "#182A46",
+      "shorts": "#182A46",
+      "socks": "#182A46",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#1C375F",
+     "secondaryColour": "#182A46",
      "revision": "2026-11-04T11:14:36Z",
      "players": [
       {
@@ -22906,7 +23786,15 @@
      "article": "Sutton United F.C.",
      "name": "Sutton United",
      "short": "SUT",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FFDE00",
+      "sleeves": "#FFDE00",
+      "shorts": "#FFDE00",
+      "socks": "#FFDE00",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FFDE00",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-07T19:19:16Z",
      "players": [
@@ -23105,8 +23993,16 @@
      "article": "Tamworth F.C.",
      "name": "Tamworth",
      "short": "TAM",
+     "kit": {
+      "body": "#FF0000",
+      "sleeves": "#FF0000",
+      "shorts": "#000000",
+      "socks": "#000000",
+      "pattern": "stripes",
+      "patternColour": "#000000"
+     },
      "primaryColour": "#FF0000",
-     "secondaryColour": "#FFFFFF",
+     "secondaryColour": "#000000",
      "revision": "2026-11-08T17:21:03Z",
      "players": [
       {
@@ -23304,7 +24200,15 @@
      "article": "Wealdstone F.C.",
      "name": "Wealdstone",
      "short": "WEA",
-     "primaryColour": "#2B55DB",
+     "kit": {
+      "body": "#004ADD",
+      "sleeves": "#004ADD",
+      "shorts": "#FFFFFF",
+      "socks": "#004ADD",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#004ADD",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-10-25T23:26:57Z",
      "players": [
@@ -23503,7 +24407,15 @@
      "article": "Woking F.C.",
      "name": "Woking",
      "short": "WOK",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FFFFFF",
+      "sleeves": "#FFFFFF",
+      "shorts": "#000000",
+      "socks": "#000000",
+      "pattern": "halves",
+      "patternColour": "#D2001F"
+     },
+     "primaryColour": "#D2001F",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-07T14:45:17Z",
      "players": [
@@ -23737,7 +24649,15 @@
      "article": "Worthing F.C.",
      "name": "Worthing",
      "short": "WOR",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#FF0000",
+      "sleeves": "#FF0000",
+      "shorts": "#FF0000",
+      "socks": "#FF0000",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#FF0000",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-11-08T16:02:53Z",
      "players": [
@@ -23943,7 +24863,15 @@
      "article": "Yeovil Town F.C.",
      "name": "Yeovil Town",
      "short": "YEO",
-     "primaryColour": "#2A2F38",
+     "kit": {
+      "body": "#164126",
+      "sleeves": "#164126",
+      "shorts": "#164126",
+      "socks": "#164126",
+      "pattern": "plain",
+      "patternColour": null
+     },
+     "primaryColour": "#164126",
      "secondaryColour": "#FFFFFF",
      "revision": "2026-10-28T11:16:00Z",
      "players": [

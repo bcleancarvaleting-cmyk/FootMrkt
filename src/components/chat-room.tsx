@@ -24,7 +24,7 @@ export function ChatRoom({
 }: {
   room: string;
   initial: ChatMessageView[];
-  me: { id: string; isAdmin: boolean };
+  me: { id: string; isMod: boolean };
   maxLength: number;
 }) {
   const [messages, setMessages] = useState(initial);
@@ -111,7 +111,7 @@ export function ChatRoom({
               <div className={`min-w-0 max-w-[78%] ${mine ? "items-end" : ""}`}>
                 <div className={`flex items-baseline gap-2 text-xs ${mine ? "justify-end" : ""}`}>
                   <b className="text-fg">{m.displayName}</b>
-                  {m.isAdmin && <span className="rounded-full bg-gold/15 px-1.5 text-[9px] font-extrabold uppercase tracking-wider text-gold">Mod</span>}
+                  {m.isMod && <span className="rounded-full bg-gold/15 px-1.5 text-[9px] font-extrabold uppercase tracking-wider text-gold">Mod</span>}
                   <span className="text-faint">{time(m.createdAt)}</span>
                 </div>
                 <div
@@ -128,7 +128,7 @@ export function ChatRoom({
                         Report
                       </button>
                     )}
-                    {(mine || me.isAdmin) && (
+                    {(mine || me.isMod) && (
                       <button type="button" className="hover:text-danger" onClick={() => moderate("remove", m.id)}>
                         Remove
                       </button>

@@ -23,6 +23,7 @@ datasource db {
 
 enum UserRole {
   USER
+  MODERATOR // chat moderator — by invitation from an admin only
   ADMIN
 }
 
@@ -59,6 +60,8 @@ model User {
   cardPoints        CardPoints[]
   chatMessages      ChatMessage[]
   chatReports       ChatReport[]
+  modInvites        ModeratorInvite[] @relation("Invitee")
+  modInvitesSent    ModeratorInvite[] @relation("Inviter")
   auditActions      AdminAuditLog[]
 }
 
@@ -120,6 +123,8 @@ model Club {
   simStrength Int @default(50)
   primaryColour   String  @default("#2a2f38")
   secondaryColour String  @default("#ffffff")
+  // Home kit used for the shirt graphic and lookalike badge: { body, sleeves, shorts, socks, pattern, patternColour }.
+  kit             Json    @default("{}")
   // Licensed crest asset URL. Null until crest rights are confirmed (spec §10) — a generated badge is shown instead.
   crestUrl        String?
   sourceRef       String? // where the club record came from, e.g. "wikipedia:Arsenal F.C."
@@ -154,6 +159,10 @@ model Player {
   displayName  String
   position     Position
   squadNumber  Int?
+  // Market value used for tiering; source and date recorded for audit.
+  marketValueGbp    Int? // whole pounds (pence would overflow a 32-bit int)
+  marketValueSource String?
+  marketValueAt     DateTime?
   // Licensed headshot. Null until image rights are confirmed (spec §10); cards show a kit graphic instead.
   imageUrl     String?
   imageCredit  String?
@@ -255,6 +264,7 @@ model CardInstance {
 
 enum AcquisitionKind {
   STARTER_PACK
+  WEEKLY_PACK
   PACK
   MARKET
   ADMIN
@@ -311,6 +321,7 @@ model MPValuation {
 
 enum PackKind {
   STARTER
+  WEEKLY // free untradeable pack, one per manager per week
   REGULAR
 }
 
@@ -338,6 +349,7 @@ model PackSku {
 
 enum EntitlementSource {
   STARTER
+  WEEKLY
   PURCHASE
   MP_CREDIT
   REWARD
@@ -803,8 +815,26 @@ model ChatReport {
   user      User        @relation(fields: [userId], references: [id])
   reason    String?
   createdAt DateTime    @default(now())
+  // Set when a moderator reviews the report and keeps the message.
+  resolvedAt DateTime?
+  resolvedBy String?    @db.Uuid
 
   @@unique([messageId, userId])
+}
+
+// Moderator access is invitation-only: an admin invites, the manager accepts, an admin can revoke.
+model ModeratorInvite {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  user        User      @relation("Invitee", fields: [userId], references: [id])
+  invitedById String    @db.Uuid
+  invitedBy   User      @relation("Inviter", fields: [invitedById], references: [id])
+  createdAt   DateTime  @default(now())
+  acceptedAt  DateTime?
+  declinedAt  DateTime?
+  revokedAt   DateTime?
+
+  @@index([userId])
 }
 
 // ───────────────────────────── Admin ─────────────────────────────

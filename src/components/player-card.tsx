@@ -1,6 +1,7 @@
 import type { CardView } from "@/lib/view";
 import { moneyRef, mpLabel } from "@/lib/view";
 import { ClubBadge } from "./club-badge";
+import { KitShirt } from "./kit-shirt";
 
 const TIER = {
   BRONZE: {
@@ -56,6 +57,7 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
             short={card.clubShort}
             primary={card.clubPrimary}
             secondary={card.clubSecondary}
+            kit={card.kit}
             crestUrl={card.crestUrl}
             size={small ? 16 : size === "lg" ? 26 : 20}
             title={card.clubName ?? undefined}
@@ -66,13 +68,13 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
         {/* Player image */}
         <div className="relative mx-2.5 mt-1.5 flex flex-1 items-end justify-center overflow-hidden rounded-xl bg-gradient-to-b from-white/5 to-transparent">
           <PlayerImage card={card} />
-          <div className="pointer-events-none absolute bottom-1 left-1 flex flex-col items-start gap-1">
+          <div className="pointer-events-none absolute left-1 top-1 flex flex-col items-start gap-1">
             {card.lock === "COMPETITION" && <Badge tone="lime">In squad</Badge>}
             {card.lock === "LISTED" && <Badge tone="warn">Listed</Badge>}
           </div>
           {(card.acquired || card.edition === "STARTER") && !small && (
             <span className="absolute right-1 top-1 rounded bg-ink-950/85 px-1.5 text-[9px] font-semibold text-muted">
-              {card.edition === "STARTER" ? "Starter · locked" : card.acquired}
+              {card.tradeable ? card.acquired : `${card.acquired ?? "Starter"} · locked`}
             </span>
           )}
         </div>
@@ -114,32 +116,13 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
 
 const formatPts = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
-/** Licensed headshot if available, otherwise the player's shirt in club colours with their number. */
+/** Licensed headshot if one is set; otherwise the player's home shirt with their squad number. */
 export function PlayerImage({ card }: { card: CardView }) {
   if (card.imageUrl) {
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover object-top" title={card.imageCredit ?? undefined} />;
   }
-  const num = card.squadNumber ?? "";
-  return (
-    <svg viewBox="0 0 100 92" className="h-[88%] w-auto max-w-full" role="img" aria-label={`${card.name} — photo not yet available`}>
-      <title>{`${card.name} — licensed photo not yet available`}</title>
-      {/* head */}
-      <circle cx="50" cy="24" r="14" fill="var(--color-ink-700)" />
-      <rect x="44" y="34" width="12" height="8" fill="var(--color-ink-700)" />
-      {/* shirt */}
-      <path
-        d="M14 92 L14 60 C14 50 22 44 32 42 L42 40 C45 46 55 46 58 40 L68 42 C78 44 86 50 86 60 L86 92 Z"
-        fill={card.clubPrimary}
-        stroke={card.clubSecondary}
-        strokeWidth="1.5"
-      />
-      <path d="M42 40 C45 46 55 46 58 40" fill="none" stroke={card.clubSecondary} strokeWidth="2.5" />
-      <text x="50" y="78" textAnchor="middle" fontSize="22" fontWeight="900" fontFamily="system-ui, sans-serif" fill={card.clubSecondary}>
-        {num}
-      </text>
-    </svg>
-  );
+  return <KitShirt kit={card.kit} number={card.squadNumber} id={card.id} label={`${card.name} — ${card.clubName ?? "club"} home shirt`} className="h-[86%] w-auto max-w-full drop-shadow-[0_8px_14px_rgba(0,0,0,0.5)]" />;
 }
 
 /** ▲ rising / ▼ falling vs the previous valuation. */

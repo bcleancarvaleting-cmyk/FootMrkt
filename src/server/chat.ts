@@ -3,13 +3,14 @@ import { rateLimit } from "@/lib/rate-limit";
 import { audit } from "./audit";
 import { db } from "./db";
 import { DomainError, isUniqueViolation } from "./errors";
+import { canModerate } from "./moderation";
 
 export interface ChatMessageView {
   id: string;
   room: string;
   userId: string;
   displayName: string;
-  isAdmin: boolean;
+  isMod: boolean;
   body: string | null; // null when removed / hidden
   createdAt: string;
   removed: boolean;
@@ -32,7 +33,7 @@ export function cleanBody(raw: string): string {
 export async function listMessages(room: ChatRoomId, opts: { after?: Date; limit?: number } = {}): Promise<ChatMessageView[]> {
   const rows = await db.chatMessage.findMany({
     where: { room, ...(opts.after ? { createdAt: { gt: opts.after } } : {}) },
-    include: { user: { select: { displayName: true, role: true } }, _count: { select: { reports: true } } },
+    include: { user: { select: { displayName: true, role: true } }, _count: { select: { reports: { where: { resolvedAt: null } } } } },
     orderBy: { createdAt: opts.after ? "asc" : "desc" },
     take: opts.limit ?? 60,
   });
@@ -44,7 +45,7 @@ export async function listMessages(room: ChatRoomId, opts: { after?: Date; limit
       room: m.room,
       userId: m.userId,
       displayName: m.user.displayName,
-      isAdmin: m.user.role === "ADMIN",
+      isMod: canModerate(m.user.role),
       body: hidden ? null : m.body,
       createdAt: m.createdAt.toISOString(),
       removed: hidden,
@@ -78,7 +79,7 @@ export async function reportMessage(userId: string, messageId: string, reason?: 
 export async function removeMessage(actor: { id: string; role: string }, messageId: string) {
   const msg = await db.chatMessage.findUnique({ where: { id: messageId } });
   if (!msg) throw new DomainError("NOT_FOUND", "Message not found.");
-  const isMod = actor.role === "ADMIN";
+  const isMod = canModerate(actor.role);
   if (!isMod && msg.userId !== actor.id) throw new DomainError("FORBIDDEN", "You can only remove your own messages.");
   await db.chatMessage.update({ where: { id: messageId }, data: { removedAt: new Date(), removedBy: actor.id } });
   if (isMod && msg.userId !== actor.id) {
@@ -86,11 +87,3 @@ export async function removeMessage(actor: { id: string; role: string }, message
   }
 }
 
-export async function reportedMessages(limit = 20) {
-  return db.chatMessage.findMany({
-    where: { removedAt: null, reports: { some: {} } },
-    include: { user: { select: { displayName: true } }, _count: { select: { reports: true } } },
-    orderBy: { createdAt: "desc" },
-    take: limit,
-  });
-}

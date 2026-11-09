@@ -139,7 +139,7 @@ export async function openPack(
         data: {
           cardId: d.cardId,
           userId,
-          acquiredVia: sku.kind === "STARTER" ? "STARTER_PACK" : "PACK",
+          acquiredVia: sku.kind === "STARTER" ? "STARTER_PACK" : sku.kind === "WEEKLY" ? "WEEKLY_PACK" : "PACK",
           acquiredRef: opening.id,
         },
       });

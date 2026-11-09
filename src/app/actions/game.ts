@@ -12,6 +12,7 @@ import { isEnabled } from "@/server/flags";
 import { cancelListing, createListing, startListingPurchase, startPackPurchase } from "@/server/market";
 import { grantPack, openPack } from "@/server/packs";
 import { buyPackWithCredit } from "@/server/wallet";
+import { claimWeeklyPack } from "@/server/weekly";
 import { rateLimit } from "@/lib/rate-limit";
 import { type ActionResult, attempt } from "./result";
 
@@ -112,6 +113,13 @@ export async function buyPackWithCreditAction(skuCode: string, clientKey: string
   const res = await attempt(async () => {
     await buyPackWithCredit(user.id, skuCode, clientKey);
   }, "Pack added — open it above!");
+  revalidatePath("/", "layout");
+  return res;
+}
+
+export async function claimWeeklyPackAction(): Promise<ActionResult<{ entitlementId: string }>> {
+  const user = await requireUser();
+  const res = await attempt(async () => ({ entitlementId: (await claimWeeklyPack(user.id)).id }), "Weekly pack claimed");
   revalidatePath("/", "layout");
   return res;
 }

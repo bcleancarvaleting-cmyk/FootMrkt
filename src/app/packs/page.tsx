@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { BuyPackButton, CreditPackButton, DevPackButton, OpenPackButton } from "@/components/pack-buttons";
+import { BuyPackButton, ClaimWeeklyButton, CreditPackButton, DevPackButton, OpenPackButton } from "@/components/pack-buttons";
+import { weeklyStatus } from "@/server/weekly";
 import { balanceMinor, fmtMp } from "@/server/wallet";
 import { FOOTBALL_PACKS } from "@/config/packs";
 import { advertisedGuarantee, cardCount, parsePackConfig } from "@/domain/packs/config";
 import { requireUser } from "@/server/auth/session";
 import { db } from "@/server/db";
 import { allFlags } from "@/server/flags";
-import { fmtDate, gbp } from "@/lib/view";
+import { fmtDate, gbp, relativeTime } from "@/lib/view";
 
 export const metadata = { title: "Packs" };
 
@@ -15,11 +16,12 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
   const user = await requireUser();
   const { welcome } = await searchParams;
   const flags = await allFlags();
-  const [unopened, skus, history, credit] = await Promise.all([
+  const [unopened, skus, history, credit, weekly] = await Promise.all([
     db.packEntitlement.findMany({ where: { userId: user.id, status: "UNOPENED" }, include: { packSku: true }, orderBy: { createdAt: "asc" } }),
     db.packSku.findMany({ where: { active: true, kind: "REGULAR" }, orderBy: [{ priceMinor: "asc" }, { version: "desc" }], distinct: ["code"] }),
     db.packOpening.findMany({ where: { userId: user.id }, include: { packSku: true, _count: { select: { cards: true } } }, orderBy: { createdAt: "desc" }, take: 10 }),
     balanceMinor(user.id),
+    weeklyStatus(user.id),
   ]);
 
   return (
@@ -30,6 +32,23 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
           <p className="mt-1 text-lg font-bold">Your free Starter Pack is waiting — open it to meet your first 11 players.</p>
         </div>
       )}
+
+      <section className="panel flex flex-wrap items-center gap-5 border-lime/40 p-5 sm:p-6">
+        <PackArt code="football-weekly" name="Weekly" small />
+        <div className="min-w-0 flex-1">
+          <p className="eyebrow text-lime">Free every week</p>
+          <h2 className="mt-1 text-3xl font-extrabold">Weekly Free Pack</h2>
+          <p className="text-sm text-muted">6 extra players for your squad. Untradeable, and they don&apos;t count towards sets.</p>
+        </div>
+        {weekly.claimed ? (
+          <div className="text-right text-sm">
+            <div className="font-bold text-mint">Claimed this week ✓</div>
+            <div className="text-xs text-faint">Next free pack {relativeTime(weekly.nextAt)}</div>
+          </div>
+        ) : (
+          <ClaimWeeklyButton />
+        )}
+      </section>
 
       <section>
         <p className="eyebrow">Ready to open</p>
@@ -134,7 +153,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
 }
 
 function PackArt({ code, name, small }: { code: string; name: string; small?: boolean }) {
-  const foil = code.includes("gold") ? "foil-gold" : code.includes("silver") ? "foil-silver" : code.includes("starter") ? "" : "foil-bronze";
+  const foil = code.includes("gold") ? "foil-gold" : code.includes("silver") ? "foil-silver" : code.includes("starter") || code.includes("weekly") ? "" : "foil-bronze";
   return (
     <div
       className={`card-premium ${code.includes("gold") ? "is-gold" : ""} relative flex ${small ? "h-24 w-18 shrink-0" : "h-44 w-full"} items-end overflow-hidden rounded-2xl p-4 ${

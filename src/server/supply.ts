@@ -78,7 +78,7 @@ export async function executeRelease(releaseId: string, actorId: string | null) 
     }
     await audit(tx, { actorId, action: "supply.execute", entityType: "SupplyRelease", entityId: row.id, after: { minted, byCategory } });
     return { minted, byCategory };
-  });
+  }, { timeoutMs: 600_000 });
 }
 
 export async function executeDueReleases(now = new Date()) {

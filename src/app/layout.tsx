@@ -21,7 +21,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-24 pt-6 sm:px-6">{children}</main>
         <footer className="border-t border-ink-800 px-4 py-6 text-center text-xs text-faint">
           COLLECTR · Collect. Trade. Compete. · MP is an indicative valuation only — not cash, not withdrawable, and not a
-          promise of resale value. · Player data shown is placeholder data for development.
+          promise of resale value. · Development build: squads sourced from Wikipedia (CC BY-SA); match data is simulated; player,
+          club and crest licensing pending.
         </footer>
       </body>
     </html>

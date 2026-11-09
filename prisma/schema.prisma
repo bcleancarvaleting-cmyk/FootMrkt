@@ -54,6 +54,7 @@ model User {
   orders            Order[]
   completions       CollectionCompletion[]
   favourites        FavouriteCard[]
+  walletEntries     WalletEntry[]
   auditActions      AdminAuditLog[]
 }
 
@@ -113,6 +114,11 @@ model Club {
   shortName String
   // Simulation-only strength used by the DEV simulated data provider. Never shown as a rating.
   simStrength Int @default(50)
+  primaryColour   String  @default("#2a2f38")
+  secondaryColour String  @default("#ffffff")
+  // Licensed crest asset URL. Null until crest rights are confirmed (spec §10) — a generated badge is shown instead.
+  crestUrl        String?
+  sourceRef       String? // where the club record came from, e.g. "wikipedia:Arsenal F.C."
 
   players      Player[]
   homeFixtures Fixture[] @relation("HomeClub")
@@ -143,6 +149,7 @@ model Player {
   lastName     String
   displayName  String
   position     Position
+  squadNumber  Int?
   nationality  String
   dateOfBirth  DateTime?
   rightsStatus RightsStatus @default(PLACEHOLDER)
@@ -323,6 +330,7 @@ model PackSku {
 enum EntitlementSource {
   STARTER
   PURCHASE
+  MP_CREDIT
   REWARD
   ADMIN_GRANT
   DEV
@@ -714,6 +722,30 @@ model PaymentEvent {
   receivedAt      DateTime @default(now())
 
   @@unique([provider, providerEventId])
+}
+
+// ───────────────────────────── MP credit (promotional, non-withdrawable) ─────────────────────────────
+
+enum WalletEntryKind {
+  SET_REWARD
+  PACK_PURCHASE
+  ADMIN_ADJUSTMENT
+}
+
+// Immutable ledger of promotional MP credit (spec §11). Amounts are in hundredths of an MP
+// (1 MP ≈ £1, so 299 = 2.99 MP). Credit is spendable in-game only: never withdrawable or
+// redeemable for cash. Balance = SUM(amountMinor); entries are never updated or deleted.
+model WalletEntry {
+  id          String          @id @default(uuid()) @db.Uuid
+  userId      String          @db.Uuid
+  user        User            @relation(fields: [userId], references: [id])
+  kind        WalletEntryKind
+  amountMinor Int
+  refId       String          @unique // idempotency key, e.g. "set:<completionId>"
+  note        String?
+  createdAt   DateTime        @default(now())
+
+  @@index([userId, createdAt])
 }
 
 // ───────────────────────────── Admin ─────────────────────────────

@@ -4,8 +4,7 @@ import { PackReveal } from "@/components/pack-reveal";
 import { requireUser } from "@/server/auth/session";
 import { DomainError } from "@/server/errors";
 import { getOpening } from "@/server/packs";
-import { latestValues, valueKey } from "@/server/valuation";
-import { toCardView } from "@/lib/view";
+import { enrichCards } from "@/server/views";
 
 export const metadata = { title: "Pack opening" };
 
@@ -16,8 +15,7 @@ export default async function OpeningPage({ params }: { params: Promise<{ id: st
     if (e instanceof DomainError) notFound();
     throw e;
   });
-  const values = await latestValues(opening.cards.map((c) => ({ playerId: c.card.template.playerId, category: c.card.template.category })));
-  const cards = opening.cards.map((c) => toCardView(c.card, { valueMp: values.get(valueKey(c.card.template.playerId, c.card.template.category)) ?? null }));
+  const cards = await enrichCards(opening.cards.map((c) => c.card));
   const counts = { GOLD: 0, SILVER: 0, BRONZE: 0 };
   for (const c of cards) counts[c.category]++;
   const isStarter = opening.packSku.kind === "STARTER";

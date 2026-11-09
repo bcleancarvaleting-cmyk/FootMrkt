@@ -18,7 +18,7 @@ Requirements: Node 22+, PostgreSQL 16.
 cp .env.example .env            # set DATABASE_URL
 npm install                     # also runs prisma generate
 npx prisma migrate deploy
-npm run db:seed                 # placeholder catalogue, first supply release, admin user, gameweek 1
+npm run db:seed                 # real 2026-27 leagues/squads, first supply release, admin, 3 simulated gameweeks + GW4 open
 npm run dev                     # http://localhost:3000
 ```
 
@@ -86,19 +86,20 @@ Things the spec marks **TO CONFIRM / PROPOSED** are implemented as configuration
 | --- | --- | --- |
 | Pack prices | Bronze £2.99, Silver £5.99, Gold £9.99 (proposed) | `src/config/packs.ts` |
 | Upgrade odds | Bronze pack 25% Silver in one slot; Silver pack 20% Gold in one slot; Gold pack 10% per Silver slot | `src/config/packs.ts` |
-| Gold pack minimum | 2 guaranteed top-flight Golds (treated as a hard minimum) | `src/config/packs.ts` |
+| Gold pack | **Confirmed:** 2 top-flight Golds minimum, sometimes 3 or 4, rest Bronze/Silver (extra-Gold odds to confirm) | `src/config/packs.ts` |
 | Starter pack mix | ~30% Silver chance per slot, 1 forced top-flight Bronze, positional coverage incl. a backup GK | `src/config/packs.ts` |
-| Formations | 2-2-2 confirmed; 3-2-1, 2-3-1, 3-1-2, 2-1-3, 1-3-2 **proposed** and only enabled in the "Tactics Open" competition | `src/domain/football/rules.ts` |
+| Formations | **Confirmed:** 2-2-2, 2-3-1, 3-2-1 (`football-roster-v2`). "3-1-3" needs 8 starters — awaiting clarification | `src/domain/football/rules.ts` |
 | Auto-sub compatibility | GK↔GK only; outfield sub allowed if the resulting XI is an allowed formation; bench order is user-set | `src/domain/football/rules.ts` |
-| Scoring | Spec §6.4 draft table; clean sheet applied to all positions with 60+ minutes (to confirm) | `src/domain/football/scoring.ts` |
+| Scoring | Spec §6.4 draft table; **confirmed:** clean sheets for GK/DEF only, 60+ minutes (`football-scoring-v2-draft`) | `src/domain/football/scoring.ts` |
 | Competition rewards | None in production; DEV-only sample rewards when `DEV_TOOLS` is on | `src/config/competitions.ts` |
 | MP valuation | 1 MP ≈ £1 reference, base by tier × scarcity × form × league, blended with median of eligible sales, ±15% damping per run | `src/domain/valuation/mp.ts` |
 | Weekly supply | 6 Bronze / 3 Silver / 1 Gold per card design per week, capped by `maxSupply` | `src/server/supply.ts` |
-| Collection rewards | None (set `CollectionSet.reward` to grant a pack) | `src/server/collections.ts` |
+| Collection rewards | **Confirmed:** 10 MP credit (≈ £10) per completed set, spendable on packs; append-only ledger, never withdrawable | `src/server/wallet.ts` |
+| Card tiers for real players | Proposed proxy: league + squad number (PL 1–11 Gold, 12–30 Silver; Championship 1–11 Silver; rest Bronze) | `src/config/tiers.ts` |
 
 ### Blockers (deliberately not faked)
 
 - **Legal / payments (spec §9.3):** `PAID_PACKS` and `MARKET` are off and *cannot* be switched on from the admin UI unless the deployment sets `LEGAL_GATES_CLEARED=PAID_PACKS,MARKET`. Only a sandbox payment provider exists. Seller payouts and cash withdrawal are not built.
 - **Data provider (spec §10):** no licensed football feed has been chosen. The DEV simulated provider (`SIMULATED_DATA` flag) generates plausible matches so the loop can be played; a real provider is a new adapter implementing `FootballDataProvider`.
-- **Rights (spec §10, §19):** every player, club and league in the seed is fictional (`rightsStatus = PLACEHOLDER`). No real names, photos, badges or league marks.
+- **Rights (spec §10, §19):** leagues, clubs and squads are real (2026-27, imported from Wikipedia by `scripts/import_wikipedia.py`, CC BY-SA 4.0) and marked `rightsStatus = PENDING`. Player name/likeness, club and league marks need licences before commercial use. **Crests are not included**: clubs show a generated badge in their colours until licensed crest files are set on `Club.crestUrl`.
 - **Accounts:** email verification tokens are generated but no email is sent yet; age/identity checks await the legal decision. Rate limiting is in-process only — production needs a shared store and bot protection.

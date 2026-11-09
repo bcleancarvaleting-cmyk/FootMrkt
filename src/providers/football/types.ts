@@ -17,6 +17,8 @@ export interface ProviderPlayer {
   ref: string; // provider's player id
   clubRef: string;
   position: "GK" | "DEF" | "MID" | "ATT";
+  /** Shirt number, if known — the DEV simulator uses it as a "first choice" hint. */
+  squadNumber?: number | null;
 }
 
 export interface ProviderFixture {

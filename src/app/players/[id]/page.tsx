@@ -26,10 +26,12 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
           {player.firstName} {player.lastName}
         </h1>
         <p className="text-muted">
+          {player.squadNumber ? `#${player.squadNumber} · ` : ""}
           {player.club?.name ?? "Free agent"} · {player.club?.league.name} · {player.nationality}
           {age !== null && ` · ${age}`}
         </p>
         {player.rightsStatus === "PLACEHOLDER" && <p className="mt-1 text-xs text-warn">Placeholder player for development — not a real person.</p>}
+        {player.rightsStatus === "PENDING" && <p className="mt-1 text-xs text-faint">Match stats shown are simulated for development.</p>}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-4">

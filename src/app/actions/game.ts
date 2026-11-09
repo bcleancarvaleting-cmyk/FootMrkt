@@ -11,6 +11,7 @@ import { DomainError } from "@/server/errors";
 import { isEnabled } from "@/server/flags";
 import { cancelListing, createListing, startListingPurchase, startPackPurchase } from "@/server/market";
 import { grantPack, openPack } from "@/server/packs";
+import { buyPackWithCredit } from "@/server/wallet";
 import { rateLimit } from "@/lib/rate-limit";
 import { type ActionResult, attempt } from "./result";
 
@@ -72,11 +73,12 @@ export async function toggleFavouriteAction(cardId: string): Promise<ActionResul
 export async function completeSetAction(setId: string, idempotencyKey: string): Promise<ActionResult> {
   const user = await requireUser();
   const res = await attempt(async () => {
-    await completeSet(user.id, setId, idempotencyKey);
-  }, "Collection completed!");
-  revalidatePath("/collections");
-  revalidatePath("/binder");
-  return res;
+    const c = await completeSet(user.id, setId, idempotencyKey);
+    return db.collectionSet.findUniqueOrThrow({ where: { id: c.setId }, select: { name: true } });
+  });
+  if (!res.ok) return res;
+  revalidatePath("/", "layout");
+  redirect(`/collections?completed=${encodeURIComponent(res.data.name)}`);
 }
 
 export async function createListingAction(_: ActionResult | null, form: FormData): Promise<ActionResult> {
@@ -103,4 +105,13 @@ export async function buyListingAction(listingId: string): Promise<ActionResult>
   const res = await attempt(() => startListingPurchase(user.id, listingId));
   if (!res.ok) return res;
   redirect(res.data.checkoutUrl);
+}
+
+export async function buyPackWithCreditAction(skuCode: string, clientKey: string): Promise<ActionResult> {
+  const user = await requireUser();
+  const res = await attempt(async () => {
+    await buyPackWithCredit(user.id, skuCode, clientKey);
+  }, "Pack added — open it above!");
+  revalidatePath("/", "layout");
+  return res;
 }

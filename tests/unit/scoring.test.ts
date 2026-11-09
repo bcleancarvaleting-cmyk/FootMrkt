@@ -7,6 +7,16 @@ const rules = getScoringRules("football-scoring-v1-draft");
 const roster = getRosterRules("football-roster-v1");
 const line = (o: Partial<StatLine>): StatLine => ({ ...EMPTY_STAT_LINE, ...o });
 
+describe("scoring v2 (clean sheets for GK/DEF only)", () => {
+  const v2 = getScoringRules("football-scoring-v2-draft");
+  it("gives clean sheets to goalkeepers and defenders only", () => {
+    expect(scorePlayer(v2, "GK", [line({ minutes: 90 })]).points).toBe(9);
+    expect(scorePlayer(v2, "DEF", [line({ minutes: 90 })]).points).toBe(9);
+    expect(scorePlayer(v2, "MID", [line({ minutes: 90 })]).points).toBe(4);
+    expect(scorePlayer(v2, "ATT", [line({ minutes: 90 })]).points).toBe(4);
+  });
+});
+
 describe("scorePlayer (draft table §6.4)", () => {
   it("scores a striker's brace", () => {
     const r = scorePlayer(rules, "ATT", [line({ minutes: 90, goals: 2, assists: 1, goalsConceded: 1, yellowCards: 1 })]);
@@ -91,15 +101,15 @@ describe("scoreSquad automatic substitutions (§6.3)", () => {
     expect(r.selections.find((s) => s.cardId === "a1")!.counted).toBe(true);
   });
 
-  it("permissive formations allow cross-position subs", () => {
-    const tactics = getRosterRules("football-roster-v1-tactics");
-    const r = scoreSquad(rules, tactics, squad, data({ d1: dnp }));
-    // Sub 1 (ATT) for a DEF gives 1-2-3 which is not allowed; 1-3-2 isn't reachable; so Sub 2 (DEF).
-    expect(r.substitutions[0].on).toBe("s2");
-    const r2 = scoreSquad(rules, tactics, squad, data({ m1: dnp }));
-    // MID out, Sub 1 ATT in → 2-1-3, allowed in tactics rules.
-    expect(r2.substitutions).toEqual([{ off: "m1", on: "s1", benchOrder: 1 }]);
-    expect(r2.formationUsed).toBe("2-1-3");
+  it("v2 formations allow cross-position subs that land on 2-3-1 or 3-2-1", () => {
+    const v2 = getRosterRules("football-roster-v2");
+    // ATT out; Sub 1 is an ATT anyway.
+    expect(scoreSquad(rules, v2, squad, data({ a1: dnp })).substitutions[0].on).toBe("s1");
+    // ATT out and Sub 1 didn't play → Sub 2 (DEF) gives 3-2-1, allowed in v2 (not in v1).
+    const r = scoreSquad(rules, v2, squad, data({ a1: dnp, s1: dnp }));
+    expect(r.substitutions).toEqual([{ off: "a1", on: "s2", benchOrder: 2 }]);
+    expect(r.formationUsed).toBe("3-2-1");
+    expect(scoreSquad(rules, roster, squad, data({ a1: dnp, s1: dnp })).substitutions).toEqual([]);
   });
 
   it("is reproducible: same inputs give the same total and hash", () => {

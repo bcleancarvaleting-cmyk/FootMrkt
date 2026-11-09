@@ -136,7 +136,7 @@ export async function simulateFixturesNow(gameweekId: string, count: number | "a
     const squad = (clubId: string) =>
       players
         .filter((p) => p.clubId === clubId)
-        .map((p) => ({ ref: (p.providerRefs as Record<string, string>)[SIMULATED_PROVIDER_NAME], clubRef: clubId, position: p.position }));
+        .map((p) => ({ ref: (p.providerRefs as Record<string, string>)[SIMULATED_PROVIDER_NAME], clubRef: clubId, position: p.position, squadNumber: p.squadNumber }));
     messages.push(
       ...simulateMatch(
         { providerFixtureId: f.providerFixtureId, homeClubRef: f.homeClub.code, awayClubRef: f.awayClub.code, kickoffAt: f.kickoffAt },
@@ -192,13 +192,13 @@ export async function refreshProvisional(gameweekId: string) {
 }
 
 /** Close the correction window: settle every competition, then revalue cards. */
-export async function finaliseGameweek(gameweekId: string, actorId: string | null) {
+export async function finaliseGameweek(gameweekId: string, actorId: string | null, valuationAt = new Date()) {
   const pending = await db.fixture.count({ where: { gameweekId, status: { in: ["SCHEDULED", "LIVE"] } } });
   if (pending) throw new DomainError("FIXTURES_PENDING", `${pending} fixture(s) still to be played.`);
   const comps = await db.competition.findMany({ where: { gameweekId, status: { in: ["LOCKED", "PROVISIONAL"] } } });
   for (const c of comps) await settleCompetition(c.id, actorId);
   await db.gameweek.update({ where: { id: gameweekId }, data: { status: "SETTLED" } });
-  await revalueAll();
+  await revalueAll(valuationAt);
 }
 
 /** Scheduled job entry point. */

@@ -1,8 +1,10 @@
 import type { CardCategory, CardLock, Position, Prisma } from "@/generated/prisma/client";
-import { getScoringRules, scorePlayer, toStatLine } from "@/domain/football/scoring";
+import { CURRENT_SCORING_RULES, getScoringRules, scorePlayer, toStatLine } from "@/domain/football/scoring";
 import { db } from "./db";
 import { DomainError } from "./errors";
+import type { CardView } from "@/lib/view";
 import { latestValues, valueKey } from "./valuation";
+import { CARD_INCLUDE, enrichCards } from "./views";
 
 export interface BinderFilters {
   category?: CardCategory;
@@ -14,15 +16,7 @@ export interface BinderFilters {
   favourites?: boolean;
 }
 
-const cardInclude = {
-  template: { include: { player: { include: { club: { include: { league: true } } } } } },
-} satisfies Prisma.CardInstanceInclude;
-
-export type BinderCard = Prisma.CardInstanceGetPayload<{ include: typeof cardInclude }> & {
-  valueMp: number | null;
-  favourite: boolean;
-  duplicateCount: number;
-};
+export type BinderCard = CardView & { favourite: boolean; duplicateCount: number };
 
 export async function binder(userId: string, f: BinderFilters = {}) {
   const where: Prisma.CardInstanceWhereInput = { ownerId: userId, supplyState: "HELD" };
@@ -43,7 +37,7 @@ export async function binder(userId: string, f: BinderFilters = {}) {
 
   const cards = await db.cardInstance.findMany({
     where,
-    include: { ...cardInclude, favourites: { where: { userId }, select: { userId: true } } },
+    include: { ...CARD_INCLUDE, favourites: { where: { userId }, select: { userId: true } } },
     orderBy: [{ template: { category: "desc" } }, { template: { player: { position: "asc" } } }, { template: { player: { lastName: "asc" } } }],
   });
   const counts = new Map<string, number>();
@@ -51,12 +45,11 @@ export async function binder(userId: string, f: BinderFilters = {}) {
     const k = valueKey(c.template.playerId, c.template.category);
     counts.set(k, (counts.get(k) ?? 0) + 1);
   }
-  const values = await latestValues(cards.map((c) => ({ playerId: c.template.playerId, category: c.template.category })));
-  let out: BinderCard[] = cards.map(({ favourites, ...c }) => ({
-    ...c,
-    valueMp: values.get(valueKey(c.template.playerId, c.template.category)) ?? null,
-    favourite: favourites.length > 0,
-    duplicateCount: counts.get(valueKey(c.template.playerId, c.template.category)) ?? 1,
+  const views = await enrichCards(cards);
+  let out: BinderCard[] = views.map((v, i) => ({
+    ...v,
+    favourite: cards[i].favourites.length > 0,
+    duplicateCount: counts.get(valueKey(v.playerId, v.category)) ?? 1,
   }));
   if (f.duplicates) out = out.filter((c) => c.duplicateCount > 1);
   return out;
@@ -84,7 +77,7 @@ export async function cardDetail(cardId: string, viewerId: string | null) {
   const card = await db.cardInstance.findUnique({
     where: { id: cardId },
     include: {
-      ...cardInclude,
+      ...CARD_INCLUDE,
       owner: { select: { id: true, displayName: true } },
       ownerships: { orderBy: { acquiredAt: "asc" }, include: { user: { select: { displayName: true } } } },
       listings: { where: { status: "ACTIVE" } },
@@ -114,7 +107,7 @@ export async function playerProfile(playerId: string) {
     orderBy: { fixture: { kickoffAt: "desc" } },
     take: 20,
   });
-  const rules = getScoringRules("football-scoring-v1-draft");
+  const rules = getScoringRules(CURRENT_SCORING_RULES);
   const matches = stats.map((s) => {
     const line = toStatLine(s.stats);
     return { stat: s, line, points: scorePlayer(rules, player.position, [line]) };

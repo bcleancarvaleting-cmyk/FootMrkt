@@ -4,14 +4,15 @@ import { cancelListingAction, toggleFavouriteAction } from "@/app/actions/game";
 import { ActionButton } from "@/components/action-button";
 import { ListingForm } from "@/components/listing-form";
 import { PlayerCard } from "@/components/player-card";
-import { Sparkline } from "@/components/sparkline";
+import { ValueChart } from "@/components/value-chart";
+import { enrichCards } from "@/server/views";
 import { indicativeMoney } from "@/domain/valuation/mp";
 import { getCurrentUser } from "@/server/auth/session";
 import { cardDetail } from "@/server/binder";
 import { db } from "@/server/db";
 import { DomainError } from "@/server/errors";
 import { allFlags } from "@/server/flags";
-import { POSITION_LABEL, fmtDate, gbp, toCardView } from "@/lib/view";
+import { POSITION_LABEL, fmtDate, gbp } from "@/lib/view";
 
 export const metadata = { title: "Card" };
 
@@ -25,7 +26,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
   });
   const flags = await allFlags();
   const latest = valuations.at(-1) ?? null;
-  const view = toCardView(card, { valueMp: latest?.valueMp ?? null });
+  const [view] = await enrichCards([card]);
   const favourite = user ? !!(await db.favouriteCard.findUnique({ where: { userId_cardId: { userId: user.id, cardId: id } } })) : false;
   const listing = card.listings[0];
   const signals = (latest?.signals ?? {}) as Record<string, unknown>;
@@ -75,7 +76,10 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
             <span className="text-2xl font-black text-lime">{latest ? `${latest.valueMp} MP` : "—"}</span>
             {latest && <span className="block text-xs text-faint">≈ {indicativeMoney(latest.valueMp)} indicative</span>}
           </Info>
-          <Info label="Status">{status}</Info>
+          <Info label={isOwner ? "You got it" : "Status"}>
+            {isOwner && view.acquired ? <span className="text-lg font-bold">{view.acquired}</span> : null}
+            <span className="block text-xs text-faint">{status}</span>
+          </Info>
           <Info label="Card ID">
             <span className="break-all font-mono text-[11px] text-muted">{card.id}</span>
             <span className="block text-xs text-faint">
@@ -92,7 +96,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
 
         <section className="panel p-5">
           <h2 className="mb-3 font-bold">Value history</h2>
-          <Sparkline values={valuations.map((v) => v.valueMp)} />
+          <ValueChart points={valuations.map((v) => ({ at: v.computedAt, mp: v.valueMp }))} />
           {latest && (
             <details className="mt-3 text-xs text-muted">
               <summary className="cursor-pointer text-faint hover:text-fg">How this value was calculated ({String(signals.method)})</summary>

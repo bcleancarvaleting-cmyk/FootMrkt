@@ -1,5 +1,5 @@
 import type { CardCategory, Prisma } from "@/generated/prisma/client";
-import { getScoringRules, scorePlayer, toStatLine } from "@/domain/football/scoring";
+import { CURRENT_SCORING_RULES, getScoringRules, scorePlayer, toStatLine } from "@/domain/football/scoring";
 import { VALUATION_CONFIG, computeMp } from "@/domain/valuation/mp";
 import { db } from "./db";
 
@@ -18,7 +18,7 @@ export async function revalueAll(now = new Date()) {
     where: { isCurrent: true, fixture: { gameweekId: { in: settledGws.map((g) => g.id) } } },
     include: { fixture: true },
   });
-  const rules = getScoringRules("football-scoring-v1-draft");
+  const rules = getScoringRules(CURRENT_SCORING_RULES);
   const since = new Date(now.getTime() - 30 * 24 * 3600_000);
   const sales = await db.marketListing.findMany({
     where: { status: "SOLD", soldAt: { gte: since } },
@@ -71,6 +71,27 @@ export async function latestValues(keys: Array<{ playerId: string; category: Car
     FROM "MPValuation" WHERE "playerId" = ANY(${playerIds}::uuid[])
     ORDER BY "playerId", category, "computedAt" DESC`;
   return new Map(rows.map((r) => [`${r.playerId}:${r.category}`, r.valueMp]));
+}
+
+/** Latest MP plus % change vs the previous valuation, for rising/falling indicators. */
+export async function valueTrends(keys: Array<{ playerId: string; category: CardCategory }>) {
+  const out = new Map<string, { mp: number; trendPct: number | null }>();
+  if (!keys.length) return out;
+  const playerIds = [...new Set(keys.map((k) => k.playerId))];
+  const rows = await db.$queryRaw<Array<{ playerId: string; category: CardCategory; valueMp: number; rn: bigint }>>`
+    SELECT * FROM (
+      SELECT "playerId", category, "valueMp",
+             ROW_NUMBER() OVER (PARTITION BY "playerId", category ORDER BY "computedAt" DESC) AS rn
+      FROM "MPValuation" WHERE "playerId" = ANY(${playerIds}::uuid[])
+    ) v WHERE rn <= 2`;
+  for (const r of rows.filter((r) => Number(r.rn) === 1)) {
+    const prev = rows.find((x) => Number(x.rn) === 2 && x.playerId === r.playerId && x.category === r.category);
+    out.set(valueKey(r.playerId, r.category), {
+      mp: r.valueMp,
+      trendPct: prev && prev.valueMp > 0 ? Math.round(((r.valueMp - prev.valueMp) / prev.valueMp) * 1000) / 10 : null,
+    });
+  }
+  return out;
 }
 
 export const valueKey = (playerId: string, category: string) => `${playerId}:${category}`;

@@ -6,9 +6,8 @@ import { PlayerCard } from "@/components/player-card";
 import { requireUser } from "@/server/auth/session";
 import { db } from "@/server/db";
 import { isEnabled } from "@/server/flags";
-import { latestValues, valueKey } from "@/server/valuation";
-import { CARD_INCLUDE } from "@/server/views";
-import { gbp, relativeTime, toCardView } from "@/lib/view";
+import { CARD_INCLUDE, enrichCards } from "@/server/views";
+import { gbp, relativeTime } from "@/lib/view";
 
 export const metadata = { title: "Transfer Market" };
 
@@ -32,7 +31,7 @@ export default async function MarketPage({ searchParams }: { searchParams: Promi
     orderBy: { createdAt: "desc" },
     take: 60,
   });
-  const values = await latestValues(listings.map((l) => ({ playerId: l.card.template.playerId, category: l.card.template.category })));
+  const views = await enrichCards(listings.map((l) => l.card));
   return (
     <div className="space-y-6">
       <div>
@@ -48,8 +47,8 @@ export default async function MarketPage({ searchParams }: { searchParams: Promi
         ))}
       </form>
       <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
-        {listings.map((l) => {
-          const v = toCardView(l.card, { valueMp: values.get(valueKey(l.card.template.playerId, l.card.template.category)) ?? null });
+        {listings.map((l, i) => {
+          const v = views[i];
           const mine = l.sellerId === user.id;
           return (
             <div key={l.id} className="flex flex-col items-center gap-2">

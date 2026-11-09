@@ -3,7 +3,6 @@ import { PlayerCard } from "@/components/player-card";
 import { requireUser } from "@/server/auth/session";
 import { type BinderFilters, binder, binderTotals } from "@/server/binder";
 import { db } from "@/server/db";
-import { toCardView } from "@/lib/view";
 
 export const metadata = { title: "My Collection" };
 
@@ -81,7 +80,7 @@ export default async function BinderPage({ searchParams }: { searchParams: Promi
         <div className="grid grid-cols-2 justify-items-center gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {cards.map((c) => (
             <Link key={c.id} href={`/cards/${c.id}`} className="relative transition hover:-translate-y-1">
-              <PlayerCard card={toCardView(c, { valueMp: c.valueMp })} />
+              <PlayerCard card={c} />
               {c.duplicateCount > 1 && (
                 <span className="absolute -right-1 -top-1 rounded-full bg-ink-700 px-1.5 text-[10px] font-bold">×{c.duplicateCount}</span>
               )}

@@ -27,21 +27,18 @@ export async function mintInstances(
   if (tpl.maxSupply !== null) count = Math.min(count, tpl.maxSupply - Number(n));
   if (count <= 0) return [];
   const start = (max ?? 0) + 1;
-  const ids: string[] = [];
-  for (let i = 0; i < count; i++) {
-    const card = await tx.cardInstance.create({
-      data: {
-        templateId: args.templateId,
-        serial: start + i,
-        supplyState: args.state,
-        ownerId: args.state === "HELD" ? args.ownerId : null,
-        tradeStatus: args.tradeStatus ?? "TRADEABLE",
-        releaseId: args.releaseId,
-      },
-      select: { id: true },
-    });
-    ids.push(card.id);
-  }
+  const rows = await tx.cardInstance.createManyAndReturn({
+    data: Array.from({ length: count }, (_, i) => ({
+      templateId: args.templateId,
+      serial: start + i,
+      supplyState: args.state,
+      ownerId: args.state === "HELD" ? args.ownerId : null,
+      tradeStatus: args.tradeStatus ?? "TRADEABLE",
+      releaseId: args.releaseId,
+    })),
+    select: { id: true },
+  });
+  const ids = rows.map((r) => r.id);
   return ids;
 }
 

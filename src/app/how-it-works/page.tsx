@@ -1,15 +1,15 @@
 import { FORMATIONS } from "@/domain/football/rules";
-import { getScoringRules } from "@/domain/football/scoring";
+import { CURRENT_SCORING_RULES, getScoringRules } from "@/domain/football/scoring";
 import { VALUATION_CONFIG } from "@/domain/valuation/mp";
 
 export const metadata = { title: "How it works" };
 
 export default function HowItWorks() {
-  const s = getScoringRules("football-scoring-v1-draft");
+  const s = getScoringRules(CURRENT_SCORING_RULES);
   const rows: Array<[string, number | string]> = [
     ["Goal", s.goal],
     ["Assist", s.assist],
-    [`Clean sheet (${s.cleanSheet.minMinutes}+ minutes)`, s.cleanSheet.points],
+    [`Clean sheet (${s.cleanSheet.positions.join("/")}, ${s.cleanSheet.minMinutes}+ minutes)`, s.cleanSheet.points],
     ["Penalty save", s.penaltySave],
     [`Every ${s.saves.per} goalkeeper saves`, s.saves.points],
     [`Every ${s.tackles.per} successful tackles`, s.tackles.points],
@@ -37,19 +37,25 @@ export default function HowItWorks() {
         <p>
           New managers get a free 11-card Starter Pack. Starter cards are yours to play with but are permanently locked to your account.
         </p>
+        <p>
+          Gold Packs always contain at least <b>2 Gold</b> top-flight players — sometimes 3 or 4 — with the rest Bronze or Silver.
+          Complete a collection set to earn <b>10 MP credit (≈ £10)</b> to spend on packs and build a stronger squad.
+        </p>
       </Section>
 
       <Section title="2. Pick your squad">
         <p>
           Each gameweek you pick <b>7 starters</b> — 1 goalkeeper, 2 defenders, 2 midfielders and 2 attackers — and <b>4 substitutes</b>{" "}
-          in order. Some competitions allow other shapes:
+          in order. You can line up in any of these formations:
         </p>
         <div className="flex flex-wrap gap-2">
-          {Object.values(FORMATIONS).map((f) => (
-            <span key={f.id} className="chip">
-              1-{f.id} {f.status === "PROPOSED" && <span className="text-warn">· proposed</span>}
-            </span>
-          ))}
+          {Object.values(FORMATIONS)
+            .filter((f) => f.status === "CONFIRMED")
+            .map((f) => (
+              <span key={f.id} className="chip">
+                1-{f.id}
+              </span>
+            ))}
         </div>
         <p>
           Squads lock at the deadline and the cards you picked stay locked until the competition settles. A card can only be in one
@@ -78,6 +84,10 @@ export default function HowItWorks() {
       </Section>
 
       <Section title="4. Indicative value (MP)">
+        <p>
+          Every card shows whether its value is <b className="text-mint">▲ rising</b> or <b className="text-danger">▼ falling</b>, a value
+          graph, and how you got it — <b>Starter</b>, <b>Packed</b>, or what you paid.
+        </p>
         <p>
           Each card shows an indicative value in MP, with a money reference ({VALUATION_CONFIG.pencePerMp / 100 === 1 ? "1 MP ≈ £1" : ""}). It
           reflects supply, recent form, league level and eligible completed sales. <b>MP is not cash</b>, cannot be withdrawn or redeemed,

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { BuyPackButton, DevPackButton, OpenPackButton } from "@/components/pack-buttons";
+import { BuyPackButton, CreditPackButton, DevPackButton, OpenPackButton } from "@/components/pack-buttons";
+import { balanceMinor, fmtMp } from "@/server/wallet";
 import { advertisedGuarantee, cardCount, parsePackConfig } from "@/domain/packs/config";
 import { requireUser } from "@/server/auth/session";
 import { db } from "@/server/db";
@@ -19,10 +20,11 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
   const user = await requireUser();
   const { welcome } = await searchParams;
   const flags = await allFlags();
-  const [unopened, skus, history] = await Promise.all([
+  const [unopened, skus, history, credit] = await Promise.all([
     db.packEntitlement.findMany({ where: { userId: user.id, status: "UNOPENED" }, include: { packSku: true }, orderBy: { createdAt: "asc" } }),
     db.packSku.findMany({ where: { active: true, kind: "REGULAR" }, orderBy: [{ priceMinor: "asc" }, { version: "desc" }], distinct: ["code"] }),
     db.packOpening.findMany({ where: { userId: user.id }, include: { packSku: true, _count: { select: { cards: true } } }, orderBy: { createdAt: "desc" }, take: 10 }),
+    balanceMinor(user.id),
   ]);
 
   return (
@@ -64,10 +66,14 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
 
       <section>
         <p className="eyebrow">Pack shop</p>
-        <h2 className="mb-1 text-2xl font-black">Football packs</h2>
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <h2 className="mb-1 text-2xl font-black">Football packs</h2>
+          <span className="chip border-lime/40 text-lime">MP credit: {fmtMp(credit)}</span>
+        </div>
         {!flags.PAID_PACKS && (
           <p className="mb-4 text-sm text-warn">
-            Paid packs aren&apos;t available yet — they&apos;re switched off until legal and payment-provider review is complete.
+            Buying with money isn&apos;t available yet (pending legal and payment-provider review). You can use MP credit earned
+            from completing sets.
           </p>
         )}
         <div className="grid gap-4 md:grid-cols-3">
@@ -101,6 +107,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
                   </ul>
                 </details>
                 <div className="mt-auto flex flex-wrap items-start gap-2 pt-5">
+                  <CreditPackButton skuCode={s.code} price={fmtMp(s.priceMinor)} affordable={credit >= s.priceMinor} />
                   <BuyPackButton skuCode={s.code} price={gbp(s.priceMinor)} enabled={flags.PAID_PACKS} />
                   {flags.DEV_TOOLS && <DevPackButton skuCode={s.code} />}
                 </div>

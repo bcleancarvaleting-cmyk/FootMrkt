@@ -2,6 +2,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { db, withTx } from "./db";
 import { DomainError, isUniqueViolation } from "./errors";
 import { grantPack } from "./packs";
+import { SET_REWARD_MP_MINOR, credit } from "./wallet";
 
 /**
  * Binder collections (spec §8.1). Completing a set is user-confirmed. On completion the set's
@@ -11,7 +12,7 @@ import { grantPack } from "./packs";
  *
  * Only TRADEABLE, unlocked cards count towards completion: starter cards are permanently locked
  * and listed/competition cards are busy.
- * TO CONFIRM: completion reward (CollectionSet.reward) and the set definitions themselves.
+ * Reward: £10 of MP credit per completed set (confirmed 9 Nov 2026); set definitions TO CONFIRM.
  */
 
 export async function setProgress(userId: string) {
@@ -70,8 +71,14 @@ export async function completeSet(userId: string, setId: string, idempotencyKey:
       if (moved.count !== chosen.length) throw new Error("Cards changed during completion");
       await tx.favouriteCard.deleteMany({ where: { cardId: { in: chosen } } });
 
-      const reward = set.reward as { packSkuCode?: string } | null;
-      if (reward?.packSkuCode) {
+      // Product decision (9 Nov 2026): every completed set awards £10 of MP credit unless the
+      // set overrides it with { mpCreditMinor }.
+      const reward = (set.reward ?? {}) as { packSkuCode?: string; mpCreditMinor?: number };
+      const mp = reward.mpCreditMinor ?? SET_REWARD_MP_MINOR;
+      if (mp > 0) {
+        await credit(tx, { userId, amountMinor: mp, kind: "SET_REWARD", refId: `set:${completion.id}`, note: set.name });
+      }
+      if (reward.packSkuCode) {
         await grantPack(tx, { userId, skuCode: reward.packSkuCode, source: "REWARD", sourceRef: `set:${completion.id}` });
       }
       return completion;

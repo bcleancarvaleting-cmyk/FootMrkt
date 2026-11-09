@@ -3,12 +3,13 @@ import { requireUser } from "@/server/auth/session";
 import { db } from "@/server/db";
 import { isEnabled } from "@/server/flags";
 import { fmtDate, gbp } from "@/lib/view";
+import { balanceMinor, fmtMp, walletHistory } from "@/server/wallet";
 
 export const metadata = { title: "Profile" };
 
 export default async function ProfilePage() {
   const user = await requireUser();
-  const [orders, entries, devTools] = await Promise.all([
+  const [orders, entries, devTools, credit, ledger] = await Promise.all([
     db.order.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 20 }),
     db.competitionEntry.findMany({
       where: { userId: user.id, finalPoints: { not: null } },
@@ -17,6 +18,8 @@ export default async function ProfilePage() {
       take: 20,
     }),
     isEnabled("DEV_TOOLS"),
+    balanceMinor(user.id),
+    walletHistory(user.id),
   ]);
   const seasonPoints = entries.reduce((s, e) => s + (e.finalPoints ?? 0), 0);
   return (
@@ -70,6 +73,28 @@ export default async function ProfilePage() {
             </Link>
           ))}
           {!entries.length && <p className="px-4 py-4 text-faint">No settled competitions yet.</p>}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="mb-2 font-bold">
+          MP credit <span className="text-lime">{fmtMp(credit)}</span>
+        </h2>
+        <p className="mb-2 text-xs text-faint">Promotional credit for packs. It can&apos;t be withdrawn or exchanged for cash.</p>
+        <div className="panel divide-y divide-ink-700 text-sm">
+          {ledger.map((e) => (
+            <div key={e.id} className="flex justify-between px-4 py-2">
+              <span>
+                {e.kind === "SET_REWARD" ? `Set completed: ${e.note}` : e.kind === "PACK_PURCHASE" ? `Bought ${e.note}` : e.note ?? "Adjustment"}
+                <span className="text-faint"> · {fmtDate(e.createdAt)}</span>
+              </span>
+              <b className={e.amountMinor > 0 ? "text-mint" : "text-muted"}>
+                {e.amountMinor > 0 ? "+" : ""}
+                {fmtMp(e.amountMinor)}
+              </b>
+            </div>
+          ))}
+          {!ledger.length && <p className="px-4 py-4 text-faint">Complete a set to earn 10 MP credit.</p>}
         </div>
       </section>
 

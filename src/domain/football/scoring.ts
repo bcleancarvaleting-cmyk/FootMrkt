@@ -90,7 +90,28 @@ export const SCORING_RULES: Record<string, ScoringRules> = {
     penaltyMissed: -5,
     goalsConceded: { per: 2, points: -1, positions: ["GK", "DEF"] },
   },
+  // v2 (product decision 9 Nov 2026): clean sheets only for goalkeepers and defenders.
+  "football-scoring-v2-draft": {
+    id: "football-scoring-v2-draft",
+    status: "DRAFT",
+    appearance: 2,
+    played60: 2,
+    goal: 10,
+    assist: 6,
+    cleanSheet: { points: 5, positions: ["GK", "DEF"], minMinutes: 60 },
+    penaltySave: 8,
+    saves: { per: 3, points: 2 },
+    tackles: { per: 3, points: 1 },
+    yellowCard: -3,
+    redCard: -10,
+    ownGoal: -5,
+    penaltyMissed: -5,
+    goalsConceded: { per: 2, points: -1, positions: ["GK", "DEF"] },
+  },
 };
+
+/** Rule set used for new competitions, form and valuations. */
+export const CURRENT_SCORING_RULES = "football-scoring-v2-draft";
 
 export function getScoringRules(id: string): ScoringRules {
   const r = SCORING_RULES[id];

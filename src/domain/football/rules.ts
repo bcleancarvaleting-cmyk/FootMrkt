@@ -16,17 +16,16 @@ export interface Formation {
 }
 
 /**
- * The spec confirms a 1 GK / 2 DEF / 2 MID / 2 ATT starting structure "with different approved
- * formations available" but the formation list is still open (§18). 2-2-2 is the confirmed
- * default; the others are PROPOSED and only usable by competitions that opt in.
+ * Formations (7 starters = 1 GK + 6 outfield).
+ * CONFIRMED by the product owner on 9 Nov 2026: 2-2-2, 2-3-1, 3-2-1.
+ * "3-1-3" was also requested but needs 7 outfield players (8 starters), so it can't fit the
+ * 7-player squad; 3-1-2 is kept as PROPOSED (disabled) pending clarification.
  */
 export const FORMATIONS: Record<string, Formation> = {
   "2-2-2": { id: "2-2-2", def: 2, mid: 2, att: 2, status: "CONFIRMED" },
-  "3-2-1": { id: "3-2-1", def: 3, mid: 2, att: 1, status: "PROPOSED" },
-  "2-3-1": { id: "2-3-1", def: 2, mid: 3, att: 1, status: "PROPOSED" },
+  "2-3-1": { id: "2-3-1", def: 2, mid: 3, att: 1, status: "CONFIRMED" },
+  "3-2-1": { id: "3-2-1", def: 3, mid: 2, att: 1, status: "CONFIRMED" },
   "3-1-2": { id: "3-1-2", def: 3, mid: 1, att: 2, status: "PROPOSED" },
-  "2-1-3": { id: "2-1-3", def: 2, mid: 1, att: 3, status: "PROPOSED" },
-  "1-3-2": { id: "1-3-2", def: 1, mid: 3, att: 2, status: "PROPOSED" },
 };
 
 export type SubCompatibility =
@@ -61,12 +60,12 @@ export const ROSTER_RULES: Record<string, RosterRules> = {
     uniquePlayers: true,
     autoSub: { trigger: "NO_APPEARANCE", compatibility: "VALID_FORMATION" },
   },
-  /** Same as v1 but opts into the PROPOSED formations — used by "Tactics" competitions. */
-  "football-roster-v1-tactics": {
-    id: "football-roster-v1-tactics",
+  /** v2: the confirmed formation list. Used by every new competition. */
+  "football-roster-v2": {
+    id: "football-roster-v2",
     starters: 7,
     bench: 4,
-    allowedFormations: ["2-2-2", "3-2-1", "2-3-1", "3-1-2", "2-1-3", "1-3-2"],
+    allowedFormations: ["2-2-2", "2-3-1", "3-2-1"],
     strictPositions: true,
     uniquePlayers: true,
     autoSub: { trigger: "NO_APPEARANCE", compatibility: "VALID_FORMATION" },

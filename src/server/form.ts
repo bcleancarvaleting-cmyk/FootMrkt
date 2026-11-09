@@ -1,4 +1,4 @@
-import { getScoringRules, scorePlayer, toStatLine } from "@/domain/football/scoring";
+import { CURRENT_SCORING_RULES, getScoringRules, scorePlayer, toStatLine } from "@/domain/football/scoring";
 import { db } from "./db";
 
 /** Points per gameweek for each player over their last N gameweeks with data (scouting/form). */
@@ -14,7 +14,7 @@ export async function recentForm(playerIds: string[], gameweeks = 3) {
     where: { isCurrent: true, playerId: { in: playerIds }, fixture: { gameweekId: { in: gws.map((g) => g.id) } } },
     include: { fixture: { select: { gameweekId: true } }, player: { select: { position: true } } },
   });
-  const rules = getScoringRules("football-scoring-v1-draft");
+  const rules = getScoringRules(CURRENT_SCORING_RULES);
   for (const pid of playerIds) {
     const mine = stats.filter((s) => s.playerId === pid);
     if (!mine.length) continue;

@@ -112,7 +112,18 @@ interface OnPitch {
 }
 
 function pickTeam(rng: RandomSource, squad: ProviderPlayer[]): OnPitch[] {
-  const by = (pos: ProviderPlayer["position"]) => shuffle(rng, squad.filter((p) => p.position === pos));
+  // First-choice numbers (1–11) usually start, 12–25 sometimes, others rarely — with rotation noise.
+  const priority = (p: ProviderPlayer) => {
+    const n = p.squadNumber ?? 99;
+    const base = n >= 1 && n <= 11 ? 0 : n <= 25 ? 1.2 : 2.4;
+    return base + uniform(rng) * 1.6;
+  };
+  const by = (pos: ProviderPlayer["position"]) =>
+    squad
+      .filter((p) => p.position === pos)
+      .map((p) => ({ p, k: priority(p) }))
+      .sort((a, b) => a.k - b.k)
+      .map((x) => x.p);
   const gk = by("GK");
   const def = by("DEF");
   const mid = by("MID");

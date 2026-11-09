@@ -3,6 +3,7 @@ import { logoutAction } from "@/app/actions/auth";
 import { getCurrentUser } from "@/server/auth/session";
 import { db } from "@/server/db";
 import { allFlags } from "@/server/flags";
+import { balanceMinor, fmtMp } from "@/server/wallet";
 import { NavLinks } from "./nav-links";
 
 export function Logo() {
@@ -17,6 +18,7 @@ export async function Nav() {
   const user = await getCurrentUser();
   const flags = await allFlags();
   const unopened = user ? await db.packEntitlement.count({ where: { userId: user.id, status: "UNOPENED" } }) : 0;
+  const credit = user ? await balanceMinor(user.id) : 0;
   const links = [
     { href: "/football", label: "Football" },
     { href: "/packs", label: "Packs", badge: unopened || undefined },
@@ -36,8 +38,11 @@ export async function Nav() {
         <div className="ml-auto flex items-center gap-2 text-sm">
           {user ? (
             <>
-              <Link href="/profile" className="hidden text-muted hover:text-fg sm:inline">
+              <Link href="/profile" className="hidden items-center gap-2 text-muted hover:text-fg sm:inline-flex">
                 {user.displayName}
+                <span className="rounded-full bg-lime/10 px-2 py-0.5 text-[11px] font-bold text-lime" title="MP credit — spend on packs">
+                  {fmtMp(credit)}
+                </span>
               </Link>
               <form action={logoutAction}>
                 <button className="btn-ghost px-3 py-1.5 text-xs">Log out</button>

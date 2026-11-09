@@ -19,7 +19,7 @@ describe("pack configs", () => {
   });
 
   it("advertises the guaranteed floor", () => {
-    expect(advertisedGuarantee(pack("football-gold"))).toEqual({ BRONZE: 6, SILVER: 6, GOLD: 2 });
+    expect(advertisedGuarantee(pack("football-gold"))).toEqual({ BRONZE: 6, SILVER: 2, GOLD: 2 });
     expect(advertisedGuarantee(pack("football-silver"))).toEqual({ BRONZE: 6, SILVER: 6, GOLD: 0 });
   });
 
@@ -68,6 +68,18 @@ describe("planPack", () => {
       expect(positions.filter((p) => p === "MID").length).toBeGreaterThanOrEqual(2);
       expect(positions.filter((p) => p === "ATT").length).toBeGreaterThanOrEqual(2);
     }
+  });
+
+  it("gold packs: always ≥2 Golds, sometimes 3 or 4, never more; the rest Bronze/Silver", () => {
+    const cfg = pack("football-gold");
+    const seen = new Set<number>();
+    for (let seed = 0; seed < 3000; seed++) {
+      const golds = planPack(cfg, seededRandom(seed)).filter((s) => s.category === "GOLD").length;
+      expect(golds).toBeGreaterThanOrEqual(2);
+      expect(golds).toBeLessThanOrEqual(4);
+      seen.add(golds);
+    }
+    expect([...seen].sort()).toEqual([2, 3, 4]);
   });
 
   it("gold-pack Golds are top-flight only", () => {

@@ -1,5 +1,6 @@
 import type { CardView } from "@/lib/view";
 import { moneyRef, mpLabel } from "@/lib/view";
+import { ClubBadge } from "./club-badge";
 
 const TIER = {
   BRONZE: {
@@ -43,6 +44,14 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
       <div className="relative flex h-full flex-col rounded-[14px] bg-gradient-to-b from-ink-850/40 via-ink-900/90 to-ink-950 p-2.5">
         <div className="flex items-start justify-between">
           <span className={`rounded-md bg-ink-950/70 px-1.5 py-0.5 text-[10px] font-black tracking-wider ${t.text}`}>{card.position}</span>
+          <ClubBadge
+            short={card.clubShort}
+            primary={card.clubPrimary}
+            secondary={card.clubSecondary}
+            crestUrl={card.crestUrl}
+            size={size === "sm" ? 16 : size === "lg" ? 28 : 20}
+            title={card.clubName ?? undefined}
+          />
           <span className={`text-[9px] font-bold uppercase tracking-[0.18em] ${t.text}`}>{t.label}</span>
         </div>
         <div className="flex flex-1 items-center justify-center">
@@ -57,15 +66,18 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
         <div className="text-center">
           <div className={`truncate font-bold leading-tight ${size === "sm" ? "text-xs" : "text-sm"}`}>{card.name}</div>
           <div className="truncate text-[10px] text-muted">
-            {card.clubShort ?? "Free agent"} · {card.nationality}
+            {card.clubName ?? "Free agent"}
           </div>
         </div>
         <div className="mt-1.5 flex items-end justify-between border-t border-white/10 pt-1.5">
           <div>
-            <div className="text-[11px] font-bold text-lime">{mpLabel(card.valueMp)}</div>
+            <div className="flex items-baseline gap-1 text-[11px] font-bold text-lime">
+              {mpLabel(card.valueMp)} <Trend pct={card.trendPct} />
+            </div>
             <div className="text-[9px] text-faint">{moneyRef(card.valueMp)} indicative</div>
           </div>
           <div className="text-right text-[9px] text-faint">
+            {card.acquired && <div className="font-semibold text-muted">{card.acquired}</div>}
             #{card.serial}
             {card.maxSupply ? `/${card.maxSupply}` : ""}
           </div>
@@ -77,6 +89,18 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
         </div>
       </div>
     </div>
+  );
+}
+
+/** ▲ rising / ▼ falling vs the previous valuation. */
+export function Trend({ pct, className = "" }: { pct: number | null; className?: string }) {
+  if (pct === null) return null;
+  if (pct === 0) return <span className={`text-[9px] text-faint ${className}`}>– 0%</span>;
+  const up = pct > 0;
+  return (
+    <span className={`text-[9px] font-bold ${up ? "text-mint" : "text-danger"} ${className}`} title="Change since the previous valuation">
+      {up ? "▲" : "▼"} {Math.abs(pct)}%
+    </span>
   );
 }
 

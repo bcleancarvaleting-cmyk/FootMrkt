@@ -4,7 +4,7 @@ import { getRosterRules } from "@/domain/football/rules";
 import type { Position } from "@/domain/packs/config";
 
 const rules = getRosterRules("football-roster-v1");
-const tactics = getRosterRules("football-roster-v1-tactics");
+const v2 = getRosterRules("football-roster-v2");
 
 function card(id: string, pos: Position, category: SquadCard["category"] = "BRONZE"): SquadCard {
   return { cardId: id, playerId: `p-${id}`, playerPosition: pos, category };
@@ -27,7 +27,11 @@ describe("validateSquad", () => {
     expect(validateSquad(rules, "OPEN", valid, cards)).toEqual([]);
   });
 
-  it("rejects proposed formations unless the competition opts in", () => {
+  it("v2 allows the confirmed 2-2-2, 2-3-1 and 3-2-1 only", () => {
+    expect(v2.allowedFormations).toEqual(["2-2-2", "2-3-1", "3-2-1"]);
+  });
+
+  it("rejects formations the competition's rule set doesn't allow", () => {
     const s: SquadSubmission = {
       ...valid,
       formation: "3-2-1",
@@ -37,7 +41,7 @@ describe("validateSquad", () => {
     s.starters.push({ cardId: "a2", position: "ATT" });
     s.starters = s.starters.filter((x, i, arr) => arr.findIndex((y) => y.cardId === x.cardId) === i);
     expect(validateSquad(rules, "OPEN", s, cards).map((i) => i.code)).toContain("FORMATION_NOT_ALLOWED");
-    expect(validateSquad(tactics, "OPEN", s, cards)).toEqual([]);
+    expect(validateSquad(v2, "OPEN", s, cards)).toEqual([]);
   });
 
   it("enforces counts, positions, duplicates and categories", () => {

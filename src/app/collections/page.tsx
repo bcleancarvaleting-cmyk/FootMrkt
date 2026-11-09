@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CompleteSetButton } from "@/components/complete-set-button";
 import { CategoryDot } from "@/components/player-card";
 import { requireUser } from "@/server/auth/session";
@@ -7,8 +8,9 @@ import { fmtDate } from "@/lib/view";
 
 export const metadata = { title: "Collections" };
 
-export default async function CollectionsPage() {
+export default async function CollectionsPage({ searchParams }: { searchParams: Promise<{ completed?: string }> }) {
   const user = await requireUser();
+  const { completed } = await searchParams;
   const [sets, done] = await Promise.all([
     setProgress(user.id),
     db.collectionCompletion.findMany({ where: { userId: user.id }, include: { set: true }, orderBy: { completedAt: "desc" } }),
@@ -19,14 +21,29 @@ export default async function CollectionsPage() {
         <p className="eyebrow">Binder sets</p>
         <h1 className="text-3xl font-black">Collections</h1>
         <p className="max-w-2xl text-sm text-muted">
-          Collect every card in a set, then complete it. Completing a set uses up the cards in it — they leave your Binder for good.
-          Starter cards and cards that are listed or in a squad don&apos;t count.
+          Collect every card in a set, then complete it to earn <b className="text-lime">10 MP credit (≈ £10)</b> to spend on packs
+          and build a better team. Completing a set uses up the cards in it — they leave your Binder for good. Starter cards and
+          cards that are listed or in a squad don&apos;t count.
         </p>
       </div>
+      {completed && (
+        <div className="panel flex flex-wrap items-center justify-between gap-3 border-lime/50 bg-lime/5 p-5">
+          <div>
+            <p className="eyebrow">Collection complete</p>
+            <p className="text-lg font-bold">
+              {completed.slice(0, 60)} done — <span className="text-lime">+10 MP credit</span> added to your account.
+            </p>
+          </div>
+          <Link href="/packs" className="btn-primary">
+            Spend it on packs →
+          </Link>
+        </div>
+      )}
       <div className="grid gap-4 md:grid-cols-2">
         {sets.map(({ set, requirements, complete }) => {
           const have = requirements.filter((r) => r.satisfied).length;
-          const reward = set.reward as { packSkuCode?: string } | null;
+          const reward = (set.reward ?? {}) as { packSkuCode?: string; mpCreditMinor?: number };
+          const mp = (reward.mpCreditMinor ?? 1000) / 100;
           return (
             <div key={set.id} className={`panel p-5 ${complete ? "border-lime/50" : ""}`}>
               <div className="flex items-start justify-between gap-3">
@@ -55,7 +72,7 @@ export default async function CollectionsPage() {
                 ))}
               </ul>
               <div className="mt-4 flex items-center justify-between">
-                <span className="text-xs text-faint">{reward?.packSkuCode ? `Reward: ${reward.packSkuCode.replace("football-", "")} pack` : "Reward to be confirmed"}</span>
+                <span className="text-xs text-faint">Reward: {mp} MP credit{reward.packSkuCode ? ` + ${reward.packSkuCode.replace("football-", "")} pack` : ""}</span>
                 {complete && <CompleteSetButton setId={set.id} setName={set.name} cardCount={requirements.reduce((s, r) => s + r.requirement.quantity, 0)} />}
               </div>
             </div>

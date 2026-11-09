@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { buyPackAction, claimDevPackAction, openPackAction } from "@/app/actions/game";
+import { buyPackAction, buyPackWithCreditAction, claimDevPackAction, openPackAction } from "@/app/actions/game";
 import { ResultText } from "./action-button";
 import type { ActionResult } from "@/app/actions/result";
 
@@ -55,6 +55,24 @@ export function BuyPackButton({ skuCode, price, enabled }: { skuCode: string; pr
         onClick={() => start(async () => setRes(await buyPackAction(skuCode, crypto.randomUUID())))}
       >
         {pending ? "…" : `Buy ${price}`}
+      </button>
+      {res && <ResultText result={res} />}
+    </span>
+  );
+}
+
+export function CreditPackButton({ skuCode, price, affordable }: { skuCode: string; price: string; affordable: boolean }) {
+  const [pending, start] = useTransition();
+  const [res, setRes] = useState<ActionResult<unknown> | null>(null);
+  return (
+    <span className="inline-flex flex-col gap-1">
+      <button
+        className="btn-ghost border-lime/50 text-lime"
+        disabled={pending || !affordable}
+        title={affordable ? undefined : "Not enough MP credit — complete a set to earn 10 MP"}
+        onClick={() => start(async () => setRes(await buyPackWithCreditAction(skuCode, crypto.randomUUID())))}
+      >
+        {pending ? "…" : `Use ${price} credit`}
       </button>
       {res && <ResultText result={res} />}
     </span>

@@ -85,20 +85,30 @@ export const FOOTBALL_PACKS: PackSkuSeed[] = [
   },
   {
     code: "football-gold",
-    version: 1,
+    // v2 (product decision 9 Nov 2026): 2 Golds is a hard minimum; a pack can contain 3 or 4
+    // Golds, with the rest Bronze or Silver.
+    version: 2,
     name: "Gold Pack",
     kind: "REGULAR",
     priceMinor: 999,
-    blurb: "6 cards. At least 2 top-flight Golds, sometimes more.",
+    blurb: "6 cards. At least 2 top-flight Golds — sometimes 3 or 4.",
     config: {
       mode: "POOL",
       nonTradeable: false,
       uniquePlayers: true,
       slots: [
-        // TO CONFIRM (spec §5.1): whether 2 Golds is a hard minimum or a target, and whether the
-        // top-flight rule applies to every Gold. Implemented as: 2 guaranteed top-flight Golds.
         { label: "Gold", count: 2, base: "GOLD", filters: { topFlightOnly: true }, upgrades: [] },
-        { label: "Silver+", count: 4, base: "SILVER", upgrades: [{ category: "GOLD", chanceBp: 1000 }] },
+        // Up to two extra Golds. TO CONFIRM: exact chances.
+        {
+          label: "Wildcard",
+          count: 2,
+          base: "BRONZE",
+          upgrades: [
+            { category: "GOLD", chanceBp: 1500 },
+            { category: "SILVER", chanceBp: 4000 },
+          ],
+        },
+        { label: "Bronze+", count: 2, base: "BRONZE", upgrades: [{ category: "SILVER", chanceBp: 4000 }] },
       ],
     },
   },

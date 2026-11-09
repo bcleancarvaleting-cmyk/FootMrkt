@@ -16,12 +16,19 @@ export interface CardView {
   clubCode: string | null;
   clubShort: string | null;
   clubName: string | null;
+  clubPrimary: string;
+  clubSecondary: string;
+  crestUrl: string | null;
   leagueName: string | null;
   topFlight: boolean;
   nationality: string;
   serial: number;
   maxSupply: number | null;
   valueMp: number | null;
+  /** % change vs the previous valuation (null = no history yet). */
+  trendPct: number | null;
+  /** How the current owner got it: "Starter", "Packed", "Paid £4.50", … */
+  acquired: string | null;
   tradeable: boolean;
   lock: "NONE" | "LISTED" | "COMPETITION";
   lockRef: string | null;
@@ -46,12 +53,23 @@ type CardLike = {
       lastName: string;
       position: string;
       nationality: string;
-      club: { code: string; shortName: string; name: string; league: { name: string; isTopFlight: boolean } } | null;
+      club: {
+        code: string;
+        shortName: string;
+        name: string;
+        primaryColour?: string;
+        secondaryColour?: string;
+        crestUrl?: string | null;
+        league: { name: string; isTopFlight: boolean };
+      } | null;
     };
   };
 };
 
-export function toCardView(c: CardLike, extra: { valueMp?: number | null; favourite?: boolean; duplicateCount?: number } = {}): CardView {
+export function toCardView(
+  c: CardLike,
+  extra: { valueMp?: number | null; trendPct?: number | null; acquired?: string | null; favourite?: boolean; duplicateCount?: number } = {},
+): CardView {
   const p = c.template.player;
   return {
     id: c.id,
@@ -65,12 +83,17 @@ export function toCardView(c: CardLike, extra: { valueMp?: number | null; favour
     clubCode: p.club?.code ?? null,
     clubShort: p.club?.shortName ?? null,
     clubName: p.club?.name ?? null,
+    clubPrimary: p.club?.primaryColour ?? "#2a2f38",
+    clubSecondary: p.club?.secondaryColour ?? "#ffffff",
+    crestUrl: p.club?.crestUrl ?? null,
     leagueName: p.club?.league.name ?? null,
     topFlight: p.club?.league.isTopFlight ?? false,
     nationality: p.nationality,
     serial: c.serial,
     maxSupply: c.template.maxSupply,
     valueMp: extra.valueMp ?? null,
+    trendPct: extra.trendPct ?? null,
+    acquired: extra.acquired ?? null,
     tradeable: c.tradeStatus === "TRADEABLE",
     lock: c.lock as CardView["lock"],
     lockRef: c.lockRef,

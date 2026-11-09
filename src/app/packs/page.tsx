@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BuyPackButton, CreditPackButton, DevPackButton, OpenPackButton } from "@/components/pack-buttons";
 import { balanceMinor, fmtMp } from "@/server/wallet";
+import { FOOTBALL_PACKS } from "@/config/packs";
 import { advertisedGuarantee, cardCount, parsePackConfig } from "@/domain/packs/config";
 import { requireUser } from "@/server/auth/session";
 import { db } from "@/server/db";
@@ -87,7 +88,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
                   <h3 className="text-lg font-bold">{s.name}</h3>
                   <span className="text-lg font-black">{gbp(s.priceMinor)}</span>
                 </div>
-                <p className="text-sm text-muted">{cardCount(cfg)} cards</p>
+                <p className="text-sm text-muted">{FOOTBALL_PACKS.find((p) => p.code === s.code)?.blurb ?? `${cardCount(cfg)} cards`}</p>
                 <ul className="mt-3 space-y-1 text-sm">
                   {g.GOLD > 0 && <li>✓ Guaranteed {g.GOLD} Gold</li>}
                   {g.SILVER > 0 && <li>✓ Guaranteed {g.SILVER} Silver or better</li>}

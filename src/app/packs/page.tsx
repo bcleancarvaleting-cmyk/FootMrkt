@@ -10,12 +10,6 @@ import { fmtDate, gbp } from "@/lib/view";
 
 export const metadata = { title: "Packs" };
 
-const PACK_ART: Record<string, string> = {
-  "football-starter": "from-lime/70 via-lime-dim/40 to-ink-900",
-  "football-bronze": "from-bronze via-bronze-deep to-ink-900",
-  "football-silver": "from-silver via-silver-deep to-ink-900",
-  "football-gold": "from-gold via-gold-deep to-ink-900",
-};
 
 export default async function PacksPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
   const user = await requireUser();
@@ -39,7 +33,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
 
       <section>
         <p className="eyebrow">Ready to open</p>
-        <h1 className="mb-4 text-3xl font-black">Your packs</h1>
+        <h1 className="mb-4 text-5xl font-extrabold">Your packs</h1>
         {unopened.length === 0 ? (
           <p className="text-muted">No unopened packs right now.</p>
         ) : (
@@ -109,7 +103,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
                 </details>
                 <div className="mt-auto flex flex-wrap items-start gap-2 pt-5">
                   <CreditPackButton skuCode={s.code} price={fmtMp(s.priceMinor)} affordable={credit >= s.priceMinor} />
-                  <BuyPackButton skuCode={s.code} price={gbp(s.priceMinor)} enabled={flags.PAID_PACKS} />
+                  <BuyPackButton skuCode={s.code} price={gbp(s.priceMinor)} enabled={flags.PAID_PACKS} gold={s.code.includes("gold")} />
                   {flags.DEV_TOOLS && <DevPackButton skuCode={s.code} />}
                 </div>
               </div>
@@ -140,12 +134,21 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
 }
 
 function PackArt({ code, name, small }: { code: string; name: string; small?: boolean }) {
+  const foil = code.includes("gold") ? "foil-gold" : code.includes("silver") ? "foil-silver" : code.includes("starter") ? "" : "foil-bronze";
   return (
     <div
-      className={`relative flex ${small ? "h-24 w-18" : "h-40 w-full"} items-end overflow-hidden rounded-xl bg-gradient-to-br ${PACK_ART[code] ?? PACK_ART["football-bronze"]} p-3`}
+      className={`card-premium ${code.includes("gold") ? "is-gold" : ""} relative flex ${small ? "h-24 w-18 shrink-0" : "h-44 w-full"} items-end overflow-hidden rounded-2xl p-4 ${
+        foil || "bg-gradient-to-br from-lime via-lime-dim to-ink-900"
+      }`}
     >
-      <span className="absolute right-3 top-2 text-[10px] font-black tracking-widest text-ink-950/70">COLLECTR</span>
-      {!small && <span className="text-2xl font-black text-ink-950/80">{name.replace(" Pack", "")}</span>}
+      <span className="sheen" aria-hidden="true" />
+      {code.includes("gold") && <span className="holo" aria-hidden="true" />}
+      <span className="absolute right-4 top-3 font-display text-sm font-extrabold uppercase italic tracking-wide text-black/60">Collectr</span>
+      {!small && (
+        <span className="relative font-display text-5xl font-extrabold uppercase italic leading-none text-black/75 drop-shadow-[0_1px_0_rgba(255,255,255,0.35)]">
+          {name.replace(" Pack", "")}
+        </span>
+      )}
     </div>
   );
 }

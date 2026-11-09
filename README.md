@@ -32,6 +32,14 @@ Seeded admin: `admin@collectr.dev` / `collectr-admin` (override with `SEED_ADMIN
 4. Back as the player: final score, auto-subs, rank, and (dev only) a reward pack. MP values are recalculated.
 5. **Admin → Create next gameweek** and go again.
 
+### Look, navigation and community
+
+- **Light / dark** switch in the header (saved in a cookie, rendered server-side so there's no flash). Every colour is a token in `src/app/globals.css`; cards stay dark-faced in both themes.
+- **Live stats bar** (`/api/stats`, refreshed every 30s): squad deadline countdown, online now (active in the last 15 min), managers entered this gameweek, managers, cards in circulation, packs opened today.
+- **Deadline rule:** squads lock 10 minutes before the gameweek's first kick-off (`DEADLINE_MINUTES` in `src/server/gameweeks.ts`).
+- **Bottom dock:** Packs · My Club (cards, sets, transfers) · Games · Chat · Me.
+- **Manager chat** (`/chat`): rooms in `src/config/chat.ts`, 3-second live updates, rate limits, no links, report (3 reports hide a message) and moderator removal (audited).
+
 ### Player images
 
 Cards show a licensed headshot when `Player.imageUrl` is set; until then they show the player's shirt in club colours with their squad number. Load licensed images in bulk:

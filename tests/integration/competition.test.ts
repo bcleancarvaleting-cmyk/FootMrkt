@@ -34,8 +34,11 @@ async function starterSquad(userId: string, entitlementId: string) {
 
 async function setupGameweek() {
   const now = new Date();
-  const gw = await createGameweek({ season: "T", number: 1, opensAt: new Date(now.getTime() - 1000), locksAt: new Date(now.getTime() + 3600_000), actorId: null });
+  const gw = await createGameweek({ season: "T", number: 1, opensAt: new Date(now.getTime() - 1000), firstKickoffAt: new Date(now.getTime() + 3600_000), actorId: null });
   const open = await db.competition.findFirstOrThrow({ where: { gameweekId: gw.id, code: { endsWith: "-open" } } });
+  // Deadline is exactly 10 minutes before the earliest kick-off.
+  const first = await db.fixture.findFirstOrThrow({ where: { gameweekId: gw.id }, orderBy: { kickoffAt: "asc" } });
+  if (open.locksAt.getTime() !== first.kickoffAt.getTime() - 10 * 60_000) throw new Error("deadline is not kick-off minus 10 minutes");
   const bronze = await db.competition.findFirstOrThrow({ where: { gameweekId: gw.id, code: { endsWith: "-bronze" } } });
   return { gw, open, bronze };
 }

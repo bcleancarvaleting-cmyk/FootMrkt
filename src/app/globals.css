@@ -1,33 +1,93 @@
 @import "tailwindcss";
 
-/* COLLECTR — premium dark charcoal with restrained neon-lime accents (spec §1). */
+/*
+ * COLLECTR — premium matchday look.
+ * Every colour is a token. Dark is the default; [data-theme="light"] swaps the palette.
+ * Utilities like bg-ink-900 read var(--color-ink-900) at runtime, so overriding the variables
+ * re-themes the whole site. `.theme-dark` pins a subtree (cards, pitch) to the dark palette.
+ */
 @theme {
-  --color-ink-950: #0a0b0d;
-  --color-ink-900: #111317;
-  --color-ink-850: #16181d;
-  --color-ink-800: #1b1e24;
-  --color-ink-700: #272b33;
-  --color-ink-600: #363b45;
-  --color-fg: #eceef1;
-  --color-muted: #9aa1ad;
+  --color-ink-950: #07080a;
+  --color-ink-900: #0e1014;
+  --color-ink-850: #13161b;
+  --color-ink-800: #1a1d24;
+  --color-ink-700: #272b34;
+  --color-ink-600: #383d48;
+  --color-fg: #f3f4f6;
+  --color-muted: #a0a6b2;
   --color-faint: #6b7280;
   --color-lime: #c8f53c;
-  --color-lime-dim: #9fc42c;
-  --color-mint: #9ef0b4;
-  --color-danger: #ff6b6b;
+  --color-lime-dim: #a9d225;
+  --color-mint: #6ee7a0;
+  --color-danger: #ff5a5f;
   --color-warn: #f5c451;
-  --color-bronze: #c98b5b;
-  --color-bronze-deep: #6b4126;
-  --color-silver: #cfd6de;
-  --color-silver-deep: #5a6370;
-  --color-gold: #ecc75a;
-  --color-gold-deep: #7a5a12;
+  --color-bronze: #cd8a57;
+  --color-bronze-deep: #6b3b1d;
+  --color-silver: #d6dce3;
+  --color-silver-deep: #59626e;
+  --color-gold: #f2cf63;
+  --color-gold-deep: #7d5a0e;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-display-face);
 }
 
 :root {
   color-scheme: dark;
+  --glow-a: rgb(200 245 60 / 0.10);
+  --glow-b: rgb(242 207 99 / 0.07);
+  --panel-highlight: rgb(255 255 255 / 0.05);
+  --dock-bg: rgb(14 16 20 / 0.86);
+}
+
+/* Light palette. */
+[data-theme="light"] {
+  color-scheme: light;
+  --color-ink-950: #f3f4f1;
+  --color-ink-900: #ffffff;
+  --color-ink-850: #f7f8f5;
+  --color-ink-800: #eceee9;
+  --color-ink-700: #dadcd5;
+  --color-ink-600: #c2c7bd;
+  --color-fg: #101310;
+  --color-muted: #545b54;
+  --color-faint: #80877f;
+  --color-lime: #4f7d00;
+  --color-lime-dim: #406600;
+  --color-mint: #15803d;
+  --color-danger: #d92d2d;
+  --color-warn: #a35c00;
+  --color-bronze: #a5612f;
+  --color-silver: #5b6470;
+  --color-gold: #9a6e00;
+  --glow-a: rgb(120 170 0 / 0.08);
+  --glow-b: rgb(200 150 20 / 0.08);
+  --panel-highlight: rgb(255 255 255 / 0.7);
+  --dock-bg: rgb(255 255 255 / 0.9);
+}
+
+/* Pin a subtree to the dark palette (cards keep their premium dark faces in light mode). */
+.theme-dark,
+[data-theme="light"] .theme-dark {
+  color-scheme: dark;
+  --color-ink-950: #07080a;
+  --color-ink-900: #0e1014;
+  --color-ink-850: #13161b;
+  --color-ink-800: #1a1d24;
+  --color-ink-700: #272b34;
+  --color-ink-600: #383d48;
+  --color-fg: #f3f4f6;
+  --color-muted: #a0a6b2;
+  --color-faint: #6b7280;
+  --color-lime: #c8f53c;
+  --color-lime-dim: #a9d225;
+  --color-mint: #6ee7a0;
+  --color-danger: #ff5a5f;
+  --color-warn: #f5c451;
+  --color-bronze: #cd8a57;
+  --color-silver: #d6dce3;
+  --color-gold: #f2cf63;
+  color: var(--color-fg);
 }
 
 html,
@@ -38,7 +98,9 @@ body {
 
 body {
   font-family: var(--font-sans), system-ui, sans-serif;
-  background-image: radial-gradient(1200px 500px at 70% -10%, rgb(200 245 60 / 0.06), transparent 60%);
+  background-image:
+    radial-gradient(900px 420px at 85% -120px, var(--glow-a), transparent 70%),
+    radial-gradient(700px 380px at -10% 10%, var(--glow-b), transparent 70%);
   background-attachment: fixed;
 }
 
@@ -46,35 +108,139 @@ body {
   background: rgb(200 245 60 / 0.3);
 }
 
+h1,
+h2 {
+  font-family: var(--font-display), var(--font-sans), sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-lime);
+  outline-offset: 2px;
+}
+
+@utility font-display {
+  font-family: var(--font-display), var(--font-sans), sans-serif;
+}
+
 @utility panel {
-  @apply rounded-2xl border border-ink-700 bg-ink-900/80;
+  @apply rounded-3xl border border-ink-700/80 bg-ink-900/75 backdrop-blur;
+  box-shadow:
+    inset 0 1px 0 var(--panel-highlight),
+    0 12px 32px -18px rgb(0 0 0 / 0.5);
 }
 @utility btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40;
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-xs font-extrabold tracking-[0.14em] uppercase transition
+    disabled:cursor-not-allowed disabled:opacity-40;
 }
 @utility btn-primary {
   @apply btn bg-lime text-ink-950 hover:bg-lime-dim;
+  box-shadow: 0 8px 24px -10px var(--color-lime);
+}
+@utility btn-gold {
+  @apply btn text-[#1a1203];
+  background: linear-gradient(135deg, #b8862b, #f9e08b 40%, #d9a93f 60%, #fff0b3);
+  box-shadow: 0 8px 26px -10px rgb(242 207 99 / 0.8);
 }
 @utility btn-ghost {
-  @apply btn border border-ink-600 text-fg hover:border-lime/60 hover:text-lime;
+  @apply btn border border-ink-600 text-fg hover:border-lime/70 hover:text-lime;
 }
 @utility btn-danger {
   @apply btn border border-danger/50 text-danger hover:bg-danger/10;
 }
 @utility input {
-  @apply w-full rounded-xl border border-ink-600 bg-ink-850 px-3 py-2 text-sm text-fg placeholder:text-faint focus:border-lime focus:outline-none;
+  @apply w-full rounded-2xl border border-ink-600 bg-ink-850 px-4 py-2.5 text-sm text-fg placeholder:text-faint focus:border-lime focus:outline-none;
 }
 @utility label {
-  @apply mb-1 block text-xs font-medium tracking-wider text-muted uppercase;
+  @apply mb-1 block text-[11px] font-bold tracking-[0.16em] text-muted uppercase;
 }
 @utility chip {
-  @apply inline-flex items-center gap-1 rounded-full border border-ink-600 px-2 py-0.5 text-[11px] font-medium text-muted;
+  @apply inline-flex items-center gap-1 rounded-full border border-ink-600 px-2.5 py-0.5 text-[11px] font-semibold text-muted;
 }
 @utility eyebrow {
-  @apply text-[11px] font-semibold tracking-[0.2em] text-lime uppercase;
+  @apply text-[11px] font-extrabold tracking-[0.22em] text-gold uppercase;
+}
+@utility tag {
+  @apply inline-flex items-center gap-2 rounded-full border border-ink-600 bg-ink-900/70 px-4 py-1.5 text-[11px] font-extrabold tracking-[0.2em] uppercase;
 }
 @utility table-row {
   @apply border-b border-ink-700/70 last:border-0;
+}
+
+/* ───────────── Card foils ───────────── */
+.foil-gold {
+  background: linear-gradient(135deg, #7d5a0e 0%, #f9e08b 22%, #b8862b 40%, #fff2b0 52%, #a3741c 70%, #f0c75e 88%, #8a6a1c 100%);
+}
+.foil-silver {
+  background: linear-gradient(135deg, #6b737e 0%, #f4f6f8 22%, #9aa3ad 40%, #ffffff 52%, #7d8690 70%, #dfe4e9 88%, #6b737e 100%);
+}
+.foil-bronze {
+  background: linear-gradient(135deg, #5a2f14 0%, #e2a273 22%, #8a4f2a 40%, #f3c39a 52%, #7a4321 70%, #cd8a57 88%, #5a2f14 100%);
+}
+.face-gold {
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgb(242 207 99 / 0.35), transparent 60%),
+    linear-gradient(180deg, #2a1f07, #0d0a03 70%);
+}
+.face-silver {
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgb(214 220 227 / 0.28), transparent 60%),
+    linear-gradient(180deg, #1d2229, #090b0e 70%);
+}
+.face-bronze {
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgb(205 138 87 / 0.3), transparent 60%),
+    linear-gradient(180deg, #24150c, #0b0705 70%);
+}
+/* Light sweeping across the foil. */
+.sheen {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 35%, rgb(255 255 255 / 0.28) 47%, rgb(255 255 255 / 0.05) 55%, transparent 62%);
+  background-size: 250% 100%;
+  background-position: 120% 0;
+  mix-blend-mode: soft-light;
+  z-index: 2;
+  border-radius: inherit;
+}
+.holo {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(from 210deg at 70% 30%, rgb(255 120 200 / 0.18), rgb(120 220 255 / 0.18), rgb(200 255 120 / 0.18), rgb(255 230 120 / 0.2), rgb(255 120 200 / 0.18));
+  mix-blend-mode: color-dodge;
+  opacity: 0.35;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .card-premium:hover .sheen,
+  .card-premium.is-gold .sheen {
+    animation: sheen 3.6s ease-in-out infinite;
+  }
+  .card-premium {
+    transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .card-premium:hover {
+    transform: translateY(-4px) rotate(-0.4deg);
+  }
+}
+@keyframes sheen {
+  0% {
+    background-position: 120% 0;
+  }
+  55%,
+  100% {
+    background-position: -40% 0;
+  }
+}
+
+/* Pack art foils reuse the card foils. */
+.pack-art {
+  position: relative;
+  overflow: hidden;
 }
 
 @keyframes card-reveal {
@@ -88,18 +254,39 @@ body {
   }
 }
 .animate-reveal {
-  animation: card-reveal 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: card-reveal 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 @keyframes gold-glow {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgb(236 199 90 / 0);
+    box-shadow: 0 0 0 0 rgb(242 207 99 / 0);
   }
   50% {
-    box-shadow: 0 0 32px 4px rgb(236 199 90 / 0.35);
+    box-shadow: 0 0 40px 6px rgb(242 207 99 / 0.45);
   }
 }
 .animate-gold {
   animation: gold-glow 2.2s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.live-dot {
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-reveal,
+  .animate-gold,
+  .live-dot {
+    animation: none;
+  }
 }

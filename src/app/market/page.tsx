@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { buyListingAction, cancelListingAction } from "@/app/actions/game";
 import { ActionButton } from "@/components/action-button";
+import { ClubTabs } from "@/components/club-tabs";
 import { PlayerCard } from "@/components/player-card";
 import { requireUser } from "@/server/auth/session";
 import { db } from "@/server/db";
@@ -11,10 +11,32 @@ import { gbp, relativeTime } from "@/lib/view";
 
 export const metadata = { title: "Transfer Market" };
 
-/** Hidden entirely (404) unless the legal-gated MARKET flag is on (spec §17). */
+/** Shows "coming soon" — no market functionality — unless the legal-gated MARKET flag is on (spec §17). */
 export default async function MarketPage({ searchParams }: { searchParams: Promise<{ category?: string; position?: string }> }) {
   const user = await requireUser();
-  if (!(await isEnabled("MARKET"))) notFound();
+  if (!(await isEnabled("MARKET"))) {
+    return (
+      <div>
+        <ClubTabs active="transfers" />
+        <div className="panel mx-auto max-w-2xl p-8 text-center">
+          <p className="eyebrow">Transfers</p>
+          <h1 className="mt-2 text-5xl font-extrabold">Transfer market coming soon</h1>
+          <p className="mx-auto mt-3 max-w-md text-muted">
+            Buying and selling cards with other managers opens once our legal and payment checks are complete. Until then, build your
+            squad from packs and complete sets to earn MP credit.
+          </p>
+          <div className="mt-6 flex justify-center gap-3">
+            <Link href="/packs" className="btn-gold">
+              Open packs
+            </Link>
+            <Link href="/collections" className="btn-ghost">
+              View sets
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
   const sp = await searchParams;
   const listings = await db.marketListing.findMany({
     where: {
@@ -34,9 +56,10 @@ export default async function MarketPage({ searchParams }: { searchParams: Promi
   const views = await enrichCards(listings.map((l) => l.card));
   return (
     <div className="space-y-6">
+      <ClubTabs active="transfers" />
       <div>
         <p className="eyebrow">Transfer Market</p>
-        <h1 className="text-3xl font-black">Buy cards from other managers</h1>
+        <h1 className="text-5xl font-extrabold">Buy cards from other managers</h1>
         <p className="text-sm text-muted">Asking price is set by the seller. MP is an indicative valuation and is shown separately.</p>
       </div>
       <form className="flex flex-wrap gap-2" method="get">

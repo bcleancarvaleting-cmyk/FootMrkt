@@ -25,6 +25,9 @@ import { revalueAll } from "./valuation";
  * today; the functions that use it refuse to run unless SIMULATED_DATA is enabled.
  */
 
+/** Squads lock this many minutes before the first kick-off of the gameweek. */
+export const DEADLINE_MINUTES = 10;
+
 export async function footballSport() {
   return db.sport.findUniqueOrThrow({ where: { code: "football" } });
 }
@@ -45,7 +48,8 @@ export async function createGameweek(args: {
   season: string;
   number: number;
   opensAt: Date;
-  locksAt: Date;
+  /** First kick-off of the gameweek. Squads lock DEADLINE_MINUTES before the earliest fixture. */
+  firstKickoffAt: Date;
   actorId: string | null;
 }) {
   await requireSimulator();
@@ -56,9 +60,12 @@ export async function createGameweek(args: {
   const fixtures = simulateFixtures(
     leagues.map((l) => l.clubs.map((c) => ({ ref: c.code, strengthHint: c.simStrength }))),
     key,
-    new Date(args.locksAt.getTime() + 3600_000),
+    args.firstKickoffAt,
     seedFrom(key),
   );
+  // Product decision: the squad deadline is 10 minutes before the gameweek's first kick-off.
+  const firstKickoff = new Date(Math.min(...fixtures.map((f) => f.kickoffAt.getTime())));
+  const locksAt = new Date(firstKickoff.getTime() - DEADLINE_MINUTES * 60_000);
   const clubByCode = new Map(leagues.flatMap((l) => l.clubs).map((c) => [c.code, c]));
 
   return db.$transaction(async (tx) => {
@@ -67,8 +74,8 @@ export async function createGameweek(args: {
         sportId: sport.id,
         season: args.season,
         number: args.number,
-        startsAt: args.locksAt,
-        endsAt: new Date(args.locksAt.getTime() + 3 * 24 * 3600_000),
+        startsAt: firstKickoff,
+        endsAt: new Date(firstKickoff.getTime() + 3 * 24 * 3600_000),
         status: args.opensAt <= new Date() ? "OPEN" : "UPCOMING",
       },
     });
@@ -94,7 +101,7 @@ export async function createGameweek(args: {
           scoringRules: t.scoringRules,
           rewards: (devRewards ? t.devRewards : t.rewards) as unknown as Prisma.InputJsonValue,
           entryOpensAt: args.opensAt,
-          locksAt: args.locksAt,
+          locksAt,
           status: args.opensAt <= new Date() ? "OPEN" : "UPCOMING",
         },
       });

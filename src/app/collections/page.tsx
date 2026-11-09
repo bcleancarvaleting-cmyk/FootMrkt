@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ClubTabs } from "@/components/club-tabs";
 import { CompleteSetButton } from "@/components/complete-set-button";
 import { CategoryDot } from "@/components/player-card";
 import { requireUser } from "@/server/auth/session";
@@ -17,9 +18,10 @@ export default async function CollectionsPage({ searchParams }: { searchParams: 
   ]);
   return (
     <div className="space-y-8">
+      <ClubTabs active="sets" />
       <div>
-        <p className="eyebrow">Binder sets</p>
-        <h1 className="text-3xl font-black">Collections</h1>
+        <p className="eyebrow">My Club</p>
+        <h1 className="text-5xl font-extrabold">Sets</h1>
         <p className="max-w-2xl text-sm text-muted">
           Collect every card in a set, then complete it to earn <b className="text-lime">10 MP credit (≈ £10)</b> to spend on packs
           and build a better team. Completing a set uses up the cards in it — they leave your Binder for good. Starter cards and

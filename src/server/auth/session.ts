@@ -2,6 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
+import { touchUser } from "../stats";
 import { createSession, destroySession, userForSessionToken } from "./accounts";
 
 const COOKIE = "collectr_session";
@@ -11,6 +12,7 @@ export const getCurrentUser = cache(async () => {
   if (!token) return null;
   const user = await userForSessionToken(token);
   if (!user) return null;
+  await touchUser(user.id, user.lastSeenAt);
   return {
     id: user.id,
     email: user.email,

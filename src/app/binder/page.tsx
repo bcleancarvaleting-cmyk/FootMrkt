@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ClubTabs } from "@/components/club-tabs";
 import { PlayerCard } from "@/components/player-card";
 import { requireUser } from "@/server/auth/session";
 import { type BinderFilters, binder, binderTotals } from "@/server/binder";
@@ -29,10 +30,11 @@ export default async function BinderPage({ searchParams }: { searchParams: Promi
 
   return (
     <div className="space-y-6">
+      <ClubTabs active="cards" />
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">Binder</p>
-          <h1 className="text-3xl font-black">My Collection</h1>
+          <p className="eyebrow">My Club</p>
+          <h1 className="text-5xl font-extrabold">My Cards</h1>
         </div>
         <div className="flex gap-2 text-sm">
           <Stat label="Football" value={totals.bySport.football ?? 0} />

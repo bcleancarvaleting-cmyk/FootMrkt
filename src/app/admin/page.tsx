@@ -49,7 +49,7 @@ export default async function AdminPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="eyebrow">Operations</p>
-          <h1 className="text-3xl font-black">Admin</h1>
+          <h1 className="text-5xl font-extrabold">Admin</h1>
         </div>
         <div className="flex gap-2">
           <ActionButton action={runJobsAction}>Run scheduled jobs</ActionButton>

@@ -35,7 +35,7 @@ export default async function CompetitionPage({ params }: { params: Promise<{ id
           <Link href="/football" className="text-xs text-faint hover:text-fg">
             ← Gameweek {comp.gameweek.number}
           </Link>
-          <h1 className="mt-1 text-3xl font-black">{comp.name}</h1>
+          <h1 className="mt-1 text-5xl font-extrabold">{comp.name}</h1>
           <p className="text-sm text-muted">
             {comp.format === "OPEN" ? "Any tier" : `${comp.format.split("_")[0].toLowerCase()} cards only`} · 7 starters + 4 subs ·{" "}
             {open ? `locks ${relativeTime(comp.locksAt)} (${fmtDate(comp.locksAt)})` : comp.status.toLowerCase()}

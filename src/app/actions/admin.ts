@@ -35,7 +35,7 @@ export async function createNextGameweekAction(): Promise<ActionResult> {
       season: last?.season ?? "2026-27",
       number: (last?.number ?? 0) + 1,
       opensAt: now,
-      locksAt: new Date(now.getTime() + 3 * 24 * 3600_000),
+      firstKickoffAt: new Date(now.getTime() + 3 * 24 * 3600_000),
       actorId: admin.id,
     });
   }, "Gameweek created");

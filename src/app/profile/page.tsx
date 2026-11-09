@@ -26,7 +26,7 @@ export default async function ProfilePage() {
     <div className="space-y-8">
       <div>
         <p className="eyebrow">Manager profile</p>
-        <h1 className="text-3xl font-black">{user.displayName}</h1>
+        <h1 className="text-5xl font-extrabold">{user.displayName}</h1>
         <p className="text-sm text-muted">
           {user.email} · joined {fmtDate(user.createdAt, { dateStyle: "long" })}
         </p>

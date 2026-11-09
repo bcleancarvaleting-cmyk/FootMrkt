@@ -172,12 +172,12 @@ async function main() {
   // Simulated history so form, results and value trends exist.
   for (let n = 1; n <= HISTORY_GAMEWEEKS; n++) {
     const locksAt = new Date(now - (HISTORY_GAMEWEEKS + 1 - n) * 7 * DAY);
-    const gw = await createGameweek({ season: data.season, number: n, opensAt: new Date(locksAt.getTime() - 3 * DAY), locksAt, actorId: null });
+    const gw = await createGameweek({ season: data.season, number: n, opensAt: new Date(locksAt.getTime() - 3 * DAY), firstKickoffAt: locksAt, actorId: null });
     await simulateFixturesNow(gw.id, "all", null);
     await finaliseGameweek(gw.id, null, new Date(locksAt.getTime() + 3 * DAY));
     console.log(`Gameweek ${n} simulated and settled`);
   }
-  const gw = await createGameweek({ season: data.season, number: HISTORY_GAMEWEEKS + 1, opensAt: new Date(now), locksAt: new Date(now + 3 * DAY), actorId: null });
+  const gw = await createGameweek({ season: data.season, number: HISTORY_GAMEWEEKS + 1, opensAt: new Date(now), firstKickoffAt: new Date(now + 3 * DAY), actorId: null });
   console.log(`Gameweek ${gw.number} open for entries`);
 }
 

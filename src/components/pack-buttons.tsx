@@ -43,13 +43,13 @@ export function DevPackButton({ skuCode }: { skuCode: string }) {
   );
 }
 
-export function BuyPackButton({ skuCode, price, enabled }: { skuCode: string; price: string; enabled: boolean }) {
+export function BuyPackButton({ skuCode, price, enabled, gold }: { skuCode: string; price: string; enabled: boolean; gold?: boolean }) {
   const [pending, start] = useTransition();
   const [res, setRes] = useState<ActionResult<unknown> | null>(null);
   return (
     <span className="inline-flex flex-col gap-1">
       <button
-        className="btn-primary"
+        className={gold ? "btn-gold" : "btn-primary"}
         disabled={!enabled || pending}
         title={enabled ? undefined : "Paid packs are not available yet"}
         onClick={() => start(async () => setRes(await buyPackAction(skuCode, crypto.randomUUID())))}

@@ -70,7 +70,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
           <p className="eyebrow">
             {card.template.category} · {card.template.edition === "STARTER" ? "Starter edition" : "Standard edition"}
           </p>
-          <h1 className="text-3xl font-black">
+          <h1 className="text-5xl font-extrabold">
             <Link href={`/players/${card.template.playerId}`} className="hover:text-lime">
               {card.template.player.firstName} {card.template.player.lastName}
             </Link>

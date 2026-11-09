@@ -22,7 +22,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
     <div className="space-y-6">
       <div>
         <p className="eyebrow">{POSITION_LABEL[player.position]}</p>
-        <h1 className="text-3xl font-black">
+        <h1 className="text-5xl font-extrabold">
           {player.firstName} {player.lastName}
         </h1>
         <p className="text-muted">

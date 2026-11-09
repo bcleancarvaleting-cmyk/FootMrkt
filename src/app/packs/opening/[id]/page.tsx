@@ -23,7 +23,7 @@ export default async function OpeningPage({ params }: { params: Promise<{ id: st
     <div className="space-y-8">
       <div className="text-center">
         <p className="eyebrow">{opening.packSku.name}</p>
-        <h1 className="mt-1 text-3xl font-black">
+        <h1 className="mt-1 text-5xl font-extrabold">
           {counts.GOLD > 0 ? `${counts.GOLD} Gold!` : counts.SILVER > 0 ? `${counts.SILVER} Silver` : "Your new cards"}
         </h1>
         <p className="mt-1 text-sm text-muted">

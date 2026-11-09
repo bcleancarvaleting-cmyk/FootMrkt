@@ -46,7 +46,7 @@ export default async function FootballPage({ searchParams }: { searchParams: Pro
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow">Football · {gw.season}</p>
-          <h1 className="text-3xl font-black">Gameweek {gw.number}</h1>
+          <h1 className="text-5xl font-extrabold">Gameweek {gw.number}</h1>
           <p className="text-sm text-muted">
             {gw.status === "OPEN" || gw.status === "UPCOMING"
               ? locksAt && `Squads lock ${relativeTime(locksAt)} (${fmtDate(locksAt)})`

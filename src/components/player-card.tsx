@@ -37,13 +37,16 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
   const t = TIER[card.category];
   const w = size === "sm" ? "w-32" : size === "lg" ? "w-60" : "w-44";
   const small = size === "sm";
+  const tier = card.category.toLowerCase();
   return (
     <div
-      className={`relative ${w} aspect-[5/7] select-none overflow-hidden rounded-2xl bg-gradient-to-b p-[2px] ring-1 ${t.frame} ${t.ring} ${
-        card.category === "GOLD" ? "shadow-[0_0_24px_-6px_rgba(236,199,90,0.5)]" : ""
+      className={`card-premium theme-dark relative ${w} aspect-[5/7] select-none overflow-hidden rounded-[18px] p-[3px] foil-${tier} ${
+        card.category === "GOLD" ? "is-gold shadow-[0_10px_40px_-12px_rgba(242,207,99,0.7)]" : "shadow-[0_10px_30px_-16px_rgba(0,0,0,0.8)]"
       } ${className}`}
     >
-      <div className="relative flex h-full flex-col rounded-[14px] bg-gradient-to-b from-ink-850/40 via-ink-900/90 to-ink-950">
+      <span className="sheen" aria-hidden="true" />
+      <div className={`face-${tier} relative flex h-full flex-col overflow-hidden rounded-[15px]`}>
+        {card.category === "GOLD" && <span className="holo" aria-hidden="true" />}
         {/* Position · club · tier */}
         <div className="flex items-center justify-between px-2.5 pt-2.5">
           <span className={`rounded-md bg-ink-950/75 px-1.5 py-0.5 font-black tracking-wider ${small ? "text-[10px]" : "text-xs"} ${t.text}`}>
@@ -68,7 +71,7 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
             {card.lock === "LISTED" && <Badge tone="warn">Listed</Badge>}
           </div>
           {(card.acquired || card.edition === "STARTER") && !small && (
-            <span className="absolute bottom-1 right-1 rounded bg-ink-950/85 px-1.5 text-[9px] font-semibold text-muted">
+            <span className="absolute right-1 top-1 rounded bg-ink-950/85 px-1.5 text-[9px] font-semibold text-muted">
               {card.edition === "STARTER" ? "Starter · locked" : card.acquired}
             </span>
           )}
@@ -76,7 +79,7 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
 
         {/* Name */}
         <div className="px-2.5 pt-1.5 text-center">
-          <div className={`truncate font-bold leading-tight ${small ? "text-xs" : "text-sm"}`}>{card.name}</div>
+          <div className={`truncate font-display font-bold uppercase leading-tight tracking-wide ${small ? "text-sm" : "text-[17px]"}`}>{card.name}</div>
           <div className="truncate text-[10px] text-muted">{card.clubName ?? "Free agent"}</div>
         </div>
 

@@ -104,10 +104,10 @@ Things the spec marks **TO CONFIRM / PROPOSED** are implemented as configuration
 | Area | Current default | Where |
 | --- | --- | --- |
 | Pack prices | Bronze £2.99, Silver £5.99, Gold £9.99 (proposed) | `src/config/packs.ts` |
-| Upgrade odds | Bronze pack 25% Silver in one slot; Silver pack 20% Gold in one slot; Gold pack 10% per Silver slot | `src/config/packs.ts` |
+| Upgrade odds | **Approved:** Bronze pack 25% Silver in one slot; Silver pack 20% Gold in one slot; Gold pack 15% extra Gold in two slots | `src/config/packs.ts` |
 | Gold pack | **Confirmed:** 2 top-flight Golds minimum, sometimes 3 or 4, rest Bronze/Silver (extra-Gold odds to confirm) | `src/config/packs.ts` |
 | Starter pack mix | ~30% Silver chance per slot, 1 forced top-flight Bronze, positional coverage incl. a backup GK | `src/config/packs.ts` |
-| Formations | **Confirmed:** 2-2-2, 2-3-1, 3-2-1 (`football-roster-v2`). "3-1-3" needs 8 starters — awaiting clarification | `src/domain/football/rules.ts` |
+| Formations | **Confirmed:** 2-2-2, 2-3-1, 3-2-1, 3-1-2 (`football-roster-v3`) | `src/domain/football/rules.ts` |
 | Auto-sub compatibility | GK↔GK only; outfield sub allowed if the resulting XI is an allowed formation; bench order is user-set | `src/domain/football/rules.ts` |
 | Scoring | Spec §6.4 draft table; **confirmed:** clean sheets for GK/DEF only, 60+ minutes (`football-scoring-v2-draft`) | `src/domain/football/scoring.ts` |
 | Competition rewards | None in production; DEV-only sample rewards when `DEV_TOOLS` is on | `src/config/competitions.ts` |

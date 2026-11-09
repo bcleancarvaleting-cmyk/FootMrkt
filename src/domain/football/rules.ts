@@ -17,15 +17,13 @@ export interface Formation {
 
 /**
  * Formations (7 starters = 1 GK + 6 outfield).
- * CONFIRMED by the product owner on 9 Nov 2026: 2-2-2, 2-3-1, 3-2-1.
- * "3-1-3" was also requested but needs 7 outfield players (8 starters), so it can't fit the
- * 7-player squad; 3-1-2 is kept as PROPOSED (disabled) pending clarification.
+ * CONFIRMED by the product owner on 9 Nov 2026: 2-2-2, 2-3-1, 3-2-1 and 3-1-2.
  */
 export const FORMATIONS: Record<string, Formation> = {
   "2-2-2": { id: "2-2-2", def: 2, mid: 2, att: 2, status: "CONFIRMED" },
   "2-3-1": { id: "2-3-1", def: 2, mid: 3, att: 1, status: "CONFIRMED" },
   "3-2-1": { id: "3-2-1", def: 3, mid: 2, att: 1, status: "CONFIRMED" },
-  "3-1-2": { id: "3-1-2", def: 3, mid: 1, att: 2, status: "PROPOSED" },
+  "3-1-2": { id: "3-1-2", def: 3, mid: 1, att: 2, status: "CONFIRMED" },
 };
 
 export type SubCompatibility =
@@ -60,12 +58,22 @@ export const ROSTER_RULES: Record<string, RosterRules> = {
     uniquePlayers: true,
     autoSub: { trigger: "NO_APPEARANCE", compatibility: "VALID_FORMATION" },
   },
-  /** v2: the confirmed formation list. Used by every new competition. */
+  /** v2: 2-2-2, 2-3-1, 3-2-1. Kept so earlier competitions stay reproducible. */
   "football-roster-v2": {
     id: "football-roster-v2",
     starters: 7,
     bench: 4,
     allowedFormations: ["2-2-2", "2-3-1", "3-2-1"],
+    strictPositions: true,
+    uniquePlayers: true,
+    autoSub: { trigger: "NO_APPEARANCE", compatibility: "VALID_FORMATION" },
+  },
+  /** v3: adds 3-1-2 (confirmed 9 Nov 2026). Used by every new competition. */
+  "football-roster-v3": {
+    id: "football-roster-v3",
+    starters: 7,
+    bench: 4,
+    allowedFormations: ["2-2-2", "2-3-1", "3-2-1", "3-1-2"],
     strictPositions: true,
     uniquePlayers: true,
     autoSub: { trigger: "NO_APPEARANCE", compatibility: "VALID_FORMATION" },

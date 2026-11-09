@@ -3,8 +3,8 @@ import type { PackConfig } from "@/domain/packs/config";
 /**
  * Pack catalogue seed definitions (spec §5).
  *
- * STATUS: prices are PROPOSED (spec §18 "Regular pack prices"); upgrade chances and the
- * Gold-pack minimum are TO CONFIRM. These are seeded into PackSku rows (versioned) and
+ * STATUS: prices are PROPOSED (spec §18 "Regular pack prices"). Upgrade chances and the Gold-pack
+ * minimum were APPROVED by the product owner on 9 Nov 2026. These are seeded into PackSku rows (versioned) and
  * every opening stores the exact config snapshot it used. Change a pack by publishing a
  * new version, never by editing an existing one.
  */
@@ -60,7 +60,6 @@ export const FOOTBALL_PACKS: PackSkuSeed[] = [
       uniquePlayers: true,
       slots: [
         { label: "Bronze", count: 5, base: "BRONZE", upgrades: [] },
-        // TO CONFIRM: exact Silver chance.
         { label: "Bronze+", count: 1, base: "BRONZE", upgrades: [{ category: "SILVER", chanceBp: 2500 }] },
       ],
     },
@@ -78,7 +77,6 @@ export const FOOTBALL_PACKS: PackSkuSeed[] = [
       uniquePlayers: true,
       slots: [
         { label: "Silver", count: 5, base: "SILVER", upgrades: [] },
-        // TO CONFIRM: exact Gold chance.
         { label: "Silver+", count: 1, base: "SILVER", upgrades: [{ category: "GOLD", chanceBp: 2000 }] },
       ],
     },
@@ -98,7 +96,7 @@ export const FOOTBALL_PACKS: PackSkuSeed[] = [
       uniquePlayers: true,
       slots: [
         { label: "Gold", count: 2, base: "GOLD", filters: { topFlightOnly: true }, upgrades: [] },
-        // Up to two extra Golds. TO CONFIRM: exact chances.
+        // Up to two extra Golds (approved odds).
         {
           label: "Wildcard",
           count: 2,

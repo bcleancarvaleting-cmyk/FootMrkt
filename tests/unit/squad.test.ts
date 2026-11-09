@@ -27,8 +27,9 @@ describe("validateSquad", () => {
     expect(validateSquad(rules, "OPEN", valid, cards)).toEqual([]);
   });
 
-  it("v2 allows the confirmed 2-2-2, 2-3-1 and 3-2-1 only", () => {
+  it("v2 allows 2-2-2, 2-3-1 and 3-2-1; v3 adds 3-1-2", () => {
     expect(v2.allowedFormations).toEqual(["2-2-2", "2-3-1", "3-2-1"]);
+    expect(getRosterRules("football-roster-v3").allowedFormations).toEqual(["2-2-2", "2-3-1", "3-2-1", "3-1-2"]);
   });
 
   it("rejects formations the competition's rule set doesn't allow", () => {

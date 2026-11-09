@@ -22,8 +22,9 @@ export function tierFor(leagueTier: number, squadNumber: number | null): Categor
 }
 
 /**
- * Tier by market value (product decision 9 Nov 2026: "based on transfer market pricing").
- * Thresholds are PROPOSED and easy to change. Values are whole pounds.
+ * Tier by market value — CONFIRMED by the product owner (9 Nov 2026):
+ *   £20m and over → Gold · £2m up to £20m → Silver · under £2m → Bronze.
+ * Values are whole pounds.
  */
 export const VALUE_TIERS = { goldFromGbp: 20_000_000, silverFromGbp: 2_000_000 };
 

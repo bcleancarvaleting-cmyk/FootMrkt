@@ -97,3 +97,21 @@ describe("market-value tiering", () => {
     expect((await applyMarketValues([{ playerId: tpl.playerId, valueGbp: 50_000_000, source: "test", at: new Date() }])).retiered).toBe(0);
   });
 });
+
+describe("pasted market values", () => {
+  it("previews tier changes and applies them", async () => {
+    const { previewPastedValues, applyPastedValues } = await import("@/server/market-values");
+    const bronze = await db.cardTemplate.findFirstOrThrow({ where: { category: "BRONZE", edition: "STANDARD" }, include: { player: { include: { club: true } } } });
+    await db.player.update({ where: { id: bronze.playerId }, data: { firstName: "Zebedee", lastName: "Quartermaine" } });
+    const name = "Zebedee Quartermaine";
+    const text = `${name}\t${bronze.player.club?.name}\t£25.00m\nNobody Here\tSomewhere\t£3.00m`;
+    const prev = await previewPastedValues(text);
+    expect(prev.rows).toHaveLength(1);
+    expect(prev.rows[0]).toMatchObject({ from: "BRONZE", to: "GOLD", valueGbp: 25_000_000 });
+    expect(prev.unmatched).toHaveLength(1);
+    const adminId = (await makeUser("valuer")).userId;
+    const r = await applyPastedValues(text, "test paste", adminId);
+    expect(r).toMatchObject({ updated: 1, retiered: 1 });
+    expect((await db.player.findUniqueOrThrow({ where: { id: bronze.playerId } })).marketValueSource).toBe("test paste");
+  });
+});

@@ -117,7 +117,7 @@ Things the spec marks **TO CONFIRM / PROPOSED** are implemented as configuration
 | Weekly free pack | **Confirmed:** 1 untradeable 6-card pack per manager per week (Monday 00:00 UK reset); minted, doesn't count for sets | `src/server/weekly.ts` |
 | Chat moderators | **Confirmed:** admins moderate; others only by admin invitation they accept; admins can revoke | `src/server/moderation.ts` |
 | Kits & badges | Home-kit colours from club infoboxes + curated stripes/hoops/halves/quarters; lookalike generic badges (no copied crests) | `scripts/import_wikipedia.py`, `src/components/kit-shirt.tsx` |
-| Card tiers for real players | **Confirmed:** by market value — Gold ≥ £20m, Silver ≥ £2m (thresholds proposed). Load values with `npm run values:import`; squad-number fallback until then | `src/config/tiers.ts` |
+| Card tiers for real players | **Confirmed:** by market value — £20m+ Gold, £2m–£20m Silver, under £2m Bronze. Load values in **Admin → Market values** (paste a table, preview, apply) or `npm run values:import`; squad-number fallback until then | `src/config/tiers.ts` |
 
 ### Blockers (deliberately not faked)
 

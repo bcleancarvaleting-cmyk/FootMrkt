@@ -5,6 +5,7 @@ import { EmptyState, PageHeader } from "@/components/page-header";
 import { requireUser } from "@/server/auth/session";
 import { isEnabled } from "@/server/flags";
 import { dropBoard } from "@/server/player-drops";
+import { topPerLeague } from "@/server/top-performers";
 import { fmtMp } from "@/server/wallet";
 import { fmtDate } from "@/lib/view";
 
@@ -12,7 +13,14 @@ export const metadata = { title: "Player drops" };
 
 export default async function DropsPage() {
   await requireUser();
-  const [open, board] = await Promise.all([isEnabled("MARKET"), dropBoard()]);
+  const [open, board, tops] = await Promise.all([isEnabled("MARKET"), dropBoard(), topPerLeague("5")]);
+  const topIds = new Set([...tops.values()].flat().map((r) => r.playerId));
+  const tag = (playerId: string) => (
+    <>
+      <span className="ml-1 rounded bg-accent px-1.5 text-[10px] font-extrabold uppercase tracking-wider text-accent-ink">Drop</span>
+      {topIds.has(playerId) && <span className="ml-1 rounded border border-gold/60 px-1.5 text-[10px] font-extrabold uppercase tracking-wider text-gold">★ Top performer</span>}
+    </>
+  );
   const next = board.upcoming[0];
   return (
     <div className="space-y-8">
@@ -35,7 +43,7 @@ export default async function DropsPage() {
         ) : (
           <ul className="space-y-2">
             {board.live.map((d) => (
-              <CardRow key={d.id} card={d.card} href={`/cards/${d.card.id}`} sub={<span className="ml-1 rounded bg-accent px-1.5 text-[10px] font-extrabold uppercase tracking-wider text-accent-ink">Drop</span>}>
+              <CardRow key={d.id} card={d.card} href={`/cards/${d.card.id}`} sub={tag(d.card.playerId)}>
                 <RowStat label="Dropped" className="hidden w-28 sm:block">
                   <span className="text-sm font-semibold">{fmtDate(d.liveAt, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
                 </RowStat>
@@ -53,7 +61,7 @@ export default async function DropsPage() {
             {board.upcoming.slice(0, 30).map((d) => (
               <li key={d.id} className={`tier-${d.card.category} flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm`}>
                 <span className="min-w-0">
-                  <b>{d.card.name}</b> <span className="text-faint">· {d.card.clubName} · {d.card.category.toLowerCase()}</span>
+                  <b>{d.card.name}</b> {topIds.has(d.card.playerId) && <span className="text-xs text-gold">★ Top performer</span>} <span className="text-faint">· {d.card.clubName} · {d.card.category.toLowerCase()}</span>
                 </span>
                 <span className="flex items-center gap-3">
                   <span className="font-bold tabular-nums">{fmtMp(d.priceMinor)}</span>

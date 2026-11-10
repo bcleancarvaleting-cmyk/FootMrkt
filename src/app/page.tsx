@@ -12,6 +12,7 @@ import { db } from "@/server/db";
 import { activeDrop, giftLabel } from "@/server/drops";
 import { isEnabled } from "@/server/flags";
 import { currentGameweek } from "@/server/gameweeks";
+import { performanceTable } from "@/server/top-performers";
 import { cardViews } from "@/server/views";
 import { balancesFor, fmtMp } from "@/server/wallet";
 import { fmtDate } from "@/lib/view";
@@ -144,7 +145,7 @@ async function Landing() {
 
       {/* Feature rows */}
       <section className="grid gap-4 lg:grid-cols-2">
-        <Feature eyebrow="Transfers" title="Buy, sell, make offers" body="Trade cards with other managers in MX. See the average selling price and the all-time value graph before you buy. Plus house auctions that release new cards into the game." href="/register" cta="Start trading" />
+        <Feature eyebrow="Transfers" title="Buy, sell, make offers" body="Trade cards with other managers in MX. See the average selling price and the all-time value graph before you buy. Plus daily player drops: new players released by MATCHX, never found in packs." href="/register" cta="Start trading" />
         <Feature eyebrow="Challenges" title="Keep your squad moving" body="Hand in cards you don't need for MX and packs. They go back into the packs for someone else to pull." href="/register" cta="See challenges" />
         <Feature eyebrow="Matches" title="Every gameweek, a new table" body="Open leagues, Bronze-only cups and more. Squads lock 10 minutes before the first kick-off." href="/register" cta="Enter a match" />
         <Feature eyebrow="Free packs" title="Drop days" body="We drop free packs on big matchdays. Claim within 24 hours — keep an eye on the Packs page." href="/register" cta="Join free" />
@@ -211,15 +212,16 @@ function Feature({ eyebrow, title, body, href, cta }: { eyebrow: string; title: 
 }
 
 async function Hub({ userId, name }: { userId: string; name: string }) {
-  const [gw, totals, unopened, recent, bal, drop, auctions, auctionsOn] = await Promise.all([
+  const [gw, totals, unopened, recent, bal, drop, playerDrops, marketOn, top] = await Promise.all([
     currentGameweek(),
     binderTotals(userId),
     db.packEntitlement.count({ where: { userId, status: "UNOPENED" } }),
     cardViews({ ownerId: userId, supplyState: "HELD" }, [{ updatedAt: "desc" }], 5),
     balancesFor(userId),
     activeDrop(),
-    db.auction.count({ where: { status: "LIVE" } }),
-    isEnabled("AUCTIONS"),
+    db.marketListing.count({ where: { house: true, status: "ACTIVE", liveAt: { lte: new Date() }, card: { packable: false } } }),
+    isEnabled("MARKET"),
+    performanceTable({ window: "last" }),
   ]);
   const comps = gw
     ? await db.competition.findMany({ where: { gameweekId: gw.id }, include: { entries: { where: { userId } }, _count: { select: { entries: true } } }, orderBy: { name: "asc" } })
@@ -273,7 +275,7 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
         {[
           ["Balance", fmtMp(bal.total), "Wallet", "/account/wallet"],
           ["My Club", `${totals.total} cards`, `${totals.byCategory.GOLD} Gold · ${totals.byCategory.SILVER} Silver`, "/account/club"],
-          auctionsOn ? ["Auctions", `${auctions} live`, "Bid on new cards", "/transfers/auctions"] : ["Auctions", "Coming soon", "Opens after the beta", "/transfers/auctions"],
+          marketOn ? ["Player drops", `${playerDrops} live`, "New players every day", "/transfers/drops"] : ["Player drops", "Coming soon", "Opens after the beta", "/transfers/drops"],
           ["Challenges", "Hand in", "Earn MX & packs", "/account/challenges"],
         ].map(([k, v, s, href]) => (
           <Link key={k} href={href} className="bg-ink-900 p-5 transition hover:bg-ink-850">
@@ -306,6 +308,58 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
               );
             })}
           </ul>
+        </section>
+      )}
+
+      {top.length > 0 && (
+        <section>
+          <div className="mb-3 flex items-end justify-between">
+            <h2 className="text-3xl">Top performers</h2>
+            <Link href="/top-performers" className="text-xs font-bold uppercase tracking-[0.14em] text-lime">All rankings →</Link>
+          </div>
+          <ol className="divide-y divide-ink-700 overflow-hidden rounded-2xl border border-ink-700 bg-ink-900">
+            {top.slice(0, 5).map((r, i) => (
+              <li key={r.playerId}>
+                <Link href={`/players/${r.playerId}`} className="flex items-center gap-3 px-4 py-3 hover:bg-ink-850">
+                  <span className={`w-5 text-center font-display text-lg font-black ${i === 0 ? "text-lime" : "text-muted"}`}>{i + 1}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-semibold">{r.name}</span>
+                    <span className="block truncate text-xs text-muted">
+                      {r.position} · {r.club} · {r.leagueName}
+                    </span>
+                  </span>
+                  <span className="font-display text-2xl font-black tabular-nums">{r.points}</span>
+                  <span className="text-xs text-muted">pts</span>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {top.length > 0 && (
+        <section>
+          <div className="mb-3 flex items-end justify-between">
+            <h2 className="text-3xl">Top performers</h2>
+            <Link href="/top-performers" className="text-xs font-bold uppercase tracking-[0.14em] text-lime">All rankings →</Link>
+          </div>
+          <ol className="divide-y divide-ink-700 overflow-hidden rounded-2xl border border-ink-700 bg-ink-900">
+            {top.slice(0, 5).map((r, i) => (
+              <li key={r.playerId}>
+                <Link href={`/players/${r.playerId}`} className="flex items-center gap-3 px-4 py-3 hover:bg-ink-850">
+                  <span className={`w-5 text-center font-display text-lg font-black ${i === 0 ? "text-lime" : "text-muted"}`}>{i + 1}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-semibold">{r.name}</span>
+                    <span className="block truncate text-xs text-muted">
+                      {r.position} · {r.club} · {r.leagueName}
+                    </span>
+                  </span>
+                  <span className="font-display text-2xl font-black tabular-nums">{r.points}</span>
+                  <span className="text-xs text-muted">pts</span>
+                </Link>
+              </li>
+            ))}
+          </ol>
         </section>
       )}
 

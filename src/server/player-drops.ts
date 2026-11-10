@@ -21,12 +21,13 @@ export const DropItemSchema = z.object({
 });
 
 /** Admin player database: supply per player for their current tier. */
-export async function playerDatabase(f: { q?: string; league?: string; tier?: string; sort?: string; take?: number }) {
+export async function playerDatabase(f: { q?: string; league?: string; tier?: string; sort?: string; take?: number; ids?: string[] }) {
   const where = Prisma.sql`
     WHERE t.active AND t.edition = 'STANDARD' AND p.active
     ${f.q ? Prisma.sql`AND (p."displayName" ILIKE ${"%" + f.q + "%"} OR c.name ILIKE ${"%" + f.q + "%"})` : Prisma.empty}
     ${f.league ? Prisma.sql`AND l.code = ${f.league}` : Prisma.empty}
-    ${f.tier ? Prisma.sql`AND t.category = ${f.tier}::"CardCategory"` : Prisma.empty}`;
+    ${f.tier ? Prisma.sql`AND t.category = ${f.tier}::"CardCategory"` : Prisma.empty}
+    ${f.ids ? (f.ids.length ? Prisma.sql`AND p.id IN (${Prisma.join(f.ids.map((id) => Prisma.sql`${id}::uuid`))})` : Prisma.sql`AND false`) : Prisma.empty}`;
   const order =
     f.sort === "pct_desc" ? Prisma.sql`pct DESC NULLS LAST` : f.sort === "pct_asc" ? Prisma.sql`pct ASC NULLS FIRST` : f.sort === "name" ? Prisma.sql`p."displayName" ASC` : Prisma.sql`p."marketValueGbp" DESC NULLS LAST`;
   return db.$queryRaw<

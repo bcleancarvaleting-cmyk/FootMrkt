@@ -18,6 +18,10 @@ export type DbRow = {
   inPacks: number;
   pct: number | null;
   onDrop: boolean;
+  /** MATCHX points scored in the selected window (null = didn't play). */
+  points: number | null;
+  /** League code this player is the top performer in, if any. */
+  topOf: string | null;
 };
 
 const DEFAULT_PRICE: Record<string, string> = { BRONZE: "0.50", SILVER: "2.50", GOLD: "10.00" };
@@ -25,7 +29,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
 const local = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
 /** Player database with a release queue: tick players, set price and go-live time, schedule a week at once. */
-export function DropScheduler({ rows }: { rows: DbRow[] }) {
+export function DropScheduler({ rows, tops, pointsLabel }: { rows: DbRow[]; tops: DbRow[]; pointsLabel: string }) {
   const [queue, setQueue] = useState<Array<{ playerId: string; name: string; tier: string; price: string; liveAt: string }>>([]);
   const [perDay, setPerDay] = useState(10);
   const [start, setStart] = useState(() => {
@@ -39,6 +43,12 @@ export function DropScheduler({ rows }: { rows: DbRow[] }) {
 
   function toggle(r: DbRow) {
     setQueue((q) => (queued.has(r.playerId) ? q.filter((x) => x.playerId !== r.playerId) : [...q, { playerId: r.playerId, name: r.name, tier: r.tier, price: DEFAULT_PRICE[r.tier] ?? "1.00", liveAt: "" }]));
+  }
+  function addTops() {
+    setQueue((q) => [
+      ...q,
+      ...tops.filter((r) => !queued.has(r.playerId)).map((r) => ({ playerId: r.playerId, name: r.name, tier: r.tier, price: DEFAULT_PRICE[r.tier] ?? "1.00", liveAt: "" })),
+    ]);
   }
   function spread() {
     const base = new Date(start);
@@ -59,7 +69,7 @@ export function DropScheduler({ rows }: { rows: DbRow[] }) {
         <table className="w-full min-w-[820px] text-sm">
           <thead className="bg-ink-850 text-left text-[11px] uppercase tracking-[0.12em] text-faint">
             <tr>
-              {["", "Player", "Club", "Tier", "Total available", "In circulation", "% in circulation", "In packs", ""].map((h, i) => (
+              {["", "Player", "Club", "Tier", "Points", "Total available", "In circulation", "% in circulation", "In packs", ""].map((h, i) => (
                 <th key={i} className="px-3 py-2 font-semibold">{h}</th>
               ))}
             </tr>
@@ -72,11 +82,17 @@ export function DropScheduler({ rows }: { rows: DbRow[] }) {
                 </td>
                 <td className="px-3 py-2 font-semibold">
                   {r.name} <span className="text-xs font-normal text-faint">{r.position}</span>
+                  {r.topOf && (
+                    <span className="ml-1 text-xs text-lime" title={`Top performer in ${r.topOf}`}>
+                      ★
+                    </span>
+                  )}
                 </td>
                 <td className="px-3 py-2">
                   {r.club ?? "—"} <span className="text-xs text-faint">{r.league}</span>
                 </td>
                 <td className={`px-3 py-2 text-xs font-extrabold ${r.tier === "GOLD" ? "text-gold" : r.tier === "SILVER" ? "text-silver" : "text-bronze"}`}>{r.tier}</td>
+                <td className="px-3 py-2 font-bold tabular-nums" title={pointsLabel}>{r.points ?? "—"}</td>
                 <td className="px-3 py-2 tabular-nums">{r.maxSupply ?? "∞"}</td>
                 <td className="px-3 py-2 tabular-nums">{r.held}</td>
                 <td className="px-3 py-2">
@@ -106,6 +122,9 @@ export function DropScheduler({ rows }: { rows: DbRow[] }) {
             <label className="label" htmlFor="q-per">Players per day</label>
             <input id="q-per" type="number" min={1} max={50} className="input w-24" value={perDay} onChange={(e) => setPerDay(Number(e.target.value) || 1)} />
           </div>
+          <button type="button" className="btn-ghost" onClick={addTops} disabled={!tops.length || tops.every((t) => queued.has(t.playerId))} title={tops.map((t) => `${t.topOf}: ${t.name} (${t.points} pts)`).join("\n")}>
+            + Top performer from each league
+          </button>
           <button type="button" className="btn-ghost" onClick={spread} disabled={!queue.length}>
             Spread across days
           </button>

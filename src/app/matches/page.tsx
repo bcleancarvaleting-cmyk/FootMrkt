@@ -68,6 +68,7 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
             )}
           </p>
         </div>
+        <Link href="/top-performers" className="btn-ghost px-4 py-2 text-xs">Top performers</Link>
         {gameweeks.length > 1 && (
           <div className="flex gap-1 overflow-x-auto rounded-xl border border-ink-700 bg-ink-900 p-1">
             {gameweeks.slice(0, 8).map((g) => (

@@ -107,9 +107,10 @@ describe("football competition end to end (spec §6, §17)", () => {
     expect(await stampCompetition(open.id)).toBe(0);
     expect(await db.cardStamp.count()).toBe(stamped);
     // Every counted card of the winner who played is stamped "Match winner".
-    const winner = await db.competitionEntry.findFirstOrThrow({ where: { competitionId: open.id, rank: 1 } });
+    // (A dead heat can give more than one winner.)
+    const winners = new Set((await db.competitionEntry.findMany({ where: { competitionId: open.id, rank: 1 } })).map((e) => e.userId));
     const winnerStamps = await db.cardStamp.findMany({ where: { competitionId: open.id, kind: "MATCH_WINNER" } });
-    expect(winnerStamps.every((st) => st.userId === winner.userId && st.detail.includes("GW1"))).toBe(true);
+    expect(winnerStamps.every((st) => winners.has(st.userId) && st.detail.includes("GW1"))).toBe(true);
     expect(await db.packEntitlement.count({ where: { source: "REWARD", sourceRef: { startsWith: "reward:" } } })).toBe(2);
 
     // Score reproduces from stored source events, even after a later correction arrives.

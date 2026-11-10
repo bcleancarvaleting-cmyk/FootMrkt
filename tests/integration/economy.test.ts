@@ -123,3 +123,25 @@ describe("match entry fees and requirements", () => {
     await expect(submitEntry(userId, comp.id, sub)).rejects.toMatchObject({ code: "SQUAD_INVALID" });
   });
 });
+
+describe("welcome gifts", () => {
+  it("Silver pack on day 3 and a lucky Gold on day 7 — once each, untradeable", async () => {
+    const { grantDueWelcomePacks } = await import("@/server/welcome");
+    const { userId } = await makeUser();
+    const joined = (await db.user.findUniqueOrThrow({ where: { id: userId } })).createdAt.getTime();
+    const day = 86_400_000;
+    expect(await grantDueWelcomePacks(userId, new Date(joined + 2 * day))).toBe(0);
+    expect(await grantDueWelcomePacks(userId, new Date(joined + 3 * day + 1))).toBe(1);
+    expect(await grantDueWelcomePacks(userId, new Date(joined + 3 * day + 2))).toBe(0);
+    expect(await grantDueWelcomePacks(userId, new Date(joined + 7 * day + 1))).toBe(1);
+    const ents = await db.packEntitlement.findMany({ where: { userId, sourceRef: { startsWith: "welcome:" } }, include: { packSku: true } });
+    expect(ents.map((e) => e.packSku.code).sort()).toEqual(["football-welcome-gold", "football-welcome-silver"]);
+    const gold = await openPack(userId, ents.find((e) => e.packSku.code === "football-welcome-gold")!.id);
+    expect(gold.cards).toHaveLength(1);
+    expect(gold.cards[0].category).toBe("GOLD");
+    const silver = await openPack(userId, ents.find((e) => e.packSku.code === "football-welcome-silver")!.id);
+    expect(silver.cards).toHaveLength(6);
+    const cards = await db.cardInstance.findMany({ where: { id: { in: [...gold.cards, ...silver.cards].map((c) => c.cardId) } } });
+    expect(cards.every((c) => c.tradeStatus === "NON_TRADEABLE")).toBe(true);
+  });
+});

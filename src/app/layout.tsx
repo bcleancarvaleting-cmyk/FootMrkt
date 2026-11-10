@@ -6,6 +6,7 @@ import { ChatDrawer } from "@/components/chat-drawer";
 import { Logo } from "@/components/nav";
 import { CHAT_ROOMS, CHAT_RULES } from "@/config/chat";
 import { canModerate } from "@/server/moderation";
+import { grantDueWelcomePacks } from "@/server/welcome";
 import Link from "next/link";
 import { Header } from "@/components/nav";
 import { StatsTicker } from "@/components/stats-ticker";
@@ -29,6 +30,7 @@ export const viewport: Viewport = { themeColor: "#07080a", width: "device-width"
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const theme: Theme = (await cookies()).get("collectr_theme")?.value === "light" ? "light" : "dark";
   const [user, stats] = await Promise.all([getCurrentUser(), liveStats()]);
+  if (user) await grantDueWelcomePacks(user.id);
   const unopened = user ? await db.packEntitlement.count({ where: { userId: user.id, status: "UNOPENED" } }) : 0;
   return (
     <html

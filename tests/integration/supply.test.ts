@@ -67,10 +67,15 @@ describe("collection completion and recirculation (spec §8.1)", () => {
     });
     await db.cardInstance.update({ where: { id: target.id }, data: { supplyState: "RECIRCULATING", recycledCount: 1 } });
     const { userId } = await makeUser();
-    // Draw enough bronze packs that every eligible bronze card is pulled — including the recirculated one.
+    // A one-card bronze pack, opened until the pool is empty, must eventually pull the recirculated card.
+    // (Six-card packs can stall with a few copies of the same player left, which made this test flaky.)
+    const sport = await db.sport.findFirstOrThrow();
+    await db.packSku.create({
+      data: { sportId: sport.id, code: "test-one-bronze", version: 1, name: "One", kind: "REGULAR", priceMinor: 100, config: { mode: "POOL", nonTradeable: false, uniquePlayers: true, slots: [{ label: "B", count: 1, base: "BRONZE", upgrades: [] }] } },
+    });
     const pulled = new Set<string>();
-    for (let i = 0; i < 40 && !pulled.has(target.id); i++) {
-      const ent = await withTx((tx) => grantPack(tx, { userId, skuCode: "football-bronze", source: "DEV", sourceRef: `r${i}` }));
+    for (let i = 0; i < 200 && !pulled.has(target.id); i++) {
+      const ent = await withTx((tx) => grantPack(tx, { userId, skuCode: "test-one-bronze", source: "DEV", sourceRef: `r${i}` }));
       try {
         (await openPack(userId, ent.id)).cards.forEach((c) => pulled.add(c.cardId));
       } catch {

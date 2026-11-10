@@ -8,6 +8,7 @@ import "dotenv/config";
 import { db } from "../src/server/db";
 import { runScheduledJobs } from "../src/server/gameweeks";
 import { expireListings, settleAuctions } from "../src/server/transfers";
+import { grantAllDueWelcomePacks } from "../src/server/welcome";
 import { executeDueReleases, supplyReport } from "../src/server/supply";
 import { revalueAll } from "../src/server/valuation";
 
@@ -18,6 +19,7 @@ async function main(cmd = "tick") {
       console.log("releases", await executeDueReleases());
       console.log("expired listings", await expireListings());
       console.log("auctions settled", await settleAuctions());
+      console.log("welcome packs", await grantAllDueWelcomePacks());
       break;
     }
     case "revalue":

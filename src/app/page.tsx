@@ -50,7 +50,7 @@ async function Landing() {
                 How it works
               </Link>
             </div>
-            <p className="text-xs text-white/50">18+ · Free to play · No card needed to start</p>
+            <p className="text-xs text-white/60">Free welcome gifts: a Silver pack on day 3 and a lucky Gold player on day 7 · 18+</p>
           </div>
           <div className="relative hidden h-[400px] items-center justify-center lg:flex">
             {picks.map((c, i) => (
@@ -87,7 +87,7 @@ async function Landing() {
         <h2 className="mt-1 text-5xl">Three steps to matchday</h2>
         <ol className="mt-8 grid gap-4 md:grid-cols-3">
           {[
-            ["01", "Open packs", "Start with a free 11-player squad. Every card is a numbered copy of a real player — Bronze, Silver or Gold by real market value."],
+            ["01", "Open packs", "Start with a free 11-player squad, then a Silver pack on day 3 and a lucky Gold on day 7. Every card is a numbered copy of a real player — Bronze, Silver or Gold by real market value."],
             ["02", "Pick your seven", "Choose a formation, a keeper, defenders, midfielders and attackers, plus four subs who come on if a starter doesn't play."],
             ["03", "Score real points", "Goals, assists, clean sheets and saves from real games become your points. Top the table, win packs."],
           ].map(([n, t, d]) => (

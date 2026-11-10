@@ -6,6 +6,7 @@ import { advertisedGuarantee, cardCount, parsePackConfig } from "@/domain/packs/
 import { requireUser } from "@/server/auth/session";
 import { db } from "@/server/db";
 import { dropStatus } from "@/server/drops";
+import { upcomingWelcomePacks } from "@/server/welcome";
 import { allFlags } from "@/server/flags";
 import { balancesFor, fmtMp } from "@/server/wallet";
 import { fmtDate, gbp } from "@/lib/view";
@@ -17,13 +18,14 @@ const meta = (code: string) => FOOTBALL_PACKS.find((p) => p.code === code);
 export default async function PacksPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
   const user = await requireUser();
   const { welcome } = await searchParams;
-  const [flags, unopened, skus, history, bal, drop] = await Promise.all([
+  const [flags, unopened, skus, history, bal, drop, gifts] = await Promise.all([
     allFlags(),
     db.packEntitlement.findMany({ where: { userId: user.id, status: "UNOPENED" }, include: { packSku: true }, orderBy: { createdAt: "asc" } }),
     db.packSku.findMany({ where: { active: true, kind: "REGULAR" }, orderBy: [{ code: "asc" }, { version: "desc" }], distinct: ["code"] }),
     db.packOpening.findMany({ where: { userId: user.id }, include: { packSku: true, _count: { select: { cards: true } } }, orderBy: { createdAt: "desc" }, take: 8 }),
     balancesFor(user.id),
     dropStatus(user.id),
+    upcomingWelcomePacks(user.id),
   ]);
   const regions = new Map<string, typeof skus>();
   for (const s of skus.filter((x) => !meta(x.code)?.hiddenInShop).sort((a, b) => a.priceMinor - b.priceMinor)) {
@@ -56,6 +58,24 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
         </div>
       )}
 
+      {gifts.length > 0 && (
+        <section className="flex flex-wrap gap-2">
+          {gifts.map((g) => (
+            <div key={g.code} className="flex min-w-0 flex-1 basis-64 items-center gap-3 rounded-xl border border-ink-700 bg-ink-900 px-4 py-3">
+              <PackArt code={g.code} small />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[11px] font-extrabold uppercase tracking-[0.16em] text-lime">Welcome gift</span>
+                <span className="block truncate text-sm font-semibold">{meta(g.code)?.name}</span>
+              </span>
+              <span className="shrink-0 text-right">
+                <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">Unlocks in</span>
+                <Countdown to={g.at.toISOString()} className="text-sm font-bold" />
+              </span>
+            </div>
+          ))}
+        </section>
+      )}
+
       {unopened.length > 0 && (
         <section>
           <h1 className="mb-4 text-4xl leading-none sm:text-5xl">Ready to open</h1>
@@ -67,7 +87,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
                   <PackArt code={e.packSku.code} small />
                   <span className="min-w-0 flex-1">
                     <span className="block font-display text-xl font-bold uppercase italic">{e.packSku.name}</span>
-                    <span className="block text-xs text-muted">{cardCount(cfg)} cards · {e.source === "WEEKLY" ? "free drop" : e.source.toLowerCase().replace("_", " ")}</span>
+                    <span className="block text-xs text-muted">{cardCount(cfg)} cards · {e.source === "WEEKLY" ? "free drop" : e.sourceRef?.startsWith("welcome:") ? "welcome gift · untradeable" : e.source.toLowerCase().replace("_", " ")}</span>
                   </span>
                   <OpenPackButton entitlementId={e.id} />
                 </li>

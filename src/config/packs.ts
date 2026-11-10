@@ -178,3 +178,53 @@ FOOTBALL_PACKS.push(
   regional(byCode("football-silver"), "football-eng-silver", "England Silver", "England", ["ENG"], "6 cards from English league clubs. Silver, with a chance of a Gold."),
   regional(byCode("football-gold"), "football-eng-gold", "England Gold", "England", ["ENG"], "6 cards from English clubs. At least 2 Premier League Golds — sometimes 3 or 4."),
 );
+
+/**
+ * Welcome gifts (product decision 10 Nov 2026): after the Starter Pack, every new manager gets a
+ * Silver pack 3 days after registering and one lucky Gold player 4 days after that (day 7).
+ * Both are freshly minted and untradeable, so they never drain the tradeable supply.
+ */
+export const WELCOME_SILVER_CODE = "football-welcome-silver";
+export const WELCOME_GOLD_CODE = "football-welcome-gold";
+
+FOOTBALL_PACKS.push(
+  {
+    code: WELCOME_SILVER_CODE,
+    version: 1,
+    name: "Welcome Silver",
+    kind: "WEEKLY",
+    priceMinor: 0,
+    hiddenInShop: true,
+    blurb: "A welcome gift 3 days after you join: 6 Silver players, with a chance of a Gold. Untradeable.",
+    config: {
+      mode: "MINT",
+      nonTradeable: true,
+      uniquePlayers: true,
+      slots: [
+        { label: "Silver", count: 5, base: "SILVER", upgrades: [] },
+        { label: "Silver+", count: 1, base: "SILVER", upgrades: [{ category: "GOLD", chanceBp: 2000 }] },
+      ],
+    },
+  },
+  {
+    code: WELCOME_GOLD_CODE,
+    version: 1,
+    name: "Lucky Gold",
+    kind: "WEEKLY",
+    priceMinor: 0,
+    hiddenInShop: true,
+    blurb: "One lucky Gold player, a week after you join. Untradeable.",
+    config: {
+      mode: "MINT",
+      nonTradeable: true,
+      uniquePlayers: true,
+      slots: [{ label: "Lucky Gold", count: 1, base: "GOLD", upgrades: [] }],
+    },
+  },
+);
+
+/** When each welcome gift unlocks, counted from registration. */
+export const WELCOME_SCHEDULE = [
+  { code: WELCOME_SILVER_CODE, afterDays: 3 },
+  { code: WELCOME_GOLD_CODE, afterDays: 7 },
+] as const;

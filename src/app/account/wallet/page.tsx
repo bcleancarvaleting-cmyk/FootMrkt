@@ -67,7 +67,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
         <div id="add" className="panel p-5">
           <h2 className="mb-1 text-2xl">Add funds</h2>
           <p className="mb-4 text-sm text-muted">Top up by card — £1 buys 1 MP. Packs cost the same in £ or MP.</p>
-          {!depositsOn && <GateNotice>Adding funds opens once our payment provider and UK legal review sign off.</GateNotice>}
+          {!depositsOn && <GateNotice>Coming soon. Adding funds by card opens after the beta, once our payment provider is live.</GateNotice>}
           <DepositForm enabled={depositsOn} initial={[10, 20, 50, 100].includes(Number(amount)) ? Number(amount) : 20} />
         </div>
         <div id="withdraw" className="panel p-5">
@@ -75,7 +75,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
           <p className="mb-4 text-sm text-muted">
             Cash out £ you&apos;ve won in matches — minimum £10. You can withdraw up to <b className="text-fg">{fmtGbp(bal.withdrawable)}</b>. MP can&apos;t be withdrawn.
           </p>
-          {!withdrawalsOn && <GateNotice>Withdrawals open once our UK legal, identity-check and payout approvals are in place.</GateNotice>}
+          {!withdrawalsOn && <GateNotice>Coming soon. Your winnings are safe here; withdrawals open once identity checks and payouts are set up.</GateNotice>}
           {gaps.length > 0 && (
             <p className="mb-3 rounded-xl border border-ink-600 p-3 text-sm">
               Add your {gaps.join(", ")} in <Link href="/account/profile" className="text-lime underline">Profile</Link> first. We check your identity before your first payout.

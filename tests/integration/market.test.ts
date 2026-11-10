@@ -40,6 +40,7 @@ function enableLegalGates() {
   process.env.LEGAL_GATES_CLEARED = "MARKET,PAID_PACKS";
   process.env.FLAG_MARKET = "true";
   process.env.FLAG_PAID_PACKS = "true";
+  process.env.FLAG_AUCTIONS = "true";
 }
 
 async function pay(orderId: string, eventId = `evt-${orderId}`) {

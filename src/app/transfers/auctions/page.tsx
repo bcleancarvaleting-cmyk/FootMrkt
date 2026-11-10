@@ -12,7 +12,22 @@ export const metadata = { title: "Auctions" };
 
 export default async function AuctionsPage() {
   const user = await requireUser();
-  const [open, auctions, results] = await Promise.all([isEnabled("MARKET"), auctionBoard(user.id), recentAuctionResults()]);
+  const [market, auctionsOn, auctions, results] = await Promise.all([isEnabled("MARKET"), isEnabled("AUCTIONS"), auctionBoard(user.id), recentAuctionResults()]);
+  const open = market && auctionsOn;
+  if (!auctionsOn) {
+    return (
+      <div>
+        <PageHeader eyebrow="Run by MATCHX" title="Auctions" />
+        <div className="rounded-2xl border border-accent/40 bg-ink-900 px-6 py-12 text-center">
+          <span className="rounded-md bg-accent px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-accent-ink">Coming soon</span>
+          <p className="mt-4 font-display text-3xl font-bold uppercase italic">House auctions</p>
+          <p className="mx-auto mt-2 max-w-md text-sm text-muted">
+            We&apos;ll release cards straight into the community here: highest bid when the clock hits zero wins. Auctions open after the beta.
+          </p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div>
       <PageHeader
@@ -20,7 +35,7 @@ export default async function AuctionsPage() {
         title="Auctions"
         intro="We release cards straight into the community here. Highest bid when the clock hits zero wins. A bid in the last 2 minutes adds 2 more, so nobody gets sniped."
       />
-      {!open && <GateNotice>Bidding opens with trading, once our UK legal and payment checks are complete.</GateNotice>}
+      {!market && <GateNotice>Bidding opens with Transfers.</GateNotice>}
 
       {auctions.length === 0 ? (
         <EmptyState title="No live auctions">New auctions are announced in chat and on the Home page. Check back soon.</EmptyState>

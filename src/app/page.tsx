@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/server/auth/session";
 import { binderTotals } from "@/server/binder";
 import { db } from "@/server/db";
 import { activeDrop } from "@/server/drops";
+import { isEnabled } from "@/server/flags";
 import { currentGameweek } from "@/server/gameweeks";
 import { cardViews } from "@/server/views";
 import { balancesFor, fmtMp } from "@/server/wallet";
@@ -136,7 +137,7 @@ function Feature({ eyebrow, title, body, href, cta }: { eyebrow: string; title: 
 }
 
 async function Hub({ userId, name }: { userId: string; name: string }) {
-  const [gw, totals, unopened, recent, bal, drop, auctions] = await Promise.all([
+  const [gw, totals, unopened, recent, bal, drop, auctions, auctionsOn] = await Promise.all([
     currentGameweek(),
     binderTotals(userId),
     db.packEntitlement.count({ where: { userId, status: "UNOPENED" } }),
@@ -144,6 +145,7 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
     balancesFor(userId),
     activeDrop(),
     db.auction.count({ where: { status: "LIVE" } }),
+    isEnabled("AUCTIONS"),
   ]);
   const comps = gw
     ? await db.competition.findMany({ where: { gameweekId: gw.id }, include: { entries: { where: { userId } }, _count: { select: { entries: true } } }, orderBy: { name: "asc" } })
@@ -195,7 +197,7 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
         {[
           ["Balance", fmtMp(bal.total), "Wallet", "/account/wallet"],
           ["My Club", `${totals.total} cards`, `${totals.byCategory.GOLD} Gold · ${totals.byCategory.SILVER} Silver`, "/account/club"],
-          ["Auctions", `${auctions} live`, "Bid on new cards", "/transfers/auctions"],
+          auctionsOn ? ["Auctions", `${auctions} live`, "Bid on new cards", "/transfers/auctions"] : ["Auctions", "Coming soon", "Opens after the beta", "/transfers/auctions"],
           ["Challenges", "Hand in", "Earn MP & packs", "/account/challenges"],
         ].map(([k, v, s, href]) => (
           <Link key={k} href={href} className="bg-ink-900 p-5 transition hover:bg-ink-850">

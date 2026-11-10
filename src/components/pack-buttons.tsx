@@ -52,10 +52,10 @@ export function BuyPackButton({ skuCode, price, enabled, gold }: { skuCode: stri
       <button
         className={gold ? "btn-gold" : "btn-primary"}
         disabled={!enabled || pending}
-        title={enabled ? undefined : "Paid packs are not available yet"}
+        title={enabled ? undefined : "Buying packs by card is coming soon"}
         onClick={() => start(async () => setRes(await buyPackAction(skuCode, crypto.randomUUID())))}
       >
-        {pending ? "…" : `${price} by card`}
+        {pending ? "…" : enabled ? `${price} by card` : `${price} · Soon`}
       </button>
       {res && <ResultText result={res} />}
     </span>

@@ -109,9 +109,11 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
           </Link>
         </div>
         {!flags.PAID_PACKS && (
-          <p className="mb-5 rounded-xl border border-warn/40 bg-warn/10 px-4 py-3 text-sm">
-            Card payments open once our UK legal and payment-provider review is complete. You can already use MP you&apos;ve earned. Cards you open before then
-            are yours to keep and play, but can&apos;t be resold.
+          <p className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-accent/40 bg-accent/5 px-4 py-3 text-sm">
+            <span className="rounded-md bg-accent px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-accent-ink">Coming soon</span>
+            <span>
+              Buying packs by card. In the beta, open packs with MP you&apos;ve earned. Cards you get during the beta are yours to keep and play, but can&apos;t be resold.
+            </span>
           </p>
         )}
         <div className="space-y-8">

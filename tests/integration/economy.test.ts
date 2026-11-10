@@ -44,12 +44,12 @@ describe("challenges", () => {
     expect((await supplyReport()).reconciled).toBe(true);
   });
 
-  it("starter cards don't count unless the challenge allows them, and are retired (not recycled) when they do", async () => {
+  it("free/starter cards count by default (and are retired, not recycled); a challenge can exclude them", async () => {
     const { userId, starterEntitlementId } = await makeUser();
     const starter = (await openPack(userId, starterEntitlementId)).cards.map((c) => c.cardId);
-    const strict = await db.challenge.create({ data: { code: "t-strict", name: "S", description: "", criteria: { count: 2 }, rewardMinor: 100 } });
+    const strict = await db.challenge.create({ data: { code: "t-strict", name: "S", description: "", criteria: { count: 2, includeUntradeable: false }, rewardMinor: 100 } });
     await expect(completeChallenge(userId, strict.id, starter.slice(0, 2), "s1")).rejects.toMatchObject({ code: "NOT_ELIGIBLE" });
-    const loose = await db.challenge.create({ data: { code: "t-loose", name: "L", description: "", criteria: { count: 2, includeUntradeable: true }, rewardMinor: 100 } });
+    const loose = await db.challenge.create({ data: { code: "t-loose", name: "L", description: "", criteria: { count: 2 }, rewardMinor: 100 } });
     await completeChallenge(userId, loose.id, starter.slice(0, 2), "s2");
     const after = await db.cardInstance.findMany({ where: { id: { in: starter.slice(0, 2) } } });
     expect(after.every((c) => c.supplyState === "RETIRED")).toBe(true);

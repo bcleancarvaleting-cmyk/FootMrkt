@@ -294,6 +294,7 @@ export async function createAuction(adminId: string, input: z.input<typeof Aucti
 
 export async function placeBid(userId: string, auctionId: string, amountMinor: number, now = new Date()) {
   await requireFlag("MARKET");
+  await requireFlag("AUCTIONS");
   price.parse(amountMinor);
   return withTx(async (tx) => {
     const [a] = await tx.$queryRaw<Array<{ id: string; status: string; startsAt: Date; endsAt: Date; startPriceMinor: number; minIncrementMinor: number; antiSnipeMinutes: number }>>`

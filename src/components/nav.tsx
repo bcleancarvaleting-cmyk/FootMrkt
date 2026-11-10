@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getCurrentUser } from "@/server/auth/session";
+import { isEnabled } from "@/server/flags";
 import { balancesFor, fmtMp } from "@/server/wallet";
 import { TopNav } from "./bottom-nav";
 import { FoundingBadge } from "./founding-badge";
@@ -18,15 +19,16 @@ export function Logo({ height = 26 }: { height?: number }) {
 
 export async function Header({ theme, unopenedPacks }: { theme: Theme; unopenedPacks: number }) {
   const user = await getCurrentUser();
-  const bal = user ? await balancesFor(user.id) : null;
+  const [bal, beta] = await Promise.all([user ? balancesFor(user.id) : null, isEnabled("BETA")]);
   return (
     <header
       className="sticky z-30 border-b border-ink-800 bg-ink-950/90 backdrop-blur-xl"
       style={{ top: "env(safe-area-inset-top, 0px)" }}
     >
       <div className="mx-auto flex max-w-6xl items-center gap-8 px-4 py-3 sm:px-6">
-        <Link href="/" aria-label="MATCHX home" className="shrink-0">
+        <Link href="/" aria-label="MATCHX home" className="flex shrink-0 items-center gap-2">
           <Logo />
+          {beta && <span className="rounded-md border border-accent/60 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-lime">Beta</span>}
         </Link>
         {user && <TopNav unopenedPacks={unopenedPacks} />}
         <div className="ml-auto flex items-center gap-2">

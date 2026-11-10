@@ -87,7 +87,7 @@ export function ChallengeForm({ packs }: { packs: Array<{ code: string; name: st
       <I name="maxPerUser" label="Max per manager" type="number" min="1" />
       <I name="endsAt" label="Ends (optional)" type="datetime-local" />
       <label className="flex items-center gap-2 text-sm sm:col-span-2">
-        <input type="checkbox" name="includeUntradeable" className="accent-lime" /> Allow free/starter cards (they&apos;re retired, not recycled)
+        <input type="checkbox" name="excludeFree" className="accent-lime" /> Exclude free/starter cards (untradeable cards count by default; free ones are retired when handed in)
       </label>
     </Form>
   );

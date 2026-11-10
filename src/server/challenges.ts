@@ -30,7 +30,7 @@ export function criteriaSummary(c: ChallengeCriteria) {
   if (c.positions) bits.push(c.positions.join("/"));
   if (c.leagues) bits.push(c.leagues.join("/"));
   if (c.maxPerClub) bits.push(c.maxPerClub === 1 ? "all different clubs" : `max ${c.maxPerClub} per club`);
-  if (c.includeUntradeable) bits.push("free cards allowed");
+  if (c.includeUntradeable === false) bits.push("no free or starter cards");
   return bits.join(" · ");
 }
 
@@ -42,8 +42,8 @@ function eligibleWhere(userId: string, c: ChallengeCriteria): Prisma.CardInstanc
     ownerId: userId,
     supplyState: "HELD",
     lock: "NONE",
-    // Free/starter cards (minted STARTER edition) only count when the challenge allows them.
-    template: { category: c.tiers ? { in: c.tiers } : undefined, edition: c.includeUntradeable ? undefined : "STANDARD", player },
+    // Every card counts, untradeable ones included, unless a challenge explicitly excludes free/starter cards.
+    template: { category: c.tiers ? { in: c.tiers } : undefined, edition: c.includeUntradeable === false ? "STANDARD" : undefined, player },
   };
 }
 

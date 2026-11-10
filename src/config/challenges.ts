@@ -12,7 +12,7 @@ export interface ChallengeCriteria {
   leagues?: string[];
   /** Max cards from one club (e.g. 1 for "all different clubs"). */
   maxPerClub?: number;
-  /** Allow free/starter (untradeable) cards. Off by default so starter squads can't be farmed. */
+  /** Untradeable cards (free, starter and launch cards) count by default; set false to exclude free/starter cards. */
   includeUntradeable?: boolean;
 }
 
@@ -39,6 +39,14 @@ export const DEFAULT_CHALLENGES: ChallengeSeed[] = [
     name: "Bronze bundle",
     description: "Trade in 5 Bronze cards for an England Bronze pack.",
     criteria: { count: 5, tiers: ["BRONZE"] },
+    rewardMinor: 0,
+    rewardPackSku: "football-eng-bronze",
+  },
+  {
+    code: "bronze-seven",
+    name: "Bronze line-up",
+    description: "Hand in a full starting seven of Bronze players for an England Bronze pack. Untradeable cards count.",
+    criteria: { count: 7, tiers: ["BRONZE"] },
     rewardMinor: 0,
     rewardPackSku: "football-eng-bronze",
   },

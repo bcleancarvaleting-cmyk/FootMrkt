@@ -34,6 +34,18 @@ export const FLAG_DEFINITIONS = {
     legalGate: true,
     description: "Charge MP entry fees for matches with prizes. Needs legal sign-off (prize competitions / pool betting).",
   },
+  BETA: {
+    env: "FLAG_BETA",
+    default: true,
+    legalGate: false,
+    description: "Beta: shows a Beta tag and 'Coming soon' for paid packs, adding funds and auctions until each is switched on.",
+  },
+  AUCTIONS: {
+    env: "FLAG_AUCTIONS",
+    default: false,
+    legalGate: false,
+    description: "House auctions open for bidding (also needs Transfers/MARKET). Shown as 'Coming soon' while off.",
+  },
   FOUNDING_SIGNUPS: {
     env: "FLAG_FOUNDING_SIGNUPS",
     default: true,

@@ -82,7 +82,7 @@ export async function createChallengeAction(_: ActionResult | null, f: FormData)
         positions: list(f, "positions") as never,
         leagues: list(f, "leagues"),
         maxPerClub: str(f, "maxPerClub") ? Number(str(f, "maxPerClub")) : undefined,
-        includeUntradeable: f.get("includeUntradeable") === "on" ? true : undefined,
+        includeUntradeable: f.get("excludeFree") === "on" ? false : undefined,
       },
       rewardMinor: mp(f, "reward"),
       rewardPackSku: str(f, "pack") || undefined,

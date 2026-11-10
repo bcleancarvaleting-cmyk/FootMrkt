@@ -6,6 +6,10 @@ import { FOOTBALL_PACKS } from "@/config/packs";
 import { requireUser } from "@/server/auth/session";
 import { challengeBoard, ensureDefaultChallenges } from "@/server/challenges";
 import { setProgress } from "@/server/collections";
+import { ownedSetProgress } from "@/server/owned-sets";
+import { db } from "@/server/db";
+import { ActionButton } from "@/components/action-button";
+import { claimOwnedSetAction } from "@/app/actions/owned-sets";
 import { fmtMp } from "@/server/wallet";
 
 export const metadata = { title: "Challenges" };
@@ -16,7 +20,10 @@ export default async function ChallengesPage({ searchParams }: { searchParams: P
   const user = await requireUser();
   const { completed } = await searchParams;
   await ensureDefaultChallenges();
-  const [challenges, sets] = await Promise.all([challengeBoard(user.id), setProgress(user.id)]);
+  const [challenges, sets, keepSets] = await Promise.all([challengeBoard(user.id), setProgress(user.id), ownedSetProgress(user.id)]);
+  const keepShown = keepSets.slice(0, 12);
+  const missingIds = [...new Set(keepShown.filter((x) => !x.complete).flatMap((x) => x.missing.slice(0, 6)))];
+  const missingNames = new Map((await db.player.findMany({ where: { id: { in: missingIds } }, select: { id: true, displayName: true } })).map((p) => [p.id, p.displayName]));
   // Started sets first (closest to complete on top), then other non-binder sets; untouched binders are counted, not listed.
   const progress = (x: (typeof sets)[number]) => x.requirements.filter((r) => r.satisfied).length / Math.max(1, x.requirements.length);
   const started = sets.filter((x) => x.requirements.some((r) => r.owned > 0)).sort((a, b) => progress(b) - progress(a));
@@ -76,6 +83,50 @@ export default async function ChallengesPage({ searchParams }: { searchParams: P
             })}
           </ul>
         )}
+      </section>
+
+      <section>
+        <h2 className="mb-1 text-3xl">Collect &amp; keep</h2>
+        <p className="mb-4 text-sm text-muted">
+          Own a card of every player in a set at the same time and claim a one-off reward plus a badge on your club page — and you <b className="text-fg">keep the cards</b>. Any tier or copy
+          counts, including free cards; loans don&apos;t.
+        </p>
+        <ul className="grid gap-2 md:grid-cols-2">
+          {keepShown.map((x) => (
+            <li key={x.code} className={`row-item flex-col items-stretch gap-2 ${x.complete && !x.claimed ? "border-l-4 border-l-accent" : ""}`}>
+              <div className="flex items-center gap-3">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold">{x.name}</span>
+                  <span className="block truncate text-xs text-muted">{x.description}</span>
+                </span>
+                <span className="text-sm font-bold tabular-nums">
+                  {x.have}/{x.total}
+                </span>
+                <span className="w-28 text-right">
+                  {x.claimed ? (
+                    <span className="text-xs font-bold text-lime">✓ Claimed</span>
+                  ) : x.complete ? (
+                    <ActionButton action={claimOwnedSetAction.bind(null, x.code)} className="btn-primary px-3 py-1.5 text-[11px]">
+                      Claim {x.rewardMinor / 100} MX
+                    </ActionButton>
+                  ) : (
+                    <span className="text-xs text-faint">{x.rewardMinor / 100} MX reward</span>
+                  )}
+                </span>
+              </div>
+              <div className="h-1 overflow-hidden rounded-full bg-ink-700">
+                <div className="h-full bg-accent" style={{ width: `${(x.have / x.total) * 100}%` }} />
+              </div>
+              {!x.complete && (
+                <p className="truncate text-xs text-faint">
+                  Still need: {x.missing.slice(0, 6).map((id) => missingNames.get(id)).filter(Boolean).join(", ")}
+                  {x.missing.length > 6 ? ` +${x.missing.length - 6} more` : ""}
+                </p>
+              )}
+            </li>
+          ))}
+        </ul>
+        {keepSets.length > keepShown.length && <p className="mt-2 text-xs text-faint">Showing your 12 closest · {keepSets.length - keepShown.length} more started</p>}
       </section>
 
       {sets.length > 0 && (

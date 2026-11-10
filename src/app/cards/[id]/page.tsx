@@ -6,7 +6,7 @@ import { STAMPS, type StampKind, stampsForCard } from "@/server/stamps";
 import { FINISH_STYLE, FinishPill } from "@/components/finish-art";
 import { discardLoanAction } from "@/app/actions/account";
 import { notFound } from "next/navigation";
-import { toggleFavouriteAction } from "@/app/actions/game";
+import { toggleFavouriteAction, toggleShowcaseAction } from "@/app/actions/game";
 import { cancelListingAction } from "@/app/actions/transfers";
 import { ActionButton } from "@/components/action-button";
 import { ListingForm } from "@/components/listing-form";
@@ -74,6 +74,11 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
           </ActionButton>
         )}
         {user && <WatchButton playerId={card.template.playerId} initial={await isWatching(user.id, card.template.playerId)} />}
+        {isOwner && user && (
+          <ActionButton action={toggleShowcaseAction.bind(null, id)} className="btn-ghost text-xs">
+            {(await db.user.findUniqueOrThrow({ where: { id: user.id }, select: { showcaseCardIds: true } })).showcaseCardIds.includes(id) ? "📌 Pinned to club page" : "📌 Pin to club page"}
+          </ActionButton>
+        )}
         {isOwner && (
           <ActionButton action={toggleFavouriteAction.bind(null, id)} className="btn-ghost text-xs">
             {favourite ? "★ Favourited" : "☆ Favourite"}

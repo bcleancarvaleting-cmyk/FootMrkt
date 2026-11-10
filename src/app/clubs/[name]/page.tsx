@@ -55,13 +55,16 @@ export default async function ClubPage({ params }: { params: Promise<{ name: str
         </div>
       </section>
 
+      {p.pinned.length > 0 && <Cards title={`Pinned by ${m.name}`} cards={p.pinned} />}
+
       <section>
         <h2 className="mb-3 text-2xl">Trophy cabinet</h2>
-        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-ink-700 bg-ink-700 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-ink-700 bg-ink-700 sm:grid-cols-5 [&>*:last-child:nth-child(odd)]:col-span-2 sm:[&>*:last-child:nth-child(odd)]:col-span-1">
           {[
             ["🏆", "Match wins", p.trophies.wins.length],
             ["🥈", "Podiums", p.trophies.podiums],
             ["📒", "Binders", p.trophies.binders.length],
+            ["🗂️", "Sets", p.trophies.sets.length],
             ["★", "Achievements", `${p.achievements.length}/${p.achievementsTotal}`],
           ].map(([icon, label, v]) => (
             <div key={String(label)} className="flex flex-col items-center gap-1 bg-ink-900 p-4 text-center">
@@ -103,7 +106,20 @@ export default async function ClubPage({ params }: { params: Promise<{ name: str
         )}
       </section>
 
-      <Cards title="Showcase · Rainbow, Diamond & Ruby" cards={p.showcase} />
+      {p.trophies.sets.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-2xl">Sets collected</h2>
+          <div className="flex flex-wrap gap-2">
+            {p.trophies.sets.map((x) => (
+              <span key={x.code} className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${x.code.startsWith("stars:") ? "rainbow-name border-accent/50" : x.code.startsWith("golds:") ? "border-[#e9c46a]/60 text-[#e9c46a]" : "border-ink-600"}`}>
+                {x.name}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <Cards title="Rainbow, Diamond & Ruby" cards={p.showcase} />
       <Cards title="Best Golds" cards={p.best} size="sm" />
       <Cards title="Most storied cards" cards={p.storied} size="sm" />
 

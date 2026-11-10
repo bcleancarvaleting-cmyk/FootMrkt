@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { markFindAction } from "@/app/actions/social";
+import { ActionButton } from "@/components/action-button";
 import { BatchExport } from "@/components/batch-export";
 import { PosterExport } from "@/components/poster-export";
 import {
@@ -26,6 +28,7 @@ import {
   clubTopPlayers,
   clubsForPicker,
   featuredDrop,
+  socialQueue,
   leagueStars,
   leaguesForPicker,
   posterCards,
@@ -64,7 +67,7 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
   const fullSize = sp.scale === "1";
   const leagueCode = sp.league ?? "EPL";
   const seed = sp.seed ?? "1";
-  const [clubs, leagues, top] = await Promise.all([clubsForPicker(), leaguesForPicker(), clubTopPlayers(clubCode, 40)]);
+  const [clubs, leagues, top, queue] = await Promise.all([clubsForPicker(), leaguesForPicker(), clubTopPlayers(clubCode, 40), socialQueue(8)]);
   const playerId = top?.players.find((p) => p.id === sp.player)?.id ?? top?.players[0]?.id ?? null;
   const player = top?.players.find((p) => p.id === playerId) ?? null;
   const { w, h } = FORMATS[format];
@@ -163,6 +166,31 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
         title="Social content"
         intro="Ready-to-post images built from the real card designs. Pick a template, size and club, then download. Posters only show finishes a player can really come in (Ruby and Diamond on Golds; every player has one Rainbow)."
       />
+      {queue.count > 0 && (
+        <section className="panel space-y-2 border-accent/50 p-4">
+          <h2 className="font-display text-xl font-extrabold uppercase italic">New pulls to post ({queue.count})</h2>
+          <p className="text-xs text-muted">Every Ruby, Diamond and Rainbow pulled lands here. Make the &ldquo;Found!&rdquo; poster, post it, then mark it posted — or skip it.</p>
+          <ul className="divide-y divide-ink-800">
+            {queue.items.map((q) => (
+              <li key={q.id} className="flex flex-wrap items-center gap-3 py-2 text-sm">
+                <span className={`font-bold ${q.kind === "RAINBOW" ? "rainbow-name" : q.kind === "DIAMOND" ? "text-[#8fe3ff]" : "text-[#ff8fa6]"}`}>{q.kind.toLowerCase()}</span>
+                <span className="min-w-0 flex-1 truncate">
+                  {q.player} · pulled by {q.manager} · {fmtDate(q.at, { dateStyle: "medium" })}
+                </span>
+                <Link href={`/admin/social?t=found&f=${format}&kind=${q.kind}&find=${q.id}`} className="btn-primary px-3 py-1.5 text-[11px]">
+                  Make poster
+                </Link>
+                <ActionButton action={markFindAction.bind(null, q.id, "POSTED")} className="btn-ghost px-3 py-1.5 text-[11px]">
+                  Posted
+                </ActionButton>
+                <ActionButton action={markFindAction.bind(null, q.id, "SKIPPED")} className="btn-ghost px-3 py-1.5 text-[11px] text-faint">
+                  Skip
+                </ActionButton>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <form className="panel grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4" action="/admin/social">
         <label className="text-sm sm:col-span-2">
           <span className="label">Template</span>

@@ -1,6 +1,7 @@
 "use server";
 
 import { submitDraftEntry } from "@/server/draft";
+import { toggleShowcase } from "@/server/club-profile";
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -83,6 +84,18 @@ export async function toggleFavouriteAction(cardId: string): Promise<ActionResul
     else await db.favouriteCard.create({ data: { userId: user.id, cardId } });
     revalidatePath(`/cards/${cardId}`);
   });
+}
+
+export async function toggleShowcaseAction(cardId: string): Promise<ActionResult> {
+  const user = await requireUser();
+  const res = await attempt(async () => {
+    const pinned = await toggleShowcase(user.id, cardId);
+    return pinned;
+  });
+  revalidatePath(`/cards/${cardId}`);
+  revalidatePath(`/clubs/${encodeURIComponent(user.displayName)}`);
+  if (!res.ok) return res;
+  return { ok: true, data: undefined, message: res.data ? "Pinned to your club page" : "Unpinned" };
 }
 
 export async function completeSetAction(setId: string, idempotencyKey: string): Promise<ActionResult> {

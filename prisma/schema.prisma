@@ -78,6 +78,7 @@ model User {
   timeOutUntil             DateTime? // short break chosen by the player
   selfExcludedUntil        DateTime? // self-exclusion (6 months+)
   realityCheckMinutes      Int        @default(60) // 0 = off
+  showcaseCardIds          String[]   @default([]) // up to 3 cards pinned on the public club page
   totpSecret               String? // two-step login secret (base32); set during setup
   totpEnabledAt            DateTime? // two-step login is on
   totpLastStep             Int? // last accepted 30-second step, so a code can't be reused
@@ -377,6 +378,9 @@ model CardFinish {
   cardId    String         @unique @db.Uuid
   card      CardInstance   @relation(fields: [cardId], references: [id])
   createdAt DateTime       @default(now())
+  // Social studio queue: null = waiting for a decision; "POSTED" or "SKIPPED" once handled.
+  socialStatus String?
+  socialAt     DateTime?
 
   @@unique([playerId, kind, serial])
 }
@@ -1318,4 +1322,18 @@ model SupportTicket {
   createdAt  DateTime  @default(now())
 
   @@index([status, createdAt])
+}
+
+// Keep-and-collect sets: own every card in a set at the same time to claim a one-off reward.
+// The cards are kept. One claim per manager per set.
+model OwnedSetClaim {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  code        String // e.g. "squad:GIL", "golds:ARS", "stars:EPL"
+  name        String
+  rewardMinor Int
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, code])
+  @@index([code])
 }

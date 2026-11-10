@@ -158,3 +158,21 @@ export async function leagueStars(leagueCode: string, seed = "1") {
   });
   return { league, cards, golds: golds.length };
 }
+
+/** Pulls waiting for a "Found!" post decision, newest first. */
+export async function socialQueue(take = 10) {
+  const [rows, count] = await Promise.all([
+    db.cardFinish.findMany({
+      where: { socialStatus: null },
+      orderBy: [{ kind: "desc" }, { createdAt: "desc" }],
+      take,
+      include: { player: { select: { displayName: true } }, card: { select: { owner: { select: { displayName: true } } } } },
+    }),
+    db.cardFinish.count({ where: { socialStatus: null } }),
+  ]);
+  return { count, items: rows.map((r) => ({ id: r.id, kind: r.kind as Finish, player: r.player.displayName, manager: r.card.owner?.displayName ?? "A manager", at: r.createdAt })) };
+}
+
+export async function markFind(id: string, status: "POSTED" | "SKIPPED") {
+  await db.cardFinish.update({ where: { id }, data: { socialStatus: status, socialAt: new Date() } });
+}

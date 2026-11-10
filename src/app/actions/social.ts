@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireUser } from "@/server/auth/session";
+import { requireAdmin, requireUser } from "@/server/auth/session";
+import { markFind } from "@/server/social";
 import { createLeague, joinLeague, leaveLeague } from "@/server/leagues";
 import { unwatchPlayer, watchPlayer } from "@/server/watchlist";
 import { answerQuestion } from "@/server/predictions";
@@ -59,4 +60,11 @@ export async function setAlertPriceAction(playerId: string, _: ActionResult | nu
   });
   revalidatePath("/account/watchlist");
   return res.ok ? { ok: true, data: undefined, message: minor ? "Alert price saved" : "Alert on any listing" } : res;
+}
+
+export async function markFindAction(id: string, status: "POSTED" | "SKIPPED"): Promise<ActionResult> {
+  await requireAdmin();
+  const res = await attempt(() => markFind(id, status), status === "POSTED" ? "Marked as posted" : "Skipped");
+  revalidatePath("/admin/social");
+  return res;
 }

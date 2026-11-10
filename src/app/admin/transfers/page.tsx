@@ -70,7 +70,7 @@ export default async function Page() {
       <section className="panel p-5">
         <h2 className="mb-3 text-2xl">Recent player-to-player sales</h2>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
+          <table className="stack w-full text-sm sm:min-w-[640px]">
             <thead className="text-left text-[11px] uppercase tracking-[0.12em] text-faint">
               <tr>
                 {["When", "Player", "Seller", "Buyer", "Price", "Fee (5%)"].map((h) => (
@@ -81,14 +81,14 @@ export default async function Page() {
             <tbody className="divide-y divide-ink-700">
               {recent.map((r) => (
                 <tr key={r.id}>
-                  <td className="py-2 pr-3 text-muted">{r.soldAt ? fmtDate(r.soldAt) : "—"}</td>
-                  <td className="py-2 pr-3 font-semibold">
+                  <td data-label="When" className="py-2 pr-3 text-muted">{r.soldAt ? fmtDate(r.soldAt) : "—"}</td>
+                  <td data-label="Player" className="py-2 pr-3 font-semibold">
                     {r.card.template.player.displayName} <span className="text-xs font-normal text-faint">{r.card.template.category.toLowerCase()}</span>
                   </td>
-                  <td className="py-2 pr-3">{r.seller?.displayName ?? "—"}</td>
-                  <td className="py-2 pr-3">{r.buyer?.displayName ?? "—"}</td>
-                  <td className="py-2 pr-3 tabular-nums">{fmtMp(r.soldPriceMinor ?? 0)}</td>
-                  <td className="py-2 pr-3 tabular-nums">{fmtMp(r.feeMinor ?? 0)}</td>
+                  <td data-label="Seller" className="py-2 pr-3">{r.seller?.displayName ?? "—"}</td>
+                  <td data-label="Buyer" className="py-2 pr-3">{r.buyer?.displayName ?? "—"}</td>
+                  <td data-label="Price" className="py-2 pr-3 tabular-nums">{fmtMp(r.soldPriceMinor ?? 0)}</td>
+                  <td data-label="Fee (5%)" className="py-2 pr-3 tabular-nums">{fmtMp(r.feeMinor ?? 0)}</td>
                 </tr>
               ))}
               {!recent.length && (

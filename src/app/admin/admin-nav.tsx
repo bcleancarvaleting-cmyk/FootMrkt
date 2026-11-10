@@ -64,7 +64,7 @@ export function AdminNav() {
   );
   return (
     <>
-      <div className="lg:hidden">
+      <div className="sticky top-[61px] z-20 -mx-4 bg-ink-950/95 px-4 py-2 backdrop-blur lg:hidden">
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
@@ -72,14 +72,14 @@ export function AdminNav() {
           className="flex w-full items-center justify-between rounded-xl border border-ink-700 bg-ink-900 px-4 py-3 text-left"
         >
           <span>
-            <span className="eyebrow block">Admin</span>
+            <span className="eyebrow block">Admin menu</span>
             <span className="font-semibold">{current.label}</span>
           </span>
           <span className={`text-muted transition ${open ? "rotate-180" : ""}`} aria-hidden="true">
             ▾
           </span>
         </button>
-        {open && <div className="mt-2 rounded-xl border border-ink-700 bg-ink-900 p-3">{list}</div>}
+        {open && <div className="mt-2 max-h-[65vh] overflow-y-auto rounded-xl border border-ink-700 bg-ink-900 p-3">{list}</div>}
       </div>
       <aside className="hidden lg:block">
         <div className="sticky top-24">{list}</div>

@@ -65,7 +65,35 @@ export function DropScheduler({ rows, tops, pointsLabel }: { rows: DbRow[]; tops
 
   return (
     <div className="space-y-5">
-      <div className="overflow-x-auto rounded-2xl border border-ink-700">
+      {/* Phones: one compact row per player. */}
+      <ul className="divide-y divide-ink-700 overflow-hidden rounded-2xl border border-ink-700 bg-ink-900 md:hidden">
+        {rows.map((r) => (
+          <li key={r.playerId} className={queued.has(r.playerId) ? "bg-accent/5" : ""}>
+            <label className="flex items-center gap-3 px-3 py-2.5">
+              <input type="checkbox" className="h-5 w-5 shrink-0 accent-lime" checked={queued.has(r.playerId)} disabled={r.onDrop} onChange={() => toggle(r)} aria-label={`Queue ${r.name}`} />
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-1.5 font-semibold">
+                  <span className="truncate">{r.name}</span>
+                  {r.topOf && <span className="text-xs text-lime">★</span>}
+                  <span className={`text-[10px] font-extrabold ${r.tier === "GOLD" ? "text-gold" : r.tier === "SILVER" ? "text-silver" : "text-bronze"}`}>{r.tier}</span>
+                </span>
+                <span className="block truncate text-xs text-muted">
+                  {r.position} · {r.club ?? "—"} {r.league}
+                </span>
+                <span className="block text-xs text-faint">
+                  {r.held}/{r.maxSupply ?? "∞"} out · {r.pct ?? 0}% · {r.inPacks} in packs
+                </span>
+              </span>
+              <span className="shrink-0 text-right">
+                <span className="block font-bold tabular-nums">{r.points ?? "—"}</span>
+                <span className="block text-[10px] uppercase tracking-wider text-faint">pts</span>
+                {r.onDrop && <span className="tag mt-1 text-lime">On drop</span>}
+              </span>
+            </label>
+          </li>
+        ))}
+      </ul>
+      <div className="hidden overflow-x-auto rounded-2xl border border-ink-700 md:block">
         <table className="w-full min-w-[820px] text-sm">
           <thead className="bg-ink-850 text-left text-[11px] uppercase tracking-[0.12em] text-faint">
             <tr>
@@ -80,7 +108,7 @@ export function DropScheduler({ rows, tops, pointsLabel }: { rows: DbRow[]; tops
                 <td className="px-3 py-2">
                   <input type="checkbox" className="accent-lime" checked={queued.has(r.playerId)} disabled={r.onDrop} onChange={() => toggle(r)} aria-label={`Queue ${r.name}`} />
                 </td>
-                <td className="px-3 py-2 font-semibold">
+                <td data-label="Player" className="px-3 py-2 font-semibold">
                   {r.name} <span className="text-xs font-normal text-faint">{r.position}</span>
                   {r.topOf && (
                     <span className="ml-1 text-xs text-lime" title={`Top performer in ${r.topOf}`}>
@@ -88,14 +116,14 @@ export function DropScheduler({ rows, tops, pointsLabel }: { rows: DbRow[]; tops
                     </span>
                   )}
                 </td>
-                <td className="px-3 py-2">
+                <td data-label="Club" className="px-3 py-2">
                   {r.club ?? "—"} <span className="text-xs text-faint">{r.league}</span>
                 </td>
-                <td className={`px-3 py-2 text-xs font-extrabold ${r.tier === "GOLD" ? "text-gold" : r.tier === "SILVER" ? "text-silver" : "text-bronze"}`}>{r.tier}</td>
-                <td className="px-3 py-2 font-bold tabular-nums" title={pointsLabel}>{r.points ?? "—"}</td>
-                <td className="px-3 py-2 tabular-nums">{r.maxSupply ?? "∞"}</td>
-                <td className="px-3 py-2 tabular-nums">{r.held}</td>
-                <td className="px-3 py-2">
+                <td data-label="Tier" className={`px-3 py-2 text-xs font-extrabold ${r.tier === "GOLD" ? "text-gold" : r.tier === "SILVER" ? "text-silver" : "text-bronze"}`}>{r.tier}</td>
+                <td data-label="Points" className="px-3 py-2 font-bold tabular-nums" title={pointsLabel}>{r.points ?? "—"}</td>
+                <td data-label="Total available" className="px-3 py-2 tabular-nums">{r.maxSupply ?? "∞"}</td>
+                <td data-label="In circulation" className="px-3 py-2 tabular-nums">{r.held}</td>
+                <td data-label="% in circulation" className="px-3 py-2">
                   <span className="flex items-center gap-2">
                     <span className="h-1.5 w-16 rounded-full bg-ink-800">
                       <span className="block h-1.5 rounded-full bg-[var(--color-chart)]" style={{ width: `${Math.min(100, r.pct ?? 0)}%` }} />
@@ -103,7 +131,7 @@ export function DropScheduler({ rows, tops, pointsLabel }: { rows: DbRow[]; tops
                     <span className="tabular-nums">{r.pct ?? 0}%</span>
                   </span>
                 </td>
-                <td className="px-3 py-2 tabular-nums text-muted">{r.inPacks}</td>
+                <td data-label="In packs" className="px-3 py-2 tabular-nums text-muted">{r.inPacks}</td>
                 <td className="px-3 py-2 text-xs">{r.onDrop && <span className="tag text-lime">On drop</span>}</td>
               </tr>
             ))}
@@ -111,7 +139,12 @@ export function DropScheduler({ rows, tops, pointsLabel }: { rows: DbRow[]; tops
         </table>
       </div>
 
-      <section className="panel space-y-4 p-5">
+      {queue.length > 0 && (
+        <a href="#release-queue" className="btn-primary fixed inset-x-4 bottom-24 z-30 shadow-xl md:hidden">
+          Release queue · {queue.length} → set prices &amp; schedule
+        </a>
+      )}
+      <section id="release-queue" className="panel scroll-mt-36 space-y-4 p-5">
         <div className="flex flex-wrap items-end gap-3">
           <h2 className="mr-auto text-2xl">Release queue · {queue.length}</h2>
           <div>

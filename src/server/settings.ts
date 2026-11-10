@@ -47,8 +47,13 @@ export async function setSetting(adminId: string, key: SettingKey, value: number
 /** Text settings (links, choices). */
 export const TEXT_SETTINGS = {
   facebookGroupUrl: {
-    label: "Facebook group link",
-    help: "Your MATCHX Facebook group. Shown with the Share button after every pack opening. Leave blank until the group is ready.",
+    label: "Managers community link",
+    help: "Your MATCHX Facebook group (or other community page). Shown on the homepage as 'Join the managers community'. Leave blank to hide it.",
+    default: "",
+  },
+  whatsappChannelUrl: {
+    label: "WhatsApp channel link",
+    help: "Your MATCHX WhatsApp channel. Shown on the homepage as 'Join our WhatsApp channel'. Leave blank to hide it.",
     default: "",
   },
   referralRewardSku: {
@@ -67,8 +72,11 @@ export async function getText(key: TextSettingKey): Promise<string> {
 export async function setText(adminId: string, key: TextSettingKey, value: string) {
   if (!(key in TEXT_SETTINGS)) throw new DomainError("UNKNOWN", "Unknown setting.");
   const v = value.trim();
-  if (key === "facebookGroupUrl" && v && !/^https:\/\/(www\.|m\.)?facebook\.com\/groups\/[\w.\-]+\/?$/i.test(v)) {
-    throw new DomainError("URL", "Paste the group link, e.g. https://www.facebook.com/groups/matchx");
+  if (key === "facebookGroupUrl" && v && !/^https:\/\/[^\s]+$/i.test(v)) {
+    throw new DomainError("URL", "Paste the full link, starting https://, e.g. https://www.facebook.com/groups/matchx");
+  }
+  if (key === "whatsappChannelUrl" && v && !/^https:\/\/(www\.)?(whatsapp\.com\/channel\/|chat\.whatsapp\.com\/|wa\.me\/)[^\s]+$/i.test(v)) {
+    throw new DomainError("URL", "Paste the WhatsApp channel link, e.g. https://whatsapp.com/channel/…");
   }
   if (key === "referralRewardSku") {
     const { FOOTBALL_PACKS } = await import("@/config/packs");
@@ -77,4 +85,11 @@ export async function setText(adminId: string, key: TextSettingKey, value: strin
   const before = await getText(key);
   await db.appSetting.upsert({ where: { key }, create: { key, value: v, updatedBy: adminId }, update: { value: v, updatedBy: adminId } });
   await audit(db, { actorId: adminId, action: "setting.set", entityType: "AppSetting", entityId: key, before, after: v });
+}
+
+/** Name of the pack a manager earns per referral (shown on share and invite prompts). */
+export async function referralRewardName() {
+  const { FOOTBALL_PACKS } = await import("@/config/packs");
+  const code = await getText("referralRewardSku");
+  return FOOTBALL_PACKS.find((p) => p.code === code)?.name ?? "pack";
 }

@@ -41,7 +41,7 @@ export default async function AppAdmin() {
         ))}
       </section>
       <div className="overflow-x-auto rounded-2xl border border-ink-700">
-        <table className="w-full min-w-[560px] text-sm">
+        <table className="stack w-full text-sm sm:min-w-[560px]">
           <thead className="bg-ink-850 text-left text-[11px] uppercase tracking-[0.12em] text-faint">
             <tr>
               {["Manager", "Installed", "Device", "Notifications", "Changed"].map((h) => (
@@ -52,11 +52,11 @@ export default async function AppAdmin() {
           <tbody className="divide-y divide-ink-700 bg-ink-900">
             {recent.map((u) => (
               <tr key={u.id}>
-                <td className="px-3 py-2 font-semibold">{u.displayName}</td>
-                <td className="px-3 py-2 tabular-nums">{u.appInstalledAt ? fmtDate(u.appInstalledAt, { dateStyle: "medium" }) : <span className="text-faint">—</span>}</td>
-                <td className="px-3 py-2">{u.appPlatform ?? <span className="text-faint">—</span>}</td>
-                <td className="px-3 py-2">{u.notificationsEnabled ? <span className="text-lime">On</span> : <span className="text-faint">Off</span>}</td>
-                <td className="px-3 py-2 tabular-nums">{u.notificationsUpdatedAt ? fmtDate(u.notificationsUpdatedAt, { dateStyle: "medium" }) : <span className="text-faint">—</span>}</td>
+                <td data-label="Manager" className="px-3 py-2 font-semibold">{u.displayName}</td>
+                <td data-label="Installed" className="px-3 py-2 tabular-nums">{u.appInstalledAt ? fmtDate(u.appInstalledAt, { dateStyle: "medium" }) : <span className="text-faint">—</span>}</td>
+                <td data-label="Device" className="px-3 py-2">{u.appPlatform ?? <span className="text-faint">—</span>}</td>
+                <td data-label="Notifications" className="px-3 py-2">{u.notificationsEnabled ? <span className="text-lime">On</span> : <span className="text-faint">Off</span>}</td>
+                <td data-label="Changed" className="px-3 py-2 tabular-nums">{u.notificationsUpdatedAt ? fmtDate(u.notificationsUpdatedAt, { dateStyle: "medium" }) : <span className="text-faint">—</span>}</td>
               </tr>
             ))}
             {!recent.length && (

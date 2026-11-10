@@ -5,6 +5,7 @@ import { PlayerCard } from "@/components/player-card";
 import { StadiumScene } from "@/components/stadium";
 import { HeroCarousel } from "@/components/hero-carousel";
 import { TakeItOnTheGo } from "@/components/app-install";
+import { CommunityLinks } from "@/components/community-links";
 import { EndedLoansBanner } from "@/components/loan-banner";
 import { RowStat } from "@/components/card-row";
 import { getCurrentUser } from "@/server/auth/session";
@@ -151,6 +152,8 @@ async function Landing() {
         <Feature eyebrow="Matches" title="Every gameweek, a new table" body="Open leagues, Bronze-only cups and more. Squads lock 10 minutes before the first kick-off." href="/register" cta="Enter a match" />
         <Feature eyebrow="Free packs" title="Drop days" body="We drop free packs on big matchdays. Claim within 24 hours — keep an eye on the Packs page." href="/register" cta="Join free" />
       </section>
+
+      <CommunityLinks />
 
       <TakeItOnTheGo />
 
@@ -365,6 +368,8 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
           </ol>
         </section>
       )}
+
+      <CommunityLinks />
 
       <TakeItOnTheGo />
 

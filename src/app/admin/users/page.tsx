@@ -47,7 +47,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
         </div>
       )}
       <div className="overflow-x-auto rounded-2xl border border-ink-700">
-        <table className="w-full min-w-[760px] text-sm">
+        <table className="stack w-full text-sm sm:min-w-[760px]">
           <thead className="bg-ink-850 text-left text-[11px] uppercase tracking-[0.12em] text-faint">
             <tr>
               {["Manager", "Supports", "Joined", "Matches", "Referred by", "Invites", "App", "Notifications"].map((h) => (
@@ -58,20 +58,20 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
           <tbody className="divide-y divide-ink-700 bg-ink-900">
             {users.map((u) => (
               <tr key={u.id}>
-                <td className="px-3 py-2">
+                <td data-label="Manager" className="px-3 py-2">
                   <span className="flex items-center gap-1.5 font-semibold">
                     {u.displayName} <FoundingBadge number={u.foundingNumber} compact />
                     {u.role !== "USER" && <span className="chip">{u.role.toLowerCase()}</span>}
                   </span>
                   <span className="block text-xs text-faint">{u.email}</span>
                 </td>
-                <td className="px-3 py-2">{u.favouriteClub?.name ?? <span className="text-faint">—</span>}</td>
-                <td className="px-3 py-2 tabular-nums">{fmtDate(u.createdAt, { dateStyle: "medium" })}</td>
-                <td className="px-3 py-2 tabular-nums">{u._count.entries}</td>
-                <td className="px-3 py-2">{u.referredBy?.displayName ?? <span className="text-faint">—</span>}</td>
-                <td className="px-3 py-2 tabular-nums">{u._count.referrals}</td>
-                <td className="px-3 py-2">{u.appInstalledAt ? <span className="text-lime">✓ {u.appPlatform}</span> : <span className="text-faint">—</span>}</td>
-                <td className="px-3 py-2">{u.notificationsEnabled ? <span className="text-lime">On</span> : <span className="text-faint">Off</span>}</td>
+                <td data-label="Supports" className="px-3 py-2">{u.favouriteClub?.name ?? <span className="text-faint">—</span>}</td>
+                <td data-label="Joined" className="px-3 py-2 tabular-nums">{fmtDate(u.createdAt, { dateStyle: "medium" })}</td>
+                <td data-label="Matches" className="px-3 py-2 tabular-nums">{u._count.entries}</td>
+                <td data-label="Referred by" className="px-3 py-2">{u.referredBy?.displayName ?? <span className="text-faint">—</span>}</td>
+                <td data-label="Invites" className="px-3 py-2 tabular-nums">{u._count.referrals}</td>
+                <td data-label="App" className="px-3 py-2">{u.appInstalledAt ? <span className="text-lime">✓ {u.appPlatform}</span> : <span className="text-faint">—</span>}</td>
+                <td data-label="Notifications" className="px-3 py-2">{u.notificationsEnabled ? <span className="text-lime">On</span> : <span className="text-faint">Off</span>}</td>
               </tr>
             ))}
           </tbody>

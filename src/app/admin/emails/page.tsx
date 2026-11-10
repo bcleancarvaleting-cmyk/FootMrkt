@@ -61,7 +61,7 @@ export default async function EmailsAdmin({ searchParams }: { searchParams: Prom
         <iframe title={`Preview: ${tpl}`} srcDoc={rendered.html} className="h-[520px] w-full rounded-xl border border-ink-700 bg-[#060708]" sandbox="" />
       </section>
       <div className="overflow-x-auto rounded-2xl border border-ink-700">
-        <table className="w-full min-w-[640px] text-sm">
+        <table className="stack w-full text-sm sm:min-w-[640px]">
           <thead className="bg-ink-850 text-left text-[11px] uppercase tracking-[0.12em] text-faint">
             <tr>
               {["When", "To", "Email", "Status"].map((h) => (
@@ -72,10 +72,10 @@ export default async function EmailsAdmin({ searchParams }: { searchParams: Prom
           <tbody className="divide-y divide-ink-700 bg-ink-900">
             {logs.map((l) => (
               <tr key={l.id}>
-                <td className="px-3 py-2 tabular-nums">{fmtDate(l.createdAt)}</td>
-                <td className="px-3 py-2">{l.to}</td>
-                <td className="px-3 py-2">{l.subject}</td>
-                <td className={`px-3 py-2 text-xs font-bold uppercase ${l.status === "SENT" ? "text-lime" : l.status === "FAILED" ? "text-danger" : "text-faint"}`} title={l.error ?? undefined}>
+                <td data-label="When" className="px-3 py-2 tabular-nums">{fmtDate(l.createdAt)}</td>
+                <td data-label="To" className="px-3 py-2">{l.to}</td>
+                <td data-label="Email" className="px-3 py-2">{l.subject}</td>
+                <td data-label="Status" className={`px-3 py-2 text-xs font-bold uppercase ${l.status === "SENT" ? "text-lime" : l.status === "FAILED" ? "text-danger" : "text-faint"}`} title={l.error ?? undefined}>
                   {l.status.toLowerCase()}
                 </td>
               </tr>

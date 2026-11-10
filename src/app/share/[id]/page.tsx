@@ -30,9 +30,10 @@ export default async function SharePage({ params }: { params: Promise<{ id: stri
         ))}
       </div>
       <div className="flex flex-col items-center gap-2">
-        <Link href="/register" className="btn-primary px-8 py-4 text-sm">
+        <Link href={`/register?ref=${encodeURIComponent(o.manager)}`} className="btn-primary px-8 py-4 text-sm">
           Play free — get 12 players
         </Link>
+        <p className="text-sm text-muted">Join with {o.manager}&apos;s invite and start with 12 free players, plus 2 Premier League Golds on loan.</p>
         <p className="text-xs text-faint">Real English footballers · free packs for your first four weeks · 18+</p>
       </div>
     </div>

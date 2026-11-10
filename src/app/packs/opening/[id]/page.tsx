@@ -4,7 +4,7 @@ import { db } from "@/server/db";
 import { notFound } from "next/navigation";
 import { PackReveal } from "@/components/pack-reveal";
 import { SharePack } from "@/components/share-pack";
-import { getText } from "@/server/settings";
+import { referralRewardName } from "@/server/settings";
 import { requireUser } from "@/server/auth/session";
 import { DomainError } from "@/server/errors";
 import { getOpening } from "@/server/packs";
@@ -60,7 +60,7 @@ export default async function OpeningPage({ params }: { params: Promise<{ id: st
           Back to packs
         </Link>
       </div>
-      <SharePack openingId={opening.id} groupUrl={await getText("facebookGroupUrl")} />
+      <SharePack openingId={opening.id} rewardName={await referralRewardName()} />
     </div>
   );
 }

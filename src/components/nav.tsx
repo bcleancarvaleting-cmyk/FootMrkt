@@ -3,7 +3,9 @@ import Link from "next/link";
 import { getCurrentUser } from "@/server/auth/session";
 import { isEnabled } from "@/server/flags";
 import { balancesFor, fmtMp } from "@/server/wallet";
+import { canModerate } from "@/server/moderation";
 import { TopNav } from "./bottom-nav";
+import { MobileMenu } from "./mobile-menu";
 import { FoundingBadge } from "./founding-badge";
 import { type Theme, ThemeToggle } from "./theme-toggle";
 
@@ -32,7 +34,7 @@ export async function Header({ theme, unopenedPacks }: { theme: Theme; unopenedP
         </Link>
         {user && <TopNav unopenedPacks={unopenedPacks} />}
         <div className="ml-auto flex items-center gap-2">
-          <span className={user ? "" : "hidden sm:block"}>
+          <span className="hidden md:block">
             <ThemeToggle initial={theme} />
           </span>
           {user && bal ? (
@@ -64,6 +66,7 @@ export async function Header({ theme, unopenedPacks }: { theme: Theme; unopenedP
               </Link>
             </>
           )}
+          <MobileMenu theme={theme} user={user ? { name: user.displayName, isAdmin: user.role === "ADMIN", isMod: canModerate(user.role) } : null} />
         </div>
       </div>
     </header>

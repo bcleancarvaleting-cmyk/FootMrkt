@@ -36,7 +36,7 @@ describe("weekly free pack", () => {
     expect(await db.packEntitlement.count({ where: { userId, source: "WEEKLY" } })).toBe(2);
   });
 
-  it("weekly cards never count towards sets", async () => {
+  it("free (weekly) cards count towards sets (product decision 10 Nov 2026)", async () => {
     const { userId } = await makeUser();
     const ent = await claimWeeklyPack(userId);
     const opened = await openPack(userId, ent.id);
@@ -44,7 +44,7 @@ describe("weekly free pack", () => {
     const std = await db.cardTemplate.findFirstOrThrow({ where: { playerId: card.template.playerId, edition: "STANDARD" } });
     const sportId = (await db.sport.findFirstOrThrow()).id;
     await db.collectionSet.create({ data: { sportId, code: "w", name: "W", description: "", requirements: { create: [{ templateId: std.id }] } } });
-    expect((await setProgress(userId))[0].complete).toBe(false);
+    expect((await setProgress(userId))[0].complete).toBe(true);
   });
 });
 

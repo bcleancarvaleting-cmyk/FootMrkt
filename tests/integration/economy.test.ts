@@ -321,3 +321,31 @@ describe("starter period, Gold pick and referrals", () => {
     expect(opened.cards).toHaveLength(3);
   });
 });
+
+describe("club binders", () => {
+  it("every club gets a 5-player binder, and free (untradeable) copies complete it — free copies used first", async () => {
+    const { ensureClubBinders, setProgress, completeSet } = await import("@/server/collections");
+    const { ensureTemplate, mintInstances } = await import("@/server/cards");
+    expect(await ensureClubBinders()).toBe(await db.club.count());
+    expect(await ensureClubBinders()).toBe(0);
+    const { userId } = await makeUser("binder1");
+    const binder = await db.collectionSet.findFirstOrThrow({ where: { code: { startsWith: "binder-" } }, include: { requirements: { include: { template: true } } } });
+    expect(binder.requirements).toHaveLength(5);
+    // Give the manager a free STARTER-edition copy of each binder player.
+    const ids: string[] = [];
+    for (const r of binder.requirements) {
+      await withTx(async (tx) => {
+        const tpl = await ensureTemplate(tx, r.template.playerId, r.template.category, "STARTER");
+        const [id] = await mintInstances(tx, { templateId: tpl.id, count: 1, state: "HELD", ownerId: userId, tradeStatus: "NON_TRADEABLE" });
+        await tx.cardOwnership.create({ data: { cardId: id, userId, acquiredVia: "WEEKLY_PACK" } });
+        ids.push(id);
+      });
+    }
+    const p = (await setProgress(userId)).find((x) => x.set.id === binder.id)!;
+    expect(p.complete).toBe(true);
+    await completeSet(userId, binder.id, "binder-k");
+    expect(await balancesFor(userId)).toMatchObject({ earned: 1000 });
+    const after = await db.cardInstance.findMany({ where: { id: { in: ids } } });
+    expect(after.every((c) => c.supplyState === "RETIRED")).toBe(true);
+  });
+});

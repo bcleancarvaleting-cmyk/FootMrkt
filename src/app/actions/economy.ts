@@ -8,6 +8,7 @@ import { db } from "@/server/db";
 import { cancelDrop, scheduleDrop } from "@/server/drops";
 import { DomainError } from "@/server/errors";
 import { syncPackCatalogue } from "@/server/packs";
+import { ensureClubBinders } from "@/server/collections";
 import { cancelAuction, clearHouseListings, createAuction, stockHouseListings, stockLaunchMix, stockPinnedListings } from "@/server/transfers";
 import { addWelcomeGift, updateWelcomeGift } from "@/server/welcome";
 import { backfillFoundingMembers } from "@/server/founders";
@@ -215,4 +216,11 @@ export async function lockHeldCardsAction(): Promise<ActionResult> {
   });
   done();
   return res.ok ? { ok: true, data: undefined, message: `${res.data} card(s) made untradeable` } : res;
+}
+
+export async function clubBindersAction(): Promise<ActionResult> {
+  await requireAdmin();
+  const res = await attempt(() => ensureClubBinders());
+  done();
+  return res.ok ? { ok: true, data: undefined, message: `${res.data} club binder(s) created` } : res;
 }

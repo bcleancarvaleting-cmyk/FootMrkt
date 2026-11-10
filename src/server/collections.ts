@@ -22,15 +22,16 @@ export async function setProgress(userId: string) {
     include: { requirements: { include: { template: { include: { player: { include: { club: true } } } } } } },
     orderBy: { name: "asc" },
   });
-  const templateIds = sets.flatMap((s) => s.requirements.map((r) => r.templateId));
+  // A requirement is a player in a tier: any copy counts — bought, packed or free.
+  const playerIds = [...new Set(sets.flatMap((s) => s.requirements.map((r) => r.template.playerId)))];
   const owned = await db.cardInstance.findMany({
-    where: { ownerId: userId, supplyState: "HELD", templateId: { in: templateIds } },
-    select: { id: true, templateId: true, lock: true, template: { select: { edition: true } } },
+    where: { ownerId: userId, supplyState: "HELD", template: { playerId: { in: playerIds } } },
+    select: { id: true, lock: true, template: { select: { playerId: true, category: true } } },
   });
   return sets.map((set) => {
     const reqs = set.requirements.map((r) => {
-      const mine = owned.filter((c) => c.templateId === r.templateId);
-      const usable = mine.filter((c) => c.lock === "NONE" && c.template.edition === "STANDARD");
+      const mine = owned.filter((c) => c.template.playerId === r.template.playerId && c.template.category === r.template.category);
+      const usable = mine.filter((c) => c.lock === "NONE");
       return { requirement: r, owned: mine.length, usable: usable.length, satisfied: usable.length >= r.quantity };
     });
     return { set, requirements: reqs, complete: reqs.every((r) => r.satisfied) };
@@ -42,16 +43,18 @@ export async function completeSet(userId: string, setId: string, idempotencyKey:
     return await withTx(async (tx) => {
       const prior = await tx.collectionCompletion.findUnique({ where: { idempotencyKey } });
       if (prior) return prior;
-      const set = await tx.collectionSet.findUnique({ where: { id: setId }, include: { requirements: true } });
+      const set = await tx.collectionSet.findUnique({ where: { id: setId }, include: { requirements: { include: { template: true } } } });
       if (!set || !set.active) throw new DomainError("NOT_FOUND", "Collection not found.");
 
       const chosen: string[] = [];
       for (const req of set.requirements) {
+        // Free (STARTER edition) copies are used first, so bought/packed cards are kept where possible.
         const cards = await tx.$queryRaw<Array<{ id: string }>>`
-          SELECT id FROM "CardInstance"
-          WHERE "ownerId" = ${userId}::uuid AND "templateId" = ${req.templateId}::uuid AND "supplyState" = 'HELD'
-            AND "lock" = 'NONE'
-          ORDER BY serial DESC LIMIT ${req.quantity} FOR UPDATE`;
+          SELECT ci.id FROM "CardInstance" ci JOIN "CardTemplate" t ON t.id = ci."templateId"
+          WHERE ci."ownerId" = ${userId}::uuid AND t."playerId" = ${req.template.playerId}::uuid
+            AND t.category = ${req.template.category}::"CardCategory" AND ci."supplyState" = 'HELD' AND ci."lock" = 'NONE'
+            AND NOT (ci.id = ANY(${chosen}::uuid[]))
+          ORDER BY (t.edition = 'STARTER') DESC, ci.serial DESC LIMIT ${req.quantity} FOR UPDATE OF ci`;
         if (cards.length < req.quantity) throw new DomainError("INCOMPLETE", "You don't have every card needed for this collection.");
         chosen.push(...cards.map((c) => c.id));
       }
@@ -65,11 +68,16 @@ export async function completeSet(userId: string, setId: string, idempotencyKey:
         data: { releasedAt: now, releasedVia: "COLLECTION_COMPLETION", releasedRef: completion.id },
       });
       if (closed.count !== chosen.length) throw new Error("Ownership records out of sync");
-      const moved = await tx.cardInstance.updateMany({
-        where: { id: { in: chosen }, ownerId: userId, supplyState: "HELD", lock: "NONE" },
+      // Pool cards go back into packs (tradeable for the next owner); free minted copies are retired.
+      const recycled = await tx.cardInstance.updateMany({
+        where: { id: { in: chosen }, ownerId: userId, supplyState: "HELD", lock: "NONE", template: { edition: "STANDARD" } },
         data: { supplyState: "RECIRCULATING", ownerId: null, tradeStatus: "TRADEABLE", recycledCount: { increment: 1 } },
       });
-      if (moved.count !== chosen.length) throw new Error("Cards changed during completion");
+      const retired = await tx.cardInstance.updateMany({
+        where: { id: { in: chosen }, ownerId: userId, supplyState: "HELD", lock: "NONE", template: { edition: { not: "STANDARD" } } },
+        data: { supplyState: "RETIRED", ownerId: null },
+      });
+      if (recycled.count + retired.count !== chosen.length) throw new Error("Cards changed during completion");
       await tx.favouriteCard.deleteMany({ where: { cardId: { in: chosen } } });
 
       // Product decision (9 Nov 2026): every completed set awards £10 of MX credit unless the
@@ -91,3 +99,43 @@ export async function completeSet(userId: string, setId: string, idempotencyKey:
 }
 
 export type SetReward = Prisma.JsonValue;
+
+/**
+ * Club binders (product decision 10 Nov 2026): a 5-player set for every club — its best
+ * goalkeeper, defender, midfielder and attacker plus the next most valuable player, in their
+ * current tiers. Completing one pays SET_REWARD_MP_MINOR earned MX. Creates only missing binders.
+ */
+export async function ensureClubBinders() {
+  const sport = await db.sport.findUniqueOrThrow({ where: { code: "football" } });
+  const clubs = await db.club.findMany({ orderBy: { name: "asc" } });
+  let created = 0;
+  for (const club of clubs) {
+    const code = `binder-${club.code.toLowerCase()}`;
+    if (await db.collectionSet.findUnique({ where: { code } })) continue;
+    const tpls = await db.cardTemplate.findMany({
+      where: { active: true, edition: "STANDARD", player: { clubId: club.id, active: true } },
+      include: { player: true },
+      orderBy: [{ player: { marketValueGbp: { sort: "desc", nulls: "last" } } }, { player: { squadNumber: { sort: "asc", nulls: "last" } } }],
+    });
+    const picked: typeof tpls = [];
+    for (const pos of ["GK", "DEF", "MID", "ATT"] as const) {
+      const t = tpls.find((x) => x.player.position === pos);
+      if (t) picked.push(t);
+    }
+    const extra = tpls.find((x) => !picked.includes(x));
+    if (extra) picked.push(extra);
+    if (picked.length < 5) continue;
+    await db.collectionSet.create({
+      data: {
+        sportId: sport.id,
+        code,
+        name: `${club.name} Binder`,
+        description: `Collect five ${club.name} players — any copies count, free cards included.`,
+        reward: { mpCreditMinor: SET_REWARD_MP_MINOR },
+        requirements: { create: picked.map((t) => ({ templateId: t.id })) },
+      },
+    });
+    created++;
+  }
+  return created;
+}

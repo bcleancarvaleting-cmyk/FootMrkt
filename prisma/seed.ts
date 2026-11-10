@@ -23,6 +23,7 @@ import { createGameweek, finaliseGameweek, simulateFixturesNow } from "../src/se
 import { executeRelease, scheduleRelease } from "../src/server/supply";
 import { revalueAll } from "../src/server/valuation";
 import { estimateAllValues } from "../src/server/value-estimates";
+import { ensureClubBinders } from "../src/server/collections";
 
 interface DataPlayer {
   name: string;
@@ -161,6 +162,7 @@ async function main() {
     });
   }
   console.log(`Created ${sets.length} collection sets`);
+  console.log(`Created ${await ensureClubBinders()} club binders`);
 
   // First weekly release (the next is auto-scheduled a week later).
   const now = Date.now();

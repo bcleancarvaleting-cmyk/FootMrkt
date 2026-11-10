@@ -17,6 +17,12 @@ export default async function ChallengesPage({ searchParams }: { searchParams: P
   const { completed } = await searchParams;
   await ensureDefaultChallenges();
   const [challenges, sets] = await Promise.all([challengeBoard(user.id), setProgress(user.id)]);
+  // Started sets first (closest to complete on top), then other non-binder sets; untouched binders are counted, not listed.
+  const progress = (x: (typeof sets)[number]) => x.requirements.filter((r) => r.satisfied).length / Math.max(1, x.requirements.length);
+  const started = sets.filter((x) => x.requirements.some((r) => r.owned > 0)).sort((a, b) => progress(b) - progress(a));
+  const others = sets.filter((x) => !started.includes(x) && !x.set.code.startsWith("binder-"));
+  const shown = [...started, ...others];
+  const rest = sets.length - shown.length;
   return (
     <div className="space-y-10">
       <section>
@@ -74,10 +80,15 @@ export default async function ChallengesPage({ searchParams }: { searchParams: P
 
       {sets.length > 0 && (
         <section>
-          <h2 className="mb-1 text-3xl">Collection sets</h2>
-          <p className="mb-4 text-sm text-muted">Collect every player in a set and complete it for 10 MX. Starter cards and cards that are listed or in a squad don&apos;t count.</p>
+          <h2 className="mb-1 text-3xl">Binders &amp; sets</h2>
+          <p className="mb-4 text-sm text-muted">
+            Every club has a 5-player binder. Collect them all to earn 10 earned MX. Any copy counts, free and untradeable cards included (free copies are used first). Cards that are listed or in a squad don&apos;t count.
+          </p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-faint">
+            Showing {shown.length} you&apos;ve started{rest > 0 ? ` · ${rest} more to find` : ""}
+          </p>
           <ul className="space-y-2">
-            {sets.map(({ set, requirements, complete }) => {
+            {shown.map(({ set, requirements, complete }) => {
               const have = requirements.filter((r) => r.satisfied).length;
               return (
                 <li key={set.id} className={`row-item flex-col items-stretch gap-2 ${complete ? "border-l-4 border-l-accent" : ""}`}>

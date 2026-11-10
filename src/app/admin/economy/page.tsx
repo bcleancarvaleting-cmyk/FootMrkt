@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { backfillFoundersAction, lockHeldCardsAction, cancelAuctionAction, cancelDropAction, clearHouseAction, launchMixAction, processWithdrawalAction, syncPacksAction, toggleChallengeAction, updateWelcomeGiftAction } from "@/app/actions/economy";
+import { backfillFoundersAction, clubBindersAction, lockHeldCardsAction, cancelAuctionAction, cancelDropAction, clearHouseAction, launchMixAction, processWithdrawalAction, syncPacksAction, toggleChallengeAction, updateWelcomeGiftAction } from "@/app/actions/economy";
 import { ActionButton } from "@/components/action-button";
 import { AuctionForm, ChallengeForm, DropForm, HouseStockForm, MatchRulesForm, PinnedListingsForm, WelcomeGiftForm } from "@/components/admin-forms";
 import { isEnabled } from "@/server/flags";
@@ -58,7 +58,10 @@ export default async function EconomyAdmin() {
             Transfers: {fees._count} sales · {fmtMp(fees._sum.soldPriceMinor ?? 0)} traded · {fmtMp(fees._sum.feeMinor ?? 0)} in 5% fees
           </p>
         </div>
-        <ActionButton action={syncPacksAction}>Publish new pack versions</ActionButton>
+        <span className="flex gap-2">
+          <ActionButton action={clubBindersAction}>Create club binders</ActionButton>
+          <ActionButton action={syncPacksAction}>Publish new pack versions</ActionButton>
+        </span>
       </div>
 
       <Section title="Founding members" intro="Everyone who signs up while Founding sign-ups is on becomes a numbered Founding Member, with a badge next to their name for good. Use the match rule 'Founding members only' for founders' freerolls.">

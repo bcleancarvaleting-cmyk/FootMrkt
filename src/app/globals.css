@@ -502,7 +502,7 @@ h2 {
     animation: rainbow-hue 6s linear infinite;
   }
   .rainbow-halo {
-    animation: rainbow-hue 4s linear infinite;
+    animation: rainbow-glow 4s linear infinite;
   }
   .rainbow-name {
     animation: diamond-name 2.5s linear infinite;
@@ -515,6 +515,28 @@ h2 {
 @keyframes rainbow-hue {
   to {
     filter: hue-rotate(360deg);
+  }
+}
+/* The halo cycles through the spectrum without recolouring the card itself. */
+@keyframes rainbow-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 0.95),
+      0 0 26px 3px rgb(255 80 160 / 0.65),
+      0 0 60px 10px rgb(80 200 255 / 0.4);
+  }
+  33% {
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 0.95),
+      0 0 26px 3px rgb(255 220 80 / 0.65),
+      0 0 60px 10px rgb(180 80 255 / 0.4);
+  }
+  66% {
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 0.95),
+      0 0 26px 3px rgb(80 255 160 / 0.65),
+      0 0 60px 10px rgb(255 120 80 / 0.4);
   }
 }
 

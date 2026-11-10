@@ -53,7 +53,7 @@ export function tierStyle(c: CardView["category"]) {
  * The image is the licensed headshot when one is set (Player.imageUrl); until image rights are
  * in place it shows the player's shirt in club colours with their squad number.
  */
-export function PlayerCard({ card, size = "md", className = "" }: { card: CardView; size?: "sm" | "md" | "lg"; className?: string }) {
+export function PlayerCard({ card, size = "md", className = "", showcase = false }: { card: CardView; size?: "sm" | "md" | "lg"; className?: string; /** Posters: no prices, points or status badges. */ showcase?: boolean }) {
   // Ruby and Diamond are finishes on a Gold: same card in every way, it just looks the part.
   const finish = card.finish ?? null;
   const gem = finish !== null;
@@ -103,6 +103,7 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
         {/* Player image */}
         <div className={`relative mx-2.5 mt-1.5 flex flex-1 items-end justify-center overflow-hidden rounded-xl ${gem ? "bg-gradient-to-b from-white/15 to-transparent" : "bg-gradient-to-b from-white/5 to-transparent"}`}>
           <PlayerImage card={card} />
+          {!showcase && (
           <div className="pointer-events-none absolute left-1 top-1 flex flex-col items-start gap-1">
             {finish && <FinishPill finish={finish} id={`badge-${card.id}`} size="xs" />}
             {card.stamps > 0 && (
@@ -114,7 +115,13 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
             {card.lock === "LISTED" && <Badge tone="warn">Listed</Badge>}
             {card.loan && (card.loan.ended ? <Badge tone="warn">Loan ended</Badge> : <Badge tone="muted">On loan</Badge>)}
           </div>
-          {(card.acquired || card.edition === "STARTER") && !card.loan && !small && (
+          )}
+          {showcase && finish && (
+            <div className="pointer-events-none absolute left-1 top-1">
+              <FinishPill finish={finish} id={`badge-${card.id}`} size="xs" />
+            </div>
+          )}
+          {(card.acquired || card.edition === "STARTER") && !card.loan && !small && !showcase && (
             <span className="absolute right-1 top-1 rounded bg-ink-950/85 px-1.5 text-[9px] font-semibold text-muted">
               {card.tradeable ? card.acquired : `${card.acquired ?? "Starter"} · locked`}
             </span>
@@ -128,8 +135,8 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
           <CardNumber card={card} />
         </div>
 
-        {/* MX value · points won for you */}
-        <div className="mx-2.5 mb-2 mt-1.5 grid grid-cols-2 gap-1 border-t border-white/10 pt-1.5">
+        {/* MX value · points won for you (left off posters) */}
+        <div className={`mx-2.5 mb-2 mt-1.5 ${showcase ? "hidden" : "grid"} grid-cols-2 gap-1 border-t border-white/10 pt-1.5`}>
           {card.loan ? (
             <div className="min-w-0" title="Loan players are free, untradeable and have no value">
               <div className="whitespace-nowrap text-[11px] font-bold text-lime">Loan</div>

@@ -156,9 +156,10 @@ async function settleHouseSale(tx: Tx, listing: { id: string; cardId: string }, 
     SELECT ci."supplyState", ci.packable, t.category::text AS category, t."playerId"
     FROM "CardInstance" ci JOIN "CardTemplate" t ON t.id = ci."templateId" WHERE ci.id = ${listing.cardId}::uuid FOR UPDATE OF ci`;
   if (!card || card.supplyState !== "RESERVED") throw new DomainError("NOT_AVAILABLE", "This card is no longer available.");
-  // A player signed from a drop can come out Rainbow (any tier), Diamond or Ruby (Golds), like a pack.
+  // A Gold signed from a player drop can come out a Diamond or Ruby. (Rainbows only come from Gold
+  // and Rare packs.)
   if (!card.packable) {
-    const finish = await rollFinish(tx, cryptoRandom, await finishOdds(), { playerId: card.playerId, cardId: listing.cardId, category: card.category });
+    const finish = await rollFinish(tx, cryptoRandom, await finishOdds(), { playerId: card.playerId, cardId: listing.cardId, category: card.category }, ["DIAMOND", "RUBY"]);
     if (finish) await audit(tx, { actorId: buyerId, action: "finish.drop", entityType: "CardInstance", entityId: listing.cardId, after: { ...finish, listingId: listing.id } });
   }
   const now = new Date();

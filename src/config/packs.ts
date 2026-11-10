@@ -182,6 +182,32 @@ FOOTBALL_PACKS.push(
 );
 
 /**
+ * England Rare Pack (product decision 10 Nov 2026): £19.99 for two English Golds plus one card that is
+ * guaranteed to be a Ruby (75%), Diamond (20%) or that player's one-of-one Rainbow (5%).
+ * Like every paid pack it shows as "coming soon" until paid packs are switched on.
+ */
+export const RARE_PACK_CODE = "football-eng-rare";
+FOOTBALL_PACKS.push({
+  code: RARE_PACK_CODE,
+  version: 1,
+  name: "England Rare",
+  kind: "REGULAR",
+  priceMinor: 1999,
+  region: "England",
+  leagues: ["Premier League", "EFL", "National League"],
+  blurb: "3 English Golds — and one is guaranteed to be a Ruby, a Diamond or a one-of-one Rainbow.",
+  config: {
+    mode: "POOL",
+    uniquePlayers: true,
+    nonTradeable: false,
+    slots: [
+      { label: "Gold", count: 2, base: "GOLD", filters: { countries: ["ENG"] }, upgrades: [] },
+      { label: "Rare", count: 1, base: "GOLD", filters: { countries: ["ENG"] }, upgrades: [], finish: { RUBY: 7_500, DIAMOND: 2_000, RAINBOW: 500 } },
+    ],
+  },
+});
+
+/**
  * Default welcome gifts (product decision 10 Nov 2026), editable in Admin → Economy: after the Starter Pack, a
  * Silver pack 3 days after registering and one lucky Gold player 4 days after that (day 7).
  * Both are freshly minted and untradeable, so they never drain the tradeable supply.

@@ -1,6 +1,6 @@
 import { Prisma, type CardCategory, type EntitlementSource } from "@/generated/prisma/client";
 import { CARD_INCLUDE } from "./views";
-import { finishOdds, rollFinish } from "./finishes";
+import { finishOdds, guaranteedFinish, rollFinish, rollsFinishes } from "./finishes";
 import { type PlannedSlot, honoursGuarantees, planPack } from "@/domain/packs/compose";
 import { type PackConfig, type SlotFilters, parsePackConfig } from "@/domain/packs/config";
 import { AuditedRandom, type RandomSource, cryptoRandom } from "@/domain/random";
@@ -135,10 +135,18 @@ export async function openPack(
       throw new Error("Pack guarantee violated — aborting opening");
     }
 
-    // Special finishes, rarest first (same audited RNG): any card for its player's one-of-one
-    // Rainbow, then Golds for a Diamond, then a Ruby. Purely cosmetic.
+    // Special finishes (same audited RNG), only in Gold and Rare packs: any card can be its player's
+    // one-of-one Rainbow, Golds can be a Diamond or Ruby; a Rare slot is guaranteed one. Cosmetic only.
+    const finishPack = rollsFinishes(sku.code);
     for (const d of draws) {
-      d.finish = await rollFinish(tx, audited.withPurpose("finish"), odds, { ...d, category: d.issued });
+      const slot = cfg.slots.find((s) => s.label === d.label);
+      if (slot?.finish) {
+        // Rare pack: this one is guaranteed a Ruby, Diamond or Rainbow.
+        d.finish = await guaranteedFinish(tx, audited.withPurpose("rare"), slot.finish, d);
+        if (!d.finish) throw new DomainError("POOL_EXHAUSTED", "This pack is temporarily unavailable — please try again later. Your pack has not been used.");
+      } else if (finishPack) {
+        d.finish = await rollFinish(tx, audited.withPurpose("finish"), odds, { ...d, category: d.issued });
+      }
     }
 
     const opening = await tx.packOpening.create({

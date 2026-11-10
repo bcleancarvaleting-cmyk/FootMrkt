@@ -42,9 +42,22 @@ export const SlotSchema = z
           .strict(),
       )
       .default([]),
+    /**
+     * Rare packs: every card in this slot is guaranteed a special finish, chosen by these weights
+     * (basis points, summing to 10,000). Ruby/Diamond need a Gold, so such a slot's base must be GOLD.
+     */
+    finish: z
+      .object({ RUBY: z.number().int().min(0), DIAMOND: z.number().int().min(0), RAINBOW: z.number().int().min(0) })
+      .strict()
+      .optional(),
   })
   .strict()
   .superRefine((slot, ctx) => {
+    if (slot.finish) {
+      const sum = slot.finish.RUBY + slot.finish.DIAMOND + slot.finish.RAINBOW;
+      if (sum !== 10_000) ctx.addIssue({ code: "custom", message: `slot "${slot.label}": finish chances must add up to 100%` });
+      if (slot.base !== "GOLD") ctx.addIssue({ code: "custom", message: `slot "${slot.label}": a guaranteed-finish slot must be Gold` });
+    }
     const total = slot.upgrades.reduce((s, u) => s + u.chanceBp, 0);
     if (total > 10_000) ctx.addIssue({ code: "custom", message: `slot "${slot.label}": upgrade chances exceed 100%` });
     for (const u of slot.upgrades) {

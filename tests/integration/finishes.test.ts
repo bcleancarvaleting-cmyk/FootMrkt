@@ -97,6 +97,28 @@ describe("Ruby and Diamond finishes (cosmetic only)", () => {
     expect(hof.rainbows[0].holder).not.toBeNull();
   });
 
+  it("Rare pack: one card is always a Ruby, Diamond or Rainbow (by the published weights)", async () => {
+    for (let i = 0; i < 6; i++) {
+      const u = await makeUser(`rare${i}`);
+      const ent = await withTx((tx) => grantPack(tx, { userId: u.userId, skuCode: "football-eng-rare", source: "DEV", sourceRef: `rare-${i}` }));
+      const res = await openPack(u.userId, ent.id, seededRandom(100 + i));
+      expect(res.cards).toHaveLength(3);
+      expect(res.cards.every((c) => c.category === "GOLD")).toBe(true);
+      const opening = await db.packOpening.findUniqueOrThrow({ where: { id: res.openingId } });
+      const audit = opening.rngAudit as { draws: Array<{ purpose: string }> };
+      expect(audit.draws.some((d) => d.purpose === "rare")).toBe(true);
+      const f = await db.cardFinish.findMany({ where: { cardId: { in: res.cards.map((c) => c.cardId) } } });
+      expect(f.length).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("Rainbows only come from Gold (and Rare) packs — never from a Bronze pack", async () => {
+    const u = await makeUser("bronzeonly");
+    const ent = await withTx((tx) => grantPack(tx, { userId: u.userId, skuCode: "football-bronze", source: "DEV", sourceRef: "bz1" }));
+    const res = await openPack(u.userId, ent.id, lucky(7, [RAINBOW_ONE_IN, DIAMOND_ONE_IN, RUBY_ONE_IN]));
+    expect(await db.cardFinish.count({ where: { cardId: { in: res.cards.map((c) => c.cardId) } } })).toBe(0);
+  });
+
   it("at normal odds most Golds are just Gold", async () => {
     const u = await makeUser("normal");
     const res = await goldPack(u.userId, "d3", seededRandom(3));

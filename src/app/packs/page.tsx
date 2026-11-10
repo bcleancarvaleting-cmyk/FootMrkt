@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { rollsFinishes } from "@/server/finishes";
 import { getSetting } from "@/server/settings";
 import { LOAN_PICK_CODE } from "@/config/packs";
 import { Countdown } from "@/components/countdown";
@@ -115,8 +116,8 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
             <h2 className="mt-1 text-4xl leading-none sm:text-5xl">Packs</h2>
             <p className="mt-2 text-sm text-muted">
               Every pack is 100% random: rolled by a secure random generator when you open it, against the published odds. Nobody picks or builds them, and every draw is logged.
-              Any Gold could come out as a <b className="text-[#ff8fa6]">Ruby</b> (only 10 of each Gold player will ever exist) or a{" "}
-              <b className="text-[#8fe3ff]">Diamond</b> (only 5), and any card at all could be that player&apos;s one-of-one <b className="rainbow-name">Rainbow</b>.
+              Gold packs can hold a <b className="text-[#ff8fa6]">Ruby</b> (only 10 of each Gold player will ever exist), a <b className="text-[#8fe3ff]">Diamond</b> (only 5) or a
+              one-of-one <b className="rainbow-name">Rainbow</b> of any player. The <b className="rainbow-name">Rare pack</b> guarantees one.
             </p>
           </div>
           <Link href="/account/wallet" className="rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 text-xs text-muted hover:border-ink-600">
@@ -166,14 +167,25 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
                           <ul className="mt-2 space-y-1">
                             {cfg.slots.map((slot, i) => (
                               <li key={i}>
-                                {slot.count} × {slot.base.toLowerCase()}
+                                {slot.count} × {slot.finish ? "guaranteed special Gold" : slot.base.toLowerCase()}
+                                {slot.finish && (
+                                  <span className="rainbow-name">
+                                    {" "}
+                                    · Ruby {slot.finish.RUBY / 100}% · Diamond {slot.finish.DIAMOND / 100}% · Rainbow {slot.finish.RAINBOW / 100}%
+                                  </span>
+                                )}
                                 {slot.filters?.topFlightOnly ? " (Premier League)" : ""}
                                 {slot.upgrades.map((u) => ` · ${(u.chanceBp / 100).toFixed(u.chanceBp % 100 ? 1 : 0)}% chance each of ${u.category.toLowerCase()}`).join("")}
                               </li>
                             ))}
-                            <li className="rainbow-name">Every card has a 1 in {rainbowOneIn.toLocaleString("en-GB")} ({pct(rainbowOneIn)}%) chance of being that player&apos;s Rainbow: one of one, any tier.</li>
-                            <li className="text-[#ff8fa6]">Every Gold has a 1 in {rubyOneIn.toLocaleString("en-GB")} ({pct(rubyOneIn)}%) chance of being a Ruby (only 10 per player, ever).</li>
-                            <li className="text-[#8fe3ff]">Every Gold has a 1 in {diamondOneIn.toLocaleString("en-GB")} ({pct(diamondOneIn)}%) chance of being a Diamond (only 5 per player, ever). Rubies and Diamonds look special and play exactly like the Gold.</li>
+                            {rollsFinishes(s.code) && (
+                              <>
+                                <li className="rainbow-name">Every card has a 1 in {rainbowOneIn.toLocaleString("en-GB")} ({pct(rainbowOneIn)}%) chance of being that player&apos;s Rainbow: one of one, any tier.</li>
+                                <li className="text-[#ff8fa6]">Every Gold has a 1 in {rubyOneIn.toLocaleString("en-GB")} ({pct(rubyOneIn)}%) chance of being a Ruby (only 10 per player, ever).</li>
+                                <li className="text-[#8fe3ff]">Every Gold has a 1 in {diamondOneIn.toLocaleString("en-GB")} ({pct(diamondOneIn)}%) chance of being a Diamond (only 5 per player, ever).</li>
+                              </>
+                            )}
+                            <li className="text-faint">Ruby, Diamond and Rainbow cards look special and play exactly like the normal card. If a player has none of a finish left, the guaranteed card is given another finish.</li>
                             <li className="pt-1 text-faint">Every slot is rolled independently by a secure random generator at the moment you open the pack, then a player is drawn at random from all eligible cards. Nobody at MATCHX picks or builds packs. Pack version v{s.version}.</li>
                           </ul>
                         </details>
@@ -231,12 +243,13 @@ function EnglandCross() {
 }
 
 function PackArt({ code, name, small }: { code: string; name?: string; small?: boolean }) {
-  const tier = code.includes("gold") ? "gold" : code.includes("silver") ? "silver" : code.includes("bronze") ? "bronze" : null;
+  const rare = code.includes("rare");
+  const tier = rare ? "rainbow" : code.includes("gold") ? "gold" : code.includes("silver") ? "silver" : code.includes("bronze") ? "bronze" : null;
   const foil = tier ? `foil-${tier}` : "bg-gradient-to-br from-[#d8ff6a] via-accent to-[#5f8f00]";
   const m = meta(code);
   const england = m?.region === "England";
   return (
-    <div className={`card-premium ${tier === "gold" ? "is-gold" : ""} relative flex shrink-0 overflow-hidden ${small ? "h-14 w-11 rounded-lg" : "h-44 w-full items-end p-5"} ${foil}`}>
+    <div className={`card-premium ${tier === "gold" || rare ? "is-gold" : ""} ${rare ? "rainbow-halo" : ""} relative flex shrink-0 overflow-hidden ${small ? "h-14 w-11 rounded-lg" : "h-44 w-full items-end p-5"} ${foil}`}>
       {england && <EnglandCross />}
       <span className="sheen" aria-hidden="true" />
       {tier === "gold" && <span className="holo" aria-hidden="true" />}

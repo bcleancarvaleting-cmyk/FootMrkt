@@ -15,7 +15,7 @@ export const SETTINGS = {
   },
   rainbowOneIn: {
     label: "Rainbow chance: 1 in … cards",
-    help: "Every card from a pack or player drop (any tier) has a 1-in-this chance of being that player's one-of-one Rainbow, until it's found.",
+    help: "Every card from a Gold pack (any tier) has a 1-in-this chance of being that player's one-of-one Rainbow, until it's found. Rare packs guarantee a finish separately.",
     default: 10_000,
     min: 100,
     max: 10_000_000,

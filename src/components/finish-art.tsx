@@ -4,11 +4,19 @@
  * components. Purely cosmetic — a Ruby or Diamond is otherwise the same Gold card.
  */
 
-export type Finish = "RUBY" | "DIAMOND";
+export type Finish = "RUBY" | "DIAMOND" | "RAINBOW";
+
+/** Names, CSS styles, numbers-in-words and reveal timing for each finish — one place to change them. */
+export const FINISH_STYLE: Record<Finish, { label: string; halo: string; name: string; text: string; shadow: string; word: string; rank: number; pause: number }> = {
+  RUBY: { label: "Ruby", halo: "ruby-halo", name: "ruby-name", text: "text-[#ff8fa6]", shadow: "drop-shadow-[0_0_14px_rgba(255,45,85,0.9)]", word: "ten", rank: 3, pause: 1300 },
+  DIAMOND: { label: "Diamond", halo: "diamond-halo", name: "diamond-name", text: "text-[#8fe3ff]", shadow: "drop-shadow-[0_0_14px_rgba(155,232,255,0.9)]", word: "five", rank: 4, pause: 1800 },
+  RAINBOW: { label: "Rainbow", halo: "rainbow-halo", name: "rainbow-name", text: "rainbow-name", shadow: "drop-shadow-[0_0_18px_rgba(255,255,255,0.9)]", word: "one", rank: 5, pause: 2600 },
+};
 
 const GEM: Record<Finish, { light: string; mid: string; dark: string; tint: string; deep: string; edge: string }> = {
   DIAMOND: { light: "#ffffff", mid: "#bfefff", dark: "#7cc8f2", tint: "#e9e1ff", deep: "#8fb0f5", edge: "#ffffff" },
   RUBY: { light: "#ffd6e0", mid: "#ff5a7a", dark: "#b0102f", tint: "#ff8fa6", deep: "#7a0820", edge: "#ffe3ea" },
+  RAINBOW: { light: "#fff6b0", mid: "#7cf0c8", dark: "#5a8dff", tint: "#ff9ad5", deep: "#a05bff", edge: "#ffffff" },
 };
 
 /** A brilliant-cut gem, seen side-on: crown on top, pavilion below, with light and shade on each facet. */
@@ -52,6 +60,7 @@ const SECTORS = 16;
 const PALETTES: Record<Finish, string[]> = {
   DIAMOND: ["#d8f5ff", "#9fd6f5", "#6fa8e6", "#c9b8ff", "#ffffff", "#7fd0e8", "#b7c7ff", "#e8fbff"],
   RUBY: ["#ff9fb2", "#e0284f", "#9c0a2a", "#ff5f7e", "#ffd3dc", "#c4143c", "#ff7a95", "#ffe6ec"],
+  RAINBOW: ["#ff5f6d", "#ffb347", "#ffe66d", "#7cf0a0", "#5fd4ff", "#6c8cff", "#b47cff", "#ff8fd8"],
 };
 const point = (r: number, i: number, offset: number) => {
   const a = ((i + offset) / SECTORS) * Math.PI * 2 - Math.PI / 2;
@@ -72,12 +81,12 @@ function facets(palette: string[]) {
   }
   return out;
 }
-const FACETS: Record<Finish, ReturnType<typeof facets>> = { DIAMOND: facets(PALETTES.DIAMOND), RUBY: facets(PALETTES.RUBY) };
+const FACETS: Record<Finish, ReturnType<typeof facets>> = { DIAMOND: facets(PALETTES.DIAMOND), RUBY: facets(PALETTES.RUBY), RAINBOW: facets(PALETTES.RAINBOW) };
 
 /** The crystal facets that fill a Ruby or Diamond card's face. */
 export function GemFacets({ kind }: { kind: Finish }) {
   return (
-    <svg viewBox="0 0 100 140" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
+    <svg viewBox="0 0 100 140" preserveAspectRatio="none" className={`pointer-events-none absolute inset-0 h-full w-full ${kind === "RAINBOW" ? "rainbow-facets" : ""}`} aria-hidden="true">
       {FACETS[kind].map((f, i) => (
         <polygon key={i} points={f.points} fill={f.fill} opacity={f.opacity} stroke="#ffffff" strokeOpacity="0.12" strokeWidth="0.25" />
       ))}
@@ -109,12 +118,12 @@ export function GemSparkles({ kind }: { kind: Finish }) {
 
 /** Pill label for a finish — "Ruby 3 of 10" / "Diamond 2 of 5" — with its gem. */
 export function FinishPill({ finish, id, size = "sm", className = "" }: { finish: { kind: Finish; serial: number; of: number }; id: string; size?: "xs" | "sm" | "lg"; className?: string }) {
-  const label = finish.kind === "DIAMOND" ? "Diamond" : "Ruby";
+  const label = FINISH_STYLE[finish.kind].label;
   const cls = size === "lg" ? "px-3 py-1 text-[11px] tracking-[0.18em]" : size === "sm" ? "px-1.5 text-[10px] tracking-[0.12em]" : "px-1.5 py-0.5 text-[9px] tracking-wider";
   return (
     <span className={`gem-pill gem-pill-${finish.kind.toLowerCase()} inline-flex items-center gap-1 whitespace-nowrap rounded-full font-black uppercase ${cls} ${className}`}>
       <Gem kind={finish.kind} id={id} size={size === "lg" ? 16 : size === "sm" ? 12 : 11} />
-      {size === "xs" ? `${finish.serial} of ${finish.of}` : `${label} ${finish.serial} of ${finish.of}`}
+      {finish.kind === "RAINBOW" ? (size === "xs" ? "1 of 1" : "Rainbow · 1 of 1") : size === "xs" ? `${finish.serial} of ${finish.of}` : `${label} ${finish.serial} of ${finish.of}`}
     </span>
   );
 }

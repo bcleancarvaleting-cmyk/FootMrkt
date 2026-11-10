@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Gem } from "@/components/finish-art";
+import { FINISH_STYLE, type Finish, Gem } from "@/components/finish-art";
 import { LOAN_PICK_CODE } from "@/config/packs";
 import { db } from "@/server/db";
 import { notFound } from "next/navigation";
@@ -25,7 +25,7 @@ export default async function OpeningPage({ params }: { params: Promise<{ id: st
   for (const c of cards) counts[c.category]++;
   const isStarter = opening.packSku.kind === "STARTER";
   // The rarest finish in the pack takes the headline.
-  const best = cards.some((c) => c.finish?.kind === "DIAMOND") ? "DIAMOND" : cards.some((c) => c.finish?.kind === "RUBY") ? "RUBY" : null;
+  const best = cards.map((c) => c.finish?.kind).filter((k): k is Finish => !!k).sort((a, b) => FINISH_STYLE[b].rank - FINISH_STYLE[a].rank)[0] ?? null;
   const isLoan = opening.packSku.code === LOAN_PICK_CODE;
   // Straight after the Starter Pack: the two loan Golds are the next step.
   const loanPick = isStarter
@@ -36,8 +36,8 @@ export default async function OpeningPage({ params }: { params: Promise<{ id: st
       <div className="text-center">
         <p className="eyebrow">{opening.packSku.name}</p>
         <h1 className="mt-1 flex items-center justify-center gap-3 text-5xl font-extrabold">
-          {best && <Gem kind={best} id="headline" size={52} className={best === "DIAMOND" ? "drop-shadow-[0_0_14px_rgba(155,232,255,0.9)]" : "drop-shadow-[0_0_14px_rgba(255,45,85,0.9)]"} />}
-          {best ? <span className={best === "DIAMOND" ? "diamond-name" : "ruby-name"}>{best === "DIAMOND" ? "DIAMOND!" : "RUBY!"}</span> : counts.GOLD > 0 ? `${counts.GOLD} Gold!` : counts.SILVER > 0 ? `${counts.SILVER} Silver` : "Your new cards"}
+          {best && <Gem kind={best} id="headline" size={52} className={FINISH_STYLE[best].shadow} />}
+          {best ? <span className={FINISH_STYLE[best].name}>{best === "RAINBOW" ? "ONE OF ONE!" : `${FINISH_STYLE[best].label.toUpperCase()}!`}</span> : counts.GOLD > 0 ? `${counts.GOLD} Gold!` : counts.SILVER > 0 ? `${counts.SILVER} Silver` : "Your new cards"}
         </h1>
         <p className="mt-1 text-sm text-muted">
           {cards.length} card{cards.length === 1 ? "" : "s"} added to your club

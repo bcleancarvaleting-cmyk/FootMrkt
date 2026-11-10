@@ -49,7 +49,9 @@ export const ELITE_GOLD = { count: 30, maxSupply: 250 };
  * a palette in components/finish-art.tsx and foil/face/halo styles in globals.css.
  */
 export const FINISHES = {
-  DIAMOND: { label: "Diamond", perPlayer: 5 },
-  RUBY: { label: "Ruby", perPlayer: 10 },
+  /** One of one: a single Rainbow per player, ever — and any tier can be it, Bronze included. */
+  RAINBOW: { label: "Rainbow", perPlayer: 1, anyTier: true },
+  DIAMOND: { label: "Diamond", perPlayer: 5, anyTier: false },
+  RUBY: { label: "Ruby", perPlayer: 10, anyTier: false },
 } as const;
 export type FinishKind = keyof typeof FINISHES;

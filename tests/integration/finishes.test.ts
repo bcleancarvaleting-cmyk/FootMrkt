@@ -10,6 +10,7 @@ import { buildWorld, makeUser, resetDb } from "./fixtures";
 // Finish rolls use these ranges; nothing else in a test pack draws over ranges this size.
 const DIAMOND_ONE_IN = 9973;
 const RUBY_ONE_IN = 9967;
+const RAINBOW_ONE_IN = 9949;
 /** Seeded randomness, except the chosen finish rolls always hit. */
 const lucky = (seed: number, hit: number[]): RandomSource => {
   const base = seededRandom(seed);
@@ -22,6 +23,7 @@ beforeEach(async () => {
   const admin = await makeUser("fadmin");
   await setSetting(admin.userId, "diamondOneIn", DIAMOND_ONE_IN);
   await setSetting(admin.userId, "rubyOneIn", RUBY_ONE_IN);
+  await setSetting(admin.userId, "rainbowOneIn", RAINBOW_ONE_IN);
 });
 
 async function goldPack(userId: string, ref: string, rng: RandomSource) {
@@ -72,6 +74,27 @@ describe("Ruby and Diamond finishes (cosmetic only)", () => {
     const extra = await db.cardInstance.findFirstOrThrow({ where: { templateId: golds[0].id, finish: null } });
     await expect(db.cardFinish.create({ data: { kind: "RUBY", playerId: golds[0].playerId, cardId: extra.id, serial: 11 } })).rejects.toThrow();
     await expect(db.cardFinish.create({ data: { kind: "DIAMOND", playerId: golds[0].playerId, cardId: extra.id, serial: 6 } })).rejects.toThrow();
+  });
+
+  it("Rainbow: any tier can be it, but only one per player, ever", async () => {
+    const u = await makeUser("rainbow");
+    const res = await goldPack(u.userId, "rb1", lucky(5, [RAINBOW_ONE_IN]));
+    const views = await cardViews({ id: { in: res.cards.map((c) => c.cardId) } });
+    // Every card in the pack (Bronze/Silver/Gold alike) became its player's Rainbow.
+    expect(views.every((v) => v.finish?.kind === "RAINBOW" && v.finish.serial === 1 && v.finish.of === 1)).toBe(true);
+    expect(new Set(views.map((v) => v.category)).size).toBeGreaterThan(1);
+    // The same players again can't produce a second Rainbow.
+    const before = await db.cardFinish.count({ where: { kind: "RAINBOW" } });
+    const u2 = await makeUser("rainbow2");
+    const again = await goldPack(u2.userId, "rb2", lucky(5, [RAINBOW_ONE_IN]));
+    const players = new Set(views.map((v) => v.playerId));
+    const repeats = (await cardViews({ id: { in: again.cards.map((c) => c.cardId) } })).filter((v) => players.has(v.playerId));
+    expect(repeats.every((v) => v.finish?.kind !== "RAINBOW")).toBe(true);
+    expect(await db.cardFinish.count({ where: { kind: "RAINBOW" } })).toBeGreaterThanOrEqual(before);
+    const { hallOfFame } = await import("@/server/hall-of-fame");
+    const hof = await hallOfFame();
+    expect(hof.rainbows.length).toBe(await db.cardFinish.count({ where: { kind: "RAINBOW" } }));
+    expect(hof.rainbows[0].holder).not.toBeNull();
   });
 
   it("at normal odds most Golds are just Gold", async () => {

@@ -1,5 +1,5 @@
 import type { CardView } from "@/lib/view";
-import { FinishPill, Gem, GemFacets, GemSparkles } from "./finish-art";
+import { FINISH_STYLE, FinishPill, Gem, GemFacets, GemSparkles } from "./finish-art";
 import { mpLabel } from "@/lib/view";
 import { ClubBadge } from "./club-badge";
 import { KitShirt } from "./kit-shirt";
@@ -22,6 +22,12 @@ const TIER = {
     ring: "ring-gold/60",
     text: "text-[#fff3c4]",
     label: "Gold",
+  },
+  RAINBOW: {
+    frame: "",
+    ring: "ring-white/70",
+    text: "text-white",
+    label: "Rainbow",
   },
   RUBY: {
     frame: "",
@@ -59,7 +65,7 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
     <div
       className={`card-premium theme-dark relative ${w} aspect-[5/7] ${card.loan?.ended ? "loan-ended" : ""} select-none overflow-hidden rounded-[18px] ${gem ? "p-[6px]" : "p-[3px]"} foil-${tier} ${
         finish
-          ? `is-gold ${finish.kind === "DIAMOND" ? "diamond-halo" : "ruby-halo"}`
+          ? `is-gold ${FINISH_STYLE[finish.kind].halo}`
           : card.category === "GOLD" && !card.loan?.ended
             ? "is-gold shadow-[0_10px_40px_-12px_rgba(242,207,99,0.7)]"
             : "shadow-[0_10px_30px_-16px_rgba(0,0,0,0.8)]"
@@ -68,7 +74,7 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
       <span className="sheen" aria-hidden="true" />
       <div className={`face-${tier} relative flex h-full flex-col overflow-hidden rounded-[15px]`}>
         {finish && <GemFacets kind={finish.kind} />}
-        {card.category === "GOLD" && <span className={`holo ${gem ? "!opacity-60" : ""}`} aria-hidden="true" />}
+        {(card.category === "GOLD" || gem) && <span className={`holo ${gem ? "!opacity-60" : ""}`} aria-hidden="true" />}
         {finish && <GemSparkles kind={finish.kind} />}
         {/* Position · club · tier */}
         <div className="flex items-center justify-between px-2.5 pt-2.5">
@@ -87,7 +93,7 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
           {finish ? (
             <span className="flex items-center gap-1">
               <Gem kind={finish.kind} id={`tier-${card.id}`} size={small ? 14 : 18} />
-              {!small && <span className={`${finish.kind === "DIAMOND" ? "diamond-name" : "ruby-name"} text-[9px] font-black uppercase tracking-[0.18em]`}>{t.label}</span>}
+              {!small && <span className={`${FINISH_STYLE[finish.kind].name} text-[9px] font-black uppercase tracking-[0.18em]`}>{t.label}</span>}
             </span>
           ) : (
             <span className={`text-[9px] font-bold uppercase tracking-[0.18em] ${t.text}`}>{t.label}</span>
@@ -112,7 +118,7 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
 
         {/* Name */}
         <div className="px-2.5 pt-1.5 text-center">
-          <div className={`truncate font-display font-bold uppercase leading-tight tracking-wide ${small ? "text-sm" : "text-[17px]"} ${finish ? (finish.kind === "DIAMOND" ? "diamond-name" : "ruby-name") : ""}`}>{card.name}</div>
+          <div className={`truncate font-display font-bold uppercase leading-tight tracking-wide ${small ? "text-sm" : "text-[17px]"} ${finish ? FINISH_STYLE[finish.kind].name : ""}`}>{card.name}</div>
           <div className="truncate text-[10px] text-muted">{card.clubName ?? "Free agent"}</div>
           <CardNumber card={card} />
         </div>
@@ -154,7 +160,7 @@ const formatPts = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1)
  */
 function CardNumber({ card }: { card: CardView }) {
   const [num, of, label] = card.finish
-    ? [card.finish.serial, card.finish.of, card.finish.kind === "DIAMOND" ? "Diamond" : "Ruby"]
+    ? [card.finish.serial, card.finish.of, FINISH_STYLE[card.finish.kind].label]
     : card.edition === "LOAN"
       ? [card.serial, null, "Loan"]
       : card.edition === "STARTER"

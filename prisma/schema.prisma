@@ -325,6 +325,7 @@ model CardInstance {
 enum CardFinishKind {
   RUBY
   DIAMOND
+  RAINBOW // one of one: a single Rainbow per player, ever, any tier
 }
 
 model CardFinish {

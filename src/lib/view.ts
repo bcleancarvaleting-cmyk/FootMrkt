@@ -16,7 +16,7 @@ export interface CardView {
   /** Loan players only: gameweeks left of the loan (counted by gameweeks the manager enters). */
   loan: { left: number; total: number; ended: boolean } | null;
   /** Special finish on a Gold — cosmetic only; null for normal cards. "Ruby 3 of 10", "Diamond 2 of 5". */
-  finish: { kind: "RUBY" | "DIAMOND"; serial: number; of: number } | null;
+  finish: { kind: "RUBY" | "DIAMOND" | "RAINBOW"; serial: number; of: number } | null;
   /** Copies of this design issued so far (null when not looked up). */
   issued: number | null;
   clubCode: string | null;
@@ -109,7 +109,9 @@ export function toCardView(
     category: c.template.category as Category,
     edition: c.template.edition as CardView["edition"],
     loan,
-    finish: c.finish ? { kind: c.finish.kind as "RUBY" | "DIAMOND", serial: c.finish.serial, of: c.finish.kind === "DIAMOND" ? 5 : 10 } : null,
+    finish: c.finish
+      ? { kind: c.finish.kind as "RUBY" | "DIAMOND" | "RAINBOW", serial: c.finish.serial, of: c.finish.kind === "RAINBOW" ? 1 : c.finish.kind === "DIAMOND" ? 5 : 10 }
+      : null,
     issued: extra.issued ?? null,
     clubCode: p.club?.code ?? null,
     clubShort: p.club?.shortName ?? null,

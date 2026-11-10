@@ -10,7 +10,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   await requireUser();
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
-  const { player, matches, values, issued, diamonds, rubies } = await playerProfile(id).catch((e) => {
+  const { player, matches, values, issued, diamonds, rubies, rainbowFound } = await playerProfile(id).catch((e) => {
     if (e instanceof DomainError) notFound();
     throw e;
   });
@@ -50,6 +50,9 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
             </span>
           );
         })}
+        <span className="chip border-white/40">
+          <span className="rainbow-name font-bold">Rainbow 1 of 1 · {rainbowFound ? "found" : "still out there"}</span>
+        </span>
         {player.templates.some((t) => t.category === "GOLD") && (
           <>
             <span className="chip border-[#ff2d55]/50 text-[#ff8fa6]">Rubies · {rubies} of 10 found</span>

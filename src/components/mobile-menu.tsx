@@ -16,6 +16,7 @@ const PLAY: Section = {
     ["Home", "/"],
     ["Matches", "/matches"],
     ["Top performers", "/top-performers"],
+    ["Hall of Fame", "/hall-of-fame"],
     ["Packs", "/packs"],
     ["Player drops", "/transfers/drops"],
     ["Transfer list", "/transfers"],

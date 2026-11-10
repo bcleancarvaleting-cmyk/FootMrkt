@@ -13,6 +13,13 @@ export const SETTINGS = {
     min: 50,
     max: 100_000,
   },
+  rainbowOneIn: {
+    label: "Rainbow chance: 1 in … cards",
+    help: "Every card from a pack or player drop (any tier) has a 1-in-this chance of being that player's one-of-one Rainbow, until it's found.",
+    default: 10_000,
+    min: 100,
+    max: 10_000_000,
+  },
   rubyOneIn: {
     label: "Ruby chance: 1 in … Gold cards",
     help: "Each Gold card from a pack or player drop has a 1-in-this chance of being a Ruby (cosmetic only, max 10 per player, ever). Higher = rarer.",

@@ -67,7 +67,7 @@ interface DrawAudit {
   playerId: string;
   cardId: string;
   /** Special finish if this Gold came out as a Ruby or Diamond. */
-  finish?: { kind: "RUBY" | "DIAMOND"; serial: number } | null;
+  finish?: { kind: "RUBY" | "DIAMOND" | "RAINBOW"; serial: number } | null;
 }
 
 export interface OpenPackResult {
@@ -135,11 +135,10 @@ export async function openPack(
       throw new Error("Pack guarantee violated — aborting opening");
     }
 
-    // Special finishes: every Gold is rolled for a Diamond, then a Ruby (same audited RNG), while
-    // that player has some left. Purely cosmetic — the card is otherwise the same Gold.
+    // Special finishes, rarest first (same audited RNG): any card for its player's one-of-one
+    // Rainbow, then Golds for a Diamond, then a Ruby. Purely cosmetic.
     for (const d of draws) {
-      if (d.issued !== "GOLD") continue;
-      d.finish = await rollFinish(tx, audited.withPurpose("finish"), odds, d);
+      d.finish = await rollFinish(tx, audited.withPurpose("finish"), odds, { ...d, category: d.issued });
     }
 
     const opening = await tx.packOpening.create({

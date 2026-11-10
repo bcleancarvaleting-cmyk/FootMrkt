@@ -4,18 +4,19 @@ import type { Tx } from "./db";
 import { getSetting } from "./settings";
 
 /**
- * Special finishes (cosmetic only). Any Gold that comes out of a pack — or is signed from a MATCHX
- * player drop — is rolled for a Diamond (1 in N), then a Ruby (1 in M), while that player still
- * has some of their 5 Diamonds / 10 Rubies left.
+ * Special finishes (cosmetic only). Every card that comes out of a pack — or is signed from a MATCHX
+ * player drop — is rolled, rarest first: the player's one-of-one Rainbow (any tier), then for Golds
+ * a Diamond, then a Ruby, while that player still has some of that finish left.
  */
 export async function finishOdds(): Promise<Record<FinishKind, number>> {
-  const [DIAMOND, RUBY] = await Promise.all([getSetting("diamondOneIn"), getSetting("rubyOneIn")]);
-  return { DIAMOND, RUBY };
+  const [RAINBOW, DIAMOND, RUBY] = await Promise.all([getSetting("rainbowOneIn"), getSetting("diamondOneIn"), getSetting("rubyOneIn")]);
+  return { RAINBOW, DIAMOND, RUBY };
 }
 
 /** Roll for a finish (rarest first) and, on a hit, give the card the next serial. */
-export async function rollFinish(tx: Tx, rng: RandomSource, odds: Record<FinishKind, number>, card: { playerId: string; cardId: string }) {
-  for (const kind of ["DIAMOND", "RUBY"] as const) {
+export async function rollFinish(tx: Tx, rng: RandomSource, odds: Record<FinishKind, number>, card: { playerId: string; cardId: string; category: string }) {
+  for (const kind of ["RAINBOW", "DIAMOND", "RUBY"] as const) {
+    if (!FINISHES[kind].anyTier && card.category !== "GOLD") continue;
     if (rng.int(odds[kind]) !== 0) continue;
     const serial = await claimFinish(tx, kind, card.playerId, card.cardId);
     if (serial) return { kind, serial };

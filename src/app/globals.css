@@ -450,6 +450,74 @@ h2 {
   }
 }
 
+/* Rainbow (one of one, any tier): full-spectrum holographic edge, a face that cycles through every
+   colour, the brightest shimmer and a rainbow halo. */
+.foil-rainbow {
+  background:
+    radial-gradient(circle at 30% 30%, #fff 0 1.4px, transparent 2.1px) 0 0 / 7px 7px,
+    radial-gradient(circle at 70% 60%, rgb(255 255 255 / 0.9) 0 1.1px, transparent 1.8px) 3px 2px / 9px 9px,
+    conic-gradient(from var(--gem-angle), #ff3b5c, #ff9f1c, #ffe14d, #4dff9a, #3ad7ff, #4d6bff, #b44dff, #ff4dc4, #ff3b5c);
+}
+.face-rainbow {
+  background:
+    radial-gradient(90% 55% at 50% 40%, rgb(255 255 255 / 0.35), transparent 70%),
+    linear-gradient(180deg, #2a1650 0%, #13153a 50%, #070a1a 100%);
+}
+.rainbow-facets {
+  opacity: 0.95;
+}
+.rainbow-halo {
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.95),
+    0 0 24px 3px rgb(255 80 160 / 0.6),
+    0 0 48px 8px rgb(80 200 255 / 0.45),
+    0 0 80px 14px rgb(255 220 80 / 0.3);
+}
+.rainbow-name {
+  background: linear-gradient(90deg, #ff6b81, #ffb36b, #ffe66d, #7cf0a0, #6bd6ff, #8f8bff, #e08bff, #ff6b81);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 3px rgb(0 0 0 / 0.8));
+}
+.tier-RAINBOW {
+  border-left: 4px solid transparent;
+  border-image: linear-gradient(180deg, #ff3b5c, #ffe14d, #4dff9a, #3ad7ff, #b44dff) 1;
+}
+.gem-pill-rainbow {
+  background: linear-gradient(90deg, #ff6b81, #ffb36b, #ffe66d, #7cf0a0, #6bd6ff, #b48bff, #ff6b81);
+  color: #07080a;
+}
+.gem-star-rainbow {
+  filter: drop-shadow(0 0 4px #ffffff) drop-shadow(0 0 8px #ff8bd8);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .foil-rainbow {
+    animation:
+      gem-turn 3s linear infinite,
+      diamond-glitter 1.2s steps(4) infinite;
+  }
+  .rainbow-facets {
+    animation: rainbow-hue 6s linear infinite;
+  }
+  .rainbow-halo {
+    animation: rainbow-hue 4s linear infinite;
+  }
+  .rainbow-name {
+    animation: diamond-name 2.5s linear infinite;
+  }
+  .foil-rainbow + * .gem-shimmer,
+  .foil-rainbow .gem-shimmer {
+    animation-duration: 2.2s;
+  }
+}
+@keyframes rainbow-hue {
+  to {
+    filter: hue-rotate(360deg);
+  }
+}
+
 /* Light sweeping across the foil. */
 .sheen {
   pointer-events: none;

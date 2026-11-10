@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FinishPill } from "./finish-art";
+import { FINISH_STYLE, FinishPill } from "./finish-art";
 import { useEffect, useState } from "react";
 import type { CardView } from "@/lib/view";
 import { PlayerCard } from "./player-card";
@@ -11,11 +11,15 @@ export function PackReveal({ cards }: { cards: CardView[] }) {
   // Reveal lowest tiers first so the best card lands last.
   const order = [...cards].sort((a, b) => rank(a) - rank(b));
   const [shown, setShown] = useState(0);
+  // A Rainbow (one of one) gets its own full-screen moment once it's been revealed.
+  const rainbowAt = order.findIndex((c) => c.finish?.kind === "RAINBOW");
+  const rainbow = rainbowAt >= 0 ? order[rainbowAt] : null;
+  const [dismissed, setDismissed] = useState(false);
   useEffect(() => {
     if (shown >= order.length) return;
     // Build up to the big ones: a Gold pauses, a Diamond pauses longer.
     const next = order[shown];
-    const t = setTimeout(() => setShown((s) => s + 1), shown === 0 ? 300 : next.finish ? (next.finish.kind === "DIAMOND" ? 1800 : 1300) : next.category === "GOLD" ? 900 : 380);
+    const t = setTimeout(() => setShown((s) => s + 1), shown === 0 ? 300 : next.finish ? FINISH_STYLE[next.finish.kind].pause : next.category === "GOLD" ? 900 : 380);
     return () => clearTimeout(t);
   }, [shown, order]);
   return (
@@ -29,7 +33,7 @@ export function PackReveal({ cards }: { cards: CardView[] }) {
             </Link>
             <div className="flex h-7 items-center">
               {c.finish ? (
-                <FinishPill finish={c.finish} id={`reveal-${c.id}`} size="lg" className={c.finish.kind === "DIAMOND" ? "diamond-halo" : "ruby-halo"} />
+                <FinishPill finish={c.finish} id={`reveal-${c.id}`} size="lg" className={FINISH_STYLE[c.finish.kind].halo} />
               ) : (
                 <span className={`rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${TIER_PILL[c.category]}`}>{c.category}</span>
               )}
@@ -37,6 +41,20 @@ export function PackReveal({ cards }: { cards: CardView[] }) {
           </div>
         ))}
       </div>
+      {rainbow && shown > rainbowAt && !dismissed && (
+        <div className="fixed inset-0 z-[70] flex flex-col items-center justify-center gap-5 bg-ink-950/90 p-6 text-center backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="One of one">
+          <p className="rainbow-name font-display text-5xl font-black uppercase italic sm:text-7xl">One of one</p>
+          <div className="animate-reveal">
+            <PlayerCard card={rainbow} size="lg" />
+          </div>
+          <p className="max-w-sm text-sm text-muted">
+            You&apos;ve pulled the <b className="rainbow-name">Rainbow {rainbow.name}</b>. There is only one in the whole game, and it&apos;s yours. It goes in the Hall of Fame.
+          </p>
+          <button type="button" className="btn-primary px-8" onClick={() => setDismissed(true)}>
+            Send to my club
+          </button>
+        </div>
+      )}
       {shown < order.length && (
         <div className="text-center">
           <button className="btn-ghost" onClick={() => setShown(order.length)}>
@@ -63,4 +81,4 @@ const TIER_PILL: Record<CardView["category"], string> = {
   BRONZE: "border-bronze/60 text-bronze",
 };
 
-const rank = (c: CardView) => (c.finish?.kind === "DIAMOND" ? 4 : c.finish ? 3 : c.category === "GOLD" ? 2 : c.category === "SILVER" ? 1 : 0);
+const rank = (c: CardView) => (c.finish ? FINISH_STYLE[c.finish.kind].rank : c.category === "GOLD" ? 2 : c.category === "SILVER" ? 1 : 0);

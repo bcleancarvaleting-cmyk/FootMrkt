@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FinishPill } from "@/components/finish-art";
+import { FINISH_STYLE, FinishPill } from "@/components/finish-art";
 import { discardLoanAction } from "@/app/actions/account";
 import { notFound } from "next/navigation";
 import { toggleFavouriteAction } from "@/app/actions/game";
@@ -78,7 +78,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
       <div className="space-y-6">
         <div>
           <p className="eyebrow">
-            {card.template.category} · {view.finish ? `${view.finish.kind === "DIAMOND" ? "Diamond" : "Ruby"} ${view.finish.serial} of ${view.finish.of}` : card.template.edition === "STARTER" ? "Starter edition" : card.template.edition === "LOAN" ? "Loan player" : "Standard edition"}
+            {card.template.category} · {view.finish ? `${FINISH_STYLE[view.finish.kind].label} ${view.finish.serial} of ${view.finish.of}` : card.template.edition === "STARTER" ? "Starter edition" : card.template.edition === "LOAN" ? "Loan player" : "Standard edition"}
           </p>
           <h1 className="text-5xl font-extrabold">
             <Link href={`/players/${card.template.playerId}`} className="hover:text-lime">
@@ -116,7 +116,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
             {view.finish && (
               <span className="mt-2 block">
                 <FinishPill finish={view.finish} id="cardpage" />
-                <span className="mt-1 block text-xs text-faint">Only {view.finish.of === 5 ? "five" : "ten"} exist. Looks only: it plays as the Gold.</span>
+                <span className="mt-1 block text-xs text-faint">{view.finish.kind === "RAINBOW" ? "The only one in the world. Looks only: it plays as a normal card." : `Only ${FINISH_STYLE[view.finish.kind].word} exist. Looks only: it plays as the Gold.`}</span>
               </span>
             )}
           </Info>

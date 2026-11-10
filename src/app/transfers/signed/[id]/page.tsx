@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FINISH_STYLE } from "@/components/finish-art";
 import { notFound } from "next/navigation";
 import { PlayerCard } from "@/components/player-card";
 import { requireUser } from "@/server/auth/session";
@@ -18,10 +19,12 @@ export default async function SignedPage({ params }: { params: Promise<{ id: str
   return (
     <div className="flex flex-col items-center gap-6 py-6 text-center">
       <p className="eyebrow text-lime">Signed</p>
-      <h1 className="text-5xl leading-none">{card.finish ? `${card.finish.kind === "DIAMOND" ? "Diamond" : "Ruby"} ${card.finish.serial} of ${card.finish.of}!` : "Welcome to your club"}</h1>
+      <h1 className="text-5xl leading-none">{card.finish ? (card.finish.kind === "RAINBOW" ? "Rainbow · one of one!" : `${FINISH_STYLE[card.finish.kind].label} ${card.finish.serial} of ${card.finish.of}!`) : "Welcome to your club"}</h1>
       {card.finish && (
-        <p className={`text-sm ${card.finish.kind === "DIAMOND" ? "text-[#8fe3ff]" : "text-[#ff8fa6]"}`}>
-          Your signing came out as a {card.finish.kind === "DIAMOND" ? "Diamond" : "Ruby"}: one of only {card.finish.of === 5 ? "five" : "ten"} that will ever exist.
+        <p className={`text-sm ${FINISH_STYLE[card.finish.kind].text}`}>
+          {card.finish.kind === "RAINBOW"
+            ? "Your signing came out as this player's Rainbow card: the only one that will ever exist."
+            : `Your signing came out as a ${FINISH_STYLE[card.finish.kind].label}: one of only ${FINISH_STYLE[card.finish.kind].word} that will ever exist.`}
         </p>
       )}
       <div className="reveal">

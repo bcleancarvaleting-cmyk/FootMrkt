@@ -60,7 +60,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
 function SiteFooter({ loggedIn }: { loggedIn: boolean }) {
   const cols: [string, [string, string][]][] = [
-    ["Play", [["Packs", "/packs"], ["Transfers", "/transfers"], ["Matches", "/matches"], ["Top performers", "/top-performers"], ["How it works", "/how-it-works"]]],
+    ["Play", [["Packs", "/packs"], ["Transfers", "/transfers"], ["Matches", "/matches"], ["Top performers", "/top-performers"], ["Hall of Fame", "/hall-of-fame"], ["How it works", "/how-it-works"]]],
     ["Account", [["My Club", "/account/club"], ["Challenges", "/account/challenges"], ["Wallet", "/account/wallet"], ["Profile", "/account/profile"]]],
     ["Legal", [["Terms", "/legal/terms"], ["Privacy", "/legal/privacy"], ["Responsible play", "/legal/responsible-play"], ["Risk warning", "/legal/risk"]]],
   ];

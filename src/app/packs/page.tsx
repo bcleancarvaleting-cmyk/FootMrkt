@@ -26,7 +26,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
     dropStatus(user.id),
   ]);
   const regions = new Map<string, typeof skus>();
-  for (const s of skus.sort((a, b) => a.priceMinor - b.priceMinor)) {
+  for (const s of skus.filter((x) => !meta(x.code)?.hiddenInShop).sort((a, b) => a.priceMinor - b.priceMinor)) {
     const r = meta(s.code)?.region ?? "All leagues";
     regions.set(r, [...(regions.get(r) ?? []), s]);
   }
@@ -96,7 +96,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
             <div key={region}>
               <h3 className="mb-3 flex items-center gap-3 text-2xl">
                 {region}
-                {region === "England" && <span className="font-sans text-xs font-semibold not-italic text-faint">Premier League to National League</span>}
+                {region === "England" && <span className="font-sans text-xs font-semibold not-italic text-faint">Every player from an English league club</span>}
               </h3>
               <div className="grid gap-4 md:grid-cols-3">
                 {regions.get(region)!.map((s) => {
@@ -163,19 +163,52 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
   );
 }
 
+/** Faint St George's cross across the pack front for England packs. */
+function EnglandCross() {
+  return (
+    <svg viewBox="0 0 100 60" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 h-full w-full mix-blend-multiply" aria-hidden="true">
+      <rect width="100" height="60" fill="#ffffff" opacity="0.1" />
+      <rect x="42" width="16" height="60" fill="#ce1124" opacity="0.22" />
+      <rect y="23" width="100" height="14" fill="#ce1124" opacity="0.22" />
+    </svg>
+  );
+}
+
 function PackArt({ code, name, small }: { code: string; name?: string; small?: boolean }) {
   const tier = code.includes("gold") ? "gold" : code.includes("silver") ? "silver" : code.includes("bronze") ? "bronze" : null;
   const foil = tier ? `foil-${tier}` : "bg-gradient-to-br from-[#d8ff6a] via-accent to-[#5f8f00]";
-  const region = meta(code)?.region;
+  const m = meta(code);
+  const england = m?.region === "England";
   return (
-    <div className={`card-premium ${tier === "gold" ? "is-gold" : ""} relative flex shrink-0 overflow-hidden ${small ? "h-14 w-11 rounded-lg" : "h-40 w-full items-end p-5"} ${foil}`}>
+    <div className={`card-premium ${tier === "gold" ? "is-gold" : ""} relative flex shrink-0 overflow-hidden ${small ? "h-14 w-11 rounded-lg" : "h-44 w-full items-end p-5"} ${foil}`}>
+      {england && <EnglandCross />}
       <span className="sheen" aria-hidden="true" />
       {tier === "gold" && <span className="holo" aria-hidden="true" />}
       {!small && (
         <>
-          <span className="absolute left-5 top-4 font-display text-xs font-extrabold uppercase italic tracking-[0.2em] text-black/55">{region ?? "MATCHX"}</span>
+          <span className="absolute left-5 top-4 flex items-center gap-2 font-display text-xs font-extrabold uppercase italic tracking-[0.2em] text-black/65">
+            {england && (
+              <svg viewBox="0 0 10 6" className="h-3 w-5 rounded-[2px] shadow-sm" aria-hidden="true">
+                <rect width="10" height="6" fill="#fff" />
+                <rect x="4.2" width="1.6" height="6" fill="#ce1124" />
+                <rect y="2.3" width="10" height="1.4" fill="#ce1124" />
+              </svg>
+            )}
+            {m?.region ?? "MATCHX"}
+          </span>
           <span className="absolute right-4 top-3 font-display text-3xl font-extrabold italic text-black/25">X</span>
-          <span className="relative font-display text-5xl font-extrabold uppercase italic leading-none text-black/75">{(name ?? "").replace("England ", "").replace(" Pack", "")}</span>
+          <span className="relative flex flex-col gap-2">
+            <span className="font-display text-5xl font-extrabold uppercase italic leading-none text-black/75">{(name ?? "").replace("England ", "").replace(" Pack", "")}</span>
+            {m?.leagues && (
+              <span className="flex flex-wrap gap-1">
+                {m.leagues.map((l) => (
+                  <span key={l} className="rounded-sm bg-black/70 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.12em] text-white">
+                    {l}
+                  </span>
+                ))}
+              </span>
+            )}
+          </span>
         </>
       )}
     </div>

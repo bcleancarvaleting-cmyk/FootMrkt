@@ -27,9 +27,9 @@ export const FOOTBALL_COMPETITION_TEMPLATES: CompetitionTemplate[] = [
     scoringRules: "football-scoring-v2-draft",
     rewards: [],
     devRewards: [
-      { rankFrom: 1, rankTo: 1, packSkuCode: "football-gold" },
-      { rankFrom: 2, rankTo: 3, packSkuCode: "football-silver" },
-      { rankFrom: 4, rankTo: 1_000_000, packSkuCode: "football-bronze" },
+      { rankFrom: 1, rankTo: 1, packSkuCode: "football-eng-gold" },
+      { rankFrom: 2, rankTo: 3, packSkuCode: "football-eng-silver" },
+      { rankFrom: 4, rankTo: 1_000_000, packSkuCode: "football-eng-bronze" },
     ],
   },
   {
@@ -39,7 +39,7 @@ export const FOOTBALL_COMPETITION_TEMPLATES: CompetitionTemplate[] = [
     rosterRules: "football-roster-v3",
     scoringRules: "football-scoring-v2-draft",
     rewards: [],
-    devRewards: [{ rankFrom: 1, rankTo: 3, packSkuCode: "football-silver" }],
+    devRewards: [{ rankFrom: 1, rankTo: 3, packSkuCode: "football-eng-silver" }],
   },
   {
     key: "silver",
@@ -48,6 +48,6 @@ export const FOOTBALL_COMPETITION_TEMPLATES: CompetitionTemplate[] = [
     rosterRules: "football-roster-v3",
     scoringRules: "football-scoring-v2-draft",
     rewards: [],
-    devRewards: [{ rankFrom: 1, rankTo: 3, packSkuCode: "football-silver" }],
+    devRewards: [{ rankFrom: 1, rankTo: 3, packSkuCode: "football-eng-silver" }],
   },
 ];

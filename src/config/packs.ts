@@ -18,6 +18,10 @@ export interface PackSkuSeed {
   blurb: string;
   /** Shop grouping, e.g. "England". Packs without a region draw from every league. */
   region?: string;
+  /** Leagues printed on the pack front, e.g. ["Premier League", "EFL", "National League"]. */
+  leagues?: string[];
+  /** Hidden from the shop (still grantable, e.g. by tests or old rewards). */
+  hiddenInShop?: boolean;
 }
 
 export const STARTER_PACK_CODE = "football-starter";
@@ -147,6 +151,8 @@ function regional(base: PackSkuSeed, code: string, name: string, region: string,
     version: 1,
     name,
     region,
+    leagues: ["Premier League", "EFL", "National League"],
+    hiddenInShop: false,
     blurb,
     config: {
       ...base.config,
@@ -160,6 +166,11 @@ function regional(base: PackSkuSeed, code: string, name: string, region: string,
 }
 
 const byCode = (c: string) => FOOTBALL_PACKS.find((p) => p.code === c)!;
+
+// Product decision (10 Nov 2026): every league is English for now, so the all-leagues packs are
+// hidden from the shop and the England packs are the line-up. Unhide them once other countries
+// (Italy, France, …) are added.
+for (const code of ["football-bronze", "football-silver", "football-gold"]) byCode(code).hiddenInShop = true;
 
 /** Region packs (product request 10 Nov 2026): players only from English league clubs. Same odds as the base packs. */
 FOOTBALL_PACKS.push(

@@ -78,6 +78,12 @@ model User {
   timeOutUntil             DateTime? // short break chosen by the player
   selfExcludedUntil        DateTime? // self-exclusion (6 months+)
   realityCheckMinutes      Int        @default(60) // 0 = off
+  totpSecret               String? // two-step login secret (base32); set during setup
+  totpEnabledAt            DateTime? // two-step login is on
+  totpLastStep             Int? // last accepted 30-second step, so a code can't be reused
+  backupCodeHashes         String[]   @default([]) // one-time backup codes (sha256)
+  passwordResetHash        String?    @unique
+  passwordResetExpiresAt   DateTime?
   // Founding member number (1, 2, 3…) for everyone who joined during the free trial. Kept forever.
   foundingNumber           Int?       @unique
   // Who invited this manager (refer a friend). The referrer gets a free pack once they play.
@@ -1294,4 +1300,21 @@ model EmailLog {
   sentAt    DateTime?
 
   @@index([createdAt])
+}
+
+// "Report a problem" messages from managers (and visitors), handled in Admin → Support.
+model SupportTicket {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String?   @db.Uuid
+  email      String
+  category   String // ACCOUNT | PAYMENT | CARDS | MATCHES | BUG | SAFER_PLAY | OTHER
+  message    String
+  pagePath   String?
+  status     String    @default("OPEN") // OPEN | RESOLVED
+  adminNote  String?
+  resolvedBy String?   @db.Uuid
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([status, createdAt])
 }

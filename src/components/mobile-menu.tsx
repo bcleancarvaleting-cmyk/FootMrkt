@@ -37,6 +37,8 @@ const ACCOUNT: Section = {
     ["Wallet & XP", "/account/wallet"],
     ["Safer play", "/account/safer-play"],
     ["Profile", "/account/profile"],
+    ["Security", "/account/security"],
+    ["Report a problem", "/support"],
     ["Legal", "/account/legal"],
   ],
 };

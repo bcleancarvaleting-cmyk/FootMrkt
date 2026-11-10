@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { loginAction, registerAction } from "@/app/actions/auth";
+import { forgotPasswordAction, loginAction, registerAction, resetPasswordAction, verifyLoginCodeAction } from "@/app/actions/auth";
 
 export function RegisterForm({ referrer, clubs }: { referrer?: string; clubs: Array<{ league: string; clubs: Array<{ code: string; name: string }> }> }) {
   const [state, action, pending] = useActionState(registerAction, null);
@@ -90,6 +90,9 @@ export function LoginForm({ next }: { next?: string }) {
           Password
         </label>
         <input className="input" id="password" name="password" type="password" required autoComplete="current-password" />
+        <Link href="/forgot-password" className="mt-1.5 inline-block text-xs text-muted hover:text-fg hover:underline">
+          Forgot your password?
+        </Link>
       </div>
       {state && !state.ok && <p className="text-sm text-danger">{state.error}</p>}
       <button className="btn-primary w-full py-3" disabled={pending}>
@@ -101,6 +104,71 @@ export function LoginForm({ next }: { next?: string }) {
           Get your free squad
         </Link>
       </p>
+    </form>
+  );
+}
+
+export function VerifyCodeForm({ next }: { next: string }) {
+  const [state, action, pending] = useActionState(verifyLoginCodeAction, null);
+  return (
+    <form action={action} className="space-y-4">
+      <input type="hidden" name="next" value={next} />
+      <div>
+        <label className="label" htmlFor="code">
+          6-digit code
+        </label>
+        <input className="input text-center font-mono text-2xl tracking-[0.3em]" id="code" name="code" inputMode="numeric" autoComplete="one-time-code" maxLength={11} required autoFocus />
+        <p className="mt-1.5 text-xs text-faint">Lost your phone? Type one of your backup codes instead (like 7KQ2-M9XD).</p>
+      </div>
+      {state && !state.ok && <p className="text-sm text-danger">{state.error}</p>}
+      <button className="btn-primary w-full py-3" disabled={pending}>
+        {pending ? "Checking…" : "Log in"}
+      </button>
+    </form>
+  );
+}
+
+export function ForgotPasswordForm() {
+  const [state, action, pending] = useActionState(forgotPasswordAction, null);
+  if (state?.ok) return <p className="text-sm text-mint">{state.message}</p>;
+  return (
+    <form action={action} className="space-y-4">
+      <div>
+        <label className="label" htmlFor="email">
+          Email
+        </label>
+        <input className="input" id="email" name="email" type="email" required autoComplete="email" />
+      </div>
+      {state && !state.ok && <p className="text-sm text-danger">{state.error}</p>}
+      <button className="btn-primary w-full py-3" disabled={pending}>
+        {pending ? "Sending…" : "Email me a reset link"}
+      </button>
+    </form>
+  );
+}
+
+export function ResetPasswordForm({ token }: { token: string }) {
+  const [state, action, pending] = useActionState(resetPasswordAction, null);
+  return (
+    <form action={action} className="space-y-4">
+      <input type="hidden" name="token" value={token} />
+      <div>
+        <label className="label" htmlFor="password">
+          New password
+        </label>
+        <input className="input" id="password" name="password" type="password" minLength={10} required autoComplete="new-password" />
+      </div>
+      <div>
+        <label className="label" htmlFor="confirm">
+          Type it again
+        </label>
+        <input className="input" id="confirm" name="confirm" type="password" minLength={10} required autoComplete="new-password" />
+      </div>
+      {state && !state.ok && <p className="text-sm text-danger">{state.error}</p>}
+      <button className="btn-primary w-full py-3" disabled={pending}>
+        {pending ? "Saving…" : "Save new password"}
+      </button>
+      <p className="text-xs text-faint">You&apos;ll be logged out on every device and can log in again with the new password.</p>
     </form>
   );
 }

@@ -31,6 +31,7 @@ export const ADMIN_MENU: Array<{ group: string; items: Array<{ href: string; lab
     items: [
       { href: "/admin/community", label: "Founders & moderators" },
       { href: "/admin/withdrawals", label: "Withdrawals" },
+      { href: "/admin/support", label: "Support inbox" },
     ],
   },
   { group: "Marketing", items: [{ href: "/admin/social", label: "Social content" }] },

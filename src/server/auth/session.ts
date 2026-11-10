@@ -5,7 +5,7 @@ import { hashIp } from "../market-safety";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { touchUser } from "../stats";
-import { createSession, destroySession, userForSessionToken } from "./accounts";
+import { createSession, destroySession, hashToken, userForSessionToken } from "./accounts";
 
 const COOKIE = "collectr_session";
 
@@ -62,4 +62,10 @@ export async function endSession() {
   const token = jar.get(COOKIE)?.value;
   if (token) await destroySession(token);
   jar.delete(COOKIE);
+}
+
+/** The stored id of this browser's session (to keep it when signing out other devices). */
+export async function currentSessionId() {
+  const token = (await cookies()).get(COOKIE)?.value;
+  return token ? hashToken(token) : undefined;
 }

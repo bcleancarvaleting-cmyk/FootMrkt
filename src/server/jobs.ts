@@ -16,6 +16,7 @@ export async function tick() {
     ["expired listings", expireListings],
     ["auctions", settleAuctions],
     ["welcome packs", grantAllDueWelcomePacks],
+    ["expired logins", async () => (await db.session.deleteMany({ where: { expiresAt: { lt: new Date() } } })).count],
   ];
   const out: Record<string, unknown> = {};
   for (const [name, run] of steps) {

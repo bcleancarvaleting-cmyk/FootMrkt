@@ -110,6 +110,19 @@ export const EMAILS = {
       paragraphs: [d.paid ? `Your withdrawal of ${b(d.amount)} has been paid to your bank account.` : `Your withdrawal of ${b(d.amount)} wasn't completed and the money is back in your winnings. Reply to this email if you need help.`],
       cta: { label: "View my wallet", href: `${APP_URL}/account/wallet` },
     }),
+  passwordReset: (d: { name: string; url: string }) =>
+    layout({
+      preheader: "Reset your MATCHX password.",
+      title: "Reset your password",
+      paragraphs: [`Someone (hopefully you) asked to reset the password for ${b(d.name)}. The link works for one hour and can only be used once.`, `If it wasn't you, ignore this email — your password hasn't changed.`],
+      cta: { label: "Choose a new password", href: d.url },
+    }),
+  supportReceived: (d: { name: string; ref: string }) =>
+    layout({
+      preheader: "We've got your message.",
+      title: "We've got your message",
+      paragraphs: [`Thanks ${esc(d.name)} — your message (ref ${b(d.ref)}) is with the MATCHX team. We'll reply to this email address, usually within a day.`],
+    }),
 } as const;
 
 export type EmailTemplate = keyof typeof EMAILS;

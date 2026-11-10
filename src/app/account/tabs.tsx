@@ -12,6 +12,7 @@ const TABS = [
   { href: "/account/wallet", label: "Wallet" },
   { href: "/account/safer-play", label: "Safer play" },
   { href: "/account/profile", label: "Profile" },
+  { href: "/account/security", label: "Security" },
   { href: "/account/legal", label: "Legal" },
 ];
 

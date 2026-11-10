@@ -1,72 +1,59 @@
+import Image from "next/image";
 import Link from "next/link";
-import { logoutAction } from "@/app/actions/auth";
 import { getCurrentUser } from "@/server/auth/session";
-import { balanceMinor, fmtMp } from "@/server/wallet";
+import { balancesFor, fmtMp } from "@/server/wallet";
+import { TopNav } from "./bottom-nav";
 import { type Theme, ThemeToggle } from "./theme-toggle";
 
-export function Logo({ className = "" }: { className?: string }) {
+export function Logo({ height = 26 }: { height?: number }) {
+  const width = Math.round((height * 2049) / 347);
   return (
-    <span className={`font-display text-[26px] font-extrabold uppercase italic leading-none tracking-tight ${className}`}>
-      Collect<span className="text-lime">r</span>
+    <span className="relative inline-flex" style={{ height, width }}>
+      <Image src="/brand/matchx-dark.png" alt="MATCHX" width={width} height={height} priority className="logo-dark h-full w-auto" />
+      <Image src="/brand/matchx-light.png" alt="MATCHX" width={width} height={height} priority className="logo-light h-full w-auto" />
     </span>
   );
 }
 
-export async function Header({ theme }: { theme: Theme }) {
+export async function Header({ theme, unopenedPacks }: { theme: Theme; unopenedPacks: number }) {
   const user = await getCurrentUser();
-  const credit = user ? await balanceMinor(user.id) : 0;
+  const bal = user ? await balancesFor(user.id) : null;
   return (
     <header
-      className="sticky z-30 border-b border-ink-800 bg-ink-950/85 backdrop-blur-xl"
+      className="sticky z-30 border-b border-ink-800 bg-ink-950/90 backdrop-blur-xl"
       style={{ top: "env(safe-area-inset-top, 0px)" }}
     >
-      <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
-        <Link href="/" aria-label="COLLECTR home">
+      <div className="mx-auto flex max-w-6xl items-center gap-8 px-4 py-3 sm:px-6">
+        <Link href="/" aria-label="MATCHX home" className="shrink-0">
           <Logo />
         </Link>
-        <nav className="ml-4 hidden items-center gap-1 text-sm font-semibold md:flex" aria-label="Secondary">
-          <Link href="/how-it-works" className="rounded-full px-3 py-1.5 text-muted hover:text-fg">
-            How it works
-          </Link>
-          {(user?.role === "ADMIN" || user?.role === "MODERATOR") && (
-            <Link href="/moderation" className="rounded-full px-3 py-1.5 text-muted hover:text-fg">
-              Moderation
-            </Link>
-          )}
-          {user?.role === "ADMIN" && (
-            <Link href="/admin" className="rounded-full px-3 py-1.5 text-muted hover:text-fg">
-              Admin
-            </Link>
-          )}
-        </nav>
+        {user && <TopNav unopenedPacks={unopenedPacks} />}
         <div className="ml-auto flex items-center gap-2">
           <ThemeToggle initial={theme} />
-          {user ? (
+          {user && bal ? (
             <>
               <Link
-                href="/profile"
-                className="hidden items-center gap-1.5 rounded-full border border-gold/50 bg-gold/10 px-3 py-1.5 text-xs font-extrabold text-gold sm:inline-flex"
-                title="MP credit — spend it on packs"
+                href="/account/wallet"
+                className="flex items-center gap-2 rounded-xl border border-ink-700 bg-ink-900 px-3 py-1.5 text-sm font-bold tabular-nums hover:border-ink-600"
+                title="Your MP balance"
               >
-                <span aria-hidden="true">◆</span> {fmtMp(credit)}
+                <span className="h-2 w-2 rounded-full bg-accent" aria-hidden="true" />
+                {fmtMp(bal.total)}
               </Link>
               <Link
-                href="/profile"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-danger font-display text-base font-extrabold uppercase text-white ring-2 ring-white/80"
-                aria-label={`${user.displayName} — profile`}
+                href="/account"
+                className="hidden h-9 w-9 items-center justify-center rounded-full bg-ink-800 font-display text-base font-extrabold uppercase text-fg ring-1 ring-ink-600 sm:flex"
+                aria-label={`${user.displayName} — My Account`}
               >
                 {user.displayName.slice(0, 1)}
               </Link>
-              <form action={logoutAction} className="hidden sm:block">
-                <button className="btn-ghost px-3 py-2 text-[10px]">Log out</button>
-              </form>
             </>
           ) : (
             <>
-              <Link href="/login" className="btn-ghost px-4 py-2 text-[10px]">
+              <Link href="/login" className="btn-ghost px-4 py-2 text-xs">
                 Log in
               </Link>
-              <Link href="/register" className="btn-primary px-4 py-2 text-[10px]">
+              <Link href="/register" className="btn-primary px-4 py-2 text-xs">
                 Join free
               </Link>
             </>

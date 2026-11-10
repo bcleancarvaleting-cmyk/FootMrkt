@@ -21,7 +21,9 @@ export function ChatRoom({
   initial,
   me,
   maxLength,
+  className = "panel flex h-[calc(100dvh-470px)] min-h-[300px] flex-col overflow-hidden sm:h-[calc(100dvh-400px)]",
 }: {
+  className?: string;
   room: string;
   initial: ChatMessageView[];
   me: { id: string; isMod: boolean };
@@ -86,7 +88,7 @@ export function ChatRoom({
   }
 
   return (
-    <div className="panel flex h-[calc(100dvh-470px)] min-h-[300px] flex-col overflow-hidden sm:h-[calc(100dvh-400px)]">
+    <div className={className}>
       <div
         ref={listRef}
         onScroll={(e) => {

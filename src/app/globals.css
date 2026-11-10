@@ -1,31 +1,34 @@
 @import "tailwindcss";
 
 /*
- * COLLECTR — premium matchday look.
+ * MATCHX — broadcast-sport look: near-black canvas, one electric lime from the logo, metallic tiers.
  * Every colour is a token. Dark is the default; [data-theme="light"] swaps the palette.
  * Utilities like bg-ink-900 read var(--color-ink-900) at runtime, so overriding the variables
- * re-themes the whole site. `.theme-dark` pins a subtree (cards, pitch) to the dark palette.
+ * re-themes the whole site. `.theme-dark` pins a subtree (cards, pitch, hero) to the dark palette.
  */
 @theme {
-  --color-ink-950: #07080a;
-  --color-ink-900: #0e1014;
-  --color-ink-850: #13161b;
-  --color-ink-800: #1a1d24;
-  --color-ink-700: #272b34;
-  --color-ink-600: #383d48;
-  --color-fg: #f3f4f6;
-  --color-muted: #a0a6b2;
-  --color-faint: #6b7280;
-  --color-lime: #c8f53c;
-  --color-lime-dim: #a9d225;
-  --color-mint: #6ee7a0;
-  --color-danger: #ff5a5f;
+  --color-ink-950: #060708;
+  --color-ink-900: #0c0e10;
+  --color-ink-850: #121417;
+  --color-ink-800: #181b1f;
+  --color-ink-700: #24282e;
+  --color-ink-600: #343941;
+  --color-fg: #f4f5f2;
+  --color-muted: #a3a8a0;
+  --color-faint: #6c726a;
+  /* Logo lime: --color-accent is the fill (always the brand lime); --color-lime is text-safe. */
+  --color-accent: #adfc07;
+  --color-accent-ink: #0a0d02;
+  --color-lime: #adfc07;
+  --color-lime-dim: #93d600;
+  --color-mint: #5ee69a;
+  --color-danger: #ff4f4f;
   --color-warn: #f5c451;
   --color-bronze: #cd8a57;
   --color-bronze-deep: #6b3b1d;
-  --color-silver: #d6dce3;
+  --color-silver: #d3d9e0;
   --color-silver-deep: #59626e;
-  --color-gold: #f2cf63;
+  --color-gold: #f0cb5a;
   --color-gold-deep: #7d5a0e;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -34,59 +37,55 @@
 
 :root {
   color-scheme: dark;
-  --glow-a: rgb(200 245 60 / 0.10);
-  --glow-b: rgb(242 207 99 / 0.07);
-  --panel-highlight: rgb(255 255 255 / 0.05);
-  --dock-bg: rgb(14 16 20 / 0.86);
+  --panel-highlight: rgb(255 255 255 / 0.04);
+  --dock-bg: rgb(12 14 16 / 0.92);
 }
 
 /* Light palette. */
 [data-theme="light"] {
   color-scheme: light;
-  --color-ink-950: #f3f4f1;
+  --color-ink-950: #f2f3ef;
   --color-ink-900: #ffffff;
-  --color-ink-850: #f7f8f5;
-  --color-ink-800: #eceee9;
-  --color-ink-700: #dadcd5;
-  --color-ink-600: #c2c7bd;
-  --color-fg: #101310;
-  --color-muted: #545b54;
-  --color-faint: #80877f;
-  --color-lime: #4f7d00;
-  --color-lime-dim: #406600;
+  --color-ink-850: #f7f8f4;
+  --color-ink-800: #eceee8;
+  --color-ink-700: #dcdfd6;
+  --color-ink-600: #c4c9bd;
+  --color-fg: #0d100b;
+  --color-muted: #50574d;
+  --color-faint: #7e857a;
+  --color-lime: #4a7a00;
+  --color-lime-dim: #3c6400;
   --color-mint: #15803d;
-  --color-danger: #d92d2d;
-  --color-warn: #a35c00;
-  --color-bronze: #a5612f;
-  --color-silver: #5b6470;
-  --color-gold: #9a6e00;
-  --glow-a: rgb(120 170 0 / 0.08);
-  --glow-b: rgb(200 150 20 / 0.08);
-  --panel-highlight: rgb(255 255 255 / 0.7);
-  --dock-bg: rgb(255 255 255 / 0.9);
+  --color-danger: #d42a2a;
+  --color-warn: #9a5800;
+  --color-bronze: #a05c2c;
+  --color-silver: #58616d;
+  --color-gold: #946a00;
+  --panel-highlight: rgb(255 255 255 / 0.8);
+  --dock-bg: rgb(255 255 255 / 0.94);
 }
 
-/* Pin a subtree to the dark palette (cards keep their premium dark faces in light mode). */
+/* Pin a subtree to the dark palette. */
 .theme-dark,
 [data-theme="light"] .theme-dark {
   color-scheme: dark;
-  --color-ink-950: #07080a;
-  --color-ink-900: #0e1014;
-  --color-ink-850: #13161b;
-  --color-ink-800: #1a1d24;
-  --color-ink-700: #272b34;
-  --color-ink-600: #383d48;
-  --color-fg: #f3f4f6;
-  --color-muted: #a0a6b2;
-  --color-faint: #6b7280;
-  --color-lime: #c8f53c;
-  --color-lime-dim: #a9d225;
-  --color-mint: #6ee7a0;
-  --color-danger: #ff5a5f;
+  --color-ink-950: #060708;
+  --color-ink-900: #0c0e10;
+  --color-ink-850: #121417;
+  --color-ink-800: #181b1f;
+  --color-ink-700: #24282e;
+  --color-ink-600: #343941;
+  --color-fg: #f4f5f2;
+  --color-muted: #a3a8a0;
+  --color-faint: #6c726a;
+  --color-lime: #adfc07;
+  --color-lime-dim: #93d600;
+  --color-mint: #5ee69a;
+  --color-danger: #ff4f4f;
   --color-warn: #f5c451;
   --color-bronze: #cd8a57;
-  --color-silver: #d6dce3;
-  --color-gold: #f2cf63;
+  --color-silver: #d3d9e0;
+  --color-gold: #f0cb5a;
   color: var(--color-fg);
 }
 
@@ -98,27 +97,27 @@ body {
 
 body {
   font-family: var(--font-sans), system-ui, sans-serif;
-  background-image:
-    radial-gradient(900px 420px at 85% -120px, var(--glow-a), transparent 70%),
-    radial-gradient(700px 380px at -10% 10%, var(--glow-b), transparent 70%);
-  background-attachment: fixed;
+  font-feature-settings: "ss01", "cv11";
 }
 
 ::selection {
-  background: rgb(200 245 60 / 0.3);
+  background: rgb(173 252 7 / 0.35);
 }
 
+/* Headlines echo the logo: heavy, italic, condensed. */
 h1,
 h2 {
   font-family: var(--font-display), var(--font-sans), sans-serif;
+  font-style: italic;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.01em;
-  line-height: 0.98;
+  letter-spacing: -0.005em;
+  line-height: 0.92;
   text-wrap: balance;
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-lime);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
@@ -127,47 +126,74 @@ h2 {
 }
 
 @utility panel {
-  @apply rounded-3xl border border-ink-700/80 bg-ink-900/75 backdrop-blur;
-  box-shadow:
-    inset 0 1px 0 var(--panel-highlight),
-    0 12px 32px -18px rgb(0 0 0 / 0.5);
+  @apply rounded-2xl border border-ink-700/80 bg-ink-900;
+  box-shadow: inset 0 1px 0 var(--panel-highlight);
 }
 @utility btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-xs font-extrabold tracking-[0.14em] uppercase transition
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-[13px] font-bold tracking-[0.06em] uppercase transition
     disabled:cursor-not-allowed disabled:opacity-40;
 }
 @utility btn-primary {
-  @apply btn bg-lime text-ink-950 hover:bg-lime-dim;
-  box-shadow: 0 8px 24px -10px var(--color-lime);
+  @apply btn bg-accent text-accent-ink hover:brightness-95;
 }
 @utility btn-gold {
   @apply btn text-[#1a1203];
   background: linear-gradient(135deg, #b8862b, #f9e08b 40%, #d9a93f 60%, #fff0b3);
-  box-shadow: 0 8px 26px -10px rgb(242 207 99 / 0.8);
 }
 @utility btn-ghost {
-  @apply btn border border-ink-600 text-fg hover:border-lime/70 hover:text-lime;
+  @apply btn border border-ink-600 text-fg hover:border-fg/60;
 }
 @utility btn-danger {
   @apply btn border border-danger/50 text-danger hover:bg-danger/10;
 }
 @utility input {
-  @apply w-full rounded-2xl border border-ink-600 bg-ink-850 px-4 py-2.5 text-sm text-fg placeholder:text-faint focus:border-lime focus:outline-none;
+  @apply w-full rounded-xl border border-ink-600 bg-ink-850 px-3.5 py-2.5 text-sm text-fg placeholder:text-faint focus:border-accent focus:outline-none;
 }
 @utility label {
-  @apply mb-1 block text-[11px] font-bold tracking-[0.16em] text-muted uppercase;
+  @apply mb-1.5 block text-xs font-semibold text-muted;
 }
 @utility chip {
-  @apply inline-flex items-center gap-1 rounded-full border border-ink-600 px-2.5 py-0.5 text-[11px] font-semibold text-muted;
+  @apply inline-flex items-center gap-1 rounded-md border border-ink-600 px-2 py-0.5 text-[11px] font-semibold text-muted;
 }
 @utility eyebrow {
-  @apply text-[11px] font-extrabold tracking-[0.22em] text-gold uppercase;
+  @apply text-xs font-semibold tracking-[0.14em] text-muted uppercase;
 }
 @utility tag {
-  @apply inline-flex items-center gap-2 rounded-full border border-ink-600 bg-ink-900/70 px-4 py-1.5 text-[11px] font-extrabold tracking-[0.2em] uppercase;
+  @apply inline-flex items-center gap-2 rounded-md border border-ink-600 px-2.5 py-1 text-[11px] font-bold tracking-[0.12em] uppercase;
 }
 @utility table-row {
   @apply border-b border-ink-700/70 last:border-0;
+}
+/* Full-width list rows (My Club, Transfers, Matches). */
+@utility row-item {
+  @apply flex items-center gap-4 rounded-xl border border-ink-700/80 bg-ink-900 px-4 py-3 transition hover:border-ink-600;
+}
+@utility tab {
+  @apply relative whitespace-nowrap px-1 pb-3 pt-1 text-sm font-semibold text-muted transition hover:text-fg;
+}
+@utility tab-on {
+  @apply text-fg after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:rounded-full after:bg-accent after:content-[""];
+}
+.tier-GOLD {
+  border-left: 4px solid #e7bd45;
+}
+.tier-SILVER {
+  border-left: 4px solid #b9c1ca;
+}
+.tier-BRONZE {
+  border-left: 4px solid #b9774a;
+}
+.logo-dark {
+  display: block;
+}
+.logo-light {
+  display: none;
+}
+[data-theme="light"] .logo-dark {
+  display: none;
+}
+[data-theme="light"] .logo-light {
+  display: block;
 }
 
 /* ───────────── Card foils ───────────── */

@@ -17,10 +17,7 @@ export default async function TradeReview() {
     getSetting("highPriceMultiple"),
     db.tradeFlag.findMany({ where: { status: { not: "OPEN" } }, orderBy: { reviewedAt: "desc" }, take: 10 }),
   ]);
-  const age = (d: Date) => {
-    const days = Math.floor((Date.now() - d.getTime()) / 86_400_000);
-    return days < 1 ? "today" : `${days}d old`;
-  };
+  const age = (days: number) => (days < 1 ? "joined today" : `${days}d old`);
   return (
     <>
       <AdminTitle
@@ -52,8 +49,8 @@ export default async function TradeReview() {
                   <span className="text-xs text-faint">{fmtDate(f.createdAt)}</span>
                 </div>
                 <p className="text-sm">
-                  <Link href={`/admin/users?q=${encodeURIComponent(f.seller.displayName)}`} className="text-lime underline">{f.seller.displayName}</Link> <span className="text-faint">({age(f.seller.createdAt)})</span> sold to{" "}
-                  <Link href={`/admin/users?q=${encodeURIComponent(f.buyer.displayName)}`} className="text-lime underline">{f.buyer.displayName}</Link> <span className="text-faint">({age(f.buyer.createdAt)})</span>
+                  <Link href={`/admin/users?q=${encodeURIComponent(f.seller.displayName)}`} className="text-lime underline">{f.seller.displayName}</Link> <span className="text-faint">({age(f.sellerAgeDays)})</span> sold to{" "}
+                  <Link href={`/admin/users?q=${encodeURIComponent(f.buyer.displayName)}`} className="text-lime underline">{f.buyer.displayName}</Link> <span className="text-faint">({age(f.buyerAgeDays)})</span>
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {f.reasons.map((r) => (

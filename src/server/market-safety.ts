@@ -97,10 +97,13 @@ export async function openFlags() {
     db.user.findMany({ where: { id: { in: ids } }, select: { id: true, displayName: true, createdAt: true, status: true } }),
     db.marketListing.findMany({ where: { id: { in: listingIds } }, select: { id: true, card: { select: { serial: true, template: { select: { category: true, player: { select: { displayName: true } } } } } } } }),
   ]);
+  const ageDays = (id: string) => Math.floor((Date.now() - (users.find((u) => u.id === id)?.createdAt.getTime() ?? Date.now())) / 86_400_000);
   return flags.map((f) => ({
     ...f,
     seller: users.find((u) => u.id === f.sellerId)!,
     buyer: users.find((u) => u.id === f.buyerId)!,
+    sellerAgeDays: ageDays(f.sellerId),
+    buyerAgeDays: ageDays(f.buyerId),
     card: listings.find((l) => l.id === f.listingId)?.card ?? null,
   }));
 }

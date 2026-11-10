@@ -32,5 +32,8 @@ export function tierForValue(valueGbp: number, t = VALUE_TIERS): Category {
   return valueGbp >= t.goldFromGbp ? "GOLD" : valueGbp >= t.silverFromGbp ? "SILVER" : "BRONZE";
 }
 
-/** Hard caps on how many copies of a card design can ever exist. Doubled 10 Nov 2026 (was 40 / 120 / 400). */
-export const MAX_SUPPLY: Record<Category, number> = { GOLD: 80, SILVER: 240, BRONZE: 800 };
+/**
+ * Hard caps on how many copies of a card design can ever exist. Set 10 Nov 2026 for launch demand
+ * (history: 40 / 120 / 400 → 80 / 240 / 800 → 1,000 / 3,000 / 8,000).
+ */
+export const MAX_SUPPLY: Record<Category, number> = { GOLD: 1000, SILVER: 3000, BRONZE: 8000 };

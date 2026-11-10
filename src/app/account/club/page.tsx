@@ -67,6 +67,7 @@ export default async function MyClubPage({ searchParams }: { searchParams: Promi
           </div>
         </div>
         <div className="flex gap-2">
+          <Link href={`/clubs/${encodeURIComponent(user.displayName)}`} className="btn-ghost px-4 py-2 text-xs">Public page</Link>
           <Link href="/account/club/crest" className="btn-ghost px-4 py-2 text-xs">{user.crest ? "Edit crest" : "Create crest"}</Link>
           <Link href="/account/challenges" className="btn-ghost px-4 py-2 text-xs">Challenges</Link>
           <Link href="/packs" className="btn-primary px-4 py-2 text-xs">Open packs</Link>

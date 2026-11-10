@@ -75,10 +75,10 @@ export default async function CompetitionPage({ params }: { params: Promise<{ id
                 <ManagerBadge crest={r.crest} name={r.displayName} id={`lb-${r.entryId}`} size={28} />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-semibold">
+                <Link href={`/clubs/${encodeURIComponent(r.displayName)}`} className="block truncate font-semibold hover:underline">
                   {r.displayName} <FoundingBadge number={r.foundingNumber} compact />
                   {r.userId === user.id && <span className="ml-2 text-xs text-lime">you</span>}
-                </span>
+                </Link>
                 {r.clubName && <span className="block truncate text-xs text-faint">{r.clubName}</span>}
               </span>
               {r.prizeMinor > 0 && <span className="font-bold text-lime">£{(r.prizeMinor / 100).toFixed(2)}</span>}

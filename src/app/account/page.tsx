@@ -56,6 +56,9 @@ export default async function AccountPage() {
         <div className="min-w-0 flex-1">
           <h1 className="text-4xl leading-none sm:text-5xl">{user.displayName}</h1>
           {user.clubName && <p className="mt-1 font-display text-xl font-bold uppercase italic text-muted">{user.clubName}</p>}
+          <Link href={`/clubs/${encodeURIComponent(user.displayName)}`} className="mt-1 inline-block text-xs font-bold uppercase tracking-wider text-lime hover:underline">
+            View my public club page →
+          </Link>
           {full.foundingNumber && (
             <p className="mt-2 flex items-center gap-2">
               <FoundingBadge number={full.foundingNumber} />

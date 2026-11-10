@@ -16,7 +16,7 @@ export const SETTINGS = {
   diamondOneIn: {
     label: "Diamond chance: 1 in … Gold cards",
     help: "Each Gold card that comes out of a pack has a 1-in-this chance of being a Diamond (cosmetic only, max 5 per player, ever). Higher = rarer.",
-    default: 200,
+    default: 1000,
     min: 10,
     max: 1_000_000,
   },

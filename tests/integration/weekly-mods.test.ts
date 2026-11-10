@@ -4,6 +4,7 @@ import { postMessage, removeMessage, reportMessage, listMessages } from "@/serve
 import { inviteModerator, keepMessage, respondToInvite, revokeModerator } from "@/server/moderation";
 import { openPack } from "@/server/packs";
 import { applyMarketValues } from "@/server/tiering";
+import { supplyReport } from "@/server/supply";
 import { claimWeeklyPack } from "@/server/weekly";
 import { setProgress } from "@/server/collections";
 import { buildWorld, makeUser, resetDb } from "./fixtures";
@@ -85,16 +86,42 @@ describe("moderators by invitation", () => {
 });
 
 describe("market-value tiering", () => {
-  it("re-tiers future supply and keeps issued cards", async () => {
+  it("re-tiers a player and every card of them moves with them, keeping its serial", async () => {
     const tpl = await db.cardTemplate.findFirstOrThrow({ where: { category: "BRONZE", edition: "STANDARD" } });
-    const issuedBefore = await db.cardInstance.count({ where: { templateId: tpl.id } });
+    const cards = await db.cardInstance.findMany({ where: { templateId: tpl.id }, select: { id: true, serial: true } });
+    const u = await makeUser("holder");
+    await db.cardInstance.update({ where: { id: cards[0].id }, data: { supplyState: "HELD", ownerId: u.userId } });
+    await db.cardOwnership.create({ data: { cardId: cards[0].id, userId: u.userId, acquiredVia: "PACK", acquiredRef: "test" } });
+
+    // Value rises past the Gold line: the Bronze copies are Gold now.
     const r = await applyMarketValues([{ playerId: tpl.playerId, valueGbp: 45_000_000, source: "test", at: new Date() }]);
     expect(r.retiered).toBe(1);
     const active = await db.cardTemplate.findMany({ where: { playerId: tpl.playerId, edition: "STANDARD", active: true } });
     expect(active.map((t) => t.category)).toEqual(["GOLD"]);
-    expect(await db.cardInstance.count({ where: { templateId: tpl.id } })).toBe(issuedBefore);
+    const after = await db.cardInstance.findMany({ where: { id: { in: cards.map((c) => c.id) } }, include: { template: true } });
+    expect(after.every((c) => c.template.category === "GOLD")).toBe(true);
+    expect(after.map((c) => c.serial).sort()).toEqual(cards.map((c) => c.serial).sort());
+    // Cap is Gold's, but never below what's issued.
+    expect(active[0].maxSupply).toBe(Math.max(500, cards.length));
     expect((await db.player.findUniqueOrThrow({ where: { id: tpl.playerId } })).marketValueGbp).toBe(45_000_000);
     expect((await applyMarketValues([{ playerId: tpl.playerId, valueGbp: 50_000_000, source: "test", at: new Date() }])).retiered).toBe(0);
+
+    // …and back down again if the value falls; the card stays with its owner.
+    await applyMarketValues([{ playerId: tpl.playerId, valueGbp: 5_000_000, source: "test", at: new Date() }]);
+    const held = await db.cardInstance.findUniqueOrThrow({ where: { id: cards[0].id }, include: { template: true } });
+    expect(held).toMatchObject({ ownerId: u.userId, template: { category: "SILVER" } });
+    expect((await supplyReport()).reconciled).toBe(true);
+  });
+
+  it("merges into an older template when a player returns to a tier they held before", async () => {
+    const tpl = await db.cardTemplate.findFirstOrThrow({ where: { category: "BRONZE", edition: "STANDARD" } });
+    const old = await db.cardTemplate.create({ data: { playerId: tpl.playerId, category: "GOLD", edition: "STANDARD", maxSupply: 500, active: false } });
+    const ids = (await db.cardInstance.findMany({ where: { templateId: tpl.id } })).map((c) => c.id);
+    await applyMarketValues([{ playerId: tpl.playerId, valueGbp: 30_000_000, source: "test", at: new Date() }]);
+    const moved = await db.cardInstance.findMany({ where: { id: { in: ids } } });
+    expect(moved.every((c) => c.templateId === old.id)).toBe(true);
+    expect(new Set(moved.map((c) => c.serial)).size).toBe(ids.length);
+    expect((await db.cardTemplate.findUniqueOrThrow({ where: { id: old.id } })).active).toBe(true);
   });
 });
 

@@ -169,7 +169,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
                                 {slot.upgrades.map((u) => ` · ${(u.chanceBp / 100).toFixed(u.chanceBp % 100 ? 1 : 0)}% chance each of ${u.category.toLowerCase()}`).join("")}
                               </li>
                             ))}
-                            <li className="text-[#8fe3ff]">◆ Every Gold has a 1 in {diamondOneIn.toLocaleString("en-GB")} chance of being a Diamond (looks special, plays the same; only 5 per player, ever).</li>
+                            <li className="text-[#8fe3ff]">◆ Every Gold has a 1 in {diamondOneIn.toLocaleString("en-GB")} ({(100 / diamondOneIn).toLocaleString("en-GB", { maximumSignificantDigits: 2 })}%) chance of being a Diamond (looks special, plays the same; only 5 per player, ever).</li>
                             <li className="pt-1 text-faint">Every slot is rolled independently by a secure random generator at the moment you open the pack, then a player is drawn at random from all eligible cards. Nobody at MATCHX picks or builds packs. Pack version v{s.version}.</li>
                           </ul>
                         </details>

@@ -27,7 +27,7 @@ export default async function DropsPage() {
       <PageHeader
         eyebrow="Released by MATCHX"
         title="Player drops"
-        intro="New players released by MATCHX every day. One copy each, never found in packs. You pay the price shown, with no fees, using any MX. First come, first served: once a drop is live it stays on sale until someone signs them."
+        intro="New players released by MATCHX every day. One copy each, never found in packs. You pay the price shown, with no fees, using any MX. First come, first served: once a drop is live it stays on sale until someone signs them. Any Gold you sign could turn out to be a ◆ Diamond."
       >
         {next && (
           <span className="rounded-xl border border-accent/40 bg-ink-900 px-3 py-2 text-sm">

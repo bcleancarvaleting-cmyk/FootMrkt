@@ -1,6 +1,6 @@
 import { Prisma, type CardCategory, type EntitlementSource } from "@/generated/prisma/client";
 import { CARD_INCLUDE } from "./views";
-import { DIAMONDS_PER_PLAYER } from "@/config/tiers";
+import { rollDiamond } from "./diamonds";
 import { getSetting } from "./settings";
 import { type PlannedSlot, honoursGuarantees, planPack } from "@/domain/packs/compose";
 import { type PackConfig, type SlotFilters, parsePackConfig } from "@/domain/packs/config";
@@ -69,17 +69,6 @@ interface DrawAudit {
   cardId: string;
   /** Diamond serial (1–5) if this Gold came out as a Diamond. */
   diamond?: number | null;
-}
-
-/**
- * Give this card the next Diamond serial for its player, if any are left. Returns the serial, or
- * null when all 5 are out (or another opening took the last one at the same moment).
- */
-async function claimDiamond(tx: Tx, playerId: string, cardId: string): Promise<number | null> {
-  const taken = await tx.diamondCard.count({ where: { playerId } });
-  if (taken >= DIAMONDS_PER_PLAYER) return null;
-  const made = await tx.diamondCard.createMany({ data: [{ playerId, cardId, serial: taken + 1 }], skipDuplicates: true });
-  return made.count === 1 ? taken + 1 : null;
 }
 
 export interface OpenPackResult {
@@ -151,8 +140,7 @@ export async function openPack(
     // Diamonds left. Purely cosmetic — the card is otherwise the same Gold.
     for (const d of draws) {
       if (d.issued !== "GOLD") continue;
-      if (audited.withPurpose("diamond").int(diamondOneIn) !== 0) continue;
-      d.diamond = await claimDiamond(tx, d.playerId, d.cardId);
+      d.diamond = await rollDiamond(tx, audited.withPurpose("diamond"), diamondOneIn, d);
     }
 
     const opening = await tx.packOpening.create({

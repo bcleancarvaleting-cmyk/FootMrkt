@@ -49,7 +49,7 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
   const tier = diamond ? "diamond" : card.category.toLowerCase();
   return (
     <div
-      className={`card-premium theme-dark relative ${w} aspect-[5/7] ${card.loan?.ended ? "loan-ended" : ""} select-none overflow-hidden rounded-[18px] p-[3px] foil-${tier} ${
+      className={`card-premium theme-dark relative ${w} aspect-[5/7] ${card.loan?.ended ? "loan-ended" : ""} select-none overflow-hidden rounded-[18px] ${diamond ? "p-[6px]" : "p-[3px]"} foil-${tier} ${
         diamond
           ? "is-gold shadow-[0_10px_44px_-10px_rgba(143,227,255,0.85)]"
           : card.category === "GOLD" && !card.loan?.ended

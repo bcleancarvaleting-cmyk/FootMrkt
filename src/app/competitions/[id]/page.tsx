@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ManagerBadge } from "@/components/club-crest";
 import { FoundingBadge } from "@/components/founding-badge";
 import { type Requirements, requirementsSummary } from "@/server/competitions";
 import { fmtMp } from "@/server/wallet";
@@ -70,9 +71,15 @@ export default async function CompetitionPage({ params }: { params: Promise<{ id
           {board.map((r) => (
             <div key={r.entryId} className={`flex items-center gap-4 px-4 py-2.5 text-sm ${r.userId === user.id ? "bg-lime/5" : ""}`}>
               <span className="w-8 font-mono text-faint">{comp.status === "OPEN" ? "–" : `#${r.rank}`}</span>
-              <span className="flex-1 font-semibold">
-                {r.displayName} <FoundingBadge number={r.foundingNumber} compact />
-                {r.userId === user.id && <span className="ml-2 text-xs text-lime">you</span>}
+              <span className="flex w-7 shrink-0 justify-center">
+                <ManagerBadge crest={r.crest} name={r.displayName} id={`lb-${r.entryId}`} size={28} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-semibold">
+                  {r.displayName} <FoundingBadge number={r.foundingNumber} compact />
+                  {r.userId === user.id && <span className="ml-2 text-xs text-lime">you</span>}
+                </span>
+                {r.clubName && <span className="block truncate text-xs text-faint">{r.clubName}</span>}
               </span>
               {r.prizeMinor > 0 && <span className="font-bold text-lime">£{(r.prizeMinor / 100).toFixed(2)}</span>}
               <span className="font-bold">{comp.status === "OPEN" ? "" : `${r.points} pts`}</span>

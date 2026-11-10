@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ClubCrest } from "@/components/club-crest";
 import { notFound } from "next/navigation";
 import { PlayerCard } from "@/components/player-card";
 import { packHeadline, publicOpening } from "@/server/share";
@@ -18,8 +19,12 @@ export default async function SharePage({ params }: { params: Promise<{ id: stri
   if (!o) notFound();
   return (
     <div className="space-y-8 py-6 text-center">
-      <div>
-        <p className="eyebrow">{o.pack}</p>
+      <div className="flex flex-col items-center gap-3">
+        {o.crest && <ClubCrest crest={o.crest} id="share" size={72} title={o.clubName ?? `${o.manager}'s club`} />}
+        <p className="eyebrow">
+          {o.clubName ? `${o.clubName} · ` : ""}
+          {o.pack}
+        </p>
         <h1 className="mt-1 text-5xl leading-none">
           {o.manager} pulled <span className="text-lime">{packHeadline(o.cards)}</span>
         </h1>

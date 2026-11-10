@@ -19,7 +19,8 @@ export const ReleasePlanSchema = z
   .strict();
 export type ReleasePlan = z.infer<typeof ReleasePlanSchema>;
 
-export const DEFAULT_WEEKLY_PLAN: ReleasePlan = { perTemplate: { BRONZE: 6, SILVER: 3, GOLD: 1 }, overrides: {} };
+// Doubled 10 Nov 2026 (was 6 / 3 / 1), in line with the doubled supply caps.
+export const DEFAULT_WEEKLY_PLAN: ReleasePlan = { perTemplate: { BRONZE: 12, SILVER: 6, GOLD: 2 }, overrides: {} };
 const WEEK_MS = 7 * 24 * 3600_000;
 
 export async function scheduleRelease(sportId: string, scheduledFor: Date, plan: ReleasePlan, actorId: string | null) {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { toCrest } from "@/lib/crest";
 import { assertLoansUsable } from "./loans";
 import { getRosterRules } from "@/domain/football/rules";
 import { type SquadCard, type SquadIssue, validateSquad } from "@/domain/football/squad";
@@ -305,7 +306,7 @@ export async function leaderboard(competitionId: string, limit = 100) {
   const settled = comp.status === "SETTLED";
   const entries = await db.competitionEntry.findMany({
     where: { competitionId, status: "ACTIVE" },
-    include: { user: { select: { displayName: true, foundingNumber: true } } },
+    include: { user: { select: { displayName: true, foundingNumber: true, clubName: true, crest: true } } },
     orderBy: settled ? [{ rank: "asc" }] : [{ provisionalPoints: { sort: "desc", nulls: "last" } }, { createdAt: "asc" }],
     take: limit,
   });
@@ -319,6 +320,8 @@ export async function leaderboard(competitionId: string, limit = 100) {
       userId: e.userId,
       displayName: e.user.displayName,
       foundingNumber: e.user.foundingNumber,
+      clubName: e.user.clubName,
+      crest: toCrest(e.user.crest),
       points: pts ?? 0,
       rank: settled ? e.rank ?? i + 1 : rank,
       final: settled,

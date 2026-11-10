@@ -26,12 +26,14 @@ export async function registerAction(_: ActionResult | null, form: FormData): Pr
       displayName: String(form.get("displayName") ?? ""),
       ref: String(form.get("ref") ?? "") || undefined,
       favouriteClub: String(form.get("favouriteClub") ?? "") || undefined,
+      clubName: String(form.get("clubName") ?? "").trim() || undefined,
     }),
   );
   if (!res.ok) return res;
   await startSession(res.data.user.id);
   await sendEmail("welcome", { userId: res.data.user.id, email: res.data.user.email }, { name: res.data.user.displayName, verifyUrl: `${APP_URL}/verify?token=${res.data.emailVerificationToken}` }, `welcome:${res.data.user.id}`);
-  redirect(`/packs?welcome=1`);
+  // Step 1: design the club crest, then on to the Starter Pack.
+  redirect(`/account/club/crest?welcome=1`);
 }
 
 export async function loginAction(_: ActionResult | null, form: FormData): Promise<ActionResult> {

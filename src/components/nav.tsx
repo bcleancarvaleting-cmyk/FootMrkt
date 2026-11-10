@@ -6,6 +6,7 @@ import { balancesFor, fmtMp } from "@/server/wallet";
 import { canModerate } from "@/server/moderation";
 import { TopNav } from "./bottom-nav";
 import { MobileMenu } from "./mobile-menu";
+import { ClubCrest } from "./club-crest";
 import { FoundingBadge } from "./founding-badge";
 import { type Theme, ThemeToggle } from "./theme-toggle";
 
@@ -52,7 +53,7 @@ export async function Header({ theme, unopenedPacks }: { theme: Theme; unopenedP
                 className="relative hidden h-9 w-9 items-center justify-center rounded-full bg-ink-800 font-display text-base font-extrabold uppercase text-fg ring-1 ring-ink-600 sm:flex"
                 aria-label={`${user.displayName} — My Account`}
               >
-                {user.displayName.slice(0, 1)}
+                {user.crest ? <ClubCrest crest={user.crest} id="header" size={28} title={user.clubName ?? "Club crest"} /> : user.displayName.slice(0, 1)}
                 {user.foundingNumber && <FoundingBadge number={user.foundingNumber} compact className="absolute -bottom-1 -right-1" />}
               </Link>
             </>

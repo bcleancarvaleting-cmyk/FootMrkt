@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
+import { ClubNameSchema, suggestedCrests } from "@/lib/crest";
 import { z } from "zod";
 import { db, withTx } from "../db";
 import { DomainError, isUniqueViolation } from "../errors";
@@ -19,6 +20,8 @@ export const RegisterSchema = z.object({
     .regex(/^[A-Za-z0-9_ .-]+$/, "Letters, numbers, spaces, . _ - only"),
   /** Manager name of whoever invited them (refer a friend). */
   ref: z.string().trim().max(24).optional(),
+  /** Name of the manager's own club (they design its crest straight after signing up). */
+  clubName: ClubNameSchema.optional(),
   /** Club code of the team they support, or "none". */
   favouriteClub: z.string().trim().max(10).optional(),
 });
@@ -63,6 +66,9 @@ export async function registerUser(input: z.input<typeof RegisterSchema>) {
           foundingNumber,
           referredById: referrer?.id,
           favouriteClubId: favourite?.id,
+          // A starting crest from the club name, so every club has one even before it's customised.
+          clubName: data.clubName,
+          crest: data.clubName ? suggestedCrests(data.clubName)[0] : undefined,
         },
       });
       const starter = await grantStarterPack(tx, user.id);

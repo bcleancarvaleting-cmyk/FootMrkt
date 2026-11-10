@@ -1,4 +1,5 @@
 import "server-only";
+import { toCrest } from "@/lib/crest";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
@@ -19,6 +20,8 @@ export const getCurrentUser = cache(async () => {
     displayName: user.displayName,
     role: user.role,
     foundingNumber: user.foundingNumber,
+    clubName: user.clubName,
+    crest: toCrest(user.crest),
     emailVerified: !!user.emailVerifiedAt,
     emailVerificationToken: user.emailVerificationToken,
     createdAt: user.createdAt,

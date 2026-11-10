@@ -17,6 +17,13 @@ export function RegisterForm({ referrer, clubs }: { referrer?: string; clubs: Ar
         <input className="input" id="displayName" name="displayName" required minLength={3} maxLength={24} autoComplete="nickname" />
       </div>
       <div>
+        <label className="label" htmlFor="clubName">
+          Your club&apos;s name
+        </label>
+        <input className="input" id="clubName" name="clubName" required minLength={3} maxLength={30} placeholder="e.g. Hackney Wanderers" />
+        <p className="mt-1 text-xs text-faint">Next you&apos;ll design its crest.</p>
+      </div>
+      <div>
         <label className="label" htmlFor="favouriteClub">
           Who do you support?
         </label>

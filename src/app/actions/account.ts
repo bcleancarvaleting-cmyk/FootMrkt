@@ -7,6 +7,7 @@ import { requireUser } from "@/server/auth/session";
 import { completeChallenge } from "@/server/challenges";
 import { db } from "@/server/db";
 import { claimDrop } from "@/server/drops";
+import { saveClub } from "@/server/club";
 import { discardLoan } from "@/server/loans";
 import { choosePick, isPick } from "@/server/picks";
 import { DomainError } from "@/server/errors";
@@ -126,6 +127,13 @@ export async function convertXpAction(_: ActionResult | null, form: FormData): P
   const res = await attempt(() => convertXp(user.id, Number(form.get("xp"))));
   revalidatePath("/", "layout");
   return res.ok ? { ok: true, data: undefined, message: `Swapped ${res.data.xpUsed} XP for ${fmtMp(res.data.mxMinor)}` } : res;
+}
+
+export async function saveClubAction(input: { clubName: string; crest: unknown }): Promise<ActionResult> {
+  const user = await requireUser();
+  const res = await attempt(() => saveClub(user.id, input));
+  revalidatePath("/", "layout");
+  return res.ok ? { ok: true, data: undefined, message: "Club saved" } : res;
 }
 
 export async function discardLoanAction(cardId: string): Promise<ActionResult> {

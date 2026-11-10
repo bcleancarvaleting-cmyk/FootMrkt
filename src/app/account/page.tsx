@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ClubCrest } from "@/components/club-crest";
 import { logoutAction } from "@/app/actions/auth";
 import { respondInviteAction } from "@/app/actions/moderation";
 import { ActionButton } from "@/components/action-button";
@@ -44,9 +45,17 @@ export default async function AccountPage() {
   return (
     <div className="space-y-8">
       <section className="flex flex-wrap items-center gap-5">
-        <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent font-display text-3xl font-extrabold uppercase italic text-accent-ink">{user.displayName.slice(0, 1)}</span>
+        <Link href="/account/club/crest" className="group relative flex flex-col items-center" title="Edit club name & crest">
+          {user.crest ? (
+            <ClubCrest crest={user.crest} id="account" size={64} title={user.clubName ?? "Club crest"} />
+          ) : (
+            <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent font-display text-3xl font-extrabold uppercase italic text-accent-ink">{user.displayName.slice(0, 1)}</span>
+          )}
+          <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-lime group-hover:underline">{user.crest ? "Edit crest" : "Add crest"}</span>
+        </Link>
         <div className="min-w-0 flex-1">
           <h1 className="text-4xl leading-none sm:text-5xl">{user.displayName}</h1>
+          {user.clubName && <p className="mt-1 font-display text-xl font-bold uppercase italic text-muted">{user.clubName}</p>}
           {full.foundingNumber && (
             <p className="mt-2 flex items-center gap-2">
               <FoundingBadge number={full.foundingNumber} />

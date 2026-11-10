@@ -44,6 +44,9 @@ model User {
   email                    String     @unique
   passwordHash             String
   displayName              String     @unique
+  // The manager's own club: its name and a crest they design (shape, colours, pattern, emblem, initials).
+  clubName                 String?
+  crest                    Json?
   role                     UserRole   @default(USER)
   status                   UserStatus @default(ACTIVE)
   emailVerifiedAt          DateTime?

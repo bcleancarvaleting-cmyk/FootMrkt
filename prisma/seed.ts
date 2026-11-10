@@ -166,7 +166,7 @@ async function main() {
 
   // First weekly release (the next is auto-scheduled a week later).
   const now = Date.now();
-  const release = await scheduleRelease(sport.id, new Date(now - 28 * DAY), { perTemplate: { BRONZE: 4, SILVER: 4, GOLD: 3 }, overrides: {} }, null);
+  const release = await scheduleRelease(sport.id, new Date(now - 28 * DAY), { perTemplate: { BRONZE: 8, SILVER: 8, GOLD: 6 }, overrides: {} }, null);
   const r = await executeRelease(release.id, null);
   console.log(`Initial supply release minted ${r.minted} cards`, r.byCategory ?? "");
   await revalueAll(new Date(now - 28 * DAY));

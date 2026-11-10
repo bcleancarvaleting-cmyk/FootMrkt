@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ClubCrest } from "@/components/club-crest";
 import { CardRow, RowStat } from "@/components/card-row";
 import { discardLoanAction } from "@/app/actions/account";
 import { ActionButton } from "@/components/action-button";
@@ -41,16 +42,32 @@ export default async function MyClubPage({ searchParams }: { searchParams: Promi
   return (
     <div>
       <EndedLoansBanner userId={user.id} />
+      {!user.crest && (
+        <Link href="/account/club/crest" className="drop-glow mb-5 flex items-center gap-3 rounded-2xl border border-accent/60 bg-ink-900 px-4 py-3">
+          <span className="flex-1 text-sm">
+            <b>Create your club:</b> give it a name and design your own crest.
+          </span>
+          <span className="text-sm font-bold text-lime">Design crest →</span>
+        </Link>
+      )}
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-        <div>
+        <div className="flex items-center gap-4">
+          {user.crest && (
+            <Link href="/account/club/crest" title="Edit club name & crest" className="shrink-0">
+              <ClubCrest crest={user.crest} id="myclub" size={64} title={user.clubName ?? "Club crest"} />
+            </Link>
+          )}
+          <div className="min-w-0">
           <p className="eyebrow">Squad</p>
-          <h1 className="mt-1 text-4xl leading-none sm:text-5xl">My Club</h1>
+          <h1 className="mt-1 text-4xl leading-none sm:text-5xl">{user.clubName ?? "My Club"}</h1>
           <p className="mt-2 text-sm text-muted">
             {totals.total} cards · <span className="text-gold">{totals.byCategory.GOLD} Gold</span> · <span className="text-silver">{totals.byCategory.SILVER} Silver</span> ·{" "}
             <span className="text-bronze">{totals.byCategory.BRONZE} Bronze</span> · squad value <b className="text-fg">{squadValue} MX</b>
           </p>
+          </div>
         </div>
         <div className="flex gap-2">
+          <Link href="/account/club/crest" className="btn-ghost px-4 py-2 text-xs">{user.crest ? "Edit crest" : "Create crest"}</Link>
           <Link href="/account/challenges" className="btn-ghost px-4 py-2 text-xs">Challenges</Link>
           <Link href="/packs" className="btn-primary px-4 py-2 text-xs">Open packs</Link>
         </div>

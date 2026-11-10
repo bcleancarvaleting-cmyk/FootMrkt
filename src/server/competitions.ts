@@ -46,6 +46,8 @@ export const SquadSubmissionSchema = z.object({
   formation: z.string().max(10),
   starters: z.array(z.object({ cardId: z.string().uuid(), position: z.enum(POSITIONS) })).max(11),
   bench: z.array(z.string().uuid()).max(11),
+  /** Card id of the captain (must be a starter): double points, up or down. */
+  captain: z.string().uuid().optional(),
 });
 
 export class SquadInvalidError extends DomainError {
@@ -106,6 +108,9 @@ export async function submitEntry(userId: string, competitionId: string, input: 
     }
     const issues = [...unavailable, ...validateSquad(rules, comp.format as never, submission, cards).filter((i) => !(i.code === "UNKNOWN_CARD" && unavailable.some((u) => u.cardId === i.cardId)))];
     issues.push(...(await checkRequirements(tx, comp.requirements, rows, submission.starters.map((x) => x.cardId))));
+    if (submission.captain && !submission.starters.some((s) => s.cardId === submission.captain)) {
+      issues.push({ code: "UNKNOWN_CARD", message: "Your captain must be one of your starting seven", cardId: submission.captain });
+    }
     if (issues.length) throw new SquadInvalidError(issues);
 
     if (!existing) await rewardReferrer(tx, userId);
@@ -136,6 +141,7 @@ export async function submitEntry(userId: string, competitionId: string, input: 
           slot: "STARTER" as const,
           position: s.position,
           order: i + 1,
+          isCaptain: s.cardId === submission.captain,
         })),
         ...submission.bench.map((cardId, i) => ({
           entryId: entry.id,

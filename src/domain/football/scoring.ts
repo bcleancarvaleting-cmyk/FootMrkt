@@ -189,6 +189,8 @@ export interface ScoringSelection {
   position: Position;
   slot: "STARTER" | "BENCH";
   order: number;
+  /** Captain: points count double, positive or negative, if they play. */
+  captain?: boolean;
 }
 
 export interface PlayerGameweekData {
@@ -205,6 +207,7 @@ export interface SelectionResult {
   appearance: AppearanceStatus;
   counted: boolean;
   points: number;
+  captain?: boolean;
   items: ScoreItem[];
   subbedOffFor?: string; // cardId of replacement
   subbedOnFor?: string; // cardId of starter replaced
@@ -259,11 +262,14 @@ export function scoreSquad(
 
   const results: SelectionResult[] = selections.map((s) => {
     const d = get(s.playerId);
-    const { points, items } = scorePlayer(
+    const base = scorePlayer(
       scoring,
       s.position,
       d.lines.map((l) => l.line),
     );
+    const captainCounts = !!s.captain && s.slot === "STARTER" && d.appearance === "PLAYED";
+    const points = captainCounts ? base.points * 2 : base.points;
+    const items = base.items;
     return {
       cardId: s.cardId,
       playerId: s.playerId,
@@ -273,6 +279,7 @@ export function scoreSquad(
       appearance: d.appearance,
       counted: active.has(s.cardId) && d.appearance !== "DID_NOT_PLAY",
       points,
+      captain: captainCounts || undefined,
       items,
       subbedOffFor: subbedOff.get(s.cardId),
       subbedOnFor: subbedOn.get(s.cardId),

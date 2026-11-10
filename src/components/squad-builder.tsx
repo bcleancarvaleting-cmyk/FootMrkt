@@ -48,7 +48,7 @@ export function SquadBuilder({
   formations: Formation[];
   allowedCategories: string[];
   cards: BuilderCard[];
-  initial: { formation: string; starters: Array<{ cardId: string; position: Pos }>; bench: string[] } | null;
+  initial: { formation: string; starters: Array<{ cardId: string; position: Pos }>; bench: string[]; captain?: string | null } | null;
   hasEntry: boolean;
 }) {
   const byId = useMemo(() => new Map(cards.map((c) => [c.id, c])), [cards]);
@@ -63,6 +63,7 @@ export function SquadBuilder({
     return a;
   });
   const [selected, setSelected] = useState<SlotKey | null>(null);
+  const [captain, setCaptain] = useState<string | null>(initial?.captain ?? null);
   const [pending, start] = useTransition();
   const [result, setResult] = useState<ActionResult<unknown> | null>(null);
 
@@ -153,7 +154,8 @@ export function SquadBuilder({
   function save() {
     const starters = slots.filter((s) => assign[s.key]).map((s) => ({ cardId: assign[s.key], position: s.pos }));
     const bench = benchSlots.map((k) => assign[k]).filter(Boolean);
-    start(async () => setResult(await submitEntryAction(competitionId, { formation: formationId, starters, bench })));
+    const cap = captain && starters.some((s) => s.cardId === captain) ? captain : undefined;
+    start(async () => setResult(await submitEntryAction(competitionId, { formation: formationId, starters, bench, captain: cap })));
   }
 
   const selectedPos: Pos | null = selected ? (selected.startsWith("B-") ? null : (selected.split("-")[0] as Pos)) : null;
@@ -200,19 +202,44 @@ export function SquadBuilder({
                 {slots
                   .filter((s) => s.pos === pos)
                   .map((s) => (
-                    <PitchSlot
-                      key={s.key}
-                      label={pos}
-                      card={assign[s.key] ? byId.get(assign[s.key]) : undefined}
-                      selected={selected === s.key}
-                      onSelect={() => setSelected(selected === s.key ? null : s.key)}
-                      onClear={() => clear(s.key)}
-                    />
+                    <div key={s.key} className="relative">
+                      <PitchSlot
+                        label={pos}
+                        card={assign[s.key] ? byId.get(assign[s.key]) : undefined}
+                        selected={selected === s.key}
+                        onSelect={() => setSelected(selected === s.key ? null : s.key)}
+                        onClear={() => clear(s.key)}
+                      />
+                      {assign[s.key] && (
+                        <button
+                          type="button"
+                          onClick={() => setCaptain(captain === assign[s.key] ? null : assign[s.key])}
+                          aria-pressed={captain === assign[s.key]}
+                          aria-label={captain === assign[s.key] ? "Remove captain" : "Make captain"}
+                          title="Captain: double points, up or down"
+                          className={`absolute -left-2 -top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border text-[11px] font-extrabold ${
+                            captain === assign[s.key] ? "border-accent bg-accent text-accent-ink" : "border-white/30 bg-black/60 text-white/70 hover:text-white"
+                          }`}
+                        >
+                          C
+                        </button>
+                      )}
+                    </div>
                   ))}
               </div>
             ))}
           </div>
         </div>
+
+        <p className="text-sm text-muted">
+          {captain && byId.get(captain) ? (
+            <>
+              Captain: <b className="text-lime">{byId.get(captain)!.name}</b> — double points, up or down (a red card counts double too).
+            </>
+          ) : (
+            <>Tap <b className="text-fg">C</b> on a starter to make them captain: their points count double, up or down.</>
+          )}
+        </p>
 
         <div className="panel p-4">
           <div className="mb-2 flex items-center justify-between">

@@ -122,3 +122,25 @@ describe("scoreSquad automatic substitutions (§6.3)", () => {
 
   void played;
 });
+
+describe("captain", () => {
+  it("doubles the captain's points, positive or negative, only if they play", async () => {
+    const { scoreSquad, getScoringRules } = await import("@/domain/football/scoring");
+    const { getRosterRules } = await import("@/domain/football/rules");
+    const roster = getRosterRules("football-roster-v3");
+    const scoring = getScoringRules("football-scoring-v2-draft");
+    const sel = (id: string, position: "GK" | "DEF" | "MID" | "ATT", order: number, captain = false) => ({ cardId: id, playerId: id, position, slot: "STARTER" as const, order, captain });
+    const squad = [sel("gk", "GK", 1), sel("d1", "DEF", 2), sel("d2", "DEF", 3), sel("m1", "MID", 4), sel("m2", "MID", 5), sel("a1", "ATT", 6, true), sel("a2", "ATT", 7)];
+    const line = (o: Record<string, unknown>) => ({ appearance: "PLAYED" as const, lines: [{ statId: Math.random().toString(), line: { minutes: 90, goals: 0, assists: 0, cleanSheet: false, goalsConceded: 0, saves: 0, yellowCards: 0, redCards: 0, ownGoals: 0, penaltiesMissed: 0, penaltiesSaved: 0, ...o } }] });
+    const base = new Map(squad.map((s) => [s.playerId, line({})]));
+    const plain = scoreSquad(scoring, roster, squad.map((s) => ({ ...s, captain: false })), new Map([...base, ["a1", line({ goals: 1 })]]) as never);
+    const capped = scoreSquad(scoring, roster, squad, new Map([...base, ["a1", line({ goals: 1 })]]) as never);
+    const a1 = (r: typeof plain) => r.selections.find((x) => x.cardId === "a1")!.points;
+    expect(a1(capped)).toBe(a1(plain) * 2);
+    expect(capped.total - plain.total).toBe(a1(plain));
+    const red = scoreSquad(scoring, roster, squad, new Map([...base, ["a1", line({ minutes: 20, redCards: 1 })]]) as never);
+    const redPlain = scoreSquad(scoring, roster, squad.map((s) => ({ ...s, captain: false })), new Map([...base, ["a1", line({ minutes: 20, redCards: 1 })]]) as never);
+    expect(a1(red)).toBe(a1(redPlain) * 2);
+    expect(a1(redPlain)).toBeLessThan(0);
+  });
+});

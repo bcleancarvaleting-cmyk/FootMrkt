@@ -58,7 +58,7 @@ export async function scoreEntry(tx: Tx | typeof db, entryId: string): Promise<S
   return scoreSquad(
     getScoringRules(entry.competition.scoringRules),
     getRosterRules(entry.competition.rosterRules),
-    entry.selections.map((s) => ({ cardId: s.cardId, playerId: s.playerId, position: s.position, slot: s.slot, order: s.order })),
+    entry.selections.map((s) => ({ cardId: s.cardId, playerId: s.playerId, position: s.position, slot: s.slot, order: s.order, captain: s.isCaptain || undefined })),
     data,
   );
 }

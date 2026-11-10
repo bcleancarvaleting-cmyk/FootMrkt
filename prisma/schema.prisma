@@ -68,6 +68,14 @@ model User {
   foundingNumber           Int?       @unique
   // Who invited this manager (refer a friend). The referrer gets a free pack once they play.
   referredById             String?    @db.Uuid
+  // Favourite club, picked at sign-up (analytics: supporters per club).
+  favouriteClubId          String?    @db.Uuid
+  favouriteClub            Club?      @relation("Supporters", fields: [favouriteClubId], references: [id])
+  // "Take MatchX on the go": home-screen app install and notification permission.
+  appInstalledAt           DateTime?
+  appPlatform              String? // "ios" | "android" | "desktop"
+  notificationsEnabled     Boolean    @default(false)
+  notificationsUpdatedAt   DateTime?
   referredBy               User?      @relation("Referrals", fields: [referredById], references: [id])
   referrals                User[]     @relation("Referrals")
   createdAt                DateTime   @default(now())
@@ -165,6 +173,7 @@ model Club {
   sourceRef       String? // where the club record came from, e.g. "wikipedia:Arsenal F.C."
 
   players      Player[]
+  supporters   User[]    @relation("Supporters")
   homeFixtures Fixture[] @relation("HomeClub")
   awayFixtures Fixture[] @relation("AwayClub")
 }
@@ -698,16 +707,18 @@ enum SelectionSlot {
 }
 
 model CompetitionSelection {
-  id       String           @id @default(uuid()) @db.Uuid
-  entryId  String           @db.Uuid
-  entry    CompetitionEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  cardId   String           @db.Uuid
-  card     CardInstance     @relation(fields: [cardId], references: [id])
-  playerId String           @db.Uuid
-  player   Player           @relation(fields: [playerId], references: [id])
-  slot     SelectionSlot
-  position Position
-  order    Int // starters: pitch order; bench: 1..4 = Sub 1..Sub 4
+  id        String           @id @default(uuid()) @db.Uuid
+  entryId   String           @db.Uuid
+  entry     CompetitionEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  cardId    String           @db.Uuid
+  card      CardInstance     @relation(fields: [cardId], references: [id])
+  playerId  String           @db.Uuid
+  player    Player           @relation(fields: [playerId], references: [id])
+  slot      SelectionSlot
+  position  Position
+  order     Int // starters: pitch order; bench: 1..4 = Sub 1..Sub 4
+  // Captain: this player's points count double (up or down). One per entry, starters only.
+  isCaptain Boolean          @default(false)
 
   @@unique([entryId, cardId])
   @@unique([entryId, slot, order])
@@ -1080,4 +1091,12 @@ model WelcomeGift {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Admin-editable settings (e.g. XP-to-MX rate). Changes are audited.
+model AppSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+  updatedBy String?  @db.Uuid
 }

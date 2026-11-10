@@ -43,6 +43,7 @@ export interface ListingRow {
   seller: string;
   sellerId: string | null;
   house: boolean;
+  sellerFounding: number | null;
   expiresAt: Date;
   avgMinor: number | null;
   sales: number;
@@ -62,7 +63,7 @@ export async function transferBoard(f: BoardFilters, viewerId: string | null, ta
     where: { status: "ACTIVE", expiresAt: { gt: new Date() }, card: { template: { category: f.tier, player } } },
     include: {
       card: { include: CARD_INCLUDE },
-      seller: { select: { displayName: true } },
+      seller: { select: { displayName: true, foundingNumber: true } },
       offers: { where: { status: "PENDING" }, select: { id: true, amountMinor: true, buyerId: true } },
     },
     orderBy,
@@ -74,7 +75,7 @@ export async function transferBoard(f: BoardFilters, viewerId: string | null, ta
 async function buildRows(
   listings: Array<
     Prisma.MarketListingGetPayload<{ include: { card: { include: typeof CARD_INCLUDE } } }> & {
-      seller: { displayName: string } | null;
+      seller: { displayName: string; foundingNumber?: number | null } | null;
       offers: Array<{ id: string; amountMinor: number; buyerId: string }>;
     }
   >,
@@ -92,6 +93,7 @@ async function buildRows(
       seller: l.seller?.displayName ?? "MATCHX",
       sellerId: l.sellerId,
       house: l.house,
+      sellerFounding: l.seller?.foundingNumber ?? null,
       expiresAt: l.expiresAt,
       avgMinor: avgs.get(k)?.avgMinor ?? null,
       sales: avgs.get(k)?.sales ?? 0,

@@ -3,6 +3,7 @@ import { buyNowAction, cancelListingAction } from "@/app/actions/transfers";
 import { ActionButton } from "@/components/action-button";
 import { CardRow, RowStat, Sparkline } from "@/components/card-row";
 import { EmptyState, GateNotice, PageHeader } from "@/components/page-header";
+import { FoundingBadge } from "@/components/founding-badge";
 import { OfferButton } from "@/components/transfer-forms";
 import type { CardCategory, Position } from "@/generated/prisma/client";
 import { requireUser } from "@/server/auth/session";
@@ -113,7 +114,7 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
                   r.house ? (
                     <span className="ml-1 rounded bg-accent px-1.5 text-[10px] font-extrabold uppercase tracking-wider text-accent-ink">MATCHX</span>
                   ) : (
-                    <span className="truncate text-faint">· by <span className="text-muted">{r.seller}</span></span>
+                    <span className="flex min-w-0 items-center gap-1 truncate text-faint">· by <span className="text-muted">{r.seller}</span><FoundingBadge number={r.sellerFounding} compact /></span>
                   )
                 }
               >

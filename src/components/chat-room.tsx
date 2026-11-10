@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { FoundingBadge } from "./founding-badge";
 import { removeChatAction, reportChatAction, sendChatAction } from "@/app/actions/chat";
 import type { ChatMessageView } from "@/server/chat";
 
@@ -113,6 +114,7 @@ export function ChatRoom({
               <div className={`min-w-0 max-w-[78%] ${mine ? "items-end" : ""}`}>
                 <div className={`flex items-baseline gap-2 text-xs ${mine ? "justify-end" : ""}`}>
                   <b className="text-fg">{m.displayName}</b>
+                  <FoundingBadge number={m.foundingNumber} compact className="ml-1" />
                   {m.isMod && <span className="rounded-full bg-gold/15 px-1.5 text-[9px] font-extrabold uppercase tracking-wider text-gold">Mod</span>}
                   <span className="text-faint">{time(m.createdAt)}</span>
                 </div>

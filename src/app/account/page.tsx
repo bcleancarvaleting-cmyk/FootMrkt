@@ -2,6 +2,7 @@ import Link from "next/link";
 import { logoutAction } from "@/app/actions/auth";
 import { respondInviteAction } from "@/app/actions/moderation";
 import { ActionButton } from "@/components/action-button";
+import { FoundingBadge } from "@/components/founding-badge";
 import { requireUser } from "@/server/auth/session";
 import { binderTotals } from "@/server/binder";
 import { db } from "@/server/db";
@@ -32,6 +33,12 @@ export default async function AccountPage() {
         <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent font-display text-3xl font-extrabold uppercase italic text-accent-ink">{user.displayName.slice(0, 1)}</span>
         <div className="min-w-0 flex-1">
           <h1 className="text-4xl leading-none sm:text-5xl">{user.displayName}</h1>
+          {full.foundingNumber && (
+            <p className="mt-2 flex items-center gap-2">
+              <FoundingBadge number={full.foundingNumber} />
+              <span className="text-xs font-semibold text-muted">#{full.foundingNumber}</span>
+            </p>
+          )}
           <p className="mt-1 text-sm text-muted">
             {full.fullName ?? "Add your name in Profile"} · Manager since {fmtDate(full.createdAt, { month: "long", year: "numeric" })}
             {user.role !== "USER" && <span className="ml-2 tag text-lime">{user.role.toLowerCase()}</span>}

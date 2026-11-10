@@ -34,6 +34,12 @@ export const FLAG_DEFINITIONS = {
     legalGate: true,
     description: "Charge MP entry fees for matches with prizes. Needs legal sign-off (prize competitions / pool betting).",
   },
+  FOUNDING_SIGNUPS: {
+    env: "FLAG_FOUNDING_SIGNUPS",
+    default: true,
+    legalGate: false,
+    description: "New sign-ups become Founding Members (badge kept forever). Switch off when the free trial ends.",
+  },
   DEV_TOOLS: {
     env: "FLAG_DEV_TOOLS",
     default: process.env.NODE_ENV !== "production",

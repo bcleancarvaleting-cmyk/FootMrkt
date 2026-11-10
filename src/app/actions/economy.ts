@@ -10,6 +10,7 @@ import { DomainError } from "@/server/errors";
 import { syncPackCatalogue } from "@/server/packs";
 import { cancelAuction, clearHouseListings, createAuction, stockHouseListings, stockLaunchMix, stockPinnedListings } from "@/server/transfers";
 import { addWelcomeGift, updateWelcomeGift } from "@/server/welcome";
+import { backfillFoundingMembers, wipeTeams } from "@/server/trial";
 import { processWithdrawal } from "@/server/wallet";
 import { type ActionResult, attempt } from "./result";
 
@@ -110,6 +111,7 @@ export async function competitionRulesAction(_: ActionResult | null, f: FormData
         leagues: list(f, "leagues"),
         maxPerClub: str(f, "maxPerClub") ? Number(str(f, "maxPerClub")) : undefined,
         maxSquadValueMp: str(f, "maxValue") ? Number(str(f, "maxValue")) : undefined,
+        foundersOnly: f.get("foundersOnly") === "on" ? true : undefined,
       },
       prizes: str(f, "prizes"),
     });
@@ -191,4 +193,20 @@ export async function launchMixAction(): Promise<ActionResult> {
   const res = await attempt(() => stockLaunchMix(admin.id));
   done();
   return res.ok ? { ok: true, data: undefined, message: `${res.data.total} cards listed${res.data.missed.length ? ` · not listed: ${res.data.missed.join(", ")}` : ""}` } : res;
+}
+
+export async function backfillFoundersAction(): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const res = await attempt(() => backfillFoundingMembers(admin.id));
+  done();
+  return res.ok ? { ok: true, data: undefined, message: `${res.data} manager(s) made Founding Members` } : res;
+}
+
+export async function wipeTeamsAction(_: ActionResult | null, f: FormData): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const res = await attempt(() => wipeTeams(admin.id, { confirm: str(f, "confirm"), freshStarter: f.get("freshStarter") === "on", freshRelease: f.get("freshRelease") === "on" }));
+  done();
+  if (!res.ok) return res;
+  const s = res.data;
+  return { ok: true, data: undefined, message: `Teams wiped: ${s.cardsRetired} cards retired · ${s.listingsClosed} listings closed · ${s.entriesWithdrawn} entries withdrawn · ${s.mpReset} MP balances reset · ${s.starters} new Starter Packs · ${s.minted} cards minted` };
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/server/auth/session";
 import { balancesFor, fmtMp } from "@/server/wallet";
 import { TopNav } from "./bottom-nav";
+import { FoundingBadge } from "./founding-badge";
 import { type Theme, ThemeToggle } from "./theme-toggle";
 
 export function Logo({ height = 26 }: { height?: number }) {
@@ -42,10 +43,11 @@ export async function Header({ theme, unopenedPacks }: { theme: Theme; unopenedP
               </Link>
               <Link
                 href="/account"
-                className="hidden h-9 w-9 items-center justify-center rounded-full bg-ink-800 font-display text-base font-extrabold uppercase text-fg ring-1 ring-ink-600 sm:flex"
+                className="relative hidden h-9 w-9 items-center justify-center rounded-full bg-ink-800 font-display text-base font-extrabold uppercase text-fg ring-1 ring-ink-600 sm:flex"
                 aria-label={`${user.displayName} — My Account`}
               >
                 {user.displayName.slice(0, 1)}
+                {user.foundingNumber && <FoundingBadge number={user.foundingNumber} compact className="absolute -bottom-1 -right-1" />}
               </Link>
             </>
           ) : (

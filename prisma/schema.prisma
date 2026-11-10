@@ -64,6 +64,8 @@ model User {
   fundsRiskAcceptedAt      DateTime? // accepted the "values go up and down" warning before adding funds
   kycStatus                KycStatus  @default(NONE)
   depositLimitMonthlyMinor Int? // self-set responsible-play limit (MP hundredths = pence)
+  // Founding member number (1, 2, 3…) for everyone who joined during the free trial. Kept forever.
+  foundingNumber           Int?       @unique
   createdAt                DateTime   @default(now())
   updatedAt                DateTime   @updatedAt
 

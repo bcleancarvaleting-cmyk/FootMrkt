@@ -173,3 +173,50 @@ describe("winnings", () => {
     expect(() => parsePrizes("first=10")).toThrow();
   });
 });
+
+describe("free trial: founding members and the team wipe", () => {
+  it("sign-ups get sequential founding numbers while founding sign-ups are open, none after", async () => {
+    const a = await makeUser("founder1");
+    const b = await makeUser("founder2");
+    const nums = await db.user.findMany({ where: { id: { in: [a.userId, b.userId] } }, select: { foundingNumber: true } });
+    expect(nums.map((n) => n.foundingNumber).sort()).toEqual([1, 2]);
+    process.env.FLAG_FOUNDING_SIGNUPS = "false";
+    const c = await makeUser("latecomer");
+    expect((await db.user.findUniqueOrThrow({ where: { id: c.userId } })).foundingNumber).toBeNull();
+  });
+
+  it("founders-only matches reject everyone else", async () => {
+    const { updateCompetitionRules: rules, submitEntry: enter } = await import("@/server/competitions");
+    process.env.FLAG_FOUNDING_SIGNUPS = "false";
+    const admin = await makeUser("adm7");
+    const { userId } = await makeUser("nonfounder");
+    const sport = await db.sport.findFirstOrThrow();
+    const gw = await db.gameweek.create({ data: { sportId: sport.id, season: "f", number: 1, startsAt: new Date(), endsAt: new Date(Date.now() + 86_400_000), status: "OPEN" } });
+    const comp = await db.competition.create({ data: { sportId: sport.id, gameweekId: gw.id, code: "freeroll", name: "Founders Freeroll", format: "OPEN", rosterRules: "football-roster-v3", scoringRules: "football-scoring-v2-draft", entryOpensAt: new Date(), locksAt: new Date(Date.now() + 86_400_000), status: "OPEN" } });
+    await rules(admin.userId, comp.id, { entryFeeMinor: 0, requirements: { foundersOnly: true }, prizes: "1=10" });
+    await expect(enter(userId, comp.id, { formation: "2-2-2", starters: [], bench: [] })).rejects.toMatchObject({ code: "FOUNDERS_ONLY" });
+    expect((await db.competition.findUniqueOrThrow({ where: { id: comp.id } })).rewards).toEqual([{ rankFrom: 1, rankTo: 1, cashMinor: 1000 }]);
+  });
+
+  it("wiping teams clears cards, packs, listings and MP but keeps accounts, badges and £ winnings", async () => {
+    const { wipeTeams } = await import("@/server/trial");
+    const { creditWinnings } = await import("@/server/wallet");
+    const admin = await makeUser("adm8");
+    const { userId } = await makeUser("player8");
+    await bronzePack(userId, 1);
+    await withTx((tx) => credit(tx, { userId, amountMinor: 700, kind: "DEPOSIT", bucket: "CASH", refId: "w-c" }));
+    await withTx((tx) => credit(tx, { userId, amountMinor: 300, kind: "CHALLENGE_REWARD", refId: "w-b" }));
+    await withTx((tx) => creditWinnings(tx, { userId, amountMinor: 1000, refId: "w-w" }));
+    await expect(wipeTeams(admin.userId, { confirm: "nope", freshStarter: true, freshRelease: false })).rejects.toMatchObject({ code: "CONFIRM" });
+    const r = await wipeTeams(admin.userId, { confirm: "wipe teams", freshStarter: true, freshRelease: true });
+    expect(r.cardsRetired).toBeGreaterThan(0);
+    expect(await db.cardInstance.count({ where: { ownerId: userId } })).toBe(0);
+    expect(await balancesFor(userId)).toMatchObject({ total: 0, winnings: 1000 });
+    const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
+    expect(user.foundingNumber).not.toBeNull();
+    const packs = await db.packEntitlement.findMany({ where: { userId, status: "UNOPENED" }, include: { packSku: true } });
+    expect(packs.map((p) => p.packSku.code)).toEqual(["football-starter"]);
+    expect(r.minted).toBeGreaterThan(0);
+    expect((await supplyReport()).reconciled).toBe(true);
+  });
+});

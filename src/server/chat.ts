@@ -10,6 +10,7 @@ export interface ChatMessageView {
   room: string;
   userId: string;
   displayName: string;
+  foundingNumber: number | null;
   isMod: boolean;
   body: string | null; // null when removed / hidden
   createdAt: string;
@@ -33,7 +34,7 @@ export function cleanBody(raw: string): string {
 export async function listMessages(room: ChatRoomId, opts: { after?: Date; limit?: number } = {}): Promise<ChatMessageView[]> {
   const rows = await db.chatMessage.findMany({
     where: { room, ...(opts.after ? { createdAt: { gt: opts.after } } : {}) },
-    include: { user: { select: { displayName: true, role: true } }, _count: { select: { reports: { where: { resolvedAt: null } } } } },
+    include: { user: { select: { displayName: true, role: true, foundingNumber: true } }, _count: { select: { reports: { where: { resolvedAt: null } } } } },
     orderBy: { createdAt: opts.after ? "asc" : "desc" },
     take: opts.limit ?? 60,
   });
@@ -45,6 +46,7 @@ export async function listMessages(room: ChatRoomId, opts: { after?: Date; limit
       room: m.room,
       userId: m.userId,
       displayName: m.user.displayName,
+      foundingNumber: m.user.foundingNumber,
       isMod: canModerate(m.user.role),
       body: hidden ? null : m.body,
       createdAt: m.createdAt.toISOString(),

@@ -16,12 +16,15 @@ export const RequirementsSchema = z
     /** Max total MP value of the starting seven. */
     maxSquadValueMp: z.number().int().min(1).optional(),
     tiers: z.array(z.enum(["BRONZE", "SILVER", "GOLD"])).min(1).optional(),
+    /** Only Founding Members can enter (e.g. the founders' freeroll). */
+    foundersOnly: z.boolean().optional(),
   })
   .strict();
 export type Requirements = z.infer<typeof RequirementsSchema>;
 
 export function requirementsSummary(r: Requirements, format: string) {
   const bits: string[] = [];
+  if (r.foundersOnly) bits.push("Founding members only");
   if (format !== "OPEN") bits.push(`${format.split("_")[0][0]}${format.split("_")[0].slice(1).toLowerCase()} only`);
   if (r.tiers) bits.push(`${r.tiers.map((t) => t[0] + t.slice(1).toLowerCase()).join("/")} only`);
   if (r.leagues) bits.push(`${r.leagues.join("/")} players`);
@@ -58,6 +61,10 @@ export async function submitEntry(userId: string, competitionId: string, input: 
       throw new DomainError("LOCKED", "Entries for this competition are closed.");
     }
     const rules = getRosterRules(comp.rosterRules);
+    if (RequirementsSchema.safeParse(comp.requirements ?? {}).data?.foundersOnly) {
+      const u = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { foundingNumber: true } });
+      if (!u.foundingNumber) throw new DomainError("FOUNDERS_ONLY", "This match is for Founding Members only.");
+    }
     const existing = await tx.competitionEntry.findUnique({ where: { competitionId_userId: { competitionId, userId } } });
 
     const cardIds = [...submission.starters.map((s) => s.cardId), ...submission.bench];
@@ -247,7 +254,7 @@ export async function leaderboard(competitionId: string, limit = 100) {
   const settled = comp.status === "SETTLED";
   const entries = await db.competitionEntry.findMany({
     where: { competitionId, status: "ACTIVE" },
-    include: { user: { select: { displayName: true } } },
+    include: { user: { select: { displayName: true, foundingNumber: true } } },
     orderBy: settled ? [{ rank: "asc" }] : [{ provisionalPoints: { sort: "desc", nulls: "last" } }, { createdAt: "asc" }],
     take: limit,
   });
@@ -259,6 +266,7 @@ export async function leaderboard(competitionId: string, limit = 100) {
       entryId: e.id,
       userId: e.userId,
       displayName: e.user.displayName,
+      foundingNumber: e.user.foundingNumber,
       points: pts ?? 0,
       rank: settled ? e.rank ?? i + 1 : rank,
       final: settled,

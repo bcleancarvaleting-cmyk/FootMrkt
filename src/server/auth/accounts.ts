@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { z } from "zod";
 import { db, withTx } from "../db";
 import { DomainError, isUniqueViolation } from "../errors";
+import { isEnabled } from "../flags";
 import { grantStarterPack } from "../packs";
 import { hashPassword, verifyPassword } from "./password";
 
@@ -36,8 +37,16 @@ export async function registerUser(input: z.input<typeof RegisterSchema>) {
   const data = RegisterSchema.parse(input);
   const passwordHash = await hashPassword(data.password);
   const emailVerificationToken = randomBytes(24).toString("base64url");
+  const founding = await isEnabled("FOUNDING_SIGNUPS");
   try {
     return await withTx(async (tx) => {
+      // Founding members get the next number; an advisory lock stops two sign-ups taking the same one.
+      let foundingNumber: number | null = null;
+      if (founding) {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(4242)`;
+        const top = await tx.user.aggregate({ _max: { foundingNumber: true } });
+        foundingNumber = (top._max.foundingNumber ?? 0) + 1;
+      }
       const user = await tx.user.create({
         data: {
           email: data.email,
@@ -45,6 +54,7 @@ export async function registerUser(input: z.input<typeof RegisterSchema>) {
           passwordHash,
           emailVerificationToken,
           role: adminEmails().includes(data.email) ? "ADMIN" : "USER",
+          foundingNumber,
         },
       });
       const starter = await grantStarterPack(tx, user.id);

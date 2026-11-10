@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { addWelcomeGiftAction, competitionRulesAction, createAuctionAction, createChallengeAction, pinnedListingsAction, scheduleDropAction, stockHouseAction } from "@/app/actions/economy";
+import { addWelcomeGiftAction, wipeTeamsAction, competitionRulesAction, createAuctionAction, createChallengeAction, pinnedListingsAction, scheduleDropAction, stockHouseAction } from "@/app/actions/economy";
 import type { ActionResult } from "@/app/actions/result";
 import { ResultText } from "./action-button";
 
@@ -93,7 +93,7 @@ export function ChallengeForm({ packs }: { packs: Array<{ code: string; name: st
   );
 }
 
-export function MatchRulesForm({ id, fee, req, prizes }: { id: string; fee: number; req: { tiers?: string[]; leagues?: string[]; maxPerClub?: number; maxSquadValueMp?: number }; prizes: string }) {
+export function MatchRulesForm({ id, fee, req, prizes }: { id: string; fee: number; req: { tiers?: string[]; leagues?: string[]; maxPerClub?: number; maxSquadValueMp?: number; foundersOnly?: boolean }; prizes: string }) {
   return (
     <Form action={competitionRulesAction} submit="Save">
       <input type="hidden" name="competitionId" value={id} />
@@ -103,6 +103,9 @@ export function MatchRulesForm({ id, fee, req, prizes }: { id: string; fee: numb
       <I name="maxPerClub" label="Max per club" type="number" min="1" defaultValue={req.maxPerClub} />
       <I name="maxValue" label="Max starters value (MP)" type="number" min="1" defaultValue={req.maxSquadValueMp} />
       <I name="prizes" label="£ prizes (e.g. 1=10, 2-3=5)" placeholder="1=10, 2-3=5" defaultValue={prizes} />
+      <label className="flex items-center gap-2 self-end pb-2.5 text-sm">
+        <input type="checkbox" name="foundersOnly" defaultChecked={req.foundersOnly} className="accent-lime" /> Founding members only
+      </label>
     </Form>
   );
 }
@@ -154,5 +157,35 @@ export function PinnedListingsForm() {
       </div>
       <I name="days" label="Listed for (days)" type="number" min="1" max="30" defaultValue="14" />
     </Form>
+  );
+}
+
+export function WipeTeamsForm() {
+  const [state, run, pending] = useActionState(wipeTeamsAction, null);
+  return (
+    <form
+      action={run}
+      onSubmit={(e) => {
+        if (!window.confirm("Wipe every team? Cards, packs, listings and MP go for everyone. This can't be undone.")) e.preventDefault();
+      }}
+      className="space-y-3"
+    >
+      <div className="flex flex-wrap gap-4 text-sm">
+        <label className="flex items-center gap-2">
+          <input type="checkbox" name="freshStarter" defaultChecked className="accent-lime" /> Give everyone a new Starter Pack
+        </label>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" name="freshRelease" defaultChecked className="accent-lime" /> Mint a fresh card release
+        </label>
+      </div>
+      <div className="flex flex-wrap items-end gap-3">
+        <div>
+          <label className="label" htmlFor="f-confirm">Type WIPE TEAMS to confirm</label>
+          <input id="f-confirm" name="confirm" className="input w-56" autoComplete="off" required />
+        </div>
+        <button className="btn-danger" disabled={pending}>{pending ? "Wiping…" : "Wipe all teams"}</button>
+      </div>
+      {state && <ResultText result={state} />}
+    </form>
   );
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FoundingBadge } from "@/components/founding-badge";
 import { type Requirements, requirementsSummary } from "@/server/competitions";
 import { fmtMp } from "@/server/wallet";
 import { notFound } from "next/navigation";
@@ -70,7 +71,7 @@ export default async function CompetitionPage({ params }: { params: Promise<{ id
             <div key={r.entryId} className={`flex items-center gap-4 px-4 py-2.5 text-sm ${r.userId === user.id ? "bg-lime/5" : ""}`}>
               <span className="w-8 font-mono text-faint">{comp.status === "OPEN" ? "–" : `#${r.rank}`}</span>
               <span className="flex-1 font-semibold">
-                {r.displayName}
+                {r.displayName} <FoundingBadge number={r.foundingNumber} compact />
                 {r.userId === user.id && <span className="ml-2 text-xs text-lime">you</span>}
               </span>
               <span className="font-bold">{comp.status === "OPEN" ? "" : `${r.points} pts`}</span>

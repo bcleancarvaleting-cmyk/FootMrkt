@@ -186,7 +186,7 @@ export default async function AdminPage() {
         </section>
 
         <section className="panel p-5">
-          <h2 className="mb-3 text-lg font-bold">Feature flags</h2>
+          <h2 id="flags" className="mb-3 text-lg font-bold">Feature flags</h2>
           <div className="space-y-3">
             {(Object.keys(FLAG_DEFINITIONS) as FlagKey[]).map((k) => {
               const def = FLAG_DEFINITIONS[k];

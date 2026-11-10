@@ -22,6 +22,7 @@ import { db } from "../src/server/db";
 import { createGameweek, finaliseGameweek, simulateFixturesNow } from "../src/server/gameweeks";
 import { executeRelease, scheduleRelease } from "../src/server/supply";
 import { revalueAll } from "../src/server/valuation";
+import { estimateAllValues } from "../src/server/value-estimates";
 
 interface DataPlayer {
   name: string;
@@ -129,6 +130,15 @@ async function main() {
     console.log(`${lg.name}: ${lg.clubs.length} clubs`);
   }
   console.log(`Created ${seq} players`);
+
+  // Tier by MATCHX estimated market values (Gold £20m+, Silver £2m–£20m, Bronze below), then use
+  // the re-tiered templates for sets and the first release.
+  const est = await estimateAllValues(null);
+  console.log(`Estimated values: ${est.players} players (${est.named} named) · ${est.tiers.GOLD} Gold, ${est.tiers.SILVER} Silver, ${est.tiers.BRONZE} Bronze`);
+  for (const short of templatesByClub.keys()) {
+    const active = await db.cardTemplate.findMany({ where: { active: true, edition: "STANDARD", player: { club: { shortName: short } } }, include: { player: true } });
+    templatesByClub.set(short, active.map((t) => ({ id: t.id, category: t.category, position: t.player.position })));
+  }
 
   // Collection sets — examples; every completed set awards 10 MP credit (≈ £10).
   const sets: Array<{ code: string; name: string; description: string; templateIds: string[] }> = [];

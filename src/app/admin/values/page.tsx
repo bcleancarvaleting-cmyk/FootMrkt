@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { ValuesImport } from "@/components/values-import";
+import { ActionButton } from "@/components/action-button";
+import { estimateValuesAction } from "@/app/actions/values";
 import { VALUE_TIERS } from "@/config/tiers";
 import { requireAdmin } from "@/server/auth/session";
 import { db } from "@/server/db";
@@ -31,17 +33,20 @@ export default async function ValuesPage() {
         </p>
         <p className="mt-1 text-xs text-faint">
           {valued} of {total} players have a value
-          {latest?.marketValueAt ? ` · last update ${latest.marketValueAt.toISOString().slice(0, 10)} (${latest.marketValueSource})` : ""}. Players without a value use
-          the shirt-number rule.
+          {latest?.marketValueAt ? ` · last update ${latest.marketValueAt.toISOString().slice(0, 10)} (${latest.marketValueSource})` : ""}. 
         </p>
       </div>
+      <div className="panel flex flex-wrap items-center justify-between gap-3 p-5">
+        <div className="max-w-2xl text-sm text-muted">
+          <b className="text-fg">MATCHX estimates.</b> Every player has an estimated value: named estimates for well-known players
+          (prisma/data/value-estimates.txt) and a formula for the rest (league, club strength, squad role — never Gold on its own). Re-running
+          only refreshes estimates; values you&apos;ve entered below or from a licensed feed are kept. Nothing is listed on Transfers.
+        </div>
+        <ActionButton action={estimateValuesAction}>Re-run estimates</ActionButton>
+      </div>
       <ol className="panel list-decimal space-y-1 p-5 pl-10 text-sm text-muted">
-        <li>
-          Open the market-value list with your filters (<b className="text-fg">Divisions: Top flight</b> ·{" "}
-          <b className="text-fg">Playing for a club in: England</b>).
-        </li>
-        <li>Select the results table, copy it, and paste it below. Paste several pages one after another if the list is split.</li>
-        <li>Press Preview, check the tier changes, then Apply.</li>
+        <li>To correct a player, type or paste lines like <b className="text-fg">Bukayo Saka, Arsenal, £120m</b> — from a licensed data feed or your own figures.</li>
+        <li>Press Preview, check the tier changes, then Apply. Your values replace the estimate and are never overwritten by it.</li>
       </ol>
       <div className="panel p-5">
         <ValuesImport />

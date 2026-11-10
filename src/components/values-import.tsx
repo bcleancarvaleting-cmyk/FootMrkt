@@ -25,7 +25,7 @@ export function ValuesImport() {
       <div className="grid gap-3 sm:grid-cols-[1fr_280px]">
         <div>
           <label className="label" htmlFor="values-text">
-            Paste the table
+            Player values
           </label>
           <textarea
             id="values-text"
@@ -36,7 +36,7 @@ export function ValuesImport() {
               setPreview(null);
               setResult(null);
             }}
-            placeholder={"Copy the results table and paste it here, e.g.\nBukayo Saka   Right Winger   Arsenal FC   £120.00m\nDeclan Rice   Defensive Midfield   Arsenal FC   £100.00m"}
+            placeholder={"One player per line, e.g.\nBukayo Saka   Arsenal   £120m\nKyle Walker-Peters   West Ham   £12m"}
           />
         </div>
         <div>

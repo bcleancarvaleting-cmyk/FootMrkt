@@ -25,13 +25,20 @@ import { credit, debit, fmtMp, lockWallet, release } from "./wallet";
  * LEGAL GATE: all of it requires the MARKET flag (only switchable once LEGAL_GATES_CLEARED lists it).
  */
 export const MIN_PRICE_MINOR = 10; // 0.10 MX
-export const MAX_PRICE_MINOR = 10_000; // 100.00 MX
+export const MAX_PRICE_MINOR = 10_000; // 100.00 MX for a normal card
+/**
+ * Special finishes are priced by the managers themselves and can be worth far more, so each has its
+ * own ceiling (MATCHX still takes the 5% fee on the sale).
+ */
+export const MAX_PRICE_BY_FINISH = { RUBY: 100_000, DIAMOND: 500_000, RAINBOW: 10_000_000 } as const; // 1,000 / 5,000 / 100,000 MX
+export const maxPriceFor = (finish: keyof typeof MAX_PRICE_BY_FINISH | null | undefined) => (finish ? MAX_PRICE_BY_FINISH[finish] : MAX_PRICE_MINOR);
 export const FEE_BPS = 500; // 5%
 
 export const feeFor = (priceMinor: number) => Math.max(1, Math.round((priceMinor * FEE_BPS) / 10_000));
 const clampPrice = (m: number) => Math.min(MAX_PRICE_MINOR, Math.max(MIN_PRICE_MINOR, Math.round(m)));
 
-const price = z.number().int().min(MIN_PRICE_MINOR, "The minimum price is 0.10 MX").max(MAX_PRICE_MINOR, "The maximum price is 100 MX");
+// The per-card ceiling (100 MX, or more for Ruby/Diamond/Rainbow) is checked against the card itself.
+const price = z.number().int().min(MIN_PRICE_MINOR, "The minimum price is 0.10 MX").max(MAX_PRICE_BY_FINISH.RAINBOW, "The maximum price is 100,000 MX");
 
 export const ListingSchema = z.object({
   cardId: z.string().uuid(),
@@ -52,6 +59,8 @@ export async function averageSalePrices(keys: Array<{ playerId: string; category
     JOIN "CardInstance" c ON c.id = l."cardId"
     JOIN "CardTemplate" t ON t.id = c."templateId"
     WHERE l.status = 'SOLD' AND l."soldAt" >= ${since} AND t."playerId" = ANY(${[...new Set(keys.map((k) => k.playerId))]}::uuid[])
+      -- One-off Ruby/Diamond/Rainbow sales don't move the price guide for normal copies.
+      AND NOT EXISTS (SELECT 1 FROM "CardFinish" f WHERE f."cardId" = c.id)
     GROUP BY t."playerId", t.category`;
   for (const r of rows) out.set(`${r.playerId}:${r.category}`, { avgMinor: Math.round(r.avg), sales: Number(r.n) });
   return out;
@@ -82,6 +91,9 @@ export async function createListing(userId: string, input: z.input<typeof Listin
     const card = await lockOwnedCard(tx, userId, data.cardId);
     if (card.tradeStatus !== "TRADEABLE") throw new DomainError("NOT_TRADEABLE", "This card can't be traded.");
     if (card.lock !== "NONE") throw new DomainError("CARD_BUSY", "This card is already listed or in a match.");
+    const finish = await tx.cardFinish.findUnique({ where: { cardId: data.cardId }, select: { kind: true } });
+    const cap = maxPriceFor(finish?.kind);
+    if (data.askingPriceMinor > cap) throw new DomainError("PRICE_CAP", `The maximum price for this card is ${(cap / 100).toLocaleString("en-GB")} MX.`);
     const listing = await tx.marketListing.create({
       data: { cardId: data.cardId, sellerId: userId, askingPriceMinor: data.askingPriceMinor, currency: "MX", expiresAt: new Date(Date.now() + data.days * 86_400_000) },
     });

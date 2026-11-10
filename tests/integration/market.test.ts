@@ -345,6 +345,20 @@ describe("card payments", () => {
   });
 });
 
+describe("special-finish pricing", () => {
+  it("normal cards cap at 100 MX; a Rainbow can be listed for thousands, with the same 5% fee", async () => {
+    enableLegalGates();
+    const seller = await makeUser("rainbowseller");
+    const cardId = await tradeableCard(seller.userId);
+    await expect(createListing(seller.userId, { cardId, askingPriceMinor: 10_001 })).rejects.toMatchObject({ code: "PRICE_CAP" });
+    const card = await db.cardInstance.findUniqueOrThrow({ where: { id: cardId }, include: { template: true } });
+    await db.cardFinish.create({ data: { kind: "RAINBOW", playerId: card.template.playerId, serial: 1, cardId } });
+    const l = await createListing(seller.userId, { cardId, askingPriceMinor: 250_000 }); // 2,500 MX
+    expect(l.askingPriceMinor).toBe(250_000);
+    expect(feeFor(250_000)).toBe(12_500); // 125 MX to MATCHX
+  });
+});
+
 describe("player drops", () => {
   it("one brand-new copy per player, live from a set time with no end; never packable; retired if withdrawn", async () => {
     const { scheduleDrops, dropBoard, cancelPlayerDrop } = await import("@/server/player-drops");

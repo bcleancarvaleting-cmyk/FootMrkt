@@ -53,7 +53,7 @@ export function BidForm({ auctionId, minMinor, enabled }: { auctionId: string; m
     <form action={action} className="flex flex-col items-end gap-1">
       <input type="hidden" name="auctionId" value={auctionId} />
       <span className="flex items-center gap-1">
-        <input name="amount" type="number" step="0.01" min={mp(minMinor)} max="100" defaultValue={mp(minMinor)} className="input w-24 py-2 text-right tabular-nums" aria-label="Bid in MX" required disabled={!enabled} />
+        <input name="amount" type="number" step="0.01" min={mp(minMinor)} defaultValue={mp(minMinor)} className="input w-24 py-2 text-right tabular-nums" aria-label="Bid in MX" required disabled={!enabled} />
         <button className="btn-primary px-3 py-2 text-[11px]" disabled={pending || !enabled}>
           {pending ? "…" : "Bid"}
         </button>

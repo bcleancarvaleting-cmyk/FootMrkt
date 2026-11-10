@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { maxPriceFor } from "@/server/transfers";
 import { WatchButton } from "@/components/watch-button";
 import { isWatching } from "@/server/watchlist";
 import { STAMPS, type StampKind, stampsForCard } from "@/server/stamps";
@@ -243,7 +244,13 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
                 </ActionButton>
               </div>
             ) : card.lock === "NONE" ? (
-              <ListingForm cardId={id} guidance={await listingGuidance(view)} enabled={flags.MARKET} />
+              <ListingForm
+                cardId={id}
+                guidance={await listingGuidance(view)}
+                enabled={flags.MARKET}
+                maxMinor={maxPriceFor(view.finish?.kind)}
+                finishLabel={view.finish ? FINISH_STYLE[view.finish.kind].label : null}
+              />
             ) : (
               <p className="text-sm text-muted">This card is busy and can&apos;t be listed right now.</p>
             )}

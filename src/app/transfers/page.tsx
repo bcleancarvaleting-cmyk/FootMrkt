@@ -46,7 +46,7 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
       <PageHeader
         eyebrow="Buy &amp; sell"
         title="Transfer list"
-        intro="Player-to-player transfers: buy from other managers or make an offer, in earned MX. The seller pays a 5% fee when a card sells. Prices are capped at 100 MX. New players from MATCHX are released as Player drops."
+        intro="Player-to-player transfers: buy from other managers or make an offer, in earned MX. The seller pays a 5% fee when a card sells. Prices are capped at 100 MX, except Rubies, Diamonds and Rainbows, which their owners can price far higher. New players from MATCHX are released as Player drops."
       />
 
       <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-ink-700 bg-ink-900 px-4 py-3 text-sm">

@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { buyPackAction, buyPackWithCreditAction, claimDevPackAction, claimWeeklyPackAction, openPackAction } from "@/app/actions/game";
+import { claimDropAction } from "@/app/actions/account";
+import { buyPackAction, buyPackWithCreditAction, claimDevPackAction, openPackAction } from "@/app/actions/game";
 import { ResultText } from "./action-button";
 import type { ActionResult } from "@/app/actions/result";
 
@@ -54,7 +55,7 @@ export function BuyPackButton({ skuCode, price, enabled, gold }: { skuCode: stri
         title={enabled ? undefined : "Paid packs are not available yet"}
         onClick={() => start(async () => setRes(await buyPackAction(skuCode, crypto.randomUUID())))}
       >
-        {pending ? "…" : `Buy ${price}`}
+        {pending ? "…" : `${price} by card`}
       </button>
       {res && <ResultText result={res} />}
     </span>
@@ -67,31 +68,31 @@ export function CreditPackButton({ skuCode, price, affordable }: { skuCode: stri
   return (
     <span className="inline-flex flex-col gap-1">
       <button
-        className="btn-ghost border-lime/50 text-lime"
+        className="btn-ghost"
         disabled={pending || !affordable}
-        title={affordable ? undefined : "Not enough MP credit — complete a set to earn 10 MP"}
+        title={affordable ? undefined : "Not enough MP — add funds or complete a challenge"}
         onClick={() => start(async () => setRes(await buyPackWithCreditAction(skuCode, crypto.randomUUID())))}
       >
-        {pending ? "…" : `Use ${price} credit`}
+        {pending ? "…" : `${price}`}
       </button>
       {res && <ResultText result={res} />}
     </span>
   );
 }
 
-/** Claim this week's free pack and open it straight away. */
-export function ClaimWeeklyButton() {
+/** Claim the live free pack drop and open it straight away. */
+export function ClaimDropButton({ dropId }: { dropId: string }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [res, setRes] = useState<ActionResult<unknown> | null>(null);
   return (
-    <span className="inline-flex flex-col gap-1">
+    <span className="inline-flex flex-col items-end gap-1">
       <button
-        className="btn-primary px-6 py-3.5"
+        className="btn-primary px-5 py-2.5"
         disabled={pending}
         onClick={() =>
           start(async () => {
-            const claimed = await claimWeeklyPackAction();
+            const claimed = await claimDropAction(dropId);
             if (!claimed.ok) return setRes(claimed);
             const opened = await openPackAction(claimed.data.entitlementId);
             if (opened.ok) router.push(`/packs/opening/${opened.data.openingId}`);
@@ -99,7 +100,7 @@ export function ClaimWeeklyButton() {
           })
         }
       >
-        {pending ? "Opening…" : "Claim & open free pack"}
+        {pending ? "Opening…" : "Claim pack"}
       </button>
       {res && <ResultText result={res} />}
     </span>

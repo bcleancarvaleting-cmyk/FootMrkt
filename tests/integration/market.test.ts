@@ -1,10 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { db, withTx } from "@/server/db";
 import { setFlag } from "@/server/flags";
-import { cancelListing, createListing, handlePaymentWebhook, startListingPurchase, startPackPurchase } from "@/server/market";
+import { handlePaymentWebhook, startPackPurchase } from "@/server/market";
 import { grantPack, openPack } from "@/server/packs";
 import { signSandbox } from "@/server/payments/provider";
 import { supplyReport } from "@/server/supply";
+import {
+  buyNow,
+  cancelAuction,
+  cancelListing,
+  createAuction,
+  createListing,
+  expireListings,
+  feeFor,
+  makeOffer,
+  placeBid,
+  recommendPrice,
+  respondToOffer,
+  settleAuctions,
+  withdrawOffer,
+} from "@/server/transfers";
+import { balancesFor, credit } from "@/server/wallet";
 import { buildWorld, makeUser, resetDb } from "./fixtures";
 
 const ENV = { ...process.env };
@@ -29,13 +45,16 @@ async function pay(orderId: string, eventId = `evt-${orderId}`) {
 }
 
 async function tradeableCard(userId: string) {
-  const ent = await withTx((tx) => grantPack(tx, { userId, skuCode: "football-bronze", source: "DEV", sourceRef: `dev:${userId}` }));
+  const ent = await withTx((tx) => grantPack(tx, { userId, skuCode: "football-bronze", source: "DEV", sourceRef: `dev:${userId}:${Math.random()}` }));
   const res = await openPack(userId, ent.id);
   return res.cards[0].cardId;
 }
 
+/** Give a manager cash MP (as if they had added funds). */
+const fund = (userId: string, minor: number, ref = "seed") => withTx((tx) => credit(tx, { userId, amountMinor: minor, kind: "DEPOSIT", bucket: "CASH", refId: `test:${userId}:${ref}` }));
+
 describe("legal gate (spec §9.3, §17)", () => {
-  it("market and paid packs are unavailable while the gate is closed, even if an env flag says on", async () => {
+  it("transfers and paid packs are unavailable while the gate is closed, even if an env flag says on", async () => {
     process.env.FLAG_MARKET = "true";
     process.env.FLAG_PAID_PACKS = "true";
     const { userId } = await makeUser();
@@ -47,56 +66,176 @@ describe("legal gate (spec §9.3, §17)", () => {
   it("an admin cannot switch a legal-gated flag on, and flag changes are audited", async () => {
     const { userId } = await makeUser();
     await expect(setFlag(userId, "MARKET", true)).rejects.toMatchObject({ code: "LEGAL_GATE" });
+    await expect(setFlag(userId, "WITHDRAWALS", true)).rejects.toMatchObject({ code: "LEGAL_GATE" });
     await setFlag(userId, "DEV_TOOLS", false);
     expect(await db.adminAuditLog.count({ where: { action: "flag.set", entityId: "DEV_TOOLS" } })).toBe(1);
   });
 });
 
-describe("transfer market (spec §9.1, §17)", () => {
-  it("locks listed cards, blocks untradeable and duplicate listings", async () => {
+describe("P2P transfers in MP", () => {
+  it("locks listed cards, blocks untradeable, duplicate and over-100-MP listings", async () => {
     enableLegalGates();
     const { userId, starterEntitlementId } = await makeUser();
     const starter = await openPack(userId, starterEntitlementId);
     await expect(createListing(userId, { cardId: starter.cards[0].cardId, askingPriceMinor: 500 })).rejects.toMatchObject({ code: "NOT_TRADEABLE" });
-
     const card = await tradeableCard(userId);
+    await expect(createListing(userId, { cardId: card, askingPriceMinor: 10_001 })).rejects.toThrow(/100 MP/);
     const listing = await createListing(userId, { cardId: card, askingPriceMinor: 500 });
+    expect(listing.currency).toBe("MP");
     expect((await db.cardInstance.findUniqueOrThrow({ where: { id: card } })).lock).toBe("LISTED");
     await expect(createListing(userId, { cardId: card, askingPriceMinor: 600 })).rejects.toMatchObject({ code: "CARD_BUSY" });
     await cancelListing(userId, listing.id);
     expect((await db.cardInstance.findUniqueOrThrow({ where: { id: card } })).lock).toBe("NONE");
   });
 
-  it("a card cannot be sold twice: the second paid buyer is refunded; webhook replays are no-ops", async () => {
+  it("buy now moves the card, pays the seller minus 5%, and a card can't be sold twice", async () => {
     enableLegalGates();
     const seller = await makeUser("seller");
     const b1 = await makeUser("buyer1");
     const b2 = await makeUser("buyer2");
+    await fund(b1.userId, 2000);
+    await fund(b2.userId, 2000);
     const card = await tradeableCard(seller.userId);
-    const listing = await createListing(seller.userId, { cardId: card, askingPriceMinor: 750 });
+    const listing = await createListing(seller.userId, { cardId: card, askingPriceMinor: 1000 });
 
-    const o1 = await startListingPurchase(b1.userId, listing.id);
-    const o2 = await startListingPurchase(b2.userId, listing.id);
-    const [r1, r2] = await Promise.all([pay(o1.orderId), pay(o2.orderId)]);
-    expect([r1.status, r2.status].sort()).toEqual(["fulfilled", "refund_required"]);
+    const results = await Promise.allSettled([buyNow(b1.userId, listing.id), buyNow(b2.userId, listing.id)]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    const winner = results[0].status === "fulfilled" ? b1.userId : b2.userId;
+    const loser = winner === b1.userId ? b2.userId : b1.userId;
 
     const after = await db.cardInstance.findUniqueOrThrow({ where: { id: card } });
-    const winner = r1.status === "fulfilled" ? b1.userId : b2.userId;
     expect(after.ownerId).toBe(winner);
     expect(after.lock).toBe("NONE");
-    const history = await db.cardOwnership.findMany({ where: { cardId: card }, orderBy: { acquiredAt: "asc" } });
-    expect(history.map((h) => [h.userId, h.releasedVia])).toEqual([
-      [seller.userId, "MARKET_SALE"],
-      [winner, null],
-    ]);
-
-    // Replaying the winning webhook changes nothing.
-    const replay = await pay(r1.status === "fulfilled" ? o1.orderId : o2.orderId);
-    expect(replay.status).toBe("duplicate");
-    expect(await db.cardOwnership.count({ where: { cardId: card } })).toBe(2);
+    expect(feeFor(1000)).toBe(50);
+    expect((await balancesFor(seller.userId)).cash).toBe(950);
+    expect((await balancesFor(winner)).cash).toBe(1000);
+    expect((await balancesFor(loser)).cash).toBe(2000);
+    expect((await db.marketListing.findUniqueOrThrow({ where: { id: listing.id } })).feeMinor).toBe(50);
     expect((await supplyReport()).reconciled).toBe(true);
   });
 
+  it("bonus MP can't buy cards (no turning rewards into withdrawable cash)", async () => {
+    enableLegalGates();
+    const seller = await makeUser("sss2");
+    const buyer = await makeUser("bbb3");
+    await withTx((tx) => credit(tx, { userId: buyer.userId, amountMinor: 5000, kind: "CHALLENGE_REWARD", refId: "bonus-1" }));
+    const listing = await createListing(seller.userId, { cardId: await tradeableCard(seller.userId), askingPriceMinor: 300 });
+    await expect(buyNow(buyer.userId, listing.id)).rejects.toMatchObject({ code: "INSUFFICIENT_FUNDS" });
+  });
+
+  it("offers hold MP; declined / withdrawn / lapsed offers return it; accepting completes the sale", async () => {
+    enableLegalGates();
+    const seller = await makeUser("sss4");
+    const a = await makeUser("aaa4");
+    const b = await makeUser("bbb4");
+    await fund(a.userId, 1000);
+    await fund(b.userId, 1000);
+    const listing = await createListing(seller.userId, { cardId: await tradeableCard(seller.userId), askingPriceMinor: 800 });
+    await expect(makeOffer(a.userId, listing.id, 800)).rejects.toMatchObject({ code: "USE_BUY_NOW" });
+
+    const oa = await makeOffer(a.userId, listing.id, 500);
+    expect((await balancesFor(a.userId)).cash).toBe(500);
+    const oa2 = await makeOffer(a.userId, listing.id, 600); // replaces the first
+    expect((await balancesFor(a.userId)).cash).toBe(400);
+    expect((await db.marketOffer.findUniqueOrThrow({ where: { id: oa.id } })).status).toBe("WITHDRAWN");
+
+    const ob = await makeOffer(b.userId, listing.id, 550);
+    await withdrawOffer(b.userId, ob.id);
+    expect((await balancesFor(b.userId)).cash).toBe(1000);
+    const ob2 = await makeOffer(b.userId, listing.id, 560);
+    await respondToOffer(seller.userId, ob2.id, false);
+    expect((await balancesFor(b.userId)).cash).toBe(1000);
+    const ob3 = await makeOffer(b.userId, listing.id, 570);
+
+    await respondToOffer(seller.userId, oa2.id, true);
+    expect((await balancesFor(a.userId)).cash).toBe(400);
+    expect((await balancesFor(seller.userId)).cash).toBe(600 - feeFor(600));
+    expect((await balancesFor(b.userId)).cash).toBe(1000); // b's other offer lapsed and was returned
+    expect((await db.marketOffer.findUniqueOrThrow({ where: { id: ob3.id } })).status).toBe("LAPSED");
+    const card = await db.marketListing.findUniqueOrThrow({ where: { id: listing.id }, include: { card: true } });
+    expect(card.card.ownerId).toBe(a.userId);
+    expect(card.soldPriceMinor).toBe(600);
+  });
+
+  it("expiring a listing returns held offers", async () => {
+    enableLegalGates();
+    const seller = await makeUser("sss5");
+    const a = await makeUser("aaa5");
+    await fund(a.userId, 500);
+    const listing = await createListing(seller.userId, { cardId: await tradeableCard(seller.userId), askingPriceMinor: 400, days: 1 });
+    await makeOffer(a.userId, listing.id, 300);
+    expect(await expireListings(new Date(Date.now() + 2 * 86_400_000))).toBe(1);
+    expect((await balancesFor(a.userId)).cash).toBe(500);
+  });
+
+  it("recommends the valuation, blended with the average sale once there's enough history, within 0.10–100 MP", () => {
+    expect(recommendPrice(4, undefined)).toBe(400);
+    expect(recommendPrice(4, { avgMinor: 600, sales: 2 })).toBe(400);
+    expect(recommendPrice(4, { avgMinor: 600, sales: 3 })).toBe(500);
+    expect(recommendPrice(500, undefined)).toBe(10_000);
+    expect(recommendPrice(null, undefined)).toBe(100);
+  });
+});
+
+describe("house auctions", () => {
+  async function auction(adminId: string, hours = 1) {
+    const tpl = await db.cardTemplate.findFirstOrThrow({ where: { category: "GOLD" } });
+    return createAuction(adminId, { playerId: tpl.playerId, category: "GOLD", startPriceMinor: 100, minIncrementMinor: 50, startsAt: new Date(Date.now() - 1000), hours });
+  }
+
+  it("bids hold cash MP, outbid managers get it back, and the winner gets the card", async () => {
+    enableLegalGates();
+    const admin = await makeUser("admin1");
+    const a = await makeUser("aaa6");
+    const b = await makeUser("bbb6");
+    await fund(a.userId, 1000);
+    await fund(b.userId, 1000);
+    const au = await auction(admin.userId);
+    expect((await db.cardInstance.findUniqueOrThrow({ where: { id: au.cardId } })).supplyState).toBe("RESERVED");
+
+    await expect(placeBid(a.userId, au.id, 50)).rejects.toMatchObject({ code: "TOO_LOW" });
+    await placeBid(a.userId, au.id, 100);
+    await expect(placeBid(b.userId, au.id, 120)).rejects.toMatchObject({ code: "TOO_LOW" });
+    await placeBid(b.userId, au.id, 150);
+    expect((await balancesFor(a.userId)).cash).toBe(1000);
+    expect((await balancesFor(b.userId)).cash).toBe(850);
+    await placeBid(a.userId, au.id, 200);
+    expect((await balancesFor(b.userId)).cash).toBe(1000);
+
+    expect(await settleAuctions(new Date(Date.now() + 2 * 3_600_000))).toBe(1);
+    const done = await db.auction.findUniqueOrThrow({ where: { id: au.id }, include: { card: true } });
+    expect(done.status).toBe("SETTLED");
+    expect(done.card.ownerId).toBe(a.userId);
+    expect(done.card.supplyState).toBe("HELD");
+    expect((await balancesFor(a.userId)).cash).toBe(800);
+    expect((await supplyReport()).reconciled).toBe(true);
+  });
+
+  it("a late bid extends the auction (anti-sniping)", async () => {
+    enableLegalGates();
+    const admin = await makeUser("admin2");
+    const a = await makeUser("aaa7");
+    await fund(a.userId, 500);
+    const au = await auction(admin.userId);
+    const nearEnd = new Date(au.endsAt.getTime() - 30_000);
+    const { endsAt } = await placeBid(a.userId, au.id, 100, nearEnd);
+    expect(endsAt.getTime()).toBe(nearEnd.getTime() + 2 * 60_000);
+  });
+
+  it("cancelling returns bids and puts the card back in the pool", async () => {
+    enableLegalGates();
+    const admin = await makeUser("admin3");
+    const a = await makeUser("aaa8");
+    await fund(a.userId, 500);
+    const au = await auction(admin.userId);
+    await placeBid(a.userId, au.id, 100);
+    await cancelAuction(admin.userId, au.id);
+    expect((await balancesFor(a.userId)).cash).toBe(500);
+    expect((await db.cardInstance.findUniqueOrThrow({ where: { id: au.cardId } })).supplyState).toBe("AVAILABLE");
+  });
+});
+
+describe("card payments", () => {
   it("rejects forged webhooks", async () => {
     await expect(handlePaymentWebhook(JSON.stringify({ providerEventId: "x" }), "deadbeef")).rejects.toThrow(/signature/);
   });
@@ -108,7 +247,7 @@ describe("transfer market (spec §9.1, §17)", () => {
     expect((await startPackPurchase(userId, "football-silver", "click-1")).orderId).toBe(orderId);
     await pay(orderId, "e1");
     await pay(orderId, "e1");
-    await pay(orderId, "e2"); // a different event for an already-paid order
+    await pay(orderId, "e2");
     expect(await db.packEntitlement.count({ where: { userId, source: "PURCHASE" } })).toBe(1);
   });
 });

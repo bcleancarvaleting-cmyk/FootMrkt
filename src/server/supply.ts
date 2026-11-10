@@ -106,7 +106,7 @@ export async function supplyReport(sportId?: string) {
   const openOwnerships = await db.cardOwnership.count({ where: { releasedAt: null, ...(sportId ? { card: where } : {}) } });
   const held = state("HELD");
   const problems: string[] = [];
-  if (state("AVAILABLE") + state("RECIRCULATING") + held + state("RETIRED") !== total) problems.push("state totals do not add up");
+  if (state("AVAILABLE") + state("RECIRCULATING") + state("RESERVED") + held + state("RETIRED") !== total) problems.push("state totals do not add up");
   if (openOwnerships !== held) problems.push(`open ownership records (${openOwnerships}) ≠ held cards (${held})`);
   return {
     totalIssued: total,
@@ -119,6 +119,7 @@ export async function supplyReport(sportId?: string) {
     nonTradeable,
     everRecycled: recycled,
     retired: state("RETIRED"),
+    inAuction: state("RESERVED"),
     reconciled: problems.length === 0,
     problems,
   };

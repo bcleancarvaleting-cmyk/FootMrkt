@@ -316,3 +316,19 @@ h2 {
     animation: none;
   }
 }
+
+/* Free pack drop banner: slim, with a breathing lime glow. */
+.drop-glow {
+  box-shadow: 0 0 0 1px rgb(173 252 7 / 0.25), 0 0 28px -6px rgb(173 252 7 / 0.55);
+  animation: drop-breathe 2.8s ease-in-out infinite;
+}
+@keyframes drop-breathe {
+  50% {
+    box-shadow: 0 0 0 1px rgb(173 252 7 / 0.45), 0 0 42px -4px rgb(173 252 7 / 0.75);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .drop-glow {
+    animation: none;
+  }
+}

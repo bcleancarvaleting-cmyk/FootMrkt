@@ -18,7 +18,6 @@ export function ChatDrawer({ rooms, me, maxLength }: { rooms: Room[]; me: { id: 
   useEffect(() => {
     if (!open) return;
     let live = true;
-    setInitial(null);
     fetch(`/api/chat/${room}`, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : { messages: [] }))
       .then((d) => live && setInitial(d.messages))
@@ -38,10 +37,13 @@ export function ChatDrawer({ rooms, me, maxLength }: { rooms: Room[]; me: { id: 
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setInitial(null);
+          setOpen(true);
+        }}
         aria-expanded={open}
         aria-controls="chat-drawer"
-        className={`fixed right-0 top-1/2 z-40 -translate-y-1/2 rounded-l-xl border border-r-0 border-ink-600 bg-ink-900 px-2 py-4 shadow-[0_8px_30px_-10px_rgb(0_0_0/0.6)] transition hover:bg-ink-800 ${
+        className={`fixed right-0 top-[62%] z-40 -translate-y-1/2 sm:top-1/2 rounded-l-xl border border-r-0 border-ink-600 bg-ink-900 px-1.5 py-3 sm:px-2 sm:py-4 shadow-[0_8px_30px_-10px_rgb(0_0_0/0.6)] transition hover:bg-ink-800 ${
           open ? "pointer-events-none opacity-0" : ""
         }`}
         style={{ marginRight: "env(safe-area-inset-right, 0px)" }}
@@ -50,7 +52,8 @@ export function ChatDrawer({ rooms, me, maxLength }: { rooms: Room[]; me: { id: 
           <svg viewBox="0 0 24 24" className="h-5 w-5 text-lime" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden="true">
             <path d="M4 5h16v11H9l-5 4Z" />
           </svg>
-          <span className="text-[11px] font-bold uppercase tracking-[0.18em] [writing-mode:vertical-rl]">Chat</span>
+          <span className="hidden text-[11px] font-bold uppercase tracking-[0.18em] [writing-mode:vertical-rl] sm:block">Chat</span>
+          <span className="sr-only sm:hidden">Chat</span>
         </span>
       </button>
 
@@ -72,7 +75,11 @@ export function ChatDrawer({ rooms, me, maxLength }: { rooms: Room[]; me: { id: 
         </div>
         <div className="flex gap-4 overflow-x-auto border-b border-ink-700 px-4 pt-2 [scrollbar-width:none]" role="tablist">
           {rooms.map((r) => (
-            <button key={r.id} type="button" role="tab" aria-selected={room === r.id} onClick={() => setRoom(r.id)} className={`tab ${room === r.id ? "tab-on" : ""}`}>
+            <button key={r.id} type="button" role="tab" aria-selected={room === r.id} onClick={() => {
+                if (r.id === room) return;
+                setInitial(null);
+                setRoom(r.id);
+              }} className={`tab ${room === r.id ? "tab-on" : ""}`}>
               {r.name}
             </button>
           ))}

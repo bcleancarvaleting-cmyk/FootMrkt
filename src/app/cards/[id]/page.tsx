@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { cancelListingAction, toggleFavouriteAction } from "@/app/actions/game";
+import { toggleFavouriteAction } from "@/app/actions/game";
+import { cancelListingAction } from "@/app/actions/transfers";
 import { ActionButton } from "@/components/action-button";
 import { ListingForm } from "@/components/listing-form";
+import { listingGuidance } from "@/server/transfers-view";
 import { PlayerCard } from "@/components/player-card";
 import { ValueChart } from "@/components/value-chart";
 import { enrichCards } from "@/server/views";
@@ -12,7 +14,7 @@ import { cardDetail } from "@/server/binder";
 import { db } from "@/server/db";
 import { DomainError } from "@/server/errors";
 import { allFlags } from "@/server/flags";
-import { POSITION_LABEL, fmtDate, gbp } from "@/lib/view";
+import { POSITION_LABEL, fmtDate } from "@/lib/view";
 
 export const metadata = { title: "Card" };
 
@@ -47,7 +49,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
   const status = !card.ownerId
     ? "Not owned"
     : card.lock === "LISTED"
-      ? "Listed on the market"
+      ? "Listed on Transfers"
       : card.lock === "COMPETITION"
         ? "Locked in a competition squad"
         : card.tradeStatus === "NON_TRADEABLE"
@@ -125,7 +127,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
               {sales.map((s, i) => (
                 <div key={i} className="flex justify-between text-muted">
                   <span>{s.soldAt ? fmtDate(s.soldAt) : ""}</span>
-                  <span>{gbp(s.soldPriceMinor ?? 0)}</span>
+                  <span>{((s.soldPriceMinor ?? 0) / 100).toFixed(2)} MP</span>
                 </div>
               ))}
             </div>
@@ -165,20 +167,21 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
           </p>
         )}
 
-        {isOwner && flags.MARKET && card.tradeStatus === "TRADEABLE" && (
-          <section className="panel p-5">
-            <h2 className="mb-3 font-bold">Transfer Market</h2>
+        {isOwner && card.tradeStatus === "TRADEABLE" && (
+          <section id="sell" className="panel p-5">
+            <h2 className="mb-3 text-2xl">Sell on Transfers</h2>
+            {!flags.MARKET && <p className="mb-3 text-sm text-warn">Trading opens once our UK legal and payment checks are complete.</p>}
             {listing ? (
               <div className="flex items-center justify-between">
                 <span>
-                  Listed at <b>{gbp(listing.askingPriceMinor)}</b> until {fmtDate(listing.expiresAt)}
+                  Listed at <b>{(listing.askingPriceMinor / 100).toFixed(2)} MP</b> until {fmtDate(listing.expiresAt)}
                 </span>
                 <ActionButton action={cancelListingAction.bind(null, listing.id, id)} className="btn-danger">
                   Cancel listing
                 </ActionButton>
               </div>
             ) : card.lock === "NONE" ? (
-              <ListingForm cardId={id} />
+              <ListingForm cardId={id} guidance={await listingGuidance(view)} enabled={flags.MARKET} />
             ) : (
               <p className="text-sm text-muted">This card is busy and can&apos;t be listed right now.</p>
             )}

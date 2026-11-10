@@ -38,7 +38,7 @@ describe("MP credit (set rewards)", () => {
     expect(again.id).toBe(gold.id);
     expect(gold.source).toBe("MP_CREDIT");
     expect(await balanceMinor(userId)).toBe(1000 - 999);
-    await expect(buyPackWithCredit(userId, "football-bronze", "click-2")).rejects.toMatchObject({ code: "INSUFFICIENT_CREDIT" });
+    await expect(buyPackWithCredit(userId, "football-bronze", "click-2")).rejects.toMatchObject({ code: "INSUFFICIENT_FUNDS" });
     const opened = await openPack(userId, gold.id);
     expect(opened.cards).toHaveLength(6);
   });

@@ -9,7 +9,7 @@ import { submitEntry, withdrawEntry } from "@/server/competitions";
 import { db, withTx } from "@/server/db";
 import { DomainError } from "@/server/errors";
 import { isEnabled } from "@/server/flags";
-import { cancelListing, createListing, startListingPurchase, startPackPurchase } from "@/server/market";
+import { startPackPurchase } from "@/server/market";
 import { grantPack, openPack } from "@/server/packs";
 import { buyPackWithCredit } from "@/server/wallet";
 import { claimWeeklyPack } from "@/server/weekly";
@@ -48,7 +48,7 @@ export async function submitEntryAction(competitionId: string, submission: unkno
     await submitEntry(user.id, competitionId, submission);
   }, "Squad saved");
   revalidatePath(`/competitions/${competitionId}`);
-  revalidatePath("/football");
+  revalidatePath("/matches");
   return res;
 }
 
@@ -79,33 +79,7 @@ export async function completeSetAction(setId: string, idempotencyKey: string): 
   });
   if (!res.ok) return res;
   revalidatePath("/", "layout");
-  redirect(`/collections?completed=${encodeURIComponent(res.data.name)}`);
-}
-
-export async function createListingAction(_: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const user = await requireUser();
-  const cardId = String(form.get("cardId"));
-  const res = await attempt(async () => {
-    const pounds = Number(form.get("price"));
-    await createListing(user.id, { cardId, askingPriceMinor: Math.round(pounds * 100), days: Number(form.get("days") ?? 7) });
-  }, "Listed on the Transfer Market");
-  revalidatePath(`/cards/${cardId}`);
-  return res;
-}
-
-export async function cancelListingAction(listingId: string, cardId: string): Promise<ActionResult> {
-  const user = await requireUser();
-  const res = await attempt(() => cancelListing(user.id, listingId), "Listing cancelled");
-  revalidatePath(`/cards/${cardId}`);
-  revalidatePath("/market");
-  return res;
-}
-
-export async function buyListingAction(listingId: string): Promise<ActionResult> {
-  const user = await requireUser();
-  const res = await attempt(() => startListingPurchase(user.id, listingId));
-  if (!res.ok) return res;
-  redirect(res.data.checkoutUrl);
+  redirect(`/account/challenges?completed=${encodeURIComponent(res.data.name)}`);
 }
 
 export async function buyPackWithCreditAction(skuCode: string, clientKey: string): Promise<ActionResult> {

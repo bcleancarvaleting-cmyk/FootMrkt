@@ -1,5 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client";
-import { type CardView, gbp, toCardView } from "@/lib/view";
+import { type CardView, toCardView } from "@/lib/view";
 import { db } from "./db";
 import { valueKey, valueTrends } from "./valuation";
 
@@ -14,15 +14,26 @@ export async function acquisitionLabels(cardIds: string[]) {
   const out = new Map<string, string>();
   if (!cardIds.length) return out;
   const owns = await db.cardOwnership.findMany({ where: { cardId: { in: cardIds }, releasedAt: null } });
-  const orderIds = owns.filter((o) => o.acquiredVia === "MARKET" && o.acquiredRef).map((o) => o.acquiredRef!);
-  const orders = orderIds.length ? await db.order.findMany({ where: { id: { in: orderIds } } }) : [];
+  const refs = owns.filter((o) => o.acquiredVia === "MARKET" && o.acquiredRef).map((o) => o.acquiredRef!);
+  const ids = (prefix: string) => refs.filter((r) => r.startsWith(prefix)).map((r) => r.slice(prefix.length));
+  const [orders, listings, auctions] = await Promise.all([
+    db.order.findMany({ where: { id: { in: refs.filter((r) => !r.includes(":")) } } }),
+    db.marketListing.findMany({ where: { id: { in: ids("listing:") } }, select: { id: true, soldPriceMinor: true } }),
+    db.auction.findMany({ where: { id: { in: ids("auction:") } }, select: { id: true, winningBidMinor: true } }),
+  ]);
+  const paid = (ref: string | null): number | null => {
+    if (!ref) return null;
+    if (ref.startsWith("listing:")) return listings.find((l) => `listing:${l.id}` === ref)?.soldPriceMinor ?? null;
+    if (ref.startsWith("auction:")) return auctions.find((a) => `auction:${a.id}` === ref)?.winningBidMinor ?? null;
+    return orders.find((x) => x.id === ref)?.amountMinor ?? null;
+  };
   for (const o of owns) {
     if (o.acquiredVia === "STARTER_PACK") out.set(o.cardId, "Starter");
-    else if (o.acquiredVia === "WEEKLY_PACK") out.set(o.cardId, "Weekly");
+    else if (o.acquiredVia === "WEEKLY_PACK") out.set(o.cardId, "Free pack");
     else if (o.acquiredVia === "PACK") out.set(o.cardId, "Packed");
     else if (o.acquiredVia === "MARKET") {
-      const order = orders.find((x) => x.id === o.acquiredRef);
-      out.set(o.cardId, order ? `Paid ${gbp(order.amountMinor)}` : "Bought");
+      const minor = paid(o.acquiredRef);
+      out.set(o.cardId, minor !== null ? `Paid ${(minor / 100).toFixed(2)} MP` : o.acquiredRef?.startsWith("auction:") ? "Auction" : "Bought");
     } else out.set(o.cardId, "Granted");
   }
   return out;

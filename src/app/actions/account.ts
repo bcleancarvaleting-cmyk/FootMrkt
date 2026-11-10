@@ -1,0 +1,116 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import { requireUser } from "@/server/auth/session";
+import { completeChallenge } from "@/server/challenges";
+import { db } from "@/server/db";
+import { claimDrop } from "@/server/drops";
+import { DomainError } from "@/server/errors";
+import { isAdult, requestWithdrawal, startDeposit } from "@/server/wallet";
+import { type ActionResult, attempt } from "./result";
+
+const opt = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .transform((v) => v || null);
+
+const ProfileSchema = z.object({
+  fullName: opt(80),
+  dateOfBirth: z
+    .string()
+    .trim()
+    .transform((v) => (v ? new Date(`${v}T00:00:00Z`) : null))
+    .refine((d) => d === null || (!Number.isNaN(d.getTime()) && d.getUTCFullYear() > 1900 && d < new Date()), "Enter a valid date of birth"),
+  addressLine1: opt(120),
+  addressLine2: opt(120),
+  city: opt(60),
+  postcode: opt(10).refine((v) => v === null || /^[A-Za-z]{1,2}\d[A-Za-z\d]?\s*\d[A-Za-z]{2}$/.test(v), "Enter a valid UK postcode"),
+  country: opt(60),
+  phone: opt(20).refine((v) => v === null || /^[+\d][\d\s]{6,18}$/.test(v), "Enter a valid phone number"),
+  marketingOptIn: z.boolean(),
+});
+
+export async function updateProfileAction(_: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const user = await requireUser();
+  const res = await attempt(async () => {
+    const data = ProfileSchema.parse({
+      fullName: String(form.get("fullName") ?? ""),
+      dateOfBirth: String(form.get("dateOfBirth") ?? ""),
+      addressLine1: String(form.get("addressLine1") ?? ""),
+      addressLine2: String(form.get("addressLine2") ?? ""),
+      city: String(form.get("city") ?? ""),
+      postcode: String(form.get("postcode") ?? ""),
+      country: String(form.get("country") ?? ""),
+      phone: String(form.get("phone") ?? ""),
+      marketingOptIn: form.get("marketingOptIn") === "on",
+    });
+    const current = await db.user.findUniqueOrThrow({ where: { id: user.id } });
+    // Once identity is verified for withdrawals, name and date of birth can only change via support.
+    if (current.kycStatus === "VERIFIED" && (data.fullName !== current.fullName || data.dateOfBirth?.getTime() !== current.dateOfBirth?.getTime())) {
+      throw new DomainError("LOCKED", "Your name and date of birth are verified — contact support to change them.");
+    }
+    if (data.dateOfBirth && !isAdult(data.dateOfBirth)) throw new DomainError("AGE", "MATCHX is for over-18s only.");
+    await db.user.update({ where: { id: user.id }, data });
+  }, "Profile saved");
+  revalidatePath("/account", "layout");
+  return res;
+}
+
+export async function setDepositLimitAction(_: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const user = await requireUser();
+  const res = await attempt(async () => {
+    const raw = String(form.get("limit") ?? "").trim();
+    const minor = raw === "" ? null : Math.round(Number(raw) * 100);
+    if (minor !== null && (!Number.isFinite(minor) || minor < 500 || minor > 500_000)) throw new DomainError("LIMIT", "Set a limit between £5 and £5,000, or leave it blank for none.");
+    const current = await db.user.findUniqueOrThrow({ where: { id: user.id } });
+    // Responsible play: lowering applies now; raising or removing waits 24 hours (applied by support for now).
+    if (current.depositLimitMonthlyMinor !== null && (minor === null || minor > current.depositLimitMonthlyMinor)) {
+      throw new DomainError("COOLING_OFF", "To raise or remove a limit, contact support — increases take effect after a 24-hour cooling-off period.");
+    }
+    await db.user.update({ where: { id: user.id }, data: { depositLimitMonthlyMinor: minor } });
+  }, "Deposit limit saved");
+  revalidatePath("/account", "layout");
+  return res;
+}
+
+export async function depositAction(_: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const user = await requireUser();
+  const res = await attempt(() =>
+    startDeposit(
+      user.id,
+      { amountMinor: Math.round(Number(form.get("amount")) * 100), acceptTerms: form.get("acceptTerms") === "on", acceptRisk: form.get("acceptRisk") === "on" } as never,
+      String(form.get("clientKey")),
+    ),
+  );
+  if (!res.ok) return res;
+  redirect(res.data.checkoutUrl);
+}
+
+export async function withdrawAction(_: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const user = await requireUser();
+  const res = await attempt(async () => {
+    await requestWithdrawal(user.id, Math.round(Number(form.get("amount")) * 100));
+  }, "Withdrawal requested — we'll check your details and pay out to your bank, usually within 3 working days.");
+  revalidatePath("/account", "layout");
+  return res;
+}
+
+export async function completeChallengeAction(challengeId: string, cardIds: string[], key: string): Promise<ActionResult> {
+  const user = await requireUser();
+  const res = await attempt(async () => {
+    await completeChallenge(user.id, challengeId, cardIds, key);
+  }, "Challenge complete — reward added");
+  revalidatePath("/", "layout");
+  return res;
+}
+
+export async function claimDropAction(dropId: string): Promise<ActionResult<{ entitlementId: string }>> {
+  const user = await requireUser();
+  const res = await attempt(async () => ({ entitlementId: (await claimDrop(user.id, dropId)).id }), "Free pack claimed");
+  revalidatePath("/", "layout");
+  return res;
+}

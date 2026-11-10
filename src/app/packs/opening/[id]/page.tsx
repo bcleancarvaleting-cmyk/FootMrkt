@@ -34,11 +34,11 @@ export default async function OpeningPage({ params }: { params: Promise<{ id: st
       <PackReveal cards={cards} />
       <div className="flex flex-wrap justify-center gap-3">
         {isStarter ? (
-          <Link href="/football" className="btn-primary px-6 py-3">
+          <Link href="/matches" className="btn-primary px-6 py-3">
             Pick your first squad →
           </Link>
         ) : (
-          <Link href="/binder" className="btn-primary">
+          <Link href="/account/club" className="btn-primary">
             View Binder
           </Link>
         )}

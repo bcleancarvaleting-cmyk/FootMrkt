@@ -14,6 +14,8 @@ export const SlotFiltersSchema = z
   .object({
     topFlightOnly: z.boolean().optional(),
     positions: z.array(PositionSchema).min(1).optional(),
+    /** Only players at clubs in these league countries, e.g. ["ENG"] for England packs. */
+    countries: z.array(z.string().min(2).max(3)).min(1).optional(),
   })
   .strict();
 export type SlotFilters = z.infer<typeof SlotFiltersSchema>;

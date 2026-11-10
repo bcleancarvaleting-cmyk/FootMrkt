@@ -160,6 +160,7 @@ function filterSql(filters: SlotFilters, exclude: Set<string>) {
   const parts: Prisma.Sql[] = [];
   if (filters.topFlightOnly) parts.push(Prisma.sql`AND l."isTopFlight" = true`);
   if (filters.positions?.length) parts.push(Prisma.sql`AND p.position::text = ANY(${filters.positions}::text[])`);
+  if (filters.countries?.length) parts.push(Prisma.sql`AND l.country = ANY(${filters.countries}::text[])`);
   if (exclude.size) parts.push(Prisma.sql`AND NOT (p.id = ANY(${[...exclude]}::uuid[]))`);
   return parts.length ? Prisma.join(parts, " ") : Prisma.empty;
 }
@@ -273,4 +274,18 @@ export async function getOpening(userId: string, openingId: string) {
   });
   if (!opening) throw new DomainError("NOT_FOUND", "Pack opening not found.");
   return opening;
+}
+
+/** Publish any pack SKU versions from the config that aren't in the database yet. */
+export async function syncPackCatalogue() {
+  const { FOOTBALL_PACKS } = await import("@/config/packs");
+  const sport = await db.sport.findUniqueOrThrow({ where: { code: "football" } });
+  let added = 0;
+  for (const p of FOOTBALL_PACKS) {
+    const exists = await db.packSku.findUnique({ where: { code_version: { code: p.code, version: p.version } } });
+    if (exists) continue;
+    await db.packSku.create({ data: { sportId: sport.id, code: p.code, version: p.version, name: p.name, kind: p.kind, priceMinor: p.priceMinor, config: p.config as never } });
+    added++;
+  }
+  return added;
 }

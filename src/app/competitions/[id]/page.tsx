@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { type Requirements, requirementsSummary } from "@/server/competitions";
+import { fmtMp } from "@/server/wallet";
 import { notFound } from "next/navigation";
 import { type BuilderCard, SquadBuilder } from "@/components/squad-builder";
 import { FORMATIONS, categoriesForFormat, getRosterRules } from "@/domain/football/rules";
@@ -32,12 +34,12 @@ export default async function CompetitionPage({ params }: { params: Promise<{ id
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <Link href="/football" className="text-xs text-faint hover:text-fg">
+          <Link href="/matches" className="text-xs text-faint hover:text-fg">
             ← Gameweek {comp.gameweek.number}
           </Link>
           <h1 className="mt-1 text-5xl font-extrabold">{comp.name}</h1>
           <p className="text-sm text-muted">
-            {comp.format === "OPEN" ? "Any tier" : `${comp.format.split("_")[0].toLowerCase()} cards only`} · 7 starters + 4 subs ·{" "}
+            {requirementsSummary((comp.requirements ?? {}) as Requirements, comp.format)} · {comp.entryFeeMinor > 0 ? `${fmtMp(comp.entryFeeMinor)} entry` : "free entry"} · 7 starters + 4 subs ·{" "}
             {open ? `locks ${relativeTime(comp.locksAt)} (${fmtDate(comp.locksAt)})` : comp.status.toLowerCase()}
           </p>
         </div>

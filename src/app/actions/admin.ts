@@ -15,7 +15,8 @@ import {
   simulateCorrections,
   simulateFixturesNow,
 } from "@/server/gameweeks";
-import { expireListings, handlePaymentWebhook } from "@/server/market";
+import { handlePaymentWebhook } from "@/server/market";
+import { expireListings, settleAuctions } from "@/server/transfers";
 import { signSandbox } from "@/server/payments/provider";
 import { executeDueReleases, executeRelease, updateRelease } from "@/server/supply";
 import { revalueAll } from "@/server/valuation";
@@ -83,7 +84,8 @@ export async function runJobsAction(): Promise<ActionResult> {
     const w = await runScheduledJobs();
     const releases = await executeDueReleases();
     const expired = await expireListings();
-    return `Windows: ${w.opened} opened, ${w.locked} locked · ${releases.length} release(s) · ${expired} listing(s) expired`;
+    const auctions = await settleAuctions();
+    return `Windows: ${w.opened} opened, ${w.locked} locked · ${releases.length} release(s) · ${expired} listing(s) expired · ${auctions} auction(s) closed`;
   });
   done();
   return res.ok ? { ...res, data: undefined, message: res.data } : res;

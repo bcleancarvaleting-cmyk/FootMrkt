@@ -1,66 +1,15 @@
 import type { Prisma } from "@/generated/prisma/client";
-import { z } from "zod";
-import { lockOwnedCard } from "./cards";
-import { type Tx, db, withTx } from "./db";
+import { db, withTx } from "./db";
 import { DomainError, isUniqueViolation } from "./errors";
 import { requireFlag } from "./flags";
 import { grantPack, latestSku } from "./packs";
 import { type PaymentProvider, paymentProvider } from "./payments/provider";
+import { fulfilDeposit } from "./wallet";
 
 /**
- * Transfer Market (spec §9.1) and paid packs. LEGAL GATE: every entry point requires the MARKET
- * or PAID_PACKS flag, which cannot be enabled until the deployment records legal clearance.
- * Seller payouts / cash withdrawal are intentionally NOT implemented (spec §9.3).
+ * Card payments: paid packs (£ by card) and adding funds. P2P transfers and auctions are MP-only
+ * and live in ./transfers. LEGAL GATE: PAID_PACKS / DEPOSITS must be cleared before use.
  */
-
-export const ListingSchema = z.object({
-  cardId: z.string().uuid(),
-  askingPriceMinor: z.number().int().min(1).max(10_000_000),
-  days: z.number().int().min(1).max(14).default(7),
-});
-
-export async function createListing(userId: string, input: z.input<typeof ListingSchema>) {
-  await requireFlag("MARKET");
-  const data = ListingSchema.parse(input);
-  return withTx(async (tx) => {
-    const card = await lockOwnedCard(tx, userId, data.cardId);
-    if (card.tradeStatus !== "TRADEABLE") throw new DomainError("NOT_TRADEABLE", "This card can't be traded.");
-    if (card.lock !== "NONE") throw new DomainError("CARD_BUSY", "This card is already listed or in a competition.");
-    const listing = await tx.marketListing.create({
-      data: {
-        cardId: data.cardId,
-        sellerId: userId,
-        askingPriceMinor: data.askingPriceMinor,
-        expiresAt: new Date(Date.now() + data.days * 24 * 3600_000),
-      },
-    });
-    await tx.cardInstance.update({ where: { id: data.cardId }, data: { lock: "LISTED", lockRef: listing.id } });
-    return listing;
-  });
-}
-
-export async function cancelListing(userId: string, listingId: string) {
-  await requireFlag("MARKET");
-  return withTx(async (tx) => {
-    const updated = await tx.marketListing.updateMany({
-      where: { id: listingId, sellerId: userId, status: "ACTIVE" },
-      data: { status: "CANCELLED" },
-    });
-    if (!updated.count) throw new DomainError("NOT_FOUND", "Listing not found or no longer active.");
-    await tx.cardInstance.updateMany({ where: { lock: "LISTED", lockRef: listingId }, data: { lock: "NONE", lockRef: null } });
-  });
-}
-
-export async function expireListings(now = new Date()) {
-  const expired = await db.marketListing.findMany({ where: { status: "ACTIVE", expiresAt: { lte: now } }, select: { id: true } });
-  for (const { id } of expired) {
-    await withTx(async (tx) => {
-      const u = await tx.marketListing.updateMany({ where: { id, status: "ACTIVE" }, data: { status: "EXPIRED" } });
-      if (u.count) await tx.cardInstance.updateMany({ where: { lock: "LISTED", lockRef: id }, data: { lock: "NONE", lockRef: null } });
-    });
-  }
-  return expired.length;
-}
 
 async function createOrder(
   args: { userId: string; kind: "PACK_PURCHASE" | "MARKET_PURCHASE"; refId: string; amountMinor: number; idempotencyKey: string },
@@ -80,17 +29,6 @@ async function createOrder(
     const checkout = await provider.createCheckout({ id: existing.id, amountMinor: existing.amountMinor, currency: existing.currency });
     return { orderId: existing.id, checkoutUrl: checkout.checkoutUrl };
   }
-}
-
-export async function startListingPurchase(buyerId: string, listingId: string, provider = paymentProvider()) {
-  await requireFlag("MARKET");
-  const listing = await db.marketListing.findUnique({ where: { id: listingId } });
-  if (!listing || listing.status !== "ACTIVE" || listing.expiresAt <= new Date()) throw new DomainError("NOT_AVAILABLE", "This listing is no longer available.");
-  if (listing.sellerId === buyerId) throw new DomainError("OWN_LISTING", "You can't buy your own listing.");
-  return createOrder(
-    { userId: buyerId, kind: "MARKET_PURCHASE", refId: listingId, amountMinor: listing.askingPriceMinor, idempotencyKey: `buy:${listingId}:${buyerId}` },
-    provider,
-  );
 }
 
 export async function startPackPurchase(userId: string, skuCode: string, clientKey: string, provider = paymentProvider()) {
@@ -141,39 +79,14 @@ export async function handlePaymentWebhook(rawBody: string, signature: string | 
       await grantPack(tx, { userId: o.userId, skuCode: sku.code, source: "PURCHASE", sourceRef: `order:${o.id}` });
       return { status: "fulfilled" as const };
     }
-    const sold = await completeSale(tx, o.refId, o.userId, o.amountMinor, o.id);
-    if (!sold) {
-      // Someone else completed the purchase first: refund this buyer.
-      await tx.order.update({ where: { id: o.id }, data: { status: "REFUNDED" } });
-      return { status: "refund_required" as const, refund: true, providerRef: event.providerRef, amountMinor: o.amountMinor };
+    if (o.kind === "DEPOSIT") {
+      await fulfilDeposit(tx, o);
+      return { status: "fulfilled" as const };
     }
-    return { status: "fulfilled" as const };
+    // Transfers are MP-only now: a legacy card-paid market order is refunded, never fulfilled.
+    await tx.order.update({ where: { id: o.id }, data: { status: "REFUNDED" } });
+    return { status: "refund_required" as const, refund: true, providerRef: event.providerRef, amountMinor: o.amountMinor };
   });
   if ("refund" in result && result.refund) await provider.refund(result.providerRef, result.amountMinor);
   return result;
-}
-
-/** Atomic ownership transfer. Returns false if the listing is no longer available. */
-async function completeSale(tx: Tx, listingId: string, buyerId: string, priceMinor: number, orderId: string) {
-  const [listing] = await tx.$queryRaw<Array<{ id: string; status: string; cardId: string; sellerId: string; expiresAt: Date }>>`
-    SELECT id, status, "cardId", "sellerId", "expiresAt" FROM "MarketListing" WHERE id = ${listingId}::uuid FOR UPDATE`;
-  if (!listing || listing.status !== "ACTIVE") return false;
-  const [card] = await tx.$queryRaw<Array<{ ownerId: string; lock: string; lockRef: string }>>`
-    SELECT "ownerId", "lock", "lockRef" FROM "CardInstance" WHERE id = ${listing.cardId}::uuid FOR UPDATE`;
-  if (!card || card.ownerId !== listing.sellerId || card.lock !== "LISTED" || card.lockRef !== listing.id) return false;
-
-  const now = new Date();
-  await tx.marketListing.update({
-    where: { id: listing.id },
-    data: { status: "SOLD", buyerId, soldPriceMinor: priceMinor, soldAt: now },
-  });
-  const closed = await tx.cardOwnership.updateMany({
-    where: { cardId: listing.cardId, userId: listing.sellerId, releasedAt: null },
-    data: { releasedAt: now, releasedVia: "MARKET_SALE", releasedRef: orderId },
-  });
-  if (closed.count !== 1) throw new Error("Seller ownership record missing");
-  await tx.cardOwnership.create({ data: { cardId: listing.cardId, userId: buyerId, acquiredVia: "MARKET", acquiredRef: orderId, acquiredAt: now } });
-  await tx.cardInstance.update({ where: { id: listing.cardId }, data: { ownerId: buyerId, lock: "NONE", lockRef: null } });
-  await tx.favouriteCard.deleteMany({ where: { cardId: listing.cardId } });
-  return true;
 }

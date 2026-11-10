@@ -7,7 +7,7 @@
 import "dotenv/config";
 import { db } from "../src/server/db";
 import { runScheduledJobs } from "../src/server/gameweeks";
-import { expireListings } from "../src/server/market";
+import { expireListings, settleAuctions } from "../src/server/transfers";
 import { executeDueReleases, supplyReport } from "../src/server/supply";
 import { revalueAll } from "../src/server/valuation";
 
@@ -17,6 +17,7 @@ async function main(cmd = "tick") {
       console.log("windows", await runScheduledJobs());
       console.log("releases", await executeDueReleases());
       console.log("expired listings", await expireListings());
+      console.log("auctions settled", await settleAuctions());
       break;
     }
     case "revalue":

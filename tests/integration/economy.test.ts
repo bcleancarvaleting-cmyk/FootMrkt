@@ -1,0 +1,125 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { completeChallenge, eligibleCards } from "@/server/challenges";
+import { submitEntry, updateCompetitionRules, withdrawEntry } from "@/server/competitions";
+import { db, withTx } from "@/server/db";
+import { claimDrop, dropStatus, scheduleDrop } from "@/server/drops";
+import { grantPack, openPack } from "@/server/packs";
+import { supplyReport } from "@/server/supply";
+import { balancesFor, credit } from "@/server/wallet";
+import { buildWorld, makeUser, resetDb } from "./fixtures";
+
+const ENV = { ...process.env };
+beforeEach(async () => {
+  await resetDb();
+  await buildWorld();
+});
+afterEach(() => {
+  process.env = { ...ENV };
+});
+
+async function bronzePack(userId: string, n = 1) {
+  const ids: string[] = [];
+  for (let i = 0; i < n; i++) {
+    const ent = await withTx((tx) => grantPack(tx, { userId, skuCode: "football-bronze", source: "DEV", sourceRef: `dev:${userId}:${i}:${Math.random()}` }));
+    ids.push(...(await openPack(userId, ent.id)).cards.map((c) => c.cardId));
+  }
+  return ids;
+}
+
+describe("challenges", () => {
+  it("hands in exactly the right cards for bonus MP, recycles them, and is idempotent", async () => {
+    const { userId } = await makeUser();
+    await bronzePack(userId, 2);
+    const ch = await db.challenge.create({ data: { code: "t-three", name: "Three", description: "", criteria: { count: 3 }, rewardMinor: 100 } });
+    const { cards } = await eligibleCards(userId, ch.id);
+    const pick = cards.slice(0, 3).map((c) => c.id);
+    await expect(completeChallenge(userId, ch.id, pick.slice(0, 2), "k0")).rejects.toMatchObject({ code: "COUNT" });
+    await completeChallenge(userId, ch.id, pick, "k1");
+    await completeChallenge(userId, ch.id, pick, "k1");
+    const bal = await balancesFor(userId);
+    expect(bal.bonus).toBe(100);
+    expect(bal.cash).toBe(0);
+    const after = await db.cardInstance.findMany({ where: { id: { in: pick } } });
+    expect(after.every((c) => c.supplyState === "RECIRCULATING" && c.ownerId === null)).toBe(true);
+    expect((await supplyReport()).reconciled).toBe(true);
+  });
+
+  it("starter cards don't count unless the challenge allows them, and are retired (not recycled) when they do", async () => {
+    const { userId, starterEntitlementId } = await makeUser();
+    const starter = (await openPack(userId, starterEntitlementId)).cards.map((c) => c.cardId);
+    const strict = await db.challenge.create({ data: { code: "t-strict", name: "S", description: "", criteria: { count: 2 }, rewardMinor: 100 } });
+    await expect(completeChallenge(userId, strict.id, starter.slice(0, 2), "s1")).rejects.toMatchObject({ code: "NOT_ELIGIBLE" });
+    const loose = await db.challenge.create({ data: { code: "t-loose", name: "L", description: "", criteria: { count: 2, includeUntradeable: true }, rewardMinor: 100 } });
+    await completeChallenge(userId, loose.id, starter.slice(0, 2), "s2");
+    const after = await db.cardInstance.findMany({ where: { id: { in: starter.slice(0, 2) } } });
+    expect(after.every((c) => c.supplyState === "RETIRED")).toBe(true);
+  });
+
+  it("respects max-per-manager and tier rules", async () => {
+    const { userId } = await makeUser();
+    await bronzePack(userId, 2);
+    const ch = await db.challenge.create({ data: { code: "t-gold", name: "G", description: "", criteria: { count: 1, tiers: ["GOLD"] }, rewardMinor: 100, maxPerUser: 1 } });
+    const bronze = await db.cardInstance.findFirstOrThrow({ where: { ownerId: userId, template: { category: "BRONZE" } } });
+    await expect(completeChallenge(userId, ch.id, [bronze.id], "g1")).rejects.toMatchObject({ code: "NOT_ELIGIBLE" });
+  });
+});
+
+describe("free pack drops", () => {
+  it("one claim per manager per drop; nothing outside the window", async () => {
+    const admin = await makeUser("adm");
+    const { userId } = await makeUser();
+    const drop = await scheduleDrop(admin.userId, { title: "Matchday freebie", startsAt: new Date(Date.now() - 60_000), hours: 24 });
+    await expect(scheduleDrop(admin.userId, { title: "Overlap", startsAt: new Date(), hours: 2 })).rejects.toMatchObject({ code: "CLASH" });
+    const [a, b] = await Promise.all([claimDrop(userId, drop.id), claimDrop(userId, drop.id)]);
+    expect(a.id).toBe(b.id);
+    expect((await dropStatus(userId))?.claimed).toBe(true);
+    await expect(claimDrop(userId, drop.id, new Date(Date.now() + 25 * 3_600_000))).rejects.toMatchObject({ code: "CLOSED" });
+  });
+});
+
+describe("match entry fees and requirements", () => {
+  async function openComp() {
+    const gw = await db.gameweek.create({ data: { sportId: (await db.sport.findFirstOrThrow()).id, season: "t", number: 1, startsAt: new Date(), endsAt: new Date(Date.now() + 3 * 86_400_000), status: "OPEN" } });
+    return db.competition.create({
+      data: { sportId: gw.sportId, gameweekId: gw.id, code: `c-${Math.random()}`, name: "Cup", format: "OPEN", rosterRules: "football-roster-v3", scoringRules: "football-scoring-v2-draft", entryOpensAt: new Date(), locksAt: new Date(Date.now() + 86_400_000), status: "OPEN" },
+    });
+  }
+  async function squad(userId: string) {
+    const starterPack = await db.packEntitlement.findFirstOrThrow({ where: { userId, source: "STARTER" } });
+    await openPack(userId, starterPack.id);
+    const cards = await db.cardInstance.findMany({ where: { ownerId: userId }, include: { template: { include: { player: true } } } });
+    const by = (p: string) => cards.filter((c) => c.template.player.position === p);
+    const starters = [...by("GK").slice(0, 1), ...by("DEF").slice(0, 2), ...by("MID").slice(0, 2), ...by("ATT").slice(0, 2)];
+    const bench = cards.filter((c) => !starters.includes(c)).slice(0, 4);
+    return { formation: "2-2-2", starters: starters.map((c) => ({ cardId: c.id, position: c.template.player.position })), bench: bench.map((c) => c.id) };
+  }
+
+  it("paid entry is blocked until PAID_ENTRY is cleared; then charged once and refunded on withdrawal", async () => {
+    const admin = await makeUser("adm2");
+    const { userId } = await makeUser();
+    const comp = await openComp();
+    await updateCompetitionRules(admin.userId, comp.id, { entryFeeMinor: 200, requirements: {} });
+    const sub = await squad(userId);
+    await expect(submitEntry(userId, comp.id, sub)).rejects.toMatchObject({ code: "FEATURE_DISABLED" });
+
+    process.env.LEGAL_GATES_CLEARED = "PAID_ENTRY";
+    process.env.FLAG_PAID_ENTRY = "true";
+    await withTx((tx) => credit(tx, { userId, amountMinor: 150, kind: "CHALLENGE_REWARD", refId: "b1" }));
+    await withTx((tx) => credit(tx, { userId, amountMinor: 100, kind: "DEPOSIT", bucket: "CASH", refId: "c1" }));
+    await submitEntry(userId, comp.id, sub);
+    await submitEntry(userId, comp.id, sub); // editing the squad doesn't charge again
+    expect(await balancesFor(userId)).toMatchObject({ bonus: 0, cash: 50 });
+    await expect(updateCompetitionRules(admin.userId, comp.id, { entryFeeMinor: 300, requirements: {} })).rejects.toMatchObject({ code: "HAS_ENTRIES" });
+    await withdrawEntry(userId, comp.id);
+    expect(await balancesFor(userId)).toMatchObject({ bonus: 150, cash: 100 });
+  });
+
+  it("admin requirements (e.g. Bronze only, max per club) are enforced", async () => {
+    const admin = await makeUser("adm3");
+    const { userId } = await makeUser();
+    const comp = await openComp();
+    await updateCompetitionRules(admin.userId, comp.id, { entryFeeMinor: 0, requirements: { maxPerClub: 1 } });
+    const sub = await squad(userId);
+    await expect(submitEntry(userId, comp.id, sub)).rejects.toMatchObject({ code: "SQUAD_INVALID" });
+  });
+});

@@ -16,6 +16,8 @@ export interface PackSkuSeed {
   priceMinor: number;
   config: PackConfig;
   blurb: string;
+  /** Shop grouping, e.g. "England". Packs without a region draw from every league. */
+  region?: string;
 }
 
 export const STARTER_PACK_CODE = "football-starter";
@@ -50,11 +52,12 @@ export const FOOTBALL_PACKS: PackSkuSeed[] = [
   },
   {
     code: WEEKLY_PACK_CODE,
-    version: 1,
-    name: "Weekly Free Pack",
+    // v2: renamed "Free Pack" — now given out on admin-scheduled drop days (10 Nov 2026).
+    version: 2,
+    name: "Free Pack",
     kind: "WEEKLY",
     priceMinor: 0,
-    blurb: "6 extra players, free every week. Untradeable — for building your squad.",
+    blurb: "6 extra players, free on drop days. Untradeable — for building your squad.",
     // Product decision (9 Nov 2026): one free untradeable pack per manager per week. Cards are
     // minted fresh (they don't drain the tradeable supply) and can't be sold or used in sets.
     // Odds mirror the Bronze Pack (approved odds).
@@ -135,3 +138,32 @@ export const FOOTBALL_PACKS: PackSkuSeed[] = [
     },
   },
 ];
+
+/** Restrict every slot of a pack to clubs in the given league countries. */
+function regional(base: PackSkuSeed, code: string, name: string, region: string, countries: string[], blurb: string): PackSkuSeed {
+  return {
+    ...base,
+    code,
+    version: 1,
+    name,
+    region,
+    blurb,
+    config: {
+      ...base.config,
+      slots: base.config.slots.map((s) => ({
+        ...s,
+        filters: { ...s.filters, countries },
+        upgrades: s.upgrades?.map((u) => ({ ...u, filters: { ...u.filters, countries } })),
+      })),
+    },
+  };
+}
+
+const byCode = (c: string) => FOOTBALL_PACKS.find((p) => p.code === c)!;
+
+/** Region packs (product request 10 Nov 2026): players only from English league clubs. Same odds as the base packs. */
+FOOTBALL_PACKS.push(
+  regional(byCode("football-bronze"), "football-eng-bronze", "England Bronze", "England", ["ENG"], "6 cards from English league clubs. Bronze, with a chance of a Silver."),
+  regional(byCode("football-silver"), "football-eng-silver", "England Silver", "England", ["ENG"], "6 cards from English league clubs. Silver, with a chance of a Gold."),
+  regional(byCode("football-gold"), "football-eng-gold", "England Gold", "England", ["ENG"], "6 cards from English clubs. At least 2 Premier League Golds — sometimes 3 or 4."),
+);

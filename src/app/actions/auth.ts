@@ -1,6 +1,8 @@
 "use server";
 
 import { headers } from "next/headers";
+import { sendEmail } from "@/server/email/send";
+import { APP_URL } from "@/server/email/templates";
 import { redirect } from "next/navigation";
 import { authenticate, registerUser } from "@/server/auth/accounts";
 import { endSession, startSession } from "@/server/auth/session";
@@ -28,6 +30,7 @@ export async function registerAction(_: ActionResult | null, form: FormData): Pr
   );
   if (!res.ok) return res;
   await startSession(res.data.user.id);
+  await sendEmail("welcome", { userId: res.data.user.id, email: res.data.user.email }, { name: res.data.user.displayName, verifyUrl: `${APP_URL}/verify?token=${res.data.emailVerificationToken}` }, `welcome:${res.data.user.id}`);
   redirect(`/packs?welcome=1`);
 }
 

@@ -31,7 +31,7 @@ export const ADMIN_MENU: Array<{ group: string; items: Array<{ href: string; lab
       { href: "/admin/withdrawals", label: "Withdrawals" },
     ],
   },
-  { group: "System", items: [{ href: "/admin/settings", label: "Settings & flags" }] },
+  { group: "System", items: [{ href: "/admin/emails", label: "Emails" }, { href: "/admin/settings", label: "Settings & flags" }] },
 ];
 
 export function AdminNav() {

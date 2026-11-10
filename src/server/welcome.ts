@@ -33,7 +33,11 @@ export async function grantDueWelcomePacks(userId: string, now = new Date()) {
   const ref = (id: string) => `welcome:${id}:${userId}`;
   const have = await db.packEntitlement.findMany({ where: { sourceRef: { in: due.map((g) => ref(g.id)) } }, select: { sourceRef: true } });
   const missing = due.filter((g) => !have.some((h) => h.sourceRef === ref(g.id)));
-  for (const g of missing) await withTx((tx) => grantPack(tx, { userId, skuCode: g.skuCode, source: "REWARD", sourceRef: ref(g.id) }));
+  for (const g of missing) {
+    await withTx((tx) => grantPack(tx, { userId, skuCode: g.skuCode, source: "REWARD", sourceRef: ref(g.id) }));
+    const { emailUser } = await import("./email/send");
+    await emailUser(userId, "packReady", { pack: FOOTBALL_PACKS.find((p) => p.code === g.skuCode)?.name ?? "free pack" }, `packready:${ref(g.id)}`);
+  }
   return missing.length;
 }
 

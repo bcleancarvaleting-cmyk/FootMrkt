@@ -399,3 +399,17 @@ describe("prize fund", () => {
     ]);
   });
 });
+
+describe("emails", () => {
+  it("emails are logged in the outbox (sent when a provider is set) and dedupe", async () => {
+    const { sendEmail, emailUser } = await import("@/server/email/send");
+    const { userId } = await makeUser("mailer");
+    await sendEmail("welcome", { userId, email: "mailer@test.dev" }, { name: "mailer" }, "w1");
+    await sendEmail("welcome", { userId, email: "mailer@test.dev" }, { name: "mailer" }, "w1");
+    await emailUser(userId, "packReady", { pack: "Squad Boost" });
+    const logs = await db.emailLog.findMany({ where: { userId } });
+    expect(logs).toHaveLength(2);
+    expect(logs.every((l) => l.status === "LOGGED")).toBe(true);
+    expect(logs.map((l) => l.subject).sort()).toEqual(["Welcome to MATCHX, mailer", "Your Squad Boost is ready"]);
+  });
+});

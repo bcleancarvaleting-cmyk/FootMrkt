@@ -225,7 +225,7 @@ export async function requestWithdrawal(userId: string, amountMinor: number) {
 
 /** Admin: mark paid (money leaves; the hold stays) or reject (the hold is released). */
 export async function processWithdrawal(adminId: string, withdrawalId: string, decision: "PAID" | "REJECTED", payoutRef?: string, note?: string) {
-  return withTx(async (tx) => {
+  const w = await withTx(async (tx) => {
     const [w] = await tx.$queryRaw<Array<{ id: string; userId: string; status: string; amountMinor: number }>>`
       SELECT id, "userId", status, "amountMinor" FROM "Withdrawal" WHERE id = ${withdrawalId}::uuid FOR UPDATE`;
     if (!w) throw new DomainError("NOT_FOUND", "Withdrawal not found.");
@@ -234,7 +234,10 @@ export async function processWithdrawal(adminId: string, withdrawalId: string, d
     await tx.withdrawal.update({ where: { id: w.id }, data: { status: decision, processedAt: new Date(), processedBy: adminId, payoutRef, note } });
     if (decision === "PAID") await tx.user.update({ where: { id: w.userId }, data: { kycStatus: "VERIFIED" } });
     await audit(tx, { actorId: adminId, action: `withdrawal.${decision.toLowerCase()}`, entityType: "Withdrawal", entityId: w.id, after: { amountMinor: w.amountMinor, payoutRef, note } });
+    return w;
   });
+  const { emailUser } = await import("./email/send");
+  await emailUser(w.userId, "withdrawal", { amount: fmtGbp(w.amountMinor), paid: decision === "PAID" }, `withdrawal:${w.id}:${decision}`);
 }
 
 export function fmtMp(minor: number): string {

@@ -14,6 +14,7 @@ import { grantPack, openPack } from "@/server/packs";
 import { buyPackWithCredit } from "@/server/wallet";
 import { claimWeeklyPack } from "@/server/weekly";
 import { rateLimit } from "@/lib/rate-limit";
+import { emailUser } from "@/server/email/send";
 import { type ActionResult, attempt } from "./result";
 
 export async function openPackAction(entitlementId: string): Promise<ActionResult<{ openingId: string }>> {
@@ -47,6 +48,7 @@ export async function submitEntryAction(competitionId: string, submission: unkno
   const res = await attempt(async () => {
     await submitEntry(user.id, competitionId, submission);
   }, "Squad saved");
+  if (res.ok) await afterEntryEmails(user.id, competitionId);
   revalidatePath(`/competitions/${competitionId}`);
   revalidatePath("/matches");
   return res;
@@ -96,4 +98,20 @@ export async function claimWeeklyPackAction(): Promise<ActionResult<{ entitlemen
   const res = await attempt(async () => ({ entitlementId: (await claimWeeklyPack(user.id)).id }), "Weekly pack claimed");
   revalidatePath("/", "layout");
   return res;
+}
+
+/** Team-sheet confirmation, and the referrer's reward email the first time a referred manager plays. */
+async function afterEntryEmails(userId: string, competitionId: string) {
+  const entry = await db.competitionEntry.findUnique({
+    where: { competitionId_userId: { competitionId, userId } },
+    include: { competition: true, selections: { where: { isCaptain: true }, include: { player: { select: { displayName: true } } } } },
+  });
+  if (!entry) return;
+  const edit = entry.updatedAt.getTime() - entry.createdAt.getTime() > 2000;
+  await emailUser(userId, "teamSheet", { match: entry.competition.name, captain: entry.selections[0]?.player.displayName ?? null, deadline: entry.competition.locksAt, edit }, `teamsheet:${entry.id}:${Math.floor(Date.now() / 600_000)}`);
+  const reward = await db.packEntitlement.findUnique({ where: { sourceRef: `referral:${userId}` }, include: { packSku: true } });
+  if (reward) {
+    const me = await db.user.findUnique({ where: { id: userId }, select: { displayName: true } });
+    await emailUser(reward.userId, "referralReward", { friend: me?.displayName ?? "Your friend", pack: reward.packSku.name }, `referral:${userId}`);
+  }
 }

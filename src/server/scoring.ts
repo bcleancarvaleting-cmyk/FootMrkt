@@ -118,7 +118,7 @@ export interface RewardRule {
  * configured rewards. Idempotent: settling a SETTLED competition is a no-op.
  */
 export async function settleCompetition(competitionId: string, actorId: string | null = null) {
-  return withTx(async (tx) => {
+  const result = await withTx(async (tx) => {
     const [comp] = await tx.$queryRaw<Array<{ id: string; status: string; gameweekId: string; rewards: unknown }>>`
       SELECT id, status, "gameweekId", rewards FROM "Competition" WHERE id = ${competitionId}::uuid FOR UPDATE`;
     if (!comp) throw new DomainError("NOT_FOUND", "Competition not found");
@@ -182,6 +182,25 @@ export async function settleCompetition(competitionId: string, actorId: string |
     });
     return { alreadySettled: false, entries: totals.length };
   });
+  if (!result.alreadySettled) await settlementEmails(competitionId);
+  return result;
+}
+
+/** After settling: a results email to every entrant and a prize email to winners (once each). */
+async function settlementEmails(competitionId: string) {
+  const { emailUser } = await import("./email/send");
+  const comp = await db.competition.findUniqueOrThrow({ where: { id: competitionId }, select: { name: true } });
+  const entries = await db.competitionEntry.findMany({ where: { competitionId, status: "ACTIVE" }, select: { userId: true, finalPoints: true, rank: true } });
+  const prizes = await db.walletEntry.findMany({ where: { kind: "PRIZE", refId: { startsWith: `prize:${competitionId}:` } }, select: { userId: true, amountMinor: true } });
+  for (const e of entries) {
+    const pts = Math.round(e.finalPoints ?? 0);
+    await emailUser(e.userId, "results", { match: comp.name, points: pts, rank: e.rank ?? 0, entries: entries.length, xp: Math.max(0, pts) }, `results:${competitionId}:${e.userId}`);
+    const p = prizes.find((x) => x.userId === e.userId);
+    if (p) {
+      const tied = entries.filter((x) => x.rank === e.rank).length;
+      await emailUser(e.userId, "prizeWon", { match: comp.name, amount: `£${(p.amountMinor / 100).toFixed(2)}`, rank: `${tied > 1 ? "joint " : ""}#${e.rank}` }, `prize:${competitionId}:${e.userId}`);
+    }
+  }
 }
 
 /**

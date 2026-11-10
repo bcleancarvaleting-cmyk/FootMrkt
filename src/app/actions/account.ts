@@ -7,7 +7,7 @@ import { requireUser } from "@/server/auth/session";
 import { completeChallenge } from "@/server/challenges";
 import { db } from "@/server/db";
 import { claimDrop } from "@/server/drops";
-import { choosePick } from "@/server/picks";
+import { choosePick, isPick } from "@/server/picks";
 import { DomainError } from "@/server/errors";
 import { convertXp, fmtMp, isAdult, requestWithdrawal, startDeposit } from "@/server/wallet";
 import { type ActionResult, attempt } from "./result";
@@ -109,9 +109,13 @@ export async function completeChallengeAction(challengeId: string, cardIds: stri
   return res;
 }
 
-export async function claimDropAction(dropId: string): Promise<ActionResult<{ entitlementId: string }>> {
+export async function claimDropAction(dropId: string): Promise<ActionResult<{ entitlementId: string; pick: boolean }>> {
   const user = await requireUser();
-  const res = await attempt(async () => ({ entitlementId: (await claimDrop(user.id, dropId)).id }), "Free pack claimed");
+  const res = await attempt(async () => {
+    const ent = await claimDrop(user.id, dropId);
+    const sku = await db.packSku.findUniqueOrThrow({ where: { id: ent.packSkuId }, select: { code: true } });
+    return { entitlementId: ent.id, pick: isPick(sku.code) };
+  }, "Free pack claimed");
   revalidatePath("/", "layout");
   return res;
 }

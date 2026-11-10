@@ -108,12 +108,14 @@ async function Builder({
   };
   const builderCards: BuilderCard[] = cards.map((c) => {
     const mine = c.lock === "COMPETITION" && entry && c.lockRef === entry.id;
-    const notFree = !!(competition.requirements as Requirements | null)?.freeCardsOnly && c.edition !== "STARTER";
-    const available = (c.lock === "NONE" || !!mine) && !notFree;
+    const req = (competition.requirements ?? {}) as Requirements;
+    const notFree = !!req.freeCardsOnly && c.edition !== "STARTER";
+    const wrongClub = !!req.clubs && !req.clubs.includes(c.clubCode ?? "");
+    const available = (c.lock === "NONE" || !!mine) && !notFree && !wrongClub;
     return {
       ...c,
       available,
-      unavailableReason: available ? undefined : notFree ? "not a free card" : c.lock === "LISTED" ? "listed on market" : "in another squad",
+      unavailableReason: available ? undefined : wrongClub ? "not in this match" : notFree ? "not a free card" : c.lock === "LISTED" ? "listed on market" : "in another squad",
       form: form.get(c.playerId) ?? [],
       fixture: fixtureFor(c.clubCode),
     };

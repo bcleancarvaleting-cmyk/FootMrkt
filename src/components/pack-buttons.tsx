@@ -94,6 +94,7 @@ export function ClaimDropButton({ dropId }: { dropId: string }) {
           start(async () => {
             const claimed = await claimDropAction(dropId);
             if (!claimed.ok) return setRes(claimed);
+            if (claimed.data.pick) return router.push(`/packs/pick/${claimed.data.entitlementId}`);
             const opened = await openPackAction(claimed.data.entitlementId);
             if (opened.ok) router.push(`/packs/opening/${opened.data.openingId}`);
             else setRes(opened);

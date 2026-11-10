@@ -15,6 +15,8 @@ import { potTotal } from "@/domain/football/prizes";
 export const RequirementsSchema = z
   .object({
     leagues: z.array(z.string()).min(1).optional(),
+    /** Only these clubs' players (club codes), e.g. ["CHE","MUN"] for a Chelsea v Man Utd match. */
+    clubs: z.array(z.string()).min(1).max(6).optional(),
     maxPerClub: z.number().int().min(1).max(11).optional(),
     /** Max total MX value of the starting seven. */
     maxSquadValueMp: z.number().int().min(1).optional(),
@@ -36,6 +38,7 @@ export function requirementsSummary(r: Requirements, format: string) {
   if (r.foundersOnly) bits.push("Founding members only");
   if (format !== "OPEN") bits.push(`${format.split("_")[0][0]}${format.split("_")[0].slice(1).toLowerCase()} only`);
   if (r.tiers) bits.push(`${r.tiers.map((t) => t[0] + t.slice(1).toLowerCase()).join("/")} only`);
+  if (r.clubs) bits.push(`${r.clubs.join(" v ")} players only`);
   if (r.leagues) bits.push(`${r.leagues.join("/")} players`);
   if (r.maxPerClub) bits.push(`max ${r.maxPerClub} per club`);
   if (r.maxSquadValueMp) bits.push(`starting XI ≤ ${r.maxSquadValueMp} MX`);
@@ -80,9 +83,9 @@ export async function submitEntry(userId: string, competitionId: string, input: 
 
     const cardIds = [...submission.starters.map((s) => s.cardId), ...submission.bench];
     const rows = await tx.$queryRaw<
-      Array<{ id: string; ownerId: string | null; lock: string; lockRef: string | null; playerId: string; position: string; category: string; edition: string; clubId: string | null; league: string | null }>
+      Array<{ id: string; ownerId: string | null; lock: string; lockRef: string | null; playerId: string; position: string; category: string; edition: string; clubId: string | null; clubCode: string | null; league: string | null }>
     >`SELECT ci.id, ci."ownerId", ci."lock", ci."lockRef", t."playerId", p.position::text AS position, t.category::text AS category, t.edition::text AS edition,
-             p."clubId", l.code AS league
+             p."clubId", c.code AS "clubCode", l.code AS league
       FROM "CardInstance" ci JOIN "CardTemplate" t ON t.id = ci."templateId" JOIN "Player" p ON p.id = t."playerId"
       LEFT JOIN "Club" c ON c.id = p."clubId" LEFT JOIN "League" l ON l.id = c."leagueId"
       WHERE ci.id = ANY(${cardIds}::uuid[]) AND ci."ownerId" = ${userId}::uuid AND ci."supplyState" = 'HELD'
@@ -176,7 +179,7 @@ export async function withdrawEntry(userId: string, competitionId: string) {
 async function checkRequirements(
   tx: Parameters<Parameters<typeof withTx>[0]>[0],
   raw: unknown,
-  rows: Array<{ id: string; playerId: string; category: string; edition: string; clubId: string | null; league: string | null }>,
+  rows: Array<{ id: string; playerId: string; category: string; edition: string; clubId: string | null; clubCode: string | null; league: string | null }>,
   starterIds: string[],
 ): Promise<SquadIssue[]> {
   const parsed = RequirementsSchema.safeParse(raw ?? {});
@@ -186,6 +189,7 @@ async function checkRequirements(
   const picked = rows;
   if (r.freeCardsOnly) for (const c of picked) if (c.edition !== "STARTER") issues.push({ code: "UNKNOWN_CARD", message: "Only free cards (Starter Pack, welcome gifts, free drops) can be entered", cardId: c.id });
   if (r.tiers) for (const c of picked) if (!r.tiers.includes(c.category as never)) issues.push({ code: "UNKNOWN_CARD", message: `Only ${r.tiers.join("/").toLowerCase()} cards can be entered`, cardId: c.id });
+  if (r.clubs) for (const c of picked) if (!c.clubCode || !r.clubs.includes(c.clubCode)) issues.push({ code: "UNKNOWN_CARD", message: `Only ${r.clubs.join(" and ")} players can be entered`, cardId: c.id });
   if (r.leagues) for (const c of picked) if (!c.league || !r.leagues.includes(c.league)) issues.push({ code: "UNKNOWN_CARD", message: `Only ${r.leagues.join("/")} players can be entered`, cardId: c.id });
   if (r.maxPerClub) {
     const per = new Map<string, number>();

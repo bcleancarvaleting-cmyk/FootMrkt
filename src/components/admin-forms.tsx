@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { addWelcomeGiftAction, competitionRulesAction, createAuctionAction, createChallengeAction, pinnedListingsAction, scheduleDropAction, stockHouseAction } from "@/app/actions/economy";
+import { setSettingAction, addWelcomeGiftAction, competitionRulesAction, createAuctionAction, createChallengeAction, pinnedListingsAction, scheduleDropAction, stockHouseAction } from "@/app/actions/economy";
 import type { ActionResult } from "@/app/actions/result";
 import { ResultText } from "./action-button";
 
@@ -32,10 +32,18 @@ const localNow = () => {
   return d.toISOString().slice(0, 16);
 };
 
-export function DropForm() {
+export function DropForm({ packs }: { packs: Array<{ code: string; name: string }> }) {
   return (
-    <Form action={scheduleDropAction} submit="Schedule drop">
-      <I name="title" label="Banner title" placeholder="Matchday freebie" required />
+    <Form action={scheduleDropAction} submit="Schedule gift">
+      <I name="title" label="Banner title" placeholder="Happy Christmas from MATCHX" required />
+      <div>
+        <label className="label" htmlFor="f-gift-sku">Gift</label>
+        <select id="f-gift-sku" name="skuCode" className="input" defaultValue="football-weekly">
+          {packs.map((p) => (
+            <option key={p.code} value={p.code}>{p.name}</option>
+          ))}
+        </select>
+      </div>
       <I name="startsAt" label="Goes live" type="datetime-local" defaultValue={localNow()} required />
       <I name="hours" label="Hours open" type="number" min="1" max="72" defaultValue="24" />
     </Form>
@@ -93,13 +101,14 @@ export function ChallengeForm({ packs }: { packs: Array<{ code: string; name: st
   );
 }
 
-export function MatchRulesForm({ id, fee, req, prizes }: { id: string; fee: number; req: { tiers?: string[]; leagues?: string[]; maxPerClub?: number; maxSquadValueMp?: number; foundersOnly?: boolean; freeCardsOnly?: boolean }; prizes: string }) {
+export function MatchRulesForm({ id, fee, req, prizes }: { id: string; fee: number; req: { tiers?: string[]; leagues?: string[]; maxPerClub?: number; maxSquadValueMp?: number; foundersOnly?: boolean; freeCardsOnly?: boolean; clubs?: string[] }; prizes: string }) {
   return (
     <Form action={competitionRulesAction} submit="Save">
       <input type="hidden" name="competitionId" value={id} />
       <I name="fee" label="Entry fee (MX)" type="number" step="0.01" min="0" max="100" defaultValue={(fee / 100).toFixed(2)} />
       <I name="tiers" label="Tiers only" placeholder="BRONZE" defaultValue={req.tiers?.join(",")} />
       <I name="leagues" label="Leagues only" placeholder="EPL" defaultValue={req.leagues?.join(",")} />
+      <I name="clubs" label="Clubs only (e.g. CHE,MUN)" placeholder="CHE,MUN" defaultValue={req.clubs?.join(",")} />
       <I name="maxPerClub" label="Max per club" type="number" min="1" defaultValue={req.maxPerClub} />
       <I name="maxValue" label="Max starters value (MX)" type="number" min="1" defaultValue={req.maxSquadValueMp} />
       <I name="prizes" label="£ prize pot by position (e.g. 1=10, 2=5, 3=3) — ties split" placeholder="1=10, 2=5, 3=3" defaultValue={prizes} />
@@ -160,5 +169,21 @@ export function PinnedListingsForm() {
       </div>
       <I name="days" label="Listed for (days)" type="number" min="1" max="30" defaultValue="14" />
     </Form>
+  );
+}
+
+export function SettingForm({ settingKey, label, help, value, min, max }: { settingKey: string; label: string; help: string; value: number; min: number; max: number }) {
+  const [state, run, pending] = useActionState(setSettingAction, null);
+  return (
+    <form action={run} className="flex flex-wrap items-end gap-3 border-t border-ink-700 pt-4 first:border-0 first:pt-0">
+      <input type="hidden" name="key" value={settingKey} />
+      <div className="min-w-0 flex-1 basis-64">
+        <label className="label" htmlFor={`s-${settingKey}`}>{label}</label>
+        <p className="mb-2 text-xs text-faint">{help}</p>
+        <input id={`s-${settingKey}`} name="value" type="number" min={min} max={max} defaultValue={value} className="input max-w-[180px] tabular-nums" />
+      </div>
+      <button className="btn-primary px-4 py-2 text-xs" disabled={pending}>{pending ? "Saving…" : "Save"}</button>
+      {state && <ResultText result={state} />}
+    </form>
   );
 }

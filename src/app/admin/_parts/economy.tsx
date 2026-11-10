@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { applyPrizeFundAction, backfillFoundersAction, clubBindersAction, lockHeldCardsAction, cancelAuctionAction, cancelDropAction, clearHouseAction, launchMixAction, processWithdrawalAction, syncPacksAction, toggleChallengeAction, updateWelcomeGiftAction } from "@/app/actions/economy";
+import { applyPrizeFundAction, backfillFoundersAction, lockHeldCardsAction, cancelAuctionAction, cancelDropAction, clearHouseAction, launchMixAction, processWithdrawalAction, toggleChallengeAction, updateWelcomeGiftAction } from "@/app/actions/economy";
 import { ActionButton } from "@/components/action-button";
 import { AuctionForm, ChallengeForm, DropForm, HouseStockForm, MatchRulesForm, PinnedListingsForm, WelcomeGiftForm } from "@/components/admin-forms";
 import { isEnabled } from "@/server/flags";
@@ -7,7 +7,6 @@ import { PRIZE_FUND_SHARE, prizeFund } from "@/server/prize-fund";
 import { fmtGbp as gbpFmt } from "@/server/wallet";
 import { LAUNCH_MIX } from "@/config/transfers";
 import { FOOTBALL_PACKS } from "@/config/packs";
-import { requireAdmin } from "@/server/auth/session";
 import { type Requirements, prizesSummary, requirementsSummary } from "@/server/competitions";
 import { giftPacks, welcomeGiftsForAdmin } from "@/server/welcome";
 import { criteriaSummary } from "@/server/challenges";
@@ -17,7 +16,6 @@ import { upcomingDrops } from "@/server/drops";
 import { fmtGbp, fmtMp } from "@/server/wallet";
 import { fmtDate } from "@/lib/view";
 
-export const metadata = { title: "Admin · Economy" };
 
 function Section({ title, intro, children }: { title: string; intro?: string; children: React.ReactNode }) {
   return (
@@ -29,8 +27,8 @@ function Section({ title, intro, children }: { title: string; intro?: string; ch
   );
 }
 
-export default async function EconomyAdmin() {
-  await requireAdmin();
+export async function EconomySections({ only }: { only: string[] }) {
+  const show = (k: string) => only.includes(k);
   const [drops, auctions, challenges, comps, withdrawals, fees, gifts, house, founders, nonFounders, foundingOpen, tradeableHeld, paidPacks, fund] = await Promise.all([
     upcomingDrops(),
     db.auction.findMany({ where: { status: { in: ["LIVE", "SCHEDULED"] } }, include: { card: { include: { template: { include: { player: true } } } }, bids: { where: { status: "LEADING" } } }, orderBy: { endsAt: "asc" } }),
@@ -54,20 +52,7 @@ export default async function EconomyAdmin() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <Link href="/admin" className="text-xs text-faint hover:text-fg">← Admin</Link>
-          <h1 className="mt-1 text-5xl">Economy</h1>
-          <p className="text-sm text-muted">
-            Transfers: {fees._count} sales · {fmtMp(fees._sum.soldPriceMinor ?? 0)} traded · {fmtMp(fees._sum.feeMinor ?? 0)} in 5% fees
-          </p>
-        </div>
-        <span className="flex gap-2">
-          <ActionButton action={clubBindersAction}>Create club binders</ActionButton>
-          <ActionButton action={syncPacksAction}>Publish new pack versions</ActionButton>
-        </span>
-      </div>
-
+      {show("prize") && (
       <Section title="Prize fund" intro={`${Math.round(PRIZE_FUND_SHARE * 100)}% of the last 7 days' card revenue (packs and MX top-ups) goes into the next prizes, with a £10 minimum. Keep this as internal policy: advertise the prizes, not a share of sales.`}>
         <div className="mb-4 grid gap-px overflow-hidden rounded-xl border border-ink-700 bg-ink-700 sm:grid-cols-4">
           {[
@@ -99,7 +84,9 @@ export default async function EconomyAdmin() {
           {!freerolls.length && <li className="py-2 text-faint">No open freerolls this gameweek.</li>}
         </ul>
       </Section>
+      )}
 
+      {show("founders") && (
       <Section title="Founding members" intro="Everyone who signs up while Founding sign-ups is on becomes a numbered Founding Member, with a badge next to their name for good. Use the match rule 'Founding members only' for founders' freerolls.">
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <span><b>{founders}</b> founding members</span>
@@ -110,7 +97,9 @@ export default async function EconomyAdmin() {
           )}
         </div>
       </Section>
+      )}
 
+      {show("launch") && (
       <Section title="Launch: untradeable cards" intro="Until paid packs are switched on, every card a manager gets (packs, MATCHX listings, auctions) is untradeable for good. They keep it, play it, use it in sets and challenges, but can't sell it. Handed-in cards go back into packs as tradeable.">
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <span className={`tag ${paidPacks ? "text-lime" : "text-warn"}`}>{paidPacks ? "Paid packs live — new cards are tradeable" : "Launch period — new cards are untradeable"}</span>
@@ -120,7 +109,9 @@ export default async function EconomyAdmin() {
           )}
         </div>
       </Section>
+      )}
 
+      {show("welcome") && (
       <Section title="Welcome gifts" intro="Free untradeable packs every new manager gets after the Starter Pack, counted in days from registering. Changes apply to everyone who hasn't received that gift yet.">
         <ul className="mb-4 divide-y divide-ink-700 text-sm">
           {gifts.map((g) => (
@@ -139,10 +130,13 @@ export default async function EconomyAdmin() {
         </ul>
         <WelcomeGiftForm packs={giftPacks()} />
       </Section>
+      )}
 
+      {show("house") && (
       <Section title="MATCHX listings on Transfers" intro="List cards straight from circulation at buy-now prices (no offers). Unsold cards go back into packs when the listing ends. The MX goes to MATCHX.">
         <p className="mb-4 text-sm">
-          <b>{houseActive}</b> live · <b>{houseSold?._count._all ?? 0}</b> sold for <b>{fmtMp(houseSold?._sum.soldPriceMinor ?? 0)}</b>
+          All transfers: <b>{fees._count}</b> sales · <b>{fmtMp(fees._sum.soldPriceMinor ?? 0)}</b> traded · <b>{fmtMp(fees._sum.feeMinor ?? 0)}</b> in 5% fees ·{" "}
+          MATCHX: <b>{houseActive}</b> live · <b>{houseSold?._count._all ?? 0}</b> sold for <b>{fmtMp(houseSold?._sum.soldPriceMinor ?? 0)}</b>
         </p>
         <div className="mb-5 rounded-xl border border-accent/40 bg-accent/5 p-4">
           <p className="font-semibold">Launch mix</p>
@@ -163,9 +157,11 @@ export default async function EconomyAdmin() {
           </div>
         )}
       </Section>
+      )}
 
-      <Section title="Free pack drops" intro="Pick the days. Each drop shows a slim glowing banner on Packs with a countdown; every manager can claim one untradeable pack.">
-        <DropForm />
+      {show("drops") && (
+      <Section title="Gift drops" intro="Give everyone a free pack for a set window, e.g. over Christmas: a slim glowing banner on Packs with a countdown, one claim each. Choose any free pack — including Choice of Gold or a Mixed Pack.">
+        <DropForm packs={giftPacks()} />
         <ul className="mt-4 divide-y divide-ink-700 text-sm">
           {drops.map((d) => (
             <li key={d.id} className="flex items-center justify-between gap-3 py-2">
@@ -181,7 +177,9 @@ export default async function EconomyAdmin() {
           {!drops.length && <li className="py-2 text-faint">No drops scheduled.</li>}
         </ul>
       </Section>
+      )}
 
+      {show("auctions") && (
       <Section title="House auctions" intro="Takes one unowned copy out of the pack pool. Bids hold cash MX; the winner pays their bid to MATCHX. Unsold cards go back into packs.">
         <AuctionForm />
         <ul className="mt-4 divide-y divide-ink-700 text-sm">
@@ -196,7 +194,9 @@ export default async function EconomyAdmin() {
           {!auctions.length && <li className="py-2 text-faint">No live auctions.</li>}
         </ul>
       </Section>
+      )}
 
+      {show("challenges") && (
       <Section title="Challenges" intro="Managers hand in cards that match the rules for bonus MX and/or a pack. Tradeable cards go back into packs.">
         <ChallengeForm packs={packs} />
         <ul className="mt-4 divide-y divide-ink-700 text-sm">
@@ -210,7 +210,9 @@ export default async function EconomyAdmin() {
           ))}
         </ul>
       </Section>
+      )}
 
+      {show("matchrules") && (
       <Section title="Match entry rules" intro="£ prizes are only allowed on free-entry matches with 'Free cards only', so nothing anyone bought can improve their chances of real money. Matches with an MX entry fee pay MX or pack prizes. MX entry fees are charged once PAID_ENTRY is cleared; fees can't change after someone has entered.">
         <div className="space-y-5">
           {comps.map((c) => (
@@ -229,7 +231,9 @@ export default async function EconomyAdmin() {
           {!comps.length && <p className="text-sm text-faint">No open matches.</p>}
         </div>
       </Section>
+      )}
 
+      {show("withdrawals") && (
       <Section title="Withdrawals" intro="Managers can only withdraw £ winnings from match prizes — never MX. Check identity and bank details with the payout provider, then mark paid. Rejecting returns the winnings.">
         <ul className="divide-y divide-ink-700 text-sm">
           {withdrawals.map((w) => (
@@ -246,6 +250,7 @@ export default async function EconomyAdmin() {
           {!withdrawals.length && <li className="py-2 text-faint">No pending withdrawals.</li>}
         </ul>
       </Section>
+      )}
     </div>
   );
 }

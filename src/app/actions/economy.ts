@@ -10,6 +10,7 @@ import { DomainError } from "@/server/errors";
 import { syncPackCatalogue } from "@/server/packs";
 import { ensureClubBinders } from "@/server/collections";
 import { applyPrizeFund } from "@/server/prize-fund";
+import { type SettingKey, setSetting } from "@/server/settings";
 import { cancelAuction, clearHouseListings, createAuction, stockHouseListings, stockLaunchMix, stockPinnedListings } from "@/server/transfers";
 import { addWelcomeGift, updateWelcomeGift } from "@/server/welcome";
 import { backfillFoundingMembers } from "@/server/founders";
@@ -29,7 +30,7 @@ const done = () => revalidatePath("/", "layout");
 export async function scheduleDropAction(_: ActionResult | null, f: FormData): Promise<ActionResult> {
   const admin = await requireAdmin();
   const res = await attempt(async () => {
-    await scheduleDrop(admin.id, { title: str(f, "title"), startsAt: new Date(str(f, "startsAt")), hours: Number(str(f, "hours") || 24) });
+    await scheduleDrop(admin.id, { title: str(f, "title"), skuCode: str(f, "skuCode") || undefined, startsAt: new Date(str(f, "startsAt")), hours: Number(str(f, "hours") || 24) });
   }, "Free pack drop scheduled");
   done();
   return res;
@@ -113,6 +114,7 @@ export async function competitionRulesAction(_: ActionResult | null, f: FormData
       requirements: {
         tiers: list(f, "tiers"),
         leagues: list(f, "leagues"),
+        clubs: list(f, "clubs"),
         maxPerClub: str(f, "maxPerClub") ? Number(str(f, "maxPerClub")) : undefined,
         maxSquadValueMp: str(f, "maxValue") ? Number(str(f, "maxValue")) : undefined,
         foundersOnly: f.get("foundersOnly") === "on" ? true : undefined,
@@ -231,6 +233,15 @@ export async function applyPrizeFundAction(competitionId: string): Promise<Actio
   const res = await attempt(async () => {
     await applyPrizeFund(admin.id, competitionId);
   }, "Prize fund applied");
+  done();
+  return res;
+}
+
+export async function setSettingAction(_: ActionResult | null, f: FormData): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const res = await attempt(async () => {
+    await setSetting(admin.id, str(f, "key") as SettingKey, Number(str(f, "value")));
+  }, "Saved");
   done();
   return res;
 }

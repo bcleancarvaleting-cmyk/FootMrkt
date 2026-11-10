@@ -13,6 +13,8 @@ import { leaderboard } from "@/server/competitions";
 import { db } from "@/server/db";
 import { recentForm } from "@/server/form";
 import { cardViews } from "@/server/views";
+import { draftPool, draftPrice } from "@/server/draft";
+import { posterCards } from "@/server/social";
 import { type Pos, fmtDate, relativeTime } from "@/lib/view";
 
 export const metadata = { title: "Competition" };
@@ -55,7 +57,11 @@ export default async function CompetitionPage({ params }: { params: Promise<{ id
       </div>
 
       {open ? (
-        <Builder userId={user.id} competition={comp} entry={entry} />
+        ((comp.requirements ?? {}) as Requirements).draftBudgetMx ? (
+          <DraftBuilder competition={comp} entry={entry} />
+        ) : (
+          <Builder userId={user.id} competition={comp} entry={entry} />
+        )
       ) : entry ? (
         <Result entryId={entry.id} settled={comp.status === "SETTLED"} />
       ) : (
@@ -99,7 +105,7 @@ async function Builder({
 }: {
   userId: string;
   competition: { id: string; gameweekId: string; rosterRules: string; format: "OPEN" | "BRONZE_ONLY" | "SILVER_ONLY" | "GOLD_ONLY"; requirements: unknown };
-  entry: { id: string; formation: string; selections: Array<{ cardId: string; slot: string; position: string; order: number; isCaptain: boolean }> } | null;
+  entry: { id: string; formation: string; selections: Array<{ cardId: string | null; slot: string; position: string; order: number; isCaptain: boolean }> } | null;
 }) {
   const rules = getRosterRules(competition.rosterRules);
   const cards = await cardViews({ ownerId: userId, supplyState: "HELD" }, [{ template: { player: { position: "asc" } } }]);
@@ -133,8 +139,8 @@ async function Builder({
   const initial = entry
     ? {
         formation: entry.formation,
-        starters: entry.selections.filter((s) => s.slot === "STARTER").sort((a, b) => a.order - b.order).map((s) => ({ cardId: s.cardId, position: s.position as Pos })),
-        bench: entry.selections.filter((s) => s.slot === "BENCH").sort((a, b) => a.order - b.order).map((s) => s.cardId),
+        starters: entry.selections.filter((s) => s.slot === "STARTER" && s.cardId).sort((a, b) => a.order - b.order).map((s) => ({ cardId: s.cardId!, position: s.position as Pos })),
+        bench: entry.selections.filter((s) => s.slot === "BENCH" && s.cardId).sort((a, b) => a.order - b.order).map((s) => s.cardId!),
         captain: entry.selections.find((s) => s.isCaptain)?.cardId ?? null,
       }
     : null;
@@ -150,11 +156,74 @@ async function Builder({
   );
 }
 
+/** Free draft: every player in the match's leagues, priced at their current MX value. */
+async function DraftBuilder({
+  competition,
+  entry,
+}: {
+  competition: { id: string; gameweekId: string; rosterRules: string; requirements: unknown };
+  entry: { formation: string; selections: Array<{ playerId: string; slot: string; position: string; order: number; isCaptain: boolean }> } | null;
+}) {
+  const req = (competition.requirements ?? {}) as Requirements;
+  const rules = getRosterRules(competition.rosterRules);
+  const pool = await draftPool(req.leagues);
+  const value = new Map(pool.map((p) => [p.playerId, draftPrice(p.valueMp, p.category, p.marketValueGbp)]));
+  const [faces, form, fixtures] = await Promise.all([
+    posterCards(pool.map((p) => p.playerId)),
+    recentForm(pool.map((p) => p.playerId)),
+    db.fixture.findMany({ where: { gameweekId: competition.gameweekId }, include: { homeClub: true, awayClub: true } }),
+  ]);
+  const fixtureFor = (clubCode: string | null) => {
+    const f = fixtures.find((x) => x.homeClub.code === clubCode || x.awayClub.code === clubCode);
+    if (!f) return null;
+    return f.homeClub.code === clubCode ? `vs ${f.awayClub.shortName} (H)` : `vs ${f.homeClub.shortName} (A)`;
+  };
+  // In draft mode a "card" is the player: id = player id, value = draft price.
+  const cards: BuilderCard[] = faces.map((c) => ({
+    ...c,
+    id: c.playerId,
+    valueMp: value.get(c.playerId) ?? 1,
+    available: true,
+    form: form.get(c.playerId) ?? [],
+    fixture: fixtureFor(c.clubCode),
+  }));
+  const initial = entry
+    ? {
+        formation: entry.formation,
+        starters: entry.selections.filter((s) => s.slot === "STARTER").sort((a, b) => a.order - b.order).map((s) => ({ cardId: s.playerId, position: s.position as Pos })),
+        bench: entry.selections.filter((s) => s.slot === "BENCH").sort((a, b) => a.order - b.order).map((s) => s.playerId),
+        captain: entry.selections.find((s) => s.isCaptain)?.playerId ?? null,
+      }
+    : null;
+  return (
+    <div className="space-y-4">
+      <p className="rounded-xl border border-accent/40 bg-accent/5 px-4 py-3 text-sm">
+        <b>Free draft:</b> pick any {req.leagues?.join("/") ?? ""} players — no cards needed. Your 11 must cost {req.draftBudgetMx} MX or less in total
+        {req.maxPerClub ? `, with no more than ${req.maxPerClub} from one club` : ""}. Points earn XP like any match. Like a player? Collect their card in a pack.
+      </p>
+      <SquadBuilder
+        competitionId={competition.id}
+        formations={rules.allowedFormations.map((f) => FORMATIONS[f])}
+        allowedCategories={["BRONZE", "SILVER", "GOLD"]}
+        cards={cards}
+        initial={initial}
+        hasEntry={!!entry}
+        draft={{ budgetMx: req.draftBudgetMx!, maxPerClub: req.maxPerClub }}
+      />
+    </div>
+  );
+}
+
 async function Result({ entryId, settled }: { entryId: string; settled: boolean }) {
   const calc = await db.scoreCalculation.findFirst({ where: { entryId }, orderBy: { createdAt: "desc" } });
   const entry = await db.competitionEntry.findUniqueOrThrow({ where: { id: entryId } });
-  const cards = await cardViews({ id: { in: (await db.competitionSelection.findMany({ where: { entryId } })).map((s) => s.cardId) } });
-  const byId = new Map(cards.map((c) => [c.id, c]));
+  const sels = await db.competitionSelection.findMany({ where: { entryId } });
+  const [cards, draftFaces] = await Promise.all([
+    cardViews({ id: { in: sels.flatMap((s) => (s.cardId ? [s.cardId] : [])) } }),
+    posterCards(sels.filter((s) => !s.cardId).map((s) => s.playerId)),
+  ]);
+  // Breakdown rows are keyed by card id, or "draft:<player id>" for free-draft picks.
+  const byId = new Map([...cards.map((c) => [c.id, c] as const), ...draftFaces.map((c) => [`draft:${c.playerId}`, c] as const)]);
   const breakdown = calc?.breakdown as { selections: SelectionResult[]; substitutions: Array<{ off: string; on: string; benchOrder: number }>; formationUsed: string | null } | undefined;
   if (!calc || !breakdown) {
     return (

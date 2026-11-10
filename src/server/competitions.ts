@@ -30,12 +30,18 @@ export const RequirementsSchema = z
      * picked, so buying packs or cards can't improve anyone's chance of winning. Required for £ prizes.
      */
     freeCardsOnly: z.boolean().optional(),
+    /**
+     * Free draft: pick any players (no cards needed) within this total MX budget for all 11.
+     * Points earn XP like any match; picks never count towards a card's history.
+     */
+    draftBudgetMx: z.number().int().min(10).max(1000).optional(),
   })
   .strict();
 export type Requirements = z.infer<typeof RequirementsSchema>;
 
 export function requirementsSummary(r: Requirements, format: string) {
   const bits: string[] = [];
+  if (r.draftBudgetMx) bits.push(`Free draft · any players · ${r.draftBudgetMx} MX budget`);
   if (r.freeCardsOnly) bits.push("Free cards only");
   if (r.foundersOnly) bits.push("Founding members only");
   if (format !== "OPEN") bits.push(`${format.split("_")[0][0]}${format.split("_")[0].slice(1).toLowerCase()} only`);
@@ -77,6 +83,9 @@ export async function submitEntry(userId: string, competitionId: string, input: 
       throw new DomainError("LOCKED", "Entries for this competition are closed.");
     }
     const rules = getRosterRules(comp.rosterRules);
+    if (RequirementsSchema.safeParse(comp.requirements ?? {}).data?.draftBudgetMx) {
+      throw new DomainError("DRAFT_MATCH", "This is a free draft match — pick players from the draft list, not your cards.");
+    }
     if (RequirementsSchema.safeParse(comp.requirements ?? {}).data?.foundersOnly) {
       const u = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { foundingNumber: true } });
       if (!u.foundingNumber) throw new DomainError("FOUNDERS_ONLY", "This match is for Founding Members only.");

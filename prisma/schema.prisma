@@ -890,8 +890,9 @@ model CompetitionSelection {
   id        String           @id @default(uuid()) @db.Uuid
   entryId   String           @db.Uuid
   entry     CompetitionEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  cardId    String           @db.Uuid
-  card      CardInstance     @relation(fields: [cardId], references: [id])
+  // Null in free draft matches, where managers pick players without owning their cards.
+  cardId    String?          @db.Uuid
+  card      CardInstance?    @relation(fields: [cardId], references: [id])
   playerId  String           @db.Uuid
   player    Player           @relation(fields: [playerId], references: [id])
   slot      SelectionSlot

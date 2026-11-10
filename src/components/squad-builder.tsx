@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { submitEntryAction, withdrawEntryAction } from "@/app/actions/game";
+import { submitDraftEntryAction, submitEntryAction, withdrawEntryAction } from "@/app/actions/game";
 import type { ActionResult } from "@/app/actions/result";
 import type { CardView, Pos } from "@/lib/view";
 import { mpLabel } from "@/lib/view";
@@ -43,6 +43,7 @@ export function SquadBuilder({
   cards,
   initial,
   hasEntry,
+  draft,
 }: {
   competitionId: string;
   formations: Formation[];
@@ -50,6 +51,8 @@ export function SquadBuilder({
   cards: BuilderCard[];
   initial: { formation: string; starters: Array<{ cardId: string; position: Pos }>; bench: string[]; captain?: string | null } | null;
   hasEntry: boolean;
+  /** Free draft: the cards are players (id = player id), priced at their MX value, within a budget. */
+  draft?: { budgetMx: number; maxPerClub?: number };
 }) {
   const byId = useMemo(() => new Map(cards.map((c) => [c.id, c])), [cards]);
   const [formationId, setFormationId] = useState(initial?.formation ?? formations[0].id);
@@ -70,7 +73,17 @@ export function SquadBuilder({
   const slots = slotsFor(formation);
   const benchSlots = [0, 1, 2, 3].map((i) => `B-${i}`);
   const used = new Set(Object.values(assign));
-  const eligible = (c: BuilderCard) => c.available && allowedCategories.includes(c.category);
+  const [search, setSearch] = useState("");
+  const price = (c: BuilderCard | undefined) => Math.max(1, c?.valueMp ?? 1);
+  const spent = draft ? [...used].reduce((n, id) => n + price(byId.get(id)), 0) : 0;
+  const clubCount = (code: string | null) => [...used].filter((id) => byId.get(id)?.clubCode === code).length;
+  const fitsDraft = (c: BuilderCard) => {
+    if (!draft || used.has(c.id)) return true;
+    const replacing = selected && assign[selected] ? price(byId.get(assign[selected])) : 0;
+    const sameClubOut = selected && assign[selected] && byId.get(assign[selected])?.clubCode === c.clubCode ? 1 : 0;
+    return spent - replacing + price(c) <= draft.budgetMx && (!draft.maxPerClub || clubCount(c.clubCode) - sameClubOut < draft.maxPerClub);
+  };
+  const eligible = (c: BuilderCard) => c.available && allowedCategories.includes(c.category) && fitsDraft(c);
 
   function changeFormation(id: string) {
     const f = formations.find((x) => x.id === id)!;
@@ -120,32 +133,39 @@ export function SquadBuilder({
   /** Fill empty slots with the best available players by recent form, then MX. */
   function autoPick() {
     const score = (c: BuilderCard) => (avg(c.form) ?? 0) * 10 + (c.valueMp ?? 0);
-    const pool = cards.filter(eligible).sort((a, b) => score(b) - score(a));
+    const pool = cards.filter((c) => c.available && allowedCategories.includes(c.category)).sort((a, b) => score(b) - score(a));
     setAssign((a) => {
       const n = { ...a };
       const taken = new Set(Object.values(n));
       const players = new Set([...taken].map((id) => byId.get(id)?.playerId));
+      // Draft: leave enough budget to fill every remaining slot with the cheapest players.
+      const cheapest = draft ? Math.min(...pool.map(price)) : 0;
+      let budgetLeft = draft ? draft.budgetMx - [...taken].reduce((x, id) => x + price(byId.get(id)), 0) : Infinity;
+      const empties = () => [...slots.map((x) => x.key), ...benchSlots].filter((k) => !n[k]).length;
+      const clubs = new Map<string | null, number>();
+      for (const id of taken) clubs.set(byId.get(id)?.clubCode ?? null, (clubs.get(byId.get(id)?.clubCode ?? null) ?? 0) + 1);
+      const affordable = (p: BuilderCard) =>
+        !draft || (price(p) + cheapest * (empties() - 1) <= budgetLeft && (!draft.maxPerClub || (clubs.get(p.clubCode) ?? 0) < draft.maxPerClub));
+      const take = (k: string, c: BuilderCard) => {
+        n[k] = c.id;
+        taken.add(c.id);
+        players.add(c.playerId);
+        budgetLeft -= draft ? price(c) : 0;
+        clubs.set(c.clubCode, (clubs.get(c.clubCode) ?? 0) + 1);
+      };
       for (const s of slots) {
         if (n[s.key]) continue;
-        const c = pool.find((p) => p.position === s.pos && !taken.has(p.id) && !players.has(p.playerId));
-        if (c) {
-          n[s.key] = c.id;
-          taken.add(c.id);
-          players.add(c.playerId);
-        }
+        const c = pool.find((p) => p.position === s.pos && !taken.has(p.id) && !players.has(p.playerId) && affordable(p));
+        if (c) take(s.key, c);
       }
       // Bench: try to cover GK first, then best remaining.
       for (const k of benchSlots) {
         if (n[k]) continue;
         const hasGk = benchSlots.some((b) => n[b] && byId.get(n[b])?.position === "GK");
         const c =
-          (!hasGk && pool.find((p) => p.position === "GK" && !taken.has(p.id) && !players.has(p.playerId))) ||
-          pool.find((p) => !taken.has(p.id) && !players.has(p.playerId));
-        if (c) {
-          n[k] = c.id;
-          taken.add(c.id);
-          players.add(c.playerId);
-        }
+          (!hasGk && pool.find((p) => p.position === "GK" && !taken.has(p.id) && !players.has(p.playerId) && affordable(p))) ||
+          pool.find((p) => !taken.has(p.id) && !players.has(p.playerId) && affordable(p));
+        if (c) take(k, c);
       }
       return n;
     });
@@ -155,12 +175,20 @@ export function SquadBuilder({
     const starters = slots.filter((s) => assign[s.key]).map((s) => ({ cardId: assign[s.key], position: s.pos }));
     const bench = benchSlots.map((k) => assign[k]).filter(Boolean);
     const cap = captain && starters.some((s) => s.cardId === captain) ? captain : undefined;
-    start(async () => setResult(await submitEntryAction(competitionId, { formation: formationId, starters, bench, captain: cap })));
+    start(async () =>
+      setResult(
+        draft
+          ? await submitDraftEntryAction(competitionId, { formation: formationId, starters: starters.map((x) => ({ playerId: x.cardId, position: x.position })), bench, captain: cap })
+          : await submitEntryAction(competitionId, { formation: formationId, starters, bench, captain: cap }),
+      ),
+    );
   }
 
   const selectedPos: Pos | null = selected ? (selected.startsWith("B-") ? null : (selected.split("-")[0] as Pos)) : null;
+  const q = search.trim().toLowerCase();
   const picker = cards
     .filter((c) => (selectedPos ? c.position === selectedPos : true))
+    .filter((c) => !q || c.name.toLowerCase().includes(q) || (c.clubName ?? "").toLowerCase().includes(q) || (c.clubShort ?? "").toLowerCase() === q)
     .sort((a, b) => Number(eligible(b)) - Number(eligible(a)) || (avg(b.form) ?? -1) - (avg(a.form) ?? -1) || (b.valueMp ?? 0) - (a.valueMp ?? 0));
 
   const filled = slots.every((s) => assign[s.key]) && benchSlots.every((k) => assign[k]);
@@ -291,11 +319,27 @@ export function SquadBuilder({
 
       <aside className="panel flex max-h-[760px] flex-col overflow-hidden">
         <div className="border-b border-ink-700 p-3">
-          <div className="text-sm font-bold">{selected ? (selectedPos ? `Choose a ${selectedPos}` : `Choose ${selected.replace("B-", "Sub ")}`) : "Your players"}</div>
+          <div className="text-sm font-bold">{selected ? (selectedPos ? `Choose a ${selectedPos}` : `Choose ${selected.replace("B-", "Sub ")}`) : draft ? "Players" : "Your players"}</div>
           <div className="text-[11px] text-faint">{selected ? "Tap a player to place them" : "Tap a pitch or bench slot, then pick a player"}</div>
+          {draft && (
+            <div className="mt-2">
+              <div className="flex justify-between text-[11px]">
+                <span className="font-semibold">Budget</span>
+                <span className={spent > draft.budgetMx ? "font-bold text-danger" : "text-muted"}>
+                  {spent} / {draft.budgetMx} MX · {draft.budgetMx - spent} left
+                </span>
+              </div>
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-ink-800">
+                <div className={`h-full ${spent > draft.budgetMx ? "bg-danger" : "bg-accent"}`} style={{ width: `${Math.min(100, (spent / draft.budgetMx) * 100)}%` }} />
+              </div>
+            </div>
+          )}
+          {(draft || cards.length > 30) && (
+            <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search player or club" className="input mt-2 py-2 text-sm" aria-label="Search players" />
+          )}
         </div>
         <ul className="flex-1 divide-y divide-ink-700/60 overflow-y-auto">
-          {picker.map((c) => {
+          {picker.slice(0, draft ? 150 : undefined).map((c) => {
             const ok = eligible(c);
             const inUse = used.has(c.id);
             const f = avg(c.form);
@@ -315,18 +359,18 @@ export function SquadBuilder({
                     <span className="block truncate text-[11px] text-faint">
                       {c.clubShort} · {c.fixture ?? "no fixture"}
                       {c.pointsForYou ? ` · ${c.pointsForYou} pts won for you` : ""}
-                      {!ok && ` · ${c.unavailableReason ?? `${c.category.toLowerCase()} not allowed`}`}
+                      {!ok && ` · ${!fitsDraft(c) ? "over budget or club limit" : (c.unavailableReason ?? `${c.category.toLowerCase()} not allowed`)}`}
                     </span>
                   </span>
                   <span className="text-right text-[11px]">
                     <span className="block font-bold text-lime">{f === null ? "–" : f.toFixed(1)}</span>
-                    <span className="block text-faint">{c.loan ? `Loan · ${c.loan.left} of ${c.loan.total} uses` : mpLabel(c.valueMp)}</span>
+                    <span className="block text-faint">{draft ? `${price(c)} MX` : c.loan ? `Loan · ${c.loan.left} of ${c.loan.total} uses` : mpLabel(c.valueMp)}</span>
                   </span>
                 </button>
               </li>
             );
           })}
-          {!picker.length && <li className="p-4 text-sm text-faint">No players for this position. Open more packs!</li>}
+          {!picker.length && <li className="p-4 text-sm text-faint">{draft || q ? "No players match." : "No players for this position. Open more packs!"}</li>}
         </ul>
         <div className="border-t border-ink-700 p-2 text-[10px] text-faint">Form = avg points over recent gameweeks</div>
       </aside>

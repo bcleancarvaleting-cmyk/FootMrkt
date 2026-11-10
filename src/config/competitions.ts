@@ -34,6 +34,21 @@ export const FOOTBALL_COMPETITION_TEMPLATES: CompetitionTemplate[] = [
     requirements: { freeCardsOnly: true },
   },
   {
+    // Free draft (product decision 11 Nov 2026): anyone can play without owning cards — pick any
+    // Premier League players within a budget. The way in for new managers; XP only by default.
+    key: "draft",
+    name: "Free Draft",
+    format: "OPEN",
+    rosterRules: "football-roster-v3",
+    scoringRules: "football-scoring-v2-draft",
+    rewards: [],
+    devRewards: [
+      { rankFrom: 1, rankTo: 1, packSkuCode: "football-eng-silver" },
+      { rankFrom: 2, rankTo: 10, packSkuCode: "football-eng-bronze" },
+    ],
+    requirements: { draftBudgetMx: 70, leagues: ["EPL"], maxPerClub: 3 },
+  },
+  {
     key: "open",
     name: "Open League",
     format: "OPEN",

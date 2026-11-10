@@ -1,5 +1,6 @@
 "use server";
 
+import { submitDraftEntry } from "@/server/draft";
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -48,6 +49,17 @@ export async function submitEntryAction(competitionId: string, submission: unkno
   const res = await attempt(async () => {
     await submitEntry(user.id, competitionId, submission);
   }, "Squad saved");
+  if (res.ok) await afterEntryEmails(user.id, competitionId);
+  revalidatePath(`/competitions/${competitionId}`);
+  revalidatePath("/matches");
+  return res;
+}
+
+export async function submitDraftEntryAction(competitionId: string, submission: unknown): Promise<ActionResult> {
+  const user = await requireUser();
+  const res = await attempt(async () => {
+    await submitDraftEntry(user.id, competitionId, submission);
+  }, "Draft squad saved");
   if (res.ok) await afterEntryEmails(user.id, competitionId);
   revalidatePath(`/competitions/${competitionId}`);
   revalidatePath("/matches");

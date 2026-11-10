@@ -45,6 +45,10 @@ export async function loadGameweekData(tx: Tx | typeof db, gameweekId: string, p
   return data;
 }
 
+/** Scoring keys selections by card; a free-draft pick (no card) is keyed by its player. */
+export const selectionKey = (s: { cardId: string | null; playerId: string }) => s.cardId ?? `draft:${s.playerId}`;
+export const isDraftKey = (k: string) => k.startsWith("draft:");
+
 export async function scoreEntry(tx: Tx | typeof db, entryId: string): Promise<SquadScore> {
   const entry = await tx.competitionEntry.findUniqueOrThrow({
     where: { id: entryId },
@@ -58,7 +62,7 @@ export async function scoreEntry(tx: Tx | typeof db, entryId: string): Promise<S
   return scoreSquad(
     getScoringRules(entry.competition.scoringRules),
     getRosterRules(entry.competition.rosterRules),
-    entry.selections.map((s) => ({ cardId: s.cardId, playerId: s.playerId, position: s.position, slot: s.slot, order: s.order, captain: s.isCaptain || undefined })),
+    entry.selections.map((s) => ({ cardId: selectionKey(s), playerId: s.playerId, position: s.position, slot: s.slot, order: s.order, captain: s.isCaptain || undefined })),
     data,
   );
 }
@@ -137,7 +141,8 @@ export async function settleCompetition(competitionId: string, actorId: string |
       // "Points won for you": what each card actually counted for this manager.
       await tx.cardPoints.createMany({
         data: score.selections
-          .filter((sel) => sel.counted)
+          // Draft picks aren't cards, so they never add to a card's "points won for you".
+          .filter((sel) => sel.counted && !isDraftKey(sel.cardId))
           .map((sel) => ({ userId: e.userId, cardId: sel.cardId, playerId: sel.playerId, entryId: e.id, points: sel.points })),
         skipDuplicates: true,
       });
@@ -233,7 +238,7 @@ export async function reproduceCalculation(calculationId: string) {
   const recomputed = scoreSquad(
     getScoringRules(calc.ruleVersion),
     getRosterRules(breakdown.rosterRules),
-    calc.entry.selections.map((s) => ({ cardId: s.cardId, playerId: s.playerId, position: s.position, slot: s.slot, order: s.order })),
+    calc.entry.selections.map((s) => ({ cardId: selectionKey(s), playerId: s.playerId, position: s.position, slot: s.slot, order: s.order })),
     data,
   );
   return {

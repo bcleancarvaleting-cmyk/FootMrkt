@@ -8,6 +8,7 @@ const TABS = [
   { href: "/account/club", label: "My Club" },
   { href: "/account/challenges", label: "Challenges" },
   { href: "/account/achievements", label: "Achievements" },
+  { href: "/account/watchlist", label: "Watchlist" },
   { href: "/account/wallet", label: "Wallet" },
   { href: "/account/profile", label: "Profile" },
   { href: "/account/legal", label: "Legal" },

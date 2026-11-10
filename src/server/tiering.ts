@@ -65,16 +65,21 @@ export interface MarketValueRow {
 /** Store market values and re-tier each player. Audited per change. */
 export async function applyMarketValues(rows: MarketValueRow[], actorId: string | null = null) {
   let retiered = 0;
+  const changedTo: Array<[string, string]> = [];
   for (const r of rows) {
     await withTx(async (tx) => {
       await tx.player.update({ where: { id: r.playerId }, data: { marketValueGbp: r.valueGbp, marketValueSource: r.source, marketValueAt: r.at } });
       const res = await retierPlayer(tx, r.playerId, tierForValue(r.valueGbp));
       if (res.changed) {
         retiered++;
+        changedTo.push([r.playerId, res.to as string]);
         await audit(tx, { actorId, action: "player.retier", entityType: "Player", entityId: r.playerId, before: { tiers: res.from }, after: { tier: res.to, valueGbp: r.valueGbp, source: r.source } });
       }
     });
   }
+  // Tell watchers about tier changes once the values are saved.
+  const { alertTierChange } = await import("./watchlist");
+  for (const [playerId, to] of changedTo) await alertTierChange(playerId, to);
   return { updated: rows.length, retiered };
 }
 

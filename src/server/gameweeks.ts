@@ -212,6 +212,10 @@ export async function finaliseGameweek(gameweekId: string, actorId: string | nul
 /** Scheduled job entry point. */
 export async function runScheduledJobs() {
   const windows = await advanceCompetitionWindows();
+  // Watchlist alerts for drops that have gone live, and settle finished daily predictions.
+  const [{ announceLiveDrops }, { resolvePredictions }] = await Promise.all([import("./watchlist"), import("./predictions")]);
+  await announceLiveDrops();
+  await resolvePredictions();
   await db.gameweek.updateMany({ where: { status: "UPCOMING", competitions: { some: { status: "OPEN" } } }, data: { status: "OPEN" } });
   await db.gameweek.updateMany({
     where: { status: "OPEN", competitions: { every: { status: { notIn: ["UPCOMING", "OPEN"] } } } },

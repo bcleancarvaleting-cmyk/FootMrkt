@@ -1,4 +1,5 @@
 import { type CardCategory, Prisma } from "@/generated/prisma/client";
+import { alertNewListing } from "./watchlist";
 import { cryptoRandom } from "@/domain/random";
 import { finishOdds, rollFinish } from "./finishes";
 import { z } from "zod";
@@ -77,7 +78,7 @@ export async function valueHistory(playerId: string, category: CardCategory) {
 export async function createListing(userId: string, input: z.input<typeof ListingSchema>) {
   await requireFlag("MARKET");
   const data = ListingSchema.parse(input);
-  return withTx(async (tx) => {
+  const listing = await withTx(async (tx) => {
     const card = await lockOwnedCard(tx, userId, data.cardId);
     if (card.tradeStatus !== "TRADEABLE") throw new DomainError("NOT_TRADEABLE", "This card can't be traded.");
     if (card.lock !== "NONE") throw new DomainError("CARD_BUSY", "This card is already listed or in a match.");
@@ -87,6 +88,10 @@ export async function createListing(userId: string, input: z.input<typeof Listin
     await tx.cardInstance.update({ where: { id: data.cardId }, data: { lock: "LISTED", lockRef: listing.id } });
     return listing;
   });
+  // Tell anyone watching this player (outside the transaction — alerts never block a listing).
+  const card = await db.cardInstance.findUniqueOrThrow({ where: { id: data.cardId }, select: { template: { select: { playerId: true, player: { select: { displayName: true } } } } } });
+  await alertNewListing({ id: listing.id, sellerId: userId, askingPriceMinor: listing.askingPriceMinor, playerId: card.template.playerId, playerName: card.template.player.displayName });
+  return listing;
 }
 
 async function lockListing(tx: Tx, listingId: string) {

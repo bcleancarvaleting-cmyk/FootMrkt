@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/server/auth/session";
 import { createLeague, joinLeague, leaveLeague } from "@/server/leagues";
+import { unwatchPlayer, watchPlayer } from "@/server/watchlist";
 import { answerQuestion } from "@/server/predictions";
 import { type ActionResult, attempt } from "./result";
 
@@ -37,4 +38,25 @@ export async function leaveLeagueAction(leagueId: string): Promise<ActionResult>
   if (!res.ok) return res;
   revalidatePath("/leagues");
   redirect("/leagues");
+}
+
+export async function toggleWatchAction(playerId: string, watch: boolean): Promise<ActionResult> {
+  const user = await requireUser();
+  const res = await attempt(async () => {
+    if (watch) await watchPlayer(user.id, playerId);
+    else await unwatchPlayer(user.id, playerId);
+  });
+  revalidatePath("/account/watchlist");
+  return res.ok ? { ok: true, data: undefined, message: watch ? "Watching — we'll tell you when they drop or get listed" : "Removed from your watchlist" } : res;
+}
+
+export async function setAlertPriceAction(playerId: string, _: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const user = await requireUser();
+  const raw = String(form.get("price") ?? "").trim();
+  const minor = raw ? Math.round(Number(raw) * 100) : null;
+  const res = await attempt(async () => {
+    await watchPlayer(user.id, playerId, minor === null ? null : Number.isFinite(minor) ? minor : NaN);
+  });
+  revalidatePath("/account/watchlist");
+  return res.ok ? { ok: true, data: undefined, message: minor ? "Alert price saved" : "Alert on any listing" } : res;
 }

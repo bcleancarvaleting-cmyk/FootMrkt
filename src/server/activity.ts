@@ -1,4 +1,5 @@
 import { resolvePredictions } from "./predictions";
+import { announceLiveDrops } from "./watchlist";
 import { refreshProgress } from "./progression";
 import { touchStreak } from "./streaks";
 
@@ -17,6 +18,7 @@ export async function onVisit(userId: string) {
     if (now - lastResolve > 5 * 60_000) {
       lastResolve = now;
       await resolvePredictions();
+      await announceLiveDrops();
     }
     if (now - (lastProgress.get(userId) ?? 0) > 60_000) {
       lastProgress.set(userId, now);

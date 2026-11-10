@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import { WatchButton } from "@/components/watch-button";
+import { isWatching } from "@/server/watchlist";
 import { requireUser } from "@/server/auth/session";
 import { playerProfile } from "@/server/binder";
 import { DomainError } from "@/server/errors";
@@ -7,7 +9,7 @@ import { POSITION_LABEL, ageFrom, fmtDate } from "@/lib/view";
 export const metadata = { title: "Player" };
 
 export default async function PlayerPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireUser();
+  const user = await requireUser();
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const { player, matches, values, issued, diamonds, rubies, rainbowFound } = await playerProfile(id).catch((e) => {
@@ -31,6 +33,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
         </p>
         {player.rightsStatus === "PLACEHOLDER" && <p className="mt-1 text-xs text-warn">Placeholder player for development — not a real person.</p>}
         {player.rightsStatus === "PENDING" && <p className="mt-1 text-xs text-faint">Match stats shown are simulated for development.</p>}
+        <WatchButton playerId={player.id} initial={await isWatching(user.id, player.id)} className="mt-3" />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-4">

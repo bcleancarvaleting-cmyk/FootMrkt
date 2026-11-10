@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { WatchButton } from "@/components/watch-button";
+import { isWatching } from "@/server/watchlist";
 import { STAMPS, type StampKind, stampsForCard } from "@/server/stamps";
 import { FINISH_STYLE, FinishPill } from "@/components/finish-art";
 import { discardLoanAction } from "@/app/actions/account";
@@ -70,6 +72,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
             Discard loan player
           </ActionButton>
         )}
+        {user && <WatchButton playerId={card.template.playerId} initial={await isWatching(user.id, card.template.playerId)} />}
         {isOwner && (
           <ActionButton action={toggleFavouriteAction.bind(null, id)} className="btn-ghost text-xs">
             {favourite ? "★ Favourited" : "☆ Favourite"}

@@ -7,6 +7,7 @@ import { db, withTx } from "./db";
 import { DomainError } from "./errors";
 import { isEnabled } from "./flags";
 import { debit, fmtMp, lockWallet, release } from "./wallet";
+import { potTotal } from "@/domain/football/prizes";
 
 /** Extra entry rules admins can set per match (on top of the format's tier rule). */
 export const RequirementsSchema = z
@@ -226,7 +227,11 @@ export function parsePrizes(text: string) {
 
 export function prizesSummary(rewards: unknown) {
   const cash = ((rewards as Array<{ rankFrom: number; rankTo: number; cashMinor?: number }>) ?? []).filter((r) => r.cashMinor);
-  return cash.map((r) => `${r.rankFrom === r.rankTo ? `#${r.rankFrom}` : `#${r.rankFrom}–${r.rankTo}`} £${(r.cashMinor! / 100).toFixed(r.cashMinor! % 100 ? 2 : 0)}`).join(" · ");
+  if (!cash.length) return "";
+  const gbp = (m: number) => `£${(m / 100).toFixed(m % 100 ? 2 : 0)}`;
+  const ord = (n: number) => `${n}${n % 10 === 1 && n % 100 !== 11 ? "st" : n % 10 === 2 && n % 100 !== 12 ? "nd" : n % 10 === 3 && n % 100 !== 13 ? "rd" : "th"}`;
+  const parts = cash.map((r) => `${r.rankFrom === r.rankTo ? ord(r.rankFrom) : `${ord(r.rankFrom)}–${ord(r.rankTo)}`} ${gbp(r.cashMinor!)}${r.rankFrom === r.rankTo ? "" : " each"}`);
+  return `${gbp(potTotal(cash))} pot · ${parts.join(" · ")} · ties split`;
 }
 
 export async function updateCompetitionRules(adminId: string, competitionId: string, input: { entryFeeMinor: number; requirements: unknown; prizes?: string }) {
@@ -277,6 +282,7 @@ export async function leaderboard(competitionId: string, limit = 100) {
     orderBy: settled ? [{ rank: "asc" }] : [{ provisionalPoints: { sort: "desc", nulls: "last" } }, { createdAt: "asc" }],
     take: limit,
   });
+  const prizes = settled ? await prizesPaid(competitionId) : new Map<string, number>();
   let rank = 0;
   return entries.map((e, i) => {
     const pts = settled ? e.finalPoints : e.provisionalPoints;
@@ -289,6 +295,26 @@ export async function leaderboard(competitionId: string, limit = 100) {
       points: pts ?? 0,
       rank: settled ? e.rank ?? i + 1 : rank,
       final: settled,
+      prizeMinor: prizes.get(e.userId) ?? 0,
     };
   });
+}
+
+/** £ actually paid out per manager for a settled match. */
+export async function prizesPaid(competitionId: string) {
+  const rows = await db.walletEntry.findMany({ where: { kind: "PRIZE", refId: { startsWith: `prize:${competitionId}:` } }, select: { userId: true, amountMinor: true } });
+  return new Map(rows.map((r) => [r.userId, r.amountMinor]));
+}
+
+/** Top three for each settled match (ties included), with prizes. */
+export async function podiums(competitionIds: string[]) {
+  const out = new Map<string, Array<{ rank: number; displayName: string; foundingNumber: number | null; points: number; prizeMinor: number }>>();
+  for (const id of competitionIds) {
+    const [entries, prizes] = await Promise.all([
+      db.competitionEntry.findMany({ where: { competitionId: id, status: "ACTIVE", rank: { lte: 3 } }, orderBy: [{ rank: "asc" }, { createdAt: "asc" }], take: 6, include: { user: { select: { displayName: true, foundingNumber: true } } } }),
+      prizesPaid(id),
+    ]);
+    out.set(id, entries.map((e) => ({ rank: e.rank ?? 0, displayName: e.user.displayName, foundingNumber: e.user.foundingNumber, points: e.finalPoints ?? 0, prizeMinor: prizes.get(e.userId) ?? 0 })));
+  }
+  return out;
 }

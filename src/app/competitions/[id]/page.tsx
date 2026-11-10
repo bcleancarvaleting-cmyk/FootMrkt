@@ -74,6 +74,7 @@ export default async function CompetitionPage({ params }: { params: Promise<{ id
                 {r.displayName} <FoundingBadge number={r.foundingNumber} compact />
                 {r.userId === user.id && <span className="ml-2 text-xs text-lime">you</span>}
               </span>
+              {r.prizeMinor > 0 && <span className="font-bold text-lime">£{(r.prizeMinor / 100).toFixed(2)}</span>}
               <span className="font-bold">{comp.status === "OPEN" ? "" : `${r.points} pts`}</span>
             </div>
           ))}

@@ -102,7 +102,7 @@ export function MatchRulesForm({ id, fee, req, prizes }: { id: string; fee: numb
       <I name="leagues" label="Leagues only" placeholder="EPL" defaultValue={req.leagues?.join(",")} />
       <I name="maxPerClub" label="Max per club" type="number" min="1" defaultValue={req.maxPerClub} />
       <I name="maxValue" label="Max starters value (MP)" type="number" min="1" defaultValue={req.maxSquadValueMp} />
-      <I name="prizes" label="£ prizes — free entry + free cards only (e.g. 1=10, 2-3=5)" placeholder="1=10, 2-3=5" defaultValue={prizes} />
+      <I name="prizes" label="£ prize pot by position (e.g. 1=10, 2=5, 3=3) — ties split" placeholder="1=10, 2=5, 3=3" defaultValue={prizes} />
       <label className="flex items-center gap-2 self-end pb-2.5 text-sm">
         <input type="checkbox" name="freeCardsOnly" defaultChecked={req.freeCardsOnly} className="accent-lime" /> Free cards only
       </label>

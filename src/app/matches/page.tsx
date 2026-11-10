@@ -3,7 +3,8 @@ import { Countdown } from "@/components/countdown";
 import { EmptyState } from "@/components/page-header";
 import { FORMATIONS, getRosterRules } from "@/domain/football/rules";
 import { requireUser } from "@/server/auth/session";
-import { type Requirements, prizesSummary, requirementsSummary } from "@/server/competitions";
+import { type Requirements, podiums, prizesSummary, requirementsSummary } from "@/server/competitions";
+import { FoundingBadge } from "@/components/founding-badge";
 import { db } from "@/server/db";
 import { isEnabled } from "@/server/flags";
 import { footballSport } from "@/server/gameweeks";
@@ -43,6 +44,7 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
     }),
     isEnabled("PAID_ENTRY"),
   ]);
+  const results = await podiums(comps.filter((c) => c.status === "SETTLED").map((c) => c.id));
   const byLeague = new Map<string, typeof fixtures>();
   for (const f of fixtures) byLeague.set(f.homeClub.league.name, [...(byLeague.get(f.homeClub.league.name) ?? []), f]);
   const locksAt = comps[0]?.locksAt;
@@ -99,7 +101,20 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
                     <span className="block truncate text-xs text-muted">
                       {requirementsSummary((c.requirements ?? {}) as Requirements, c.format)} · {rules.allowedFormations.map((f) => FORMATIONS[f].id).join(" / ")}
                     </span>
-                    {prizesSummary(c.rewards) && <span className="mt-0.5 block text-xs font-semibold text-lime">Prizes: {prizesSummary(c.rewards)}</span>}
+                    {prizesSummary(c.rewards) && <span className="mt-0.5 block text-xs font-semibold text-lime">{prizesSummary(c.rewards)}</span>}
+                    {(results.get(c.id)?.length ?? 0) > 0 && (
+                      <span className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                        {results.get(c.id)!.map((p, i) => (
+                          <span key={i} className="flex items-center gap-1">
+                            <span className={`font-extrabold ${p.rank === 1 ? "text-gold" : p.rank === 2 ? "text-silver" : "text-bronze"}`}>{p.rank === 1 ? "1st" : p.rank === 2 ? "2nd" : "3rd"}</span>
+                            <span className="font-semibold text-fg">{p.displayName}</span>
+                            <FoundingBadge number={p.foundingNumber} compact />
+                            <span className="text-muted">{p.points} pts</span>
+                            {p.prizeMinor > 0 && <span className="font-bold text-lime">£{(p.prizeMinor / 100).toFixed(2)}</span>}
+                          </span>
+                        ))}
+                      </span>
+                    )}
                   </span>
                   <span className="w-20 text-right font-bold tabular-nums">{c.entryFeeMinor > 0 ? fmtMp(c.entryFeeMinor) : <span className="text-lime">Free</span>}</span>
                   <span className="w-20 text-right text-sm tabular-nums text-muted">{c._count.entries}</span>

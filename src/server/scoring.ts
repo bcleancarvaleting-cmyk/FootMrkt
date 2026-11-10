@@ -13,6 +13,7 @@ import { type Tx, db, withTx } from "./db";
 import { DomainError } from "./errors";
 import { grantPack } from "./packs";
 import { creditWinnings } from "./wallet";
+import { splitPrizePot } from "@/domain/football/prizes";
 
 const TERMINAL = new Set(["FINISHED", "POSTPONED", "ABANDONED"]);
 
@@ -152,9 +153,17 @@ export async function settleCompetition(competitionId: string, actorId: string |
       for (const [ri, r] of rewards.entries()) {
         if (rank >= r.rankFrom && rank <= r.rankTo) {
           if (r.packSkuCode) await grantPack(tx, { userId: t.userId, skuCode: r.packSkuCode, source: "REWARD", sourceRef: `reward:${competitionId}:${ri}:${t.userId}` });
-          if (r.cashMinor && r.cashMinor > 0) await creditWinnings(tx, { userId: t.userId, amountMinor: r.cashMinor, refId: `prize:${competitionId}:${ri}:${t.userId}`, note: `Finished #${rank}` });
         }
       }
+    }
+    // £ prize pot: dead-heat rule — tied managers split the prizes for the positions they share.
+    const shares = splitPrizePot(totals, rewards);
+    for (const t of totals) {
+      const share = shares.get(t.userId);
+      if (!share) continue;
+      const rank = 1 + totals.findIndex((x) => x.total === t.total);
+      const tied = totals.filter((x) => x.total === t.total).length;
+      await creditWinnings(tx, { userId: t.userId, amountMinor: share, refId: `prize:${competitionId}:${t.userId}`, note: `${tied > 1 ? "Joint " : ""}#${rank}${tied > 1 ? ` of ${tied}` : ""}` });
     }
     // Release competition locks held by this competition's entries.
     await tx.cardInstance.updateMany({

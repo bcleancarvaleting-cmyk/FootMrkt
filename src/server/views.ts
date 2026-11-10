@@ -1,4 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client";
+import { loansLeft } from "./loans";
 import { type CardView, toCardView } from "@/lib/view";
 import { db } from "./db";
 import { valueKey, valueTrends } from "./valuation";
@@ -58,18 +59,20 @@ export async function pointsForOwners(cards: Array<{ id: string; ownerId: string
 
 /** Turn DB cards into view models with value, trend, acquisition and points won for the owner. */
 export async function enrichCards(cards: CardWithTemplate[]): Promise<CardView[]> {
-  const [trends, acquired, points] = await Promise.all([
+  const [trends, acquired, points, loans] = await Promise.all([
     valueTrends(cards.map((c) => ({ playerId: c.template.playerId, category: c.template.category }))),
     acquisitionLabels(cards.filter((c) => c.ownerId).map((c) => c.id)),
     pointsForOwners(cards),
+    loansLeft(cards),
   ]);
   return cards.map((c) => {
     const t = trends.get(valueKey(c.template.playerId, c.template.category));
     return toCardView(c, {
       valueMp: t?.mp ?? null,
       trendPct: t?.trendPct ?? null,
-      acquired: acquired.get(c.id) ?? null,
+      acquired: c.loanGameweeks ? "Loan" : (acquired.get(c.id) ?? null),
       pointsForYou: points.get(c.id) ?? null,
+      loanLeft: loans.get(c.id),
     });
   });
 }

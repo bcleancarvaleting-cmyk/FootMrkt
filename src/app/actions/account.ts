@@ -127,9 +127,10 @@ export async function convertXpAction(_: ActionResult | null, form: FormData): P
   return res.ok ? { ok: true, data: undefined, message: `Swapped ${res.data.xpUsed} XP for ${fmtMp(res.data.mxMinor)}` } : res;
 }
 
-export async function choosePickAction(entitlementId: string, playerId: string): Promise<ActionResult<{ openingId: string }>> {
+export async function choosePickAction(entitlementId: string, playerIds: string | string[]): Promise<ActionResult<{ openingId: string }>> {
   const user = await requireUser();
-  const res = await attempt(async () => ({ openingId: (await choosePick(user.id, entitlementId, playerId)).openingId }));
+  const ids = (Array.isArray(playerIds) ? playerIds : [playerIds]).filter((x) => typeof x === "string").slice(0, 10);
+  const res = await attempt(async () => ({ openingId: (await choosePick(user.id, entitlementId, ids)).openingId }));
   revalidatePath("/", "layout");
   return res;
 }

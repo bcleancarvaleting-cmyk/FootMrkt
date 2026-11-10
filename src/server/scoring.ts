@@ -1,4 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client";
+import { expireLoans } from "./loans";
 import { getRosterRules } from "@/domain/football/rules";
 import {
   type AppearanceStatus,
@@ -182,7 +183,12 @@ export async function settleCompetition(competitionId: string, actorId: string |
     });
     return { alreadySettled: false, entries: totals.length };
   });
-  if (!result.alreadySettled) await settlementEmails(competitionId);
+  if (!result.alreadySettled) {
+    await settlementEmails(competitionId);
+    // Loans end once their gameweeks have all been settled.
+    const entrants = await db.competitionEntry.findMany({ where: { competitionId }, select: { userId: true } });
+    await expireLoans(entrants.map((e) => e.userId));
+  }
   return result;
 }
 

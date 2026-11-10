@@ -107,7 +107,7 @@ describe("match entry fees and requirements", () => {
     });
   }
   async function squad(userId: string) {
-    const starterPack = await db.packEntitlement.findFirstOrThrow({ where: { userId, source: "STARTER" } });
+    const starterPack = await db.packEntitlement.findFirstOrThrow({ where: { userId, source: "STARTER", packSku: { kind: "STARTER" } } });
     await openPack(userId, starterPack.id);
     const cards = await db.cardInstance.findMany({ where: { ownerId: userId }, include: { template: { include: { player: true } } } });
     const by = (p: string) => cards.filter((c) => c.template.player.position === p);
@@ -269,7 +269,7 @@ describe("prize guardrails", () => {
     const c = await comp();
     await updateCompetitionRules(admin.userId, c.id, { entryFeeMinor: 0, requirements: { freeCardsOnly: true }, prizes: "1=10" });
     await bronzePack(userId, 2);
-    const starter = await db.packEntitlement.findFirstOrThrow({ where: { userId, source: "STARTER" } });
+    const starter = await db.packEntitlement.findFirstOrThrow({ where: { userId, source: "STARTER", packSku: { kind: "STARTER" } } });
     await openPack(userId, starter.id);
     const cards = await db.cardInstance.findMany({ where: { ownerId: userId }, include: { template: { include: { player: true } } } });
     const pick = (edition: string) => {

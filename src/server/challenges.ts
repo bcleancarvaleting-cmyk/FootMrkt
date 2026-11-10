@@ -42,8 +42,10 @@ function eligibleWhere(userId: string, c: ChallengeCriteria): Prisma.CardInstanc
     ownerId: userId,
     supplyState: "HELD",
     lock: "NONE",
+    // Loan players are borrowed, so they can never be handed in.
+    loanGameweeks: null,
     // Every card counts, untradeable ones included, unless a challenge explicitly excludes free/starter cards.
-    template: { category: c.tiers ? { in: c.tiers } : undefined, edition: c.includeUntradeable === false ? "STANDARD" : undefined, player },
+    template: { category: c.tiers ? { in: c.tiers } : undefined, edition: c.includeUntradeable === false ? "STANDARD" : { not: "LOAN" }, player },
   };
 }
 

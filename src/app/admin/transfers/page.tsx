@@ -1,13 +1,107 @@
-import { EconomySections } from "../_parts/economy";
+import Link from "next/link";
+import { clearHouseAction } from "@/app/actions/economy";
+import { ActionButton } from "@/components/action-button";
+import { db } from "@/server/db";
+import { fmtMp } from "@/server/wallet";
+import { fmtDate, hoursAgo } from "@/lib/view";
 import { AdminTitle } from "../_parts/title";
 
 export const metadata = { title: "Admin · Transfers" };
 
-export default function Page() {
+/**
+ * The two ways cards reach managers after packs:
+ * - Player drops: released by MATCHX at a set price, no fee (managed on the player database page).
+ * - Transfer list: player-to-player sales in earned MX; the seller pays a 5% fee.
+ */
+export default async function Page() {
+  const week = hoursAgo(7 * 24);
+  const [active, offers, all, last7, drops, dropsLast7, legacy, recent] = await Promise.all([
+    db.marketListing.count({ where: { house: false, status: "ACTIVE" } }),
+    db.marketOffer.count({ where: { status: "PENDING", listing: { house: false } } }),
+    db.marketListing.aggregate({ where: { house: false, status: "SOLD" }, _count: true, _sum: { soldPriceMinor: true, feeMinor: true } }),
+    db.marketListing.aggregate({ where: { house: false, status: "SOLD", soldAt: { gte: week } }, _count: true, _sum: { soldPriceMinor: true, feeMinor: true } }),
+    db.marketListing.aggregate({ where: { house: true, status: "SOLD", card: { packable: false } }, _count: true, _sum: { soldPriceMinor: true } }),
+    db.marketListing.aggregate({ where: { house: true, status: "SOLD", card: { packable: false }, soldAt: { gte: week } }, _count: true, _sum: { soldPriceMinor: true } }),
+    db.marketListing.count({ where: { house: true, status: "ACTIVE", card: { packable: true } } }),
+    db.marketListing.findMany({
+      where: { house: false, status: "SOLD" },
+      orderBy: { soldAt: "desc" },
+      take: 25,
+      include: { card: { include: { template: { include: { player: true } } } }, seller: { select: { displayName: true } }, buyer: { select: { displayName: true } } },
+    }),
+  ]);
+  const tiles: Array<[string, string, string]> = [
+    ["Transfer list · live", `${active}`, `${offers} pending offers`],
+    ["Transfers · 7 days", `${last7._count} sales`, `${fmtMp(last7._sum.soldPriceMinor ?? 0)} traded`],
+    ["5% fees · 7 days", fmtMp(last7._sum.feeMinor ?? 0), `${fmtMp(all._sum.feeMinor ?? 0)} all time`],
+    ["Player drops · 7 days", `${dropsLast7._count} signed`, `${fmtMp(dropsLast7._sum.soldPriceMinor ?? 0)} · ${fmtMp(drops._sum.soldPriceMinor ?? 0)} all time`],
+  ];
   return (
     <>
-      <AdminTitle title="Transfers & auctions" intro="MATCHX buy-now listings from circulation, and house auctions." />
-      <EconomySections only={["house", "auctions"]} />
+      <AdminTitle
+        title="Transfer listings"
+        intro="Two ways cards get out and change hands. Player drops: MATCHX releases players at a set price, no fee, paid in any MX. Transfer list: managers sell to each other in earned MX, and the seller pays a 5% fee."
+      />
+      <section className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-ink-700 bg-ink-700 lg:grid-cols-4">
+        {tiles.map(([k, v, s]) => (
+          <div key={k} className="bg-ink-900 p-4">
+            <p className="eyebrow">{k}</p>
+            <p className="mt-1 font-display text-2xl font-extrabold tabular-nums">{v}</p>
+            <p className="text-xs text-faint">{s}</p>
+          </div>
+        ))}
+      </section>
+
+      <p className="text-sm text-muted">
+        Schedule and withdraw drops on <Link href="/admin/players" className="text-lime underline">Player database &amp; drops</Link>.
+      </p>
+
+      {legacy > 0 && (
+        <section className="panel flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
+          <span>
+            <b>{legacy}</b> older MATCHX listings from the pack pool are still active. They no longer show on the Transfer list. Withdraw them to send the cards back into packs.
+          </span>
+          <ActionButton action={clearHouseAction} className="btn-ghost px-3 py-1.5 text-[11px]" confirm="Withdraw the older MATCHX listings? Player drops are not affected.">
+            Withdraw older listings
+          </ActionButton>
+        </section>
+      )}
+
+      <section className="panel p-5">
+        <h2 className="mb-3 text-2xl">Recent player-to-player sales</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead className="text-left text-[11px] uppercase tracking-[0.12em] text-faint">
+              <tr>
+                {["When", "Player", "Seller", "Buyer", "Price", "Fee (5%)"].map((h) => (
+                  <th key={h} className="py-2 pr-3 font-semibold">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-ink-700">
+              {recent.map((r) => (
+                <tr key={r.id}>
+                  <td className="py-2 pr-3 text-muted">{r.soldAt ? fmtDate(r.soldAt) : "—"}</td>
+                  <td className="py-2 pr-3 font-semibold">
+                    {r.card.template.player.displayName} <span className="text-xs font-normal text-faint">{r.card.template.category.toLowerCase()}</span>
+                  </td>
+                  <td className="py-2 pr-3">{r.seller?.displayName ?? "—"}</td>
+                  <td className="py-2 pr-3">{r.buyer?.displayName ?? "—"}</td>
+                  <td className="py-2 pr-3 tabular-nums">{fmtMp(r.soldPriceMinor ?? 0)}</td>
+                  <td className="py-2 pr-3 tabular-nums">{fmtMp(r.feeMinor ?? 0)}</td>
+                </tr>
+              ))}
+              {!recent.length && (
+                <tr>
+                  <td colSpan={6} className="py-6 text-center text-faint">
+                    No player-to-player sales yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </>
   );
 }

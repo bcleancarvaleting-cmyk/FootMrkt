@@ -237,6 +237,7 @@ enum CardCategory {
 enum CardEdition {
   STANDARD // released into the controlled supply pool
   STARTER // minted on registration; permanently NON_TRADEABLE
+  LOAN // starter loan players: free, untradeable, no value, usable for a set number of gameweeks
 }
 
 model CardTemplate {
@@ -294,6 +295,8 @@ model CardInstance {
   recycledCount Int             @default(0)
   // false for player-drop copies: they are never drawn from packs, and are retired if handed in.
   packable      Boolean         @default(true)
+  // Loan cards only: how many gameweeks (that the manager enters, counted from mintedAt) the loan lasts.
+  loanGameweeks Int?
   mintedAt      DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 

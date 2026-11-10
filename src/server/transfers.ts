@@ -164,7 +164,16 @@ export async function buyNow(buyerId: string, listingId: string) {
     await lockWallets(tx, buyerId, l.sellerId);
     // A buyer with a pending offer on this listing gets that hold back first, then pays in full.
     await lapseOffers(tx, l.id);
-    await debit(tx, { userId: buyerId, amountMinor: l.askingPriceMinor, kind: "MARKET_PURCHASE", refId: `listing:${l.id}:buy`, note: "Transfer — buy now", earnedOnly: true });
+    // Player drops are a straight purchase from MATCHX at the price shown: no fee, any MX.
+    // Player-to-player transfers use earned MX only (the seller pays the 5% fee).
+    await debit(tx, {
+      userId: buyerId,
+      amountMinor: l.askingPriceMinor,
+      kind: "MARKET_PURCHASE",
+      refId: `listing:${l.id}:buy`,
+      note: l.house ? "Player drop" : "Transfer — buy now",
+      earnedOnly: !l.house,
+    });
     return settleSale(tx, l, buyerId, l.askingPriceMinor);
   });
 }
@@ -515,7 +524,8 @@ export async function stockLaunchMix(adminId: string) {
 
 /** Admin: withdraw every active house listing (cards go back into packs). */
 export async function clearHouseListings(adminId: string) {
-  const active = await db.marketListing.findMany({ where: { house: true, status: "ACTIVE" }, select: { id: true } });
+  // Old MATCHX listings from circulation only — player drops are managed on the player database page.
+  const active = await db.marketListing.findMany({ where: { house: true, status: "ACTIVE", card: { packable: true } }, select: { id: true } });
   for (const { id } of active) {
     await withTx(async (tx) => {
       const l = await lockListing(tx, id);

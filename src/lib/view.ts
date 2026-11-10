@@ -13,7 +13,9 @@ export interface CardView {
   lastName: string;
   position: Pos;
   category: Category;
-  edition: "STANDARD" | "STARTER";
+  edition: "STANDARD" | "STARTER" | "LOAN";
+  /** Loan players only: gameweeks left of the loan (counted by gameweeks the manager enters). */
+  loan: { left: number; total: number } | null;
   clubCode: string | null;
   clubShort: string | null;
   clubName: string | null;
@@ -46,6 +48,7 @@ export interface CardView {
 type CardLike = {
   id: string;
   serial: number;
+  loanGameweeks?: number | null;
   tradeStatus: string;
   lock: string;
   lockRef: string | null;
@@ -86,9 +89,11 @@ export function toCardView(
     pointsForYou?: number | null;
     favourite?: boolean;
     duplicateCount?: number;
+    loanLeft?: number;
   } = {},
 ): CardView {
   const p = c.template.player;
+  const loan = c.loanGameweeks ? { total: c.loanGameweeks, left: extra.loanLeft ?? c.loanGameweeks } : null;
   return {
     id: c.id,
     playerId: p.id,
@@ -98,6 +103,7 @@ export function toCardView(
     position: p.position as Pos,
     category: c.template.category as Category,
     edition: c.template.edition as CardView["edition"],
+    loan,
     clubCode: p.club?.code ?? null,
     clubShort: p.club?.shortName ?? null,
     clubName: p.club?.name ?? null,
@@ -110,8 +116,9 @@ export function toCardView(
     nationality: p.nationality,
     serial: c.serial,
     maxSupply: c.template.maxSupply,
-    valueMp: extra.valueMp ?? null,
-    trendPct: extra.trendPct ?? null,
+    // Loan players have no value.
+    valueMp: loan ? null : (extra.valueMp ?? null),
+    trendPct: loan ? null : (extra.trendPct ?? null),
     acquired: extra.acquired ?? null,
     pointsForYou: extra.pointsForYou ?? null,
     imageUrl: p.imageUrl ?? null,

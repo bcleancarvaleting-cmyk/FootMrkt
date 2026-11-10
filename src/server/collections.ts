@@ -25,7 +25,7 @@ export async function setProgress(userId: string) {
   // A requirement is a player in a tier: any copy counts — bought, packed or free.
   const playerIds = [...new Set(sets.flatMap((s) => s.requirements.map((r) => r.template.playerId)))];
   const owned = await db.cardInstance.findMany({
-    where: { ownerId: userId, supplyState: "HELD", template: { playerId: { in: playerIds } } },
+    where: { ownerId: userId, supplyState: "HELD", loanGameweeks: null, template: { playerId: { in: playerIds } } },
     select: { id: true, lock: true, template: { select: { playerId: true, category: true } } },
   });
   return sets.map((set) => {
@@ -53,6 +53,7 @@ export async function completeSet(userId: string, setId: string, idempotencyKey:
           SELECT ci.id FROM "CardInstance" ci JOIN "CardTemplate" t ON t.id = ci."templateId"
           WHERE ci."ownerId" = ${userId}::uuid AND t."playerId" = ${req.template.playerId}::uuid
             AND t.category = ${req.template.category}::"CardCategory" AND ci."supplyState" = 'HELD' AND ci."lock" = 'NONE'
+            AND t.edition <> 'LOAN' AND ci."loanGameweeks" IS NULL
             AND NOT (ci.id = ANY(${chosen}::uuid[]))
           ORDER BY (t.edition = 'STARTER') DESC, ci.serial DESC LIMIT ${req.quantity} FOR UPDATE OF ci`;
         if (cards.length < req.quantity) throw new DomainError("INCOMPLETE", "You don't have every card needed for this collection.");

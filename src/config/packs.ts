@@ -232,8 +232,10 @@ export const GOLD_PICK_CODE = "football-gold-pick";
 export const REFERRAL_PACK_CODE = "football-referral";
 export const BRONZE_PICK_CODE = "football-bronze-pick";
 export const SILVER_PICK_CODE = "football-silver-pick";
-/** Packs opened through the pick screen (choose 1 of 3) rather than a normal reveal. */
-export const PICK_CODES = [GOLD_PICK_CODE, SILVER_PICK_CODE, BRONZE_PICK_CODE] as const;
+/** Starter loans: every new manager chooses 2 of 6 top-flight Gold players, on loan for their first 4 gameweeks. */
+export const LOAN_PICK_CODE = "football-loan-pick";
+/** Packs opened through the pick screen (choose from a random shortlist) rather than a normal reveal. */
+export const PICK_CODES = [GOLD_PICK_CODE, SILVER_PICK_CODE, BRONZE_PICK_CODE, LOAN_PICK_CODE] as const;
 
 const free = (code: string, name: string, blurb: string, slots: PackSkuSeed["config"]["slots"]): PackSkuSeed => ({
   code,
@@ -278,6 +280,9 @@ const giftOf = (code: string, name: string) => {
   return free(`${code}-gift`, name, `${base.blurb} A gift from MATCHX — untradeable.`, base.config.slots);
 };
 FOOTBALL_PACKS.push(
+  free(LOAN_PICK_CODE, "Starter Loans", "Choose 2 of 6 Premier League Gold players, on loan for your first 4 gameweeks. Free, untradeable and no value.", [
+    { label: "Gold loan", count: 2, base: "GOLD", upgrades: [] },
+  ]),
   free(BRONZE_PICK_CODE, "Choice of Bronze", "Pick one of three Bronze players to keep. Untradeable.", [{ label: "Bronze", count: 1, base: "BRONZE", upgrades: [] }]),
   free(SILVER_PICK_CODE, "Choice of Silver", "Pick one of three Silver players to keep. Untradeable.", [{ label: "Silver", count: 1, base: "SILVER", upgrades: [] }]),
   giftOf("football-eng-bronze", "Gift: Bronze Pack"),

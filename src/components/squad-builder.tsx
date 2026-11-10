@@ -320,7 +320,7 @@ export function SquadBuilder({
                   </span>
                   <span className="text-right text-[11px]">
                     <span className="block font-bold text-lime">{f === null ? "–" : f.toFixed(1)}</span>
-                    <span className="block text-faint">{mpLabel(c.valueMp)}</span>
+                    <span className="block text-faint">{c.loan ? `Loan · ${c.loan.left} GW left` : mpLabel(c.valueMp)}</span>
                   </span>
                 </button>
               </li>

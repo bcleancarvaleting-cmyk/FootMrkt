@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { LOAN_PICK_CODE } from "@/config/packs";
+import { db } from "@/server/db";
 import { notFound } from "next/navigation";
 import { PackReveal } from "@/components/pack-reveal";
 import { SharePack } from "@/components/share-pack";
@@ -21,6 +23,11 @@ export default async function OpeningPage({ params }: { params: Promise<{ id: st
   const counts = { GOLD: 0, SILVER: 0, BRONZE: 0 };
   for (const c of cards) counts[c.category]++;
   const isStarter = opening.packSku.kind === "STARTER";
+  const isLoan = opening.packSku.code === LOAN_PICK_CODE;
+  // Straight after the Starter Pack: the two loan Golds are the next step.
+  const loanPick = isStarter
+    ? await db.packEntitlement.findFirst({ where: { userId: user.id, status: "UNOPENED", packSku: { code: LOAN_PICK_CODE } }, select: { id: true } })
+    : null;
   return (
     <div className="space-y-8">
       <div className="text-center">
@@ -31,11 +38,16 @@ export default async function OpeningPage({ params }: { params: Promise<{ id: st
         <p className="mt-1 text-sm text-muted">
           {cards.length} card{cards.length === 1 ? "" : "s"} added to your club
           {isStarter && " · Starter cards are locked to your account and can't be traded"}
+          {isLoan && ` · on loan for the first ${cards[0]?.loan?.total ?? 4} gameweeks you enter`}
         </p>
       </div>
       <PackReveal cards={cards} />
       <div className="flex flex-wrap justify-center gap-3">
-        {isStarter ? (
+        {loanPick ? (
+          <Link href={`/packs/pick/${loanPick.id}`} className="btn-gold px-6 py-3">
+            Next: sign 2 Gold players on loan →
+          </Link>
+        ) : isStarter || isLoan ? (
           <Link href="/matches" className="btn-primary px-6 py-3">
             Pick your first squad →
           </Link>

@@ -2,7 +2,7 @@ import { Prisma, type CardCategory, type EntitlementSource } from "@/generated/p
 import { type PlannedSlot, honoursGuarantees, planPack } from "@/domain/packs/compose";
 import { type PackConfig, type SlotFilters, parsePackConfig } from "@/domain/packs/config";
 import { AuditedRandom, type RandomSource, cryptoRandom } from "@/domain/random";
-import { PICK_CODES, STARTER_PACK_CODE } from "@/config/packs";
+import { LOAN_PICK_CODE, PICK_CODES, STARTER_PACK_CODE } from "@/config/packs";
 import { ensureTemplate, mintInstances } from "./cards";
 import { type Tx, db, withTx } from "./db";
 import { DomainError } from "./errors";
@@ -39,6 +39,18 @@ export async function grantPack(
 
 export async function grantStarterPack(tx: Tx, userId: string) {
   return grantPack(tx, { userId, skuCode: STARTER_PACK_CODE, source: "STARTER", sourceRef: `starter:${userId}` });
+}
+
+/** Part of the Starter Pack: choose 2 top-flight Gold players on loan for the first 4 gameweeks entered. */
+export async function grantStarterLoans(tx: Tx, userId: string) {
+  // Publish the loan pick on first use, so registration never fails on a database that predates it.
+  if (!(await tx.packSku.findFirst({ where: { code: LOAN_PICK_CODE } }))) {
+    const { FOOTBALL_PACKS } = await import("@/config/packs");
+    const p = FOOTBALL_PACKS.find((x) => x.code === LOAN_PICK_CODE)!;
+    const sport = await tx.sport.findUniqueOrThrow({ where: { code: "football" } });
+    await tx.packSku.createMany({ data: [{ sportId: sport.id, code: p.code, version: p.version, name: p.name, kind: p.kind, priceMinor: p.priceMinor, config: p.config as never }], skipDuplicates: true });
+  }
+  return grantPack(tx, { userId, skuCode: LOAN_PICK_CODE, source: "STARTER", sourceRef: `loans:${userId}` });
 }
 
 interface DrawAudit {

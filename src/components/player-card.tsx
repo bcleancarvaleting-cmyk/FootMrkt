@@ -71,8 +71,9 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
           <div className="pointer-events-none absolute left-1 top-1 flex flex-col items-start gap-1">
             {card.lock === "COMPETITION" && <Badge tone="lime">In squad</Badge>}
             {card.lock === "LISTED" && <Badge tone="warn">Listed</Badge>}
+            {card.loan && <Badge tone="muted">On loan</Badge>}
           </div>
-          {(card.acquired || card.edition === "STARTER") && !small && (
+          {(card.acquired || card.edition === "STARTER") && !card.loan && !small && (
             <span className="absolute right-1 top-1 rounded bg-ink-950/85 px-1.5 text-[9px] font-semibold text-muted">
               {card.tradeable ? card.acquired : `${card.acquired ?? "Starter"} · locked`}
             </span>
@@ -87,12 +88,21 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
 
         {/* MX value · points won for you */}
         <div className="mx-2.5 mb-2 mt-1.5 grid grid-cols-2 gap-1 border-t border-white/10 pt-1.5">
-          <div className="min-w-0">
-            <div className="flex items-baseline gap-1 whitespace-nowrap text-[11px] font-bold text-lime">
-              {mpLabel(card.valueMp)} <Trend pct={card.trendPct} />
+          {card.loan ? (
+            <div className="min-w-0" title="Loan players are free, untradeable and have no value">
+              <div className="whitespace-nowrap text-[11px] font-bold text-lime">Loan</div>
+              <div className="truncate text-[9px] text-faint">
+                {card.loan.left ? `${card.loan.left} of ${card.loan.total} GW left` : "Loan ended"}
+              </div>
             </div>
-            <div className="truncate text-[9px] text-faint">{moneyRef(card.valueMp)}</div>
-          </div>
+          ) : (
+            <div className="min-w-0">
+              <div className="flex items-baseline gap-1 whitespace-nowrap text-[11px] font-bold text-lime">
+                {mpLabel(card.valueMp)} <Trend pct={card.trendPct} />
+              </div>
+              <div className="truncate text-[9px] text-faint">{moneyRef(card.valueMp)}</div>
+            </div>
+          )}
           <div className="min-w-0 text-right" title="Points this card has won for you in settled competitions">
             {card.pointsForYou !== null ? (
               <>
@@ -102,10 +112,12 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
                 <div className="truncate text-[9px] text-faint">won for you</div>
               </>
             ) : (
-              <div className="text-[9px] text-faint">
-                #{card.serial}
-                {card.maxSupply ? `/${card.maxSupply}` : ""}
-              </div>
+              card.serial > 0 && (
+                <div className="text-[9px] text-faint">
+                  #{card.serial}
+                  {card.maxSupply && !card.loan ? `/${card.maxSupply}` : ""}
+                </div>
+              )
             )}
           </div>
         </div>

@@ -23,6 +23,7 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
         </p>
         <ul className="space-y-2 text-sm text-muted">
           <li>✓ Mainly Bronze and Silver, plus a top-flight player</li>
+          <li>✓ Choose 2 Premier League Gold players on loan for your first 4 gameweeks</li>
           <li>✓ Score points from real match performances</li>
           <li>✓ Starter cards are yours to play with but can&apos;t be sold or traded</li>
         </ul>

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PickButton } from "@/components/pick-button";
-import { PlayerCard } from "@/components/player-card";
+import { PickChooser } from "@/components/pick-chooser";
 import { requireUser } from "@/server/auth/session";
 import { DomainError } from "@/server/errors";
 import { pickOptions } from "@/server/picks";
@@ -15,26 +14,36 @@ export default async function PickPage({ params }: { params: Promise<{ id: strin
     if (e instanceof DomainError) notFound();
     throw e;
   });
+  const { keep, options, loanGameweeks } = data.pick;
+  const tier = data.category.toLowerCase();
+  const leagues = [...new Set(data.cards.map((c) => c.leagueName).filter(Boolean))].join(" and ") || "top-flight";
   return (
     <div className="space-y-8 text-center">
       <div>
         <p className="eyebrow">{data.entitlement.packSku.name}</p>
-        <h1 className="mt-1 text-5xl">Choose your {data.category.toLowerCase()}</h1>
-        <p className="mx-auto mt-2 max-w-md text-sm text-muted">Keep one of these three players, chosen at random for this pack. The other two go back. Free cards are untradeable, and count in challenges and freerolls.</p>
+        {loanGameweeks ? (
+          <>
+            <h1 className="mt-1 text-5xl">Sign {keep} on loan</h1>
+            <p className="mx-auto mt-2 max-w-lg text-sm text-muted">
+              Choose {keep} of these {options} {leagues} {tier} players, picked at random just for you. They play for your squad in the first {loanGameweeks} gameweeks you enter, then go back
+              to their clubs. Loan players are free, untradeable and have no value — they can&apos;t be sold or handed in.
+            </p>
+          </>
+        ) : (
+          <>
+            <h1 className="mt-1 text-5xl">Choose your {tier}</h1>
+            <p className="mx-auto mt-2 max-w-md text-sm text-muted">
+              Keep {keep === 1 ? "one" : keep} of these {options} players, chosen at random for this pack. The others go back. Free cards are untradeable, and count in challenges and freerolls.
+            </p>
+          </>
+        )}
       </div>
       {data.opened ? (
         <p className="text-muted">
           You&apos;ve already made this pick. <Link href="/account/club" className="text-lime underline">See My Club</Link>
         </p>
       ) : (
-        <div className="flex flex-wrap items-start justify-center gap-6">
-          {data.cards.map((c) => (
-            <div key={c.playerId} className="flex flex-col items-center gap-3">
-              <PlayerCard card={{ ...c, acquired: null, pointsForYou: null }} size="lg" />
-              <PickButton entitlementId={id} playerId={c.playerId} name={c.name} />
-            </div>
-          ))}
-        </div>
+        <PickChooser entitlementId={id} cards={data.cards} keep={keep} verb={loanGameweeks ? "Sign on loan:" : "Keep"} />
       )}
     </div>
   );

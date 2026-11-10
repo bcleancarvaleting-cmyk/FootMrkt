@@ -15,11 +15,11 @@ const grant = (userId: string, skuCode: string, ref: string) =>
   withTx((tx) => grantPack(tx, { userId, skuCode, source: "DEV", sourceRef: ref }));
 
 describe("starter pack (spec §5.2, §17)", () => {
-  it("registration grants exactly one free starter pack that issues 12 locked, untradeable cards", async () => {
+  it("registration grants exactly one free starter pack (plus the starter loan pick) that issues 12 locked, untradeable cards", async () => {
     const { userId, starterEntitlementId } = await makeUser();
-    const ents = await db.packEntitlement.findMany({ where: { userId } });
-    expect(ents).toHaveLength(1);
-    expect(ents[0].source).toBe("STARTER");
+    const ents = await db.packEntitlement.findMany({ where: { userId }, include: { packSku: true } });
+    expect(ents.map((e) => e.packSku.code).sort()).toEqual(["football-loan-pick", "football-starter"]);
+    expect(ents.every((e) => e.source === "STARTER")).toBe(true);
 
     const res = await openPack(userId, starterEntitlementId);
     expect(res.cards).toHaveLength(12);

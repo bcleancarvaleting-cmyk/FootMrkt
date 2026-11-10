@@ -3,7 +3,7 @@ import { z } from "zod";
 import { db, withTx } from "../db";
 import { DomainError, isUniqueViolation } from "../errors";
 import { isEnabled } from "../flags";
-import { grantStarterPack } from "../packs";
+import { grantStarterLoans, grantStarterPack } from "../packs";
 import { hashPassword, verifyPassword } from "./password";
 
 export const SESSION_TTL_MS = 30 * 24 * 3600 * 1000;
@@ -66,6 +66,7 @@ export async function registerUser(input: z.input<typeof RegisterSchema>) {
         },
       });
       const starter = await grantStarterPack(tx, user.id);
+      await grantStarterLoans(tx, user.id);
       return { user, starterEntitlementId: starter.id, emailVerificationToken };
     });
   } catch (e) {

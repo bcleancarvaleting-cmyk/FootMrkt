@@ -121,7 +121,7 @@ describe("P2P transfers in MX", () => {
     expect((await supplyReport()).reconciled).toBe(true);
   });
 
-  it("bought MX can't buy players (packs and entries only)", async () => {
+  it("bought MX can't buy players from other managers (Transfer list is earned MX only)", async () => {
     enableLegalGates();
     const seller = await makeUser("sss3");
     const buyer = await makeUser("bbb5");
@@ -247,6 +247,27 @@ describe("MATCHX launch pricing", () => {
     expect(pinned.card.template.category).toBe("GOLD");
     expect((await supplyReport()).reconciled).toBe(true);
   });
+
+  it("drops cost exactly the price shown, with no fee, and can be paid with bought MX", async () => {
+    const { scheduleDrops, dropBoard } = await import("@/server/player-drops");
+    enableLegalGates();
+    const admin = await makeUser("adm21");
+    const buyer = await makeUser("bbb21");
+    await withTx((tx) => credit(tx, { userId: buyer.userId, amountMinor: 500, kind: "DEPOSIT", bucket: "CASH", refId: "bought-drop" }));
+    const tpl = await db.cardTemplate.findFirstOrThrow({ where: { category: "BRONZE", active: true, edition: "STANDARD" } });
+    await scheduleDrops(admin.userId, [{ playerId: tpl.playerId, priceMinor: 126, liveAt: new Date(Date.now() - 1000) }]);
+    const [drop] = (await dropBoard()).live;
+    const before = await balancesFor(buyer.userId);
+    await buyNow(buyer.userId, drop.id);
+    const after = await balancesFor(buyer.userId);
+    expect(before.total - after.total).toBe(126);
+    const sold = await db.marketListing.findUniqueOrThrow({ where: { id: drop.id } });
+    expect(sold).toMatchObject({ status: "SOLD", soldPriceMinor: 126, feeMinor: null });
+    // The drop isn't on the player-to-player Transfer list.
+    const { transferBoard } = await import("@/server/transfers-view");
+    await scheduleDrops(admin.userId, [{ playerId: tpl.playerId, priceMinor: 126, liveAt: new Date(Date.now() - 1000) }]);
+    expect((await transferBoard({}, null)).some((r) => r.house)).toBe(false);
+  });
 });
 
 describe("house auctions", () => {
@@ -354,5 +375,26 @@ describe("player drops", () => {
     const withdrawn = await db.marketListing.findUniqueOrThrow({ where: { id: board.upcoming[0].id }, include: { card: true } });
     expect(withdrawn.card.supplyState).toBe("RETIRED");
     expect((await supplyReport()).reconciled).toBe(true);
+  });
+
+  it("drops cost exactly the price shown, with no fee, and can be paid with bought MX", async () => {
+    const { scheduleDrops, dropBoard } = await import("@/server/player-drops");
+    enableLegalGates();
+    const admin = await makeUser("adm21");
+    const buyer = await makeUser("bbb21");
+    await withTx((tx) => credit(tx, { userId: buyer.userId, amountMinor: 500, kind: "DEPOSIT", bucket: "CASH", refId: "bought-drop" }));
+    const tpl = await db.cardTemplate.findFirstOrThrow({ where: { category: "BRONZE", active: true, edition: "STANDARD" } });
+    await scheduleDrops(admin.userId, [{ playerId: tpl.playerId, priceMinor: 126, liveAt: new Date(Date.now() - 1000) }]);
+    const [drop] = (await dropBoard()).live;
+    const before = await balancesFor(buyer.userId);
+    await buyNow(buyer.userId, drop.id);
+    const after = await balancesFor(buyer.userId);
+    expect(before.total - after.total).toBe(126);
+    const sold = await db.marketListing.findUniqueOrThrow({ where: { id: drop.id } });
+    expect(sold).toMatchObject({ status: "SOLD", soldPriceMinor: 126, feeMinor: null });
+    // The drop isn't on the player-to-player Transfer list.
+    const { transferBoard } = await import("@/server/transfers-view");
+    await scheduleDrops(admin.userId, [{ playerId: tpl.playerId, priceMinor: 126, liveAt: new Date(Date.now() - 1000) }]);
+    expect((await transferBoard({}, null)).some((r) => r.house)).toBe(false);
   });
 });

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { assertLoansUsable } from "./loans";
 import { getRosterRules } from "@/domain/football/rules";
 import { type SquadCard, type SquadIssue, validateSquad } from "@/domain/football/squad";
 import { POSITIONS } from "@/domain/packs/config";
@@ -68,8 +69,8 @@ export async function submitEntry(userId: string, competitionId: string, input: 
   const submission = SquadSubmissionSchema.parse(input);
   return withTx(async (tx) => {
     const [comp] = await tx.$queryRaw<
-      Array<{ id: string; status: string; locksAt: Date; format: string; rosterRules: string; entryFeeMinor: number; requirements: unknown }>
-    >`SELECT id, status, "locksAt", format, "rosterRules", "entryFeeMinor", requirements FROM "Competition" WHERE id = ${competitionId}::uuid FOR SHARE`;
+      Array<{ id: string; status: string; locksAt: Date; format: string; rosterRules: string; entryFeeMinor: number; requirements: unknown; gameweekId: string }>
+    >`SELECT id, status, "locksAt", format, "rosterRules", "entryFeeMinor", requirements, "gameweekId" FROM "Competition" WHERE id = ${competitionId}::uuid FOR SHARE`;
     if (!comp) throw new DomainError("NOT_FOUND", "Competition not found.");
     if (comp.status !== "OPEN" || comp.locksAt <= new Date()) {
       throw new DomainError("LOCKED", "Entries for this competition are closed.");
@@ -115,6 +116,8 @@ export async function submitEntry(userId: string, competitionId: string, input: 
       issues.push({ code: "UNKNOWN_CARD", message: "Your captain must be one of your starting seven", cardId: submission.captain });
     }
     if (issues.length) throw new SquadInvalidError(issues);
+    // Loan players only play in the first gameweeks the manager enters.
+    await assertLoansUsable(tx, userId, comp.gameweekId, rows.filter((r) => r.edition === "LOAN").map((r) => r.id));
 
     if (!existing) await rewardReferrer(tx, userId);
     const entry = existing
@@ -187,7 +190,7 @@ async function checkRequirements(
   const r = parsed.data;
   const issues: SquadIssue[] = [];
   const picked = rows;
-  if (r.freeCardsOnly) for (const c of picked) if (c.edition !== "STARTER") issues.push({ code: "UNKNOWN_CARD", message: "Only free cards (Starter Pack, welcome gifts, free drops) can be entered", cardId: c.id });
+  if (r.freeCardsOnly) for (const c of picked) if (c.edition !== "STARTER" && c.edition !== "LOAN") issues.push({ code: "UNKNOWN_CARD", message: "Only free cards (Starter Pack, loans, welcome gifts, free drops) can be entered", cardId: c.id });
   if (r.tiers) for (const c of picked) if (!r.tiers.includes(c.category as never)) issues.push({ code: "UNKNOWN_CARD", message: `Only ${r.tiers.join("/").toLowerCase()} cards can be entered`, cardId: c.id });
   if (r.clubs) for (const c of picked) if (!c.clubCode || !r.clubs.includes(c.clubCode)) issues.push({ code: "UNKNOWN_CARD", message: `Only ${r.clubs.join(" and ")} players can be entered`, cardId: c.id });
   if (r.leagues) for (const c of picked) if (!c.league || !r.leagues.includes(c.league)) issues.push({ code: "UNKNOWN_CARD", message: `Only ${r.leagues.join("/")} players can be entered`, cardId: c.id });

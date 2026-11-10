@@ -41,9 +41,18 @@ export function CardRow({ card, href, children, sub }: { card: CardView; href?: 
         <span className="flex min-w-0 flex-1 items-center gap-3">{body}</span>
       )}
       <span className="hidden w-24 shrink-0 text-right md:block">
-        <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">Value</span>
-        <span className="font-bold tabular-nums">{card.valueMp !== null ? `${card.valueMp} MX` : "—"}</span>
-        <Trend pct={card.trendPct} className="ml-1" />
+        {card.loan ? (
+          <>
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">On loan</span>
+            <span className="font-bold tabular-nums">{card.loan.left ? `${card.loan.left} GW left` : "Ended"}</span>
+          </>
+        ) : (
+          <>
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">Value</span>
+            <span className="font-bold tabular-nums">{card.valueMp !== null ? `${card.valueMp} MX` : "—"}</span>
+            <Trend pct={card.trendPct} className="ml-1" />
+          </>
+        )}
       </span>
       {children}
     </li>

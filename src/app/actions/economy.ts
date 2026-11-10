@@ -9,6 +9,7 @@ import { cancelDrop, scheduleDrop } from "@/server/drops";
 import { DomainError } from "@/server/errors";
 import { syncPackCatalogue } from "@/server/packs";
 import { ensureClubBinders } from "@/server/collections";
+import { applyPrizeFund } from "@/server/prize-fund";
 import { cancelAuction, clearHouseListings, createAuction, stockHouseListings, stockLaunchMix, stockPinnedListings } from "@/server/transfers";
 import { addWelcomeGift, updateWelcomeGift } from "@/server/welcome";
 import { backfillFoundingMembers } from "@/server/founders";
@@ -223,4 +224,13 @@ export async function clubBindersAction(): Promise<ActionResult> {
   const res = await attempt(() => ensureClubBinders());
   done();
   return res.ok ? { ok: true, data: undefined, message: `${res.data} club binder(s) created` } : res;
+}
+
+export async function applyPrizeFundAction(competitionId: string): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const res = await attempt(async () => {
+    await applyPrizeFund(admin.id, competitionId);
+  }, "Prize fund applied");
+  done();
+  return res;
 }

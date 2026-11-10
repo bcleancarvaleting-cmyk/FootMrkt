@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { backfillFoundersAction, clubBindersAction, lockHeldCardsAction, cancelAuctionAction, cancelDropAction, clearHouseAction, launchMixAction, processWithdrawalAction, syncPacksAction, toggleChallengeAction, updateWelcomeGiftAction } from "@/app/actions/economy";
+import { applyPrizeFundAction, backfillFoundersAction, clubBindersAction, lockHeldCardsAction, cancelAuctionAction, cancelDropAction, clearHouseAction, launchMixAction, processWithdrawalAction, syncPacksAction, toggleChallengeAction, updateWelcomeGiftAction } from "@/app/actions/economy";
 import { ActionButton } from "@/components/action-button";
 import { AuctionForm, ChallengeForm, DropForm, HouseStockForm, MatchRulesForm, PinnedListingsForm, WelcomeGiftForm } from "@/components/admin-forms";
 import { isEnabled } from "@/server/flags";
+import { PRIZE_FUND_SHARE, prizeFund } from "@/server/prize-fund";
+import { fmtGbp as gbpFmt } from "@/server/wallet";
 import { LAUNCH_MIX } from "@/config/transfers";
 import { FOOTBALL_PACKS } from "@/config/packs";
 import { requireAdmin } from "@/server/auth/session";
@@ -29,7 +31,7 @@ function Section({ title, intro, children }: { title: string; intro?: string; ch
 
 export default async function EconomyAdmin() {
   await requireAdmin();
-  const [drops, auctions, challenges, comps, withdrawals, fees, gifts, house, founders, nonFounders, foundingOpen, tradeableHeld, paidPacks] = await Promise.all([
+  const [drops, auctions, challenges, comps, withdrawals, fees, gifts, house, founders, nonFounders, foundingOpen, tradeableHeld, paidPacks, fund] = await Promise.all([
     upcomingDrops(),
     db.auction.findMany({ where: { status: { in: ["LIVE", "SCHEDULED"] } }, include: { card: { include: { template: { include: { player: true } } } }, bids: { where: { status: "LEADING" } } }, orderBy: { endsAt: "asc" } }),
     db.challenge.findMany({ orderBy: { createdAt: "desc" }, include: { _count: { select: { completions: true } } } }),
@@ -43,7 +45,9 @@ export default async function EconomyAdmin() {
     isEnabled("FOUNDING_SIGNUPS"),
     db.cardInstance.count({ where: { supplyState: "HELD", tradeStatus: "TRADEABLE" } }),
     isEnabled("PAID_PACKS"),
+    prizeFund(),
   ]);
+  const freerolls = comps.filter((c) => ((c.requirements ?? {}) as Requirements).freeCardsOnly && c.entryFeeMinor === 0);
   const houseActive = house.find((h) => h.status === "ACTIVE")?._count._all ?? 0;
   const houseSold = house.find((h) => h.status === "SOLD");
   const packs = FOOTBALL_PACKS.filter((p) => p.kind === "REGULAR").map((p) => ({ code: p.code, name: p.name }));
@@ -63,6 +67,38 @@ export default async function EconomyAdmin() {
           <ActionButton action={syncPacksAction}>Publish new pack versions</ActionButton>
         </span>
       </div>
+
+      <Section title="Prize fund" intro={`${Math.round(PRIZE_FUND_SHARE * 100)}% of the last 7 days' card revenue (packs and MX top-ups) goes into the next prizes, with a £10 minimum. Keep this as internal policy: advertise the prizes, not a share of sales.`}>
+        <div className="mb-4 grid gap-px overflow-hidden rounded-xl border border-ink-700 bg-ink-700 sm:grid-cols-4">
+          {[
+            ["Packs sold", gbpFmt(fund.packs)],
+            ["MX top-ups", gbpFmt(fund.topUps)],
+            ["Revenue (7 days)", gbpFmt(fund.revenue)],
+            ["Prize fund", gbpFmt(fund.fund)],
+          ].map(([k, v]) => (
+            <div key={k} className="bg-ink-900 p-4">
+              <p className="eyebrow">{k}</p>
+              <p className="mt-1 font-display text-2xl font-extrabold italic tabular-nums">{v}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mb-3 text-sm text-muted">
+          Suggested split: 1st {gbpFmt(fund.split[0])} · 2nd {gbpFmt(fund.split[1])} · 3rd {gbpFmt(fund.split[2])} (ties split).
+        </p>
+        <ul className="divide-y divide-ink-700 text-sm">
+          {freerolls.map((c) => (
+            <li key={c.id} className="flex items-center justify-between gap-3 py-2">
+              <span>
+                <b>{c.name}</b> <span className="text-faint">· {prizesSummary(c.rewards) || "no £ prizes yet"}</span>
+              </span>
+              <ActionButton action={applyPrizeFundAction.bind(null, c.id)} className="btn-primary px-3 py-1.5 text-[11px]" confirm={`Set ${c.name} prizes from the fund?`}>
+                Apply fund
+              </ActionButton>
+            </li>
+          ))}
+          {!freerolls.length && <li className="py-2 text-faint">No open freerolls this gameweek.</li>}
+        </ul>
+      </Section>
 
       <Section title="Founding members" intro="Everyone who signs up while Founding sign-ups is on becomes a numbered Founding Member, with a badge next to their name for good. Use the match rule 'Founding members only' for founders' freerolls.">
         <div className="flex flex-wrap items-center gap-3 text-sm">

@@ -20,7 +20,7 @@ export default async function MyTransfersPage() {
   return (
     <div className="space-y-10">
       <section>
-        <PageHeader eyebrow="Selling" title="My listings" intro="Offers hold the buyer's MP, so accepting one completes the sale instantly. You receive the price minus the 5% fee.">
+        <PageHeader eyebrow="Selling" title="My listings" intro="Offers hold the buyer's MX, so accepting one completes the sale instantly. You receive the price minus the 5% fee.">
           <Link href="/account/club" className="btn-ghost px-4 py-2 text-xs">
             List a card
           </Link>

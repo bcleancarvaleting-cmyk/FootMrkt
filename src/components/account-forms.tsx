@@ -13,7 +13,7 @@ export function DepositForm({ enabled, initial = 20 }: { enabled: boolean; initi
     <form action={action} className="space-y-4">
       <input type="hidden" name="clientKey" value={key} />
       <div>
-        <label className="label" htmlFor="dep-amount">Amount — £1 buys 1 MP</label>
+        <label className="label" htmlFor="dep-amount">Amount — £1 buys 1 MX</label>
         <div className="flex flex-wrap gap-2">
           {["10", "20", "50", "100"].map((v) => (
             <button key={v} type="button" onClick={() => setAmount(v)} className={`chip px-3 py-1.5 text-sm ${amount === v ? "border-accent text-fg" : ""}`}>
@@ -24,12 +24,12 @@ export function DepositForm({ enabled, initial = 20 }: { enabled: boolean; initi
         </div>
       </div>
       <div className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-xs leading-relaxed text-fg">
-        <b>MP can&apos;t be withdrawn or refunded</b> — it&apos;s for buying packs and cards and entering matches. What you pull from a pack is random and
+        <b>MX can&apos;t be withdrawn or refunded</b> — it&apos;s for buying packs and cards and entering matches. What you pull from a pack is random and
         card values go down as well as up. Only add what you can afford to spend. Not an investment.
       </div>
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" name="acceptRisk" className="mt-1 accent-lime" required />
-        <span>I understand MP can&apos;t be withdrawn and player values go up and down.</span>
+        <span>I understand MX can&apos;t be withdrawn and player values go up and down.</span>
       </label>
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" name="acceptTerms" className="mt-1 accent-lime" required />
@@ -40,7 +40,7 @@ export function DepositForm({ enabled, initial = 20 }: { enabled: boolean; initi
         </span>
       </label>
       <button className="btn-primary w-full" disabled={!enabled || pending}>
-        {pending ? "Starting checkout…" : `Add £${amount || 0} → ${amount || 0} MP`}
+        {pending ? "Starting checkout…" : `Add £${amount || 0} → ${amount || 0} MX`}
       </button>
       {state && <ResultText result={state} />}
     </form>

@@ -86,7 +86,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
 
         <div className="grid gap-4 sm:grid-cols-3">
           <Info label="Indicative value">
-            <span className="text-2xl font-black text-lime">{latest ? `${latest.valueMp} MP` : "—"}</span>
+            <span className="text-2xl font-black text-lime">{latest ? `${latest.valueMp} MX` : "—"}</span>
             {latest && <span className="block text-xs text-faint">≈ {indicativeMoney(latest.valueMp)} indicative</span>}
           </Info>
           <Info label={isOwner ? "You got it" : "Status"}>
@@ -103,7 +103,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
         </div>
 
         <p className="text-xs text-faint">
-          MP is an indicative valuation based on supply, recent form, league and eligible completed sales. It is not cash, cannot be
+          MX is an indicative valuation based on supply, recent form, league and eligible completed sales. It is not cash, cannot be
           withdrawn, and is not a promise that this card can be sold for that amount.
         </p>
 
@@ -129,7 +129,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
               {sales.map((s, i) => (
                 <div key={i} className="flex justify-between text-muted">
                   <span>{s.soldAt ? fmtDate(s.soldAt) : ""}</span>
-                  <span>{((s.soldPriceMinor ?? 0) / 100).toFixed(2)} MP</span>
+                  <span>{((s.soldPriceMinor ?? 0) / 100).toFixed(2)} MX</span>
                 </div>
               ))}
             </div>
@@ -176,7 +176,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
             {listing ? (
               <div className="flex items-center justify-between">
                 <span>
-                  Listed at <b>{(listing.askingPriceMinor / 100).toFixed(2)} MP</b> until {fmtDate(listing.expiresAt)}
+                  Listed at <b>{(listing.askingPriceMinor / 100).toFixed(2)} MX</b> until {fmtDate(listing.expiresAt)}
                 </span>
                 <ActionButton action={cancelListingAction.bind(null, listing.id, id)} className="btn-danger">
                   Cancel listing

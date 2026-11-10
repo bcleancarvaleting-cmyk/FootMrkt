@@ -101,7 +101,7 @@ export default async function EconomyAdmin() {
         <WelcomeGiftForm packs={giftPacks()} />
       </Section>
 
-      <Section title="MATCHX listings on Transfers" intro="List cards straight from circulation at buy-now prices (no offers). Unsold cards go back into packs when the listing ends. The MP goes to MATCHX.">
+      <Section title="MATCHX listings on Transfers" intro="List cards straight from circulation at buy-now prices (no offers). Unsold cards go back into packs when the listing ends. The MX goes to MATCHX.">
         <p className="mb-4 text-sm">
           <b>{houseActive}</b> live · <b>{houseSold?._count._all ?? 0}</b> sold for <b>{fmtMp(houseSold?._sum.soldPriceMinor ?? 0)}</b>
         </p>
@@ -143,7 +143,7 @@ export default async function EconomyAdmin() {
         </ul>
       </Section>
 
-      <Section title="House auctions" intro="Takes one unowned copy out of the pack pool. Bids hold cash MP; the winner pays their bid to MATCHX. Unsold cards go back into packs.">
+      <Section title="House auctions" intro="Takes one unowned copy out of the pack pool. Bids hold cash MX; the winner pays their bid to MATCHX. Unsold cards go back into packs.">
         <AuctionForm />
         <ul className="mt-4 divide-y divide-ink-700 text-sm">
           {auctions.map((a) => (
@@ -158,7 +158,7 @@ export default async function EconomyAdmin() {
         </ul>
       </Section>
 
-      <Section title="Challenges" intro="Managers hand in cards that match the rules for bonus MP and/or a pack. Tradeable cards go back into packs.">
+      <Section title="Challenges" intro="Managers hand in cards that match the rules for bonus MX and/or a pack. Tradeable cards go back into packs.">
         <ChallengeForm packs={packs} />
         <ul className="mt-4 divide-y divide-ink-700 text-sm">
           {challenges.map((c) => (
@@ -172,7 +172,7 @@ export default async function EconomyAdmin() {
         </ul>
       </Section>
 
-      <Section title="Match entry rules" intro="£ prizes are only allowed on free-entry matches with 'Free cards only', so nothing anyone bought can improve their chances of real money. Matches with an MP entry fee pay MP or pack prizes. MP entry fees are charged once PAID_ENTRY is cleared; fees can't change after someone has entered.">
+      <Section title="Match entry rules" intro="£ prizes are only allowed on free-entry matches with 'Free cards only', so nothing anyone bought can improve their chances of real money. Matches with an MX entry fee pay MX or pack prizes. MX entry fees are charged once PAID_ENTRY is cleared; fees can't change after someone has entered.">
         <div className="space-y-5">
           {comps.map((c) => (
             <div key={c.id} className="border-t border-ink-700 pt-4 first:border-0 first:pt-0">
@@ -191,7 +191,7 @@ export default async function EconomyAdmin() {
         </div>
       </Section>
 
-      <Section title="Withdrawals" intro="Managers can only withdraw £ winnings from match prizes — never MP. Check identity and bank details with the payout provider, then mark paid. Rejecting returns the winnings.">
+      <Section title="Withdrawals" intro="Managers can only withdraw £ winnings from match prizes — never MX. Check identity and bank details with the payout provider, then mark paid. Rejecting returns the winnings.">
         <ul className="divide-y divide-ink-700 text-sm">
           {withdrawals.map((w) => (
             <li key={w.id} className="flex flex-wrap items-center justify-between gap-3 py-2">

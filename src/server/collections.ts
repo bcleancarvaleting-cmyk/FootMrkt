@@ -13,7 +13,7 @@ import { SET_REWARD_MP_MINOR, credit } from "./wallet";
  * Only unlocked pool cards (STANDARD edition) count towards completion — free/starter copies are a
  * separate edition, and listed/competition cards are busy. Launch-period cards that are untradeable
  * still count; once handed in they go back into packs as tradeable cards.
- * Reward: £10 of MP credit per completed set (confirmed 9 Nov 2026); set definitions TO CONFIRM.
+ * Reward: £10 of MX credit per completed set (confirmed 9 Nov 2026); set definitions TO CONFIRM.
  */
 
 export async function setProgress(userId: string) {
@@ -72,7 +72,7 @@ export async function completeSet(userId: string, setId: string, idempotencyKey:
       if (moved.count !== chosen.length) throw new Error("Cards changed during completion");
       await tx.favouriteCard.deleteMany({ where: { cardId: { in: chosen } } });
 
-      // Product decision (9 Nov 2026): every completed set awards £10 of MP credit unless the
+      // Product decision (9 Nov 2026): every completed set awards £10 of MX credit unless the
       // set overrides it with { mpCreditMinor }.
       const reward = (set.reward ?? {}) as { packSkuCode?: string; mpCreditMinor?: number };
       const mp = reward.mpCreditMinor ?? SET_REWARD_MP_MINOR;

@@ -70,7 +70,7 @@ export function CreditPackButton({ skuCode, price, affordable }: { skuCode: stri
       <button
         className="btn-ghost"
         disabled={pending || !affordable}
-        title={affordable ? undefined : "Not enough MP — add funds or complete a challenge"}
+        title={affordable ? undefined : "Not enough MX — add funds or complete a challenge"}
         onClick={() => start(async () => setRes(await buyPackWithCreditAction(skuCode, crypto.randomUUID())))}
       >
         {pending ? "…" : `${price}`}

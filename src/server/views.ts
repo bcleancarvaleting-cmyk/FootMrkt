@@ -33,7 +33,7 @@ export async function acquisitionLabels(cardIds: string[]) {
     else if (o.acquiredVia === "PACK") out.set(o.cardId, "Packed");
     else if (o.acquiredVia === "MARKET") {
       const minor = paid(o.acquiredRef);
-      out.set(o.cardId, minor !== null ? `Paid ${(minor / 100).toFixed(2)} MP` : o.acquiredRef?.startsWith("auction:") ? "Auction" : "Bought");
+      out.set(o.cardId, minor !== null ? `Paid ${(minor / 100).toFixed(2)} MX` : o.acquiredRef?.startsWith("auction:") ? "Auction" : "Bought");
     } else out.set(o.cardId, "Granted");
   }
   return out;

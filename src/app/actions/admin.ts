@@ -74,7 +74,7 @@ export async function correctionsAction(gameweekId: string): Promise<ActionResul
 
 export async function finaliseAction(gameweekId: string): Promise<ActionResult> {
   const admin = await requireAdmin();
-  const res = await attempt(() => finaliseGameweek(gameweekId, admin.id), "Gameweek settled · rewards granted · MP revalued");
+  const res = await attempt(() => finaliseGameweek(gameweekId, admin.id), "Gameweek settled · rewards granted · MX revalued");
   done();
   return res;
 }

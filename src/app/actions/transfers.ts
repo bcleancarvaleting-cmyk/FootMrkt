@@ -43,7 +43,7 @@ export async function makeOfferAction(_: ActionResult | null, form: FormData): P
   const user = await requireUser();
   const res = await attempt(async () => {
     await makeOffer(user.id, String(form.get("listingId")), mpToMinor(form.get("amount")));
-  }, "Offer sent — your MP is held until the seller responds");
+  }, "Offer sent — your MX is held until the seller responds");
   refresh();
   return res;
 }

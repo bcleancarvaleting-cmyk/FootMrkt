@@ -10,25 +10,25 @@ import { latestValues } from "./valuation";
 import { credit, debit, fmtMp, lockWallet, release } from "./wallet";
 
 /**
- * Transfers: peer-to-peer trading and house auctions. Everything is priced in MP (never £).
+ * Transfers: peer-to-peer trading and house auctions. Everything is priced in MX (never £).
  *
- *  - Prices are 0.10–100.00 MP. MATCHX takes a 5% fee from the seller on every sale.
- *  - MP is never withdrawable, so any MP (bonus first) can buy, offer and bid. Sale proceeds are MP.
+ *  - Prices are 0.10–100.00 MX. MATCHX takes a 5% fee from the seller on every sale.
+ *  - MX is never withdrawable, so any MX (bonus first) can buy, offer and bid. Sale proceeds are MX.
  *  - House listings: MATCHX lists cards straight from circulation at a fixed buy-now price
- *    (no offers). The card is RESERVED while listed and the MP goes to the house.
- *  - Offers and bids hold the buyer's MP immediately (a negative ledger entry) and release it if
- *    the offer is declined/withdrawn/lapses or the bid is beaten. Held MP can't be spent twice.
+ *    (no offers). The card is RESERVED while listed and the MX goes to the house.
+ *  - Offers and bids hold the buyer's MX immediately (a negative ledger entry) and release it if
+ *    the offer is declined/withdrawn/lapses or the bid is beaten. Held MX can't be spent twice.
  *
  * LEGAL GATE: all of it requires the MARKET flag (only switchable once LEGAL_GATES_CLEARED lists it).
  */
-export const MIN_PRICE_MINOR = 10; // 0.10 MP
-export const MAX_PRICE_MINOR = 10_000; // 100.00 MP
+export const MIN_PRICE_MINOR = 10; // 0.10 MX
+export const MAX_PRICE_MINOR = 10_000; // 100.00 MX
 export const FEE_BPS = 500; // 5%
 
 export const feeFor = (priceMinor: number) => Math.max(1, Math.round((priceMinor * FEE_BPS) / 10_000));
 const clampPrice = (m: number) => Math.min(MAX_PRICE_MINOR, Math.max(MIN_PRICE_MINOR, Math.round(m)));
 
-const price = z.number().int().min(MIN_PRICE_MINOR, "The minimum price is 0.10 MP").max(MAX_PRICE_MINOR, "The maximum price is 100 MP");
+const price = z.number().int().min(MIN_PRICE_MINOR, "The minimum price is 0.10 MX").max(MAX_PRICE_MINOR, "The maximum price is 100 MX");
 
 export const ListingSchema = z.object({
   cardId: z.string().uuid(),
@@ -55,8 +55,8 @@ export async function averageSalePrices(keys: Array<{ playerId: string; category
 }
 
 /**
- * Recommended price: the card's current MP valuation, blended 50/50 with the recent average selling
- * price when there have been at least 3 sales. Always within 0.10–100 MP.
+ * Recommended price: the card's current MX valuation, blended 50/50 with the recent average selling
+ * price when there have been at least 3 sales. Always within 0.10–100 MX.
  */
 export function recommendPrice(valueMp: number | null, avg: { avgMinor: number; sales: number } | undefined) {
   const base = valueMp !== null ? valueMp * 100 : null;
@@ -64,7 +64,7 @@ export function recommendPrice(valueMp: number | null, avg: { avgMinor: number; 
   return base !== null ? clampPrice(base) : avg ? clampPrice(avg.avgMinor) : MIN_PRICE_MINOR * 10;
 }
 
-/** All-time value history (MP valuation per day) for a player+tier, for the small transfer graph. */
+/** All-time value history (MX valuation per day) for a player+tier, for the small transfer graph. */
 export async function valueHistory(playerId: string, category: CardCategory) {
   const rows = await db.mPValuation.findMany({ where: { playerId, category }, orderBy: { computedAt: "asc" }, select: { valueMp: true, computedAt: true } });
   return rows.map((r) => ({ t: r.computedAt.toISOString(), mp: r.valueMp }));
@@ -80,7 +80,7 @@ export async function createListing(userId: string, input: z.input<typeof Listin
     if (card.tradeStatus !== "TRADEABLE") throw new DomainError("NOT_TRADEABLE", "This card can't be traded.");
     if (card.lock !== "NONE") throw new DomainError("CARD_BUSY", "This card is already listed or in a match.");
     const listing = await tx.marketListing.create({
-      data: { cardId: data.cardId, sellerId: userId, askingPriceMinor: data.askingPriceMinor, currency: "MP", expiresAt: new Date(Date.now() + data.days * 86_400_000) },
+      data: { cardId: data.cardId, sellerId: userId, askingPriceMinor: data.askingPriceMinor, currency: "MX", expiresAt: new Date(Date.now() + data.days * 86_400_000) },
     });
     await tx.cardInstance.update({ where: { id: data.cardId }, data: { lock: "LISTED", lockRef: listing.id } });
     return listing;
@@ -102,7 +102,7 @@ async function lockWallets(tx: Tx, ...userIds: Array<string | null>) {
 async function lapseOffers(tx: Tx, listingId: string, exceptOfferId?: string) {
   const pending = await tx.marketOffer.findMany({ where: { listingId, status: "PENDING", id: exceptOfferId ? { not: exceptOfferId } : undefined } });
   for (const o of pending) {
-    await release(tx, { userId: o.buyerId, refId: `offer:${o.id}`, kind: "OFFER_RELEASE", note: "Offer lapsed — MP returned" });
+    await release(tx, { userId: o.buyerId, refId: `offer:${o.id}`, kind: "OFFER_RELEASE", note: "Offer lapsed — MX returned" });
     await tx.marketOffer.update({ where: { id: o.id }, data: { status: "LAPSED", respondedAt: new Date() } });
   }
 }
@@ -131,7 +131,7 @@ async function settleSale(tx: Tx, listing: { id: string; cardId: string; sellerI
   return { fee };
 }
 
-/** A house sale: the reserved card leaves circulation and goes to the buyer; the MP goes to MATCHX. */
+/** A house sale: the reserved card leaves circulation and goes to the buyer; the MX goes to MATCHX. */
 async function settleHouseSale(tx: Tx, listing: { id: string; cardId: string }, buyerId: string, priceMinor: number) {
   const [card] = await tx.$queryRaw<Array<{ supplyState: string }>>`SELECT "supplyState" FROM "CardInstance" WHERE id = ${listing.cardId}::uuid FOR UPDATE`;
   if (!card || card.supplyState !== "RESERVED") throw new DomainError("NOT_AVAILABLE", "This card is no longer available.");
@@ -204,7 +204,7 @@ export async function makeOffer(buyerId: string, listingId: string, amountMinor:
       await tx.marketOffer.update({ where: { id: previous.id }, data: { status: "WITHDRAWN", respondedAt: new Date() } });
     }
     const offer = await tx.marketOffer.create({ data: { listingId, buyerId, amountMinor } });
-    await debit(tx, { userId: buyerId, amountMinor, kind: "OFFER_HOLD", refId: `offer:${offer.id}`, note: "Offer — MP held until the seller responds" });
+    await debit(tx, { userId: buyerId, amountMinor, kind: "OFFER_HOLD", refId: `offer:${offer.id}`, note: "Offer — MX held until the seller responds" });
     return offer;
   });
 }
@@ -221,7 +221,7 @@ export async function withdrawOffer(buyerId: string, offerId: string) {
     const o = await lockOffer(tx, offerId);
     if (!o || o.buyerId !== buyerId || o.status !== "PENDING") throw new DomainError("NOT_FOUND", "Offer not found or already answered.");
     await lockWallet(tx, buyerId);
-    await release(tx, { userId: buyerId, refId: `offer:${o.id}`, kind: "OFFER_RELEASE", note: "Offer withdrawn — MP returned" });
+    await release(tx, { userId: buyerId, refId: `offer:${o.id}`, kind: "OFFER_RELEASE", note: "Offer withdrawn — MX returned" });
     await tx.marketOffer.update({ where: { id: o.id }, data: { status: "WITHDRAWN", respondedAt: new Date() } });
   });
 }
@@ -237,12 +237,12 @@ export async function respondToOffer(sellerId: string, offerId: string, accept: 
     if (o.status !== "PENDING") throw new DomainError("DONE", "This offer has already been answered.");
     await lockWallets(tx, o.buyerId, sellerId);
     if (!accept) {
-      await release(tx, { userId: o.buyerId, refId: `offer:${o.id}`, kind: "OFFER_RELEASE", note: "Offer declined — MP returned" });
+      await release(tx, { userId: o.buyerId, refId: `offer:${o.id}`, kind: "OFFER_RELEASE", note: "Offer declined — MX returned" });
       await tx.marketOffer.update({ where: { id: o.id }, data: { status: "DECLINED", respondedAt: new Date() } });
       return { accepted: false };
     }
     if (l.status !== "ACTIVE") throw new DomainError("NOT_AVAILABLE", "This listing is no longer active.");
-    // The held MP becomes the payment: release the hold and take the purchase in one step.
+    // The held MX becomes the payment: release the hold and take the purchase in one step.
     await release(tx, { userId: o.buyerId, refId: `offer:${o.id}`, kind: "OFFER_RELEASE", note: "Offer accepted" });
     await debit(tx, { userId: o.buyerId, amountMinor: o.amountMinor, kind: "MARKET_PURCHASE", refId: `listing:${l.id}:buy`, note: "Transfer — offer accepted" });
     await tx.marketOffer.update({ where: { id: o.id }, data: { status: "ACCEPTED", respondedAt: new Date() } });
@@ -306,11 +306,11 @@ export async function placeBid(userId: string, auctionId: string, amountMinor: n
     await lockWallets(tx, userId, ...(leading ? [leading.userId] : []));
     // Release the previous leader first (it may be the same manager raising their own bid).
     if (leading) {
-      await release(tx, { userId: leading.userId, refId: `bid:${leading.id}`, kind: "AUCTION_RELEASE", note: "Outbid — MP returned" });
+      await release(tx, { userId: leading.userId, refId: `bid:${leading.id}`, kind: "AUCTION_RELEASE", note: "Outbid — MX returned" });
       await tx.auctionBid.update({ where: { id: leading.id }, data: { status: "OUTBID" } });
     }
     const bid = await tx.auctionBid.create({ data: { auctionId, userId, amountMinor } });
-    await debit(tx, { userId, amountMinor, kind: "AUCTION_HOLD", refId: `bid:${bid.id}`, note: "Auction bid — MP held" });
+    await debit(tx, { userId, amountMinor, kind: "AUCTION_HOLD", refId: `bid:${bid.id}`, note: "Auction bid — MX held" });
     // Anti-sniping: a late bid pushes the end back so others get a fair chance to respond.
     const snipe = a.antiSnipeMinutes * 60_000;
     const endsAt = a.endsAt.getTime() - now.getTime() < snipe ? new Date(now.getTime() + snipe) : a.endsAt;
@@ -332,7 +332,7 @@ export async function settleAuctions(now = new Date()) {
       if (!top || (a.reserveMinor !== null && top.amountMinor < a.reserveMinor)) {
         if (top) {
           await lockWallet(tx, top.userId);
-          await release(tx, { userId: top.userId, refId: `bid:${top.id}`, kind: "AUCTION_RELEASE", note: "Reserve not met — MP returned" });
+          await release(tx, { userId: top.userId, refId: `bid:${top.id}`, kind: "AUCTION_RELEASE", note: "Reserve not met — MX returned" });
           await tx.auctionBid.update({ where: { id: top.id }, data: { status: "RELEASED" } });
         }
         await tx.cardInstance.update({ where: { id: a.cardId }, data: { supplyState: "AVAILABLE" } });
@@ -360,7 +360,7 @@ export async function cancelAuction(adminId: string, auctionId: string) {
     const top = await tx.auctionBid.findFirst({ where: { auctionId, status: "LEADING" } });
     if (top) {
       await lockWallet(tx, top.userId);
-      await release(tx, { userId: top.userId, refId: `bid:${top.id}`, kind: "AUCTION_RELEASE", note: "Auction cancelled — MP returned" });
+      await release(tx, { userId: top.userId, refId: `bid:${top.id}`, kind: "AUCTION_RELEASE", note: "Auction cancelled — MX returned" });
       await tx.auctionBid.update({ where: { id: top.id }, data: { status: "RELEASED" } });
     }
     await tx.cardInstance.update({ where: { id: a.cardId }, data: { supplyState: "AVAILABLE" } });
@@ -390,7 +390,7 @@ export const HouseStockSchema = z
 
 /**
  * How good a player is, for ordering prices within a range: real market value when we have it,
- * otherwise league level, a first-team shirt number (1–11) and the card's current MP value.
+ * otherwise league level, a first-team shirt number (1–11) and the card's current MX value.
  */
 export function qualityScore(p: { marketValueGbp: number | null; leagueTier: number | null; squadNumber: number | null; valueMp: number | null }) {
   if (p.marketValueGbp) return 1_000_000 + p.marketValueGbp / 1000;
@@ -403,7 +403,7 @@ export function qualityScore(p: { marketValueGbp: number | null; leagueTier: num
 export function bandPrice(i: number, n: number, min: number, max: number) {
   const r = n <= 1 ? 0 : i / (n - 1);
   const raw = min + (max - min) * (1 - r) ** 2;
-  // Shop-style prices: x.99 from 5 MP up, 0.25 steps below.
+  // Shop-style prices: x.99 from 5 MX up, 0.25 steps below.
   const shop = raw >= 500 ? Math.round(raw / 100) * 100 - 1 : Math.round(raw / 25) * 25;
   return clampPrice(Math.min(max, Math.max(min, shop)));
 }
@@ -412,7 +412,7 @@ async function listFromPool(tx: Tx, cardId: string, priceMinor: number, expiresA
   await tx.$queryRaw`SELECT id FROM "CardInstance" WHERE id = ${cardId}::uuid FOR UPDATE`;
   const moved = await tx.cardInstance.updateMany({ where: { id: cardId, supplyState: { in: ["AVAILABLE", "RECIRCULATING"] } }, data: { supplyState: "RESERVED" } });
   if (!moved.count) return false;
-  await tx.marketListing.create({ data: { cardId, sellerId: null, house: true, askingPriceMinor: priceMinor, currency: "MP", expiresAt } });
+  await tx.marketListing.create({ data: { cardId, sellerId: null, house: true, askingPriceMinor: priceMinor, currency: "MX", expiresAt } });
   return true;
 }
 
@@ -481,7 +481,7 @@ export async function stockPinnedListings(adminId: string, text: string, days = 
       if (!card) return null;
       return (await listFromPool(tx, card.id, priceMinor, new Date(Date.now() + days * 86_400_000))) ? card.name : null;
     });
-    if (ok) listed.push(`${ok} ${(priceMinor / 100).toFixed(2)} MP`);
+    if (ok) listed.push(`${ok} ${(priceMinor / 100).toFixed(2)} MX`);
     else missed.push(`${m[1]} (no copy left in circulation)`);
   }
   await audit(db, { actorId: adminId, action: "house.pinned", entityType: "MarketListing", after: { listed, missed } });

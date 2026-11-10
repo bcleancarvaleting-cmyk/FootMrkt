@@ -54,9 +54,9 @@ export function AuctionForm() {
           <option>BRONZE</option>
         </select>
       </div>
-      <I name="start" label="Start price (MP)" type="number" step="0.01" min="0.10" max="100" defaultValue="1.00" required />
-      <I name="increment" label="Min raise (MP)" type="number" step="0.01" min="0.01" defaultValue="0.10" />
-      <I name="reserve" label="Reserve (MP, optional)" type="number" step="0.01" min="0" max="100" />
+      <I name="start" label="Start price (MX)" type="number" step="0.01" min="0.10" max="100" defaultValue="1.00" required />
+      <I name="increment" label="Min raise (MX)" type="number" step="0.01" min="0.01" defaultValue="0.10" />
+      <I name="reserve" label="Reserve (MX, optional)" type="number" step="0.01" min="0" max="100" />
       <I name="startsAt" label="Starts (blank = now)" type="datetime-local" />
       <I name="hours" label="Duration (hours)" type="number" min="1" max="168" defaultValue="24" />
     </Form>
@@ -68,13 +68,13 @@ export function ChallengeForm({ packs }: { packs: Array<{ code: string; name: st
     <Form action={createChallengeAction} submit="Create challenge">
       <I name="code" label="Code" placeholder="weekend-keepers" required />
       <I name="name" label="Name" placeholder="Safe hands" required />
-      <I name="description" label="Description" placeholder="Hand in 2 goalkeepers for 1 MP" required />
+      <I name="description" label="Description" placeholder="Hand in 2 goalkeepers for 1 MX" required />
       <I name="count" label="Cards to hand in" type="number" min="1" max="11" defaultValue="3" required />
       <I name="tiers" label="Tiers (comma list)" placeholder="BRONZE,SILVER" />
       <I name="positions" label="Positions" placeholder="GK,DEF" />
       <I name="leagues" label="Leagues" placeholder="EPL,CHA,LG1,LG2,NL" />
       <I name="maxPerClub" label="Max per club" type="number" min="1" />
-      <I name="reward" label="Reward (MP)" type="number" step="0.01" min="0" max="100" defaultValue="1.00" />
+      <I name="reward" label="Reward (MX)" type="number" step="0.01" min="0" max="100" defaultValue="1.00" />
       <div>
         <label className="label" htmlFor="f-pack">Reward pack</label>
         <select id="f-pack" name="pack" className="input" defaultValue="">
@@ -97,11 +97,11 @@ export function MatchRulesForm({ id, fee, req, prizes }: { id: string; fee: numb
   return (
     <Form action={competitionRulesAction} submit="Save">
       <input type="hidden" name="competitionId" value={id} />
-      <I name="fee" label="Entry fee (MP)" type="number" step="0.01" min="0" max="100" defaultValue={(fee / 100).toFixed(2)} />
+      <I name="fee" label="Entry fee (MX)" type="number" step="0.01" min="0" max="100" defaultValue={(fee / 100).toFixed(2)} />
       <I name="tiers" label="Tiers only" placeholder="BRONZE" defaultValue={req.tiers?.join(",")} />
       <I name="leagues" label="Leagues only" placeholder="EPL" defaultValue={req.leagues?.join(",")} />
       <I name="maxPerClub" label="Max per club" type="number" min="1" defaultValue={req.maxPerClub} />
-      <I name="maxValue" label="Max starters value (MP)" type="number" min="1" defaultValue={req.maxSquadValueMp} />
+      <I name="maxValue" label="Max starters value (MX)" type="number" min="1" defaultValue={req.maxSquadValueMp} />
       <I name="prizes" label="£ prize pot by position (e.g. 1=10, 2=5, 3=3) — ties split" placeholder="1=10, 2=5, 3=3" defaultValue={prizes} />
       <label className="flex items-center gap-2 self-end pb-2.5 text-sm">
         <input type="checkbox" name="freeCardsOnly" defaultChecked={req.freeCardsOnly} className="accent-lime" /> Free cards only
@@ -141,9 +141,9 @@ export function HouseStockForm() {
         </select>
       </div>
       <I name="count" label="How many cards" type="number" min="1" max="200" defaultValue="20" required />
-      <I name="min" label="Price range: min (MP)" type="number" step="0.01" min="0.10" max="100" placeholder="1.00" />
-      <I name="max" label="Price range: max (MP)" type="number" step="0.01" min="0.10" max="100" placeholder="4.99" />
-      <I name="price" label="…or one fixed price (MP)" type="number" step="0.01" min="0.10" max="100" />
+      <I name="min" label="Price range: min (MX)" type="number" step="0.01" min="0.10" max="100" placeholder="1.00" />
+      <I name="max" label="Price range: max (MX)" type="number" step="0.01" min="0.10" max="100" placeholder="4.99" />
+      <I name="price" label="…or one fixed price (MX)" type="number" step="0.01" min="0.10" max="100" />
       <I name="markup" label="…or recommended + markup (%)" type="number" min="-50" max="200" defaultValue="0" />
       <I name="days" label="Listed for (days)" type="number" min="1" max="30" defaultValue="7" />
       <I name="leagues" label="Leagues only (optional)" placeholder="EPL,CHA" />

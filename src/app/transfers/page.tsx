@@ -45,14 +45,14 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
       <PageHeader
         eyebrow="Buy &amp; sell"
         title="Transfer list"
-        intro="Buy cards in MP — from MATCHX at a fixed price, or from other managers (make an offer or buy now). Sellers pay a 5% fee. Prices are capped at 100 MP."
+        intro="Buy cards in MX — from MATCHX at a fixed price, or from other managers (make an offer or buy now). Sellers pay a 5% fee. Prices are capped at 100 MX."
       />
 
       <div className="mb-5 flex flex-wrap items-center gap-2 rounded-2xl border border-ink-700 bg-ink-900 px-4 py-3">
         <span className="mr-auto text-sm">
-          <span className="text-muted">Your MP</span> <b className="ml-1 tabular-nums">{fmtMp(bal.total)}</b>
+          <span className="text-muted">Your MX</span> <b className="ml-1 tabular-nums">{fmtMp(bal.total)}</b>
         </span>
-        <span className="w-full text-xs text-faint sm:w-auto">Top up (£1 = 1 MP)</span>
+        <span className="w-full text-xs text-faint sm:w-auto">Top up (£1 = 1 MX)</span>
         {DEPOSIT_PRESETS_GBP.map((a) => (
           <Link key={a} href={`/account/wallet?amount=${a}#add`} className="btn-ghost px-3 py-1.5 text-[11px]">
             +£{a}
@@ -163,7 +163,7 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
         </ul>
       )}
       <p className="mt-6 text-xs text-faint">
-        Card values go up and down and past prices don&apos;t predict future ones. MP can&apos;t be withdrawn — it&apos;s for buying cards and packs and entering matches.
+        Card values go up and down and past prices don&apos;t predict future ones. MX can&apos;t be withdrawn — it&apos;s for buying cards and packs and entering matches.
       </p>
     </div>
   );

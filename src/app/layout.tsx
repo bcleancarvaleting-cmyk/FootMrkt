@@ -68,7 +68,7 @@ function SiteFooter({ loggedIn }: { loggedIn: boolean }) {
         <div className="space-y-3">
           <Logo height={20} />
           <p className="max-w-xs text-xs leading-relaxed text-faint">
-            Player values go up and down. MP is an in-game valuation, not an investment. 18+ only. Development build: squads from
+            Player values go up and down. MX is an in-game valuation, not an investment. 18+ only. Development build: squads from
             Wikipedia (CC BY-SA), match data simulated.
           </p>
         </div>

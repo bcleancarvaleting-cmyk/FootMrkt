@@ -3,7 +3,7 @@ import { computeMp, eligibleSales, indicativeMoney, VALUATION_CONFIG } from "@/d
 
 const base = { category: "GOLD" as const, leagueTier: 2, issuedSupply: VALUATION_CONFIG.referenceSupply, recentGameweekPoints: [], recentSales: [], previousMp: null };
 
-describe("MP valuation", () => {
+describe("MX valuation", () => {
   it("is neutral at reference supply/form", () => {
     expect(computeMp(base).valueMp).toBe(VALUATION_CONFIG.baseMp.GOLD);
   });

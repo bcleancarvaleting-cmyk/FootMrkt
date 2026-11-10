@@ -126,7 +126,7 @@ export function toCardView(
 }
 
 export function mpLabel(mp: number | null): string {
-  return mp === null ? "— MP" : `${mp} MP`;
+  return mp === null ? "— MX" : `${mp} MX`;
 }
 
 export function moneyRef(mp: number | null): string {

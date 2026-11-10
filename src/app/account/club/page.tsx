@@ -43,7 +43,7 @@ export default async function MyClubPage({ searchParams }: { searchParams: Promi
           <h1 className="mt-1 text-4xl leading-none sm:text-5xl">My Club</h1>
           <p className="mt-2 text-sm text-muted">
             {totals.total} cards · <span className="text-gold">{totals.byCategory.GOLD} Gold</span> · <span className="text-silver">{totals.byCategory.SILVER} Silver</span> ·{" "}
-            <span className="text-bronze">{totals.byCategory.BRONZE} Bronze</span> · squad value <b className="text-fg">{squadValue} MP</b>
+            <span className="text-bronze">{totals.byCategory.BRONZE} Bronze</span> · squad value <b className="text-fg">{squadValue} MX</b>
           </p>
         </div>
         <div className="flex gap-2">

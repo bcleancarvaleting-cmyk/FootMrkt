@@ -25,17 +25,17 @@ export function ListingForm({
       <input type="hidden" name="cardId" value={cardId} />
       <div className="flex flex-wrap gap-2 text-xs">
         <button type="button" onClick={() => setPrice(mp(guidance.recommendedMinor))} className="chip border-accent/50 px-3 py-1.5 text-fg">
-          Recommended {mp(guidance.recommendedMinor)} MP
+          Recommended {mp(guidance.recommendedMinor)} MX
         </button>
         {guidance.avgMinor !== null && (
           <span className="chip px-3 py-1.5">
-            Avg sold {mp(guidance.avgMinor)} MP · {guidance.sales} sale{guidance.sales === 1 ? "" : "s"}
+            Avg sold {mp(guidance.avgMinor)} MX · {guidance.sales} sale{guidance.sales === 1 ? "" : "s"}
           </span>
         )}
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="label" htmlFor="price">Buy-now price (MP)</label>
+          <label className="label" htmlFor="price">Buy-now price (MX)</label>
           <input id="price" className="input tabular-nums" name="price" type="number" min="0.10" max="100" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} required />
         </div>
         <div>
@@ -50,7 +50,7 @@ export function ListingForm({
         </div>
       </div>
       <p className="text-xs text-muted">
-        If it sells you get <b className="text-fg">{mp(Math.max(0, minor - (minor ? fee(minor) : 0)))} MP</b> (5% fee {minor ? mp(fee(minor)) : "0.00"} MP). Max price 100 MP. Buyers can also send you offers.
+        If it sells you get <b className="text-fg">{mp(Math.max(0, minor - (minor ? fee(minor) : 0)))} MX</b> (5% fee {minor ? mp(fee(minor)) : "0.00"} MX). Max price 100 MX. Buyers can also send you offers.
       </p>
       <button className="btn-primary" disabled={pending || !enabled}>
         {pending ? "Listing…" : "List on Transfers"}

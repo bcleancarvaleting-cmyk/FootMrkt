@@ -14,7 +14,7 @@ export const RequirementsSchema = z
   .object({
     leagues: z.array(z.string()).min(1).optional(),
     maxPerClub: z.number().int().min(1).max(11).optional(),
-    /** Max total MP value of the starting seven. */
+    /** Max total MX value of the starting seven. */
     maxSquadValueMp: z.number().int().min(1).optional(),
     tiers: z.array(z.enum(["BRONZE", "SILVER", "GOLD"])).min(1).optional(),
     /** Only Founding Members can enter (e.g. the founders' freeroll). */
@@ -36,7 +36,7 @@ export function requirementsSummary(r: Requirements, format: string) {
   if (r.tiers) bits.push(`${r.tiers.map((t) => t[0] + t.slice(1).toLowerCase()).join("/")} only`);
   if (r.leagues) bits.push(`${r.leagues.join("/")} players`);
   if (r.maxPerClub) bits.push(`max ${r.maxPerClub} per club`);
-  if (r.maxSquadValueMp) bits.push(`starting XI ≤ ${r.maxSquadValueMp} MP`);
+  if (r.maxSquadValueMp) bits.push(`starting XI ≤ ${r.maxSquadValueMp} MX`);
   return bits.length ? bits.join(" · ") : "Any players";
 }
 
@@ -194,23 +194,23 @@ async function checkRequirements(
         ORDER BY t."playerId", t.category, mv."computedAt" DESC
       ) v`;
     const total = vals[0]?.total ?? 0;
-    if (total > r.maxSquadValueMp) issues.push({ code: "UNKNOWN_CARD", message: `Your starters are worth ${total} MP — the limit is ${r.maxSquadValueMp} MP` });
+    if (total > r.maxSquadValueMp) issues.push({ code: "UNKNOWN_CARD", message: `Your starters are worth ${total} MX — the limit is ${r.maxSquadValueMp} MX` });
   }
   return issues;
 }
 
 /**
  * Guardrail: £ prizes only on matches that are free to enter AND limited to free cards, so nothing
- * anyone bought (MP, packs, cards) can buy a better chance of real money. Matches with an MP entry
- * fee or open to bought cards pay in-game prizes only (MP, packs).
+ * anyone bought (MX, packs, cards) can buy a better chance of real money. Matches with an MX entry
+ * fee or open to bought cards pay in-game prizes only (MX, packs).
  */
 export function assertPrizeRules(feeMinor: number, req: Requirements, rewards: Array<{ cashMinor?: number }>) {
   if (!rewards.some((r) => (r.cashMinor ?? 0) > 0)) return;
-  if (feeMinor > 0) throw new DomainError("PRIZE_RULES", "£ prizes are only allowed on free-entry matches. Matches with an MP entry fee can give MP or pack prizes.");
+  if (feeMinor > 0) throw new DomainError("PRIZE_RULES", "£ prizes are only allowed on free-entry matches. Matches with an MX entry fee can give MX or pack prizes.");
   if (!req.freeCardsOnly) throw new DomainError("PRIZE_RULES", "£ prizes need the 'Free cards only' rule, so bought cards can't improve anyone's chances.");
 }
 
-/** Admin: set a match's entry fee (MP) and extra requirements. */
+/** Admin: set a match's entry fee (MX) and extra requirements. */
 /** "1=10, 2-3=5" → £ prizes by finishing position. */
 export function parsePrizes(text: string) {
   const rules: Array<{ rankFrom: number; rankTo: number; cashMinor: number }> = [];

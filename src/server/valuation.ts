@@ -5,7 +5,7 @@ import { db } from "./db";
 
 const FORM_GAMEWEEKS = 3;
 
-/** Recompute indicative MP for every player+category with a STANDARD template. */
+/** Recompute indicative MX for every player+category with a STANDARD template. */
 export async function revalueAll(now = new Date()) {
   const templates = await db.cardTemplate.findMany({
     where: { edition: "STANDARD", active: true },
@@ -63,7 +63,7 @@ export async function revalueAll(now = new Date()) {
   return { templates: templates.length, written };
 }
 
-/** Latest MP for many player+category pairs. */
+/** Latest MX for many player+category pairs. */
 export async function latestValues(keys: Array<{ playerId: string; category: CardCategory }>) {
   if (!keys.length) return new Map<string, number>();
   const playerIds = [...new Set(keys.map((k) => k.playerId))];
@@ -74,7 +74,7 @@ export async function latestValues(keys: Array<{ playerId: string; category: Car
   return new Map(rows.map((r) => [`${r.playerId}:${r.category}`, r.valueMp]));
 }
 
-/** Latest MP plus % change vs the previous valuation, for rising/falling indicators. */
+/** Latest MX plus % change vs the previous valuation, for rising/falling indicators. */
 export async function valueTrends(keys: Array<{ playerId: string; category: CardCategory }>) {
   const out = new Map<string, { mp: number; trendPct: number | null }>();
   if (!keys.length) return out;

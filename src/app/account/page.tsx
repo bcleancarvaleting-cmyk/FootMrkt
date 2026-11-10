@@ -84,7 +84,7 @@ export default async function AccountPage() {
 
       <section className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-ink-700 bg-ink-700 lg:grid-cols-4">
         {[
-          ["MP balance", fmtMp(bal.total), `${fmtGbp(bal.winnings)} winnings to withdraw`, "/account/wallet"],
+          ["MX balance", fmtMp(bal.total), `${fmtGbp(bal.winnings)} winnings to withdraw`, "/account/wallet"],
           ["Cards", String(totals.total), `${totals.byCategory.GOLD} Gold · ${totals.byCategory.SILVER} Silver`, "/account/club"],
           ["Points", String(points), `${entries.length} settled match${entries.length === 1 ? "" : "es"}`, "/matches"],
           ["Best finish", best ? `#${best}` : "—", "across all matches", "/matches"],

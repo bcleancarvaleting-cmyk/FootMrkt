@@ -103,8 +103,8 @@ async function Landing() {
 
       {/* Feature rows */}
       <section className="grid gap-4 lg:grid-cols-2">
-        <Feature eyebrow="Transfers" title="Buy, sell, make offers" body="Trade cards with other managers in MP. See the average selling price and the all-time value graph before you buy. Plus house auctions that release new cards into the game." href="/register" cta="Start trading" />
-        <Feature eyebrow="Challenges" title="Keep your squad moving" body="Hand in cards you don't need for MP and packs. They go back into the packs for someone else to pull." href="/register" cta="See challenges" />
+        <Feature eyebrow="Transfers" title="Buy, sell, make offers" body="Trade cards with other managers in MX. See the average selling price and the all-time value graph before you buy. Plus house auctions that release new cards into the game." href="/register" cta="Start trading" />
+        <Feature eyebrow="Challenges" title="Keep your squad moving" body="Hand in cards you don't need for MX and packs. They go back into the packs for someone else to pull." href="/register" cta="See challenges" />
         <Feature eyebrow="Matches" title="Every gameweek, a new table" body="Open leagues, Bronze-only cups and more. Squads lock 10 minutes before the first kick-off." href="/register" cta="Enter a match" />
         <Feature eyebrow="Free packs" title="Drop days" body="We drop free packs on big matchdays. Claim within 24 hours — keep an eye on the Packs page." href="/register" cta="Join free" />
       </section>
@@ -117,7 +117,7 @@ async function Landing() {
         <Link href="/register" className="btn-primary relative mt-6 px-8 py-4 text-sm">
           Create my club
         </Link>
-        <p className="relative mt-4 text-xs text-faint">Player values go up and down. MP is an in-game balance, not an investment.</p>
+        <p className="relative mt-4 text-xs text-faint">Player values go up and down. MX is an in-game balance, not an investment.</p>
       </section>
     </div>
   );
@@ -198,7 +198,7 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
           ["Balance", fmtMp(bal.total), "Wallet", "/account/wallet"],
           ["My Club", `${totals.total} cards`, `${totals.byCategory.GOLD} Gold · ${totals.byCategory.SILVER} Silver`, "/account/club"],
           auctionsOn ? ["Auctions", `${auctions} live`, "Bid on new cards", "/transfers/auctions"] : ["Auctions", "Coming soon", "Opens after the beta", "/transfers/auctions"],
-          ["Challenges", "Hand in", "Earn MP & packs", "/account/challenges"],
+          ["Challenges", "Hand in", "Earn MX & packs", "/account/challenges"],
         ].map(([k, v, s, href]) => (
           <Link key={k} href={href} className="bg-ink-900 p-5 transition hover:bg-ink-850">
             <p className="eyebrow">{k}</p>

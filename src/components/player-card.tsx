@@ -29,7 +29,7 @@ export function tierStyle(c: CardView["category"]) {
 }
 
 /**
- * A COLLECTR card face: position, player image, name, MP value (with trend) and the points this
+ * A COLLECTR card face: position, player image, name, MX value (with trend) and the points this
  * card has won for its owner. No FIFA-style ratings (spec §4.1).
  * The image is the licensed headshot when one is set (Player.imageUrl); until image rights are
  * in place it shows the player's shirt in club colours with their squad number.
@@ -85,7 +85,7 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
           <div className="truncate text-[10px] text-muted">{card.clubName ?? "Free agent"}</div>
         </div>
 
-        {/* MP value · points won for you */}
+        {/* MX value · points won for you */}
         <div className="mx-2.5 mb-2 mt-1.5 grid grid-cols-2 gap-1 border-t border-white/10 pt-1.5">
           <div className="min-w-0">
             <div className="flex items-baseline gap-1 whitespace-nowrap text-[11px] font-bold text-lime">

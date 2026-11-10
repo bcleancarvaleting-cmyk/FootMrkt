@@ -49,11 +49,11 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
 
       <section className="grid gap-px overflow-hidden rounded-2xl border border-ink-700 bg-ink-700 sm:grid-cols-2">
         <div className="bg-ink-900 p-5">
-          <p className="eyebrow">MP balance</p>
+          <p className="eyebrow">MX balance</p>
           <p className="mt-1 font-display text-5xl font-extrabold italic tabular-nums">{fmtMp(bal.total)}</p>
           <p className="mt-1 text-xs text-faint">
             For packs, transfers and match entries. Not withdrawable.
-            {bal.bonus > 0 && ` Includes ${fmtMp(bal.bonus)} of reward MP (used first).`}
+            {bal.bonus > 0 && ` Includes ${fmtMp(bal.bonus)} of reward MX (used first).`}
           </p>
         </div>
         <div className="bg-ink-900 p-5">
@@ -66,14 +66,14 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       <section className="grid gap-4 lg:grid-cols-2">
         <div id="add" className="panel p-5">
           <h2 className="mb-1 text-2xl">Add funds</h2>
-          <p className="mb-4 text-sm text-muted">Top up by card — £1 buys 1 MP. Packs cost the same in £ or MP.</p>
+          <p className="mb-4 text-sm text-muted">Top up by card — £1 buys 1 MX. Packs cost the same in £ or MX.</p>
           {!depositsOn && <GateNotice>Coming soon. Adding funds by card opens after the beta, once our payment provider is live.</GateNotice>}
           <DepositForm enabled={depositsOn} initial={[10, 20, 50, 100].includes(Number(amount)) ? Number(amount) : 20} />
         </div>
         <div id="withdraw" className="panel p-5">
           <h2 className="mb-1 text-2xl">Withdraw winnings</h2>
           <p className="mb-4 text-sm text-muted">
-            Cash out £ you&apos;ve won in matches — minimum £10. You can withdraw up to <b className="text-fg">{fmtGbp(bal.withdrawable)}</b>. MP can&apos;t be withdrawn.
+            Cash out £ you&apos;ve won in matches — minimum £10. You can withdraw up to <b className="text-fg">{fmtGbp(bal.withdrawable)}</b>. MX can&apos;t be withdrawn.
           </p>
           {!withdrawalsOn && <GateNotice>Coming soon. Your winnings are safe here; withdrawals open once identity checks and payouts are set up.</GateNotice>}
           {gaps.length > 0 && (
@@ -115,7 +115,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
                 <span className="text-faint"> · {fmtDate(e.createdAt)}</span>
               </span>
               <span className="flex shrink-0 items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-faint">{e.bucket === "WINNINGS" ? "£ winnings" : e.bucket === "BONUS" ? "reward MP" : "MP"}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-faint">{e.bucket === "WINNINGS" ? "£ winnings" : e.bucket === "BONUS" ? "reward MX" : "MX"}</span>
                 <b className={`tabular-nums ${e.amountMinor > 0 ? "text-mint" : "text-muted"}`}>
                   {e.amountMinor > 0 ? "+" : ""}
                   {e.bucket === "WINNINGS" ? fmtGbp(e.amountMinor) : fmtMp(e.amountMinor)}
@@ -123,7 +123,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
               </span>
             </li>
           ))}
-          {!ledger.length && <li className="px-4 py-4 text-faint">No activity yet. Complete a challenge to earn your first MP.</li>}
+          {!ledger.length && <li className="px-4 py-4 text-faint">No activity yet. Complete a challenge to earn your first MX.</li>}
         </ul>
       </section>
     </div>

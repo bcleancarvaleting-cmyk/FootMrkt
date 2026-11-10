@@ -9,7 +9,7 @@ import { CARD_INCLUDE, enrichCards } from "./views";
 import { credit } from "./wallet";
 
 /**
- * Challenges: hand in cards that match the criteria for an MP and/or pack reward. Tradeable cards go
+ * Challenges: hand in cards that match the criteria for an MX and/or pack reward. Tradeable cards go
  * back into the pack pool (RECIRCULATING) so the economy keeps moving; untradeable free/starter cards
  * are retired instead so they never leak into tradeable supply.
  */
@@ -143,7 +143,7 @@ export const ChallengeAdminSchema = z.object({
 
 export async function createChallenge(adminId: string, input: z.input<typeof ChallengeAdminSchema>) {
   const d = ChallengeAdminSchema.parse(input);
-  if (d.rewardMinor === 0 && !d.rewardPackSku) throw new DomainError("NO_REWARD", "Give the challenge an MP reward, a pack, or both.");
+  if (d.rewardMinor === 0 && !d.rewardPackSku) throw new DomainError("NO_REWARD", "Give the challenge an MX reward, a pack, or both.");
   return withTx(async (tx) => {
     const ch = await tx.challenge.create({ data: { ...d, criteria: d.criteria as never } });
     await audit(tx, { actorId: adminId, action: "challenge.create", entityType: "Challenge", entityId: ch.id, after: ch });

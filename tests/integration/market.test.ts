@@ -55,7 +55,7 @@ async function tradeableCard(userId: string) {
   return res.cards[0].cardId;
 }
 
-/** Give a manager cash MP (as if they had added funds). */
+/** Give a manager cash MX (as if they had added funds). */
 const fund = (userId: string, minor: number, ref = "seed") => withTx((tx) => credit(tx, { userId, amountMinor: minor, kind: "DEPOSIT", bucket: "CASH", refId: `test:${userId}:${ref}` }));
 
 describe("legal gate (spec §9.3, §17)", () => {
@@ -77,16 +77,16 @@ describe("legal gate (spec §9.3, §17)", () => {
   });
 });
 
-describe("P2P transfers in MP", () => {
-  it("locks listed cards, blocks untradeable, duplicate and over-100-MP listings", async () => {
+describe("P2P transfers in MX", () => {
+  it("locks listed cards, blocks untradeable, duplicate and over-100-MX listings", async () => {
     enableLegalGates();
     const { userId, starterEntitlementId } = await makeUser();
     const starter = await openPack(userId, starterEntitlementId);
     await expect(createListing(userId, { cardId: starter.cards[0].cardId, askingPriceMinor: 500 })).rejects.toMatchObject({ code: "NOT_TRADEABLE" });
     const card = await tradeableCard(userId);
-    await expect(createListing(userId, { cardId: card, askingPriceMinor: 10_001 })).rejects.toThrow(/100 MP/);
+    await expect(createListing(userId, { cardId: card, askingPriceMinor: 10_001 })).rejects.toThrow(/100 MX/);
     const listing = await createListing(userId, { cardId: card, askingPriceMinor: 500 });
-    expect(listing.currency).toBe("MP");
+    expect(listing.currency).toBe("MX");
     expect((await db.cardInstance.findUniqueOrThrow({ where: { id: card } })).lock).toBe("LISTED");
     await expect(createListing(userId, { cardId: card, askingPriceMinor: 600 })).rejects.toMatchObject({ code: "CARD_BUSY" });
     await cancelListing(userId, listing.id);
@@ -119,7 +119,7 @@ describe("P2P transfers in MP", () => {
     expect((await supplyReport()).reconciled).toBe(true);
   });
 
-  it("reward MP can buy cards (MP is never withdrawable), and sale proceeds are MP, not winnings", async () => {
+  it("reward MX can buy cards (MX is never withdrawable), and sale proceeds are MX, not winnings", async () => {
     enableLegalGates();
     const seller = await makeUser("sss2");
     const buyer = await makeUser("bbb3");
@@ -150,7 +150,7 @@ describe("P2P transfers in MP", () => {
     expect((await supplyReport()).reconciled).toBe(true);
   });
 
-  it("offers hold MP; declined / withdrawn / lapsed offers return it; accepting completes the sale", async () => {
+  it("offers hold MX; declined / withdrawn / lapsed offers return it; accepting completes the sale", async () => {
     enableLegalGates();
     const seller = await makeUser("sss4");
     const a = await makeUser("aaa4");
@@ -195,7 +195,7 @@ describe("P2P transfers in MP", () => {
     expect((await balancesFor(a.userId)).cash).toBe(500);
   });
 
-  it("recommends the valuation, blended with the average sale once there's enough history, within 0.10–100 MP", () => {
+  it("recommends the valuation, blended with the average sale once there's enough history, within 0.10–100 MX", () => {
     expect(recommendPrice(4, undefined)).toBe(400);
     expect(recommendPrice(4, { avgMinor: 600, sales: 2 })).toBe(400);
     expect(recommendPrice(4, { avgMinor: 600, sales: 3 })).toBe(500);
@@ -244,7 +244,7 @@ describe("house auctions", () => {
     return createAuction(adminId, { playerId: tpl.playerId, category: "GOLD", startPriceMinor: 100, minIncrementMinor: 50, startsAt: new Date(Date.now() - 1000), hours });
   }
 
-  it("bids hold cash MP, outbid managers get it back, and the winner gets the card", async () => {
+  it("bids hold cash MX, outbid managers get it back, and the winner gets the card", async () => {
     enableLegalGates();
     const admin = await makeUser("admin1");
     const a = await makeUser("aaa6");

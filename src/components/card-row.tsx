@@ -42,7 +42,7 @@ export function CardRow({ card, href, children, sub }: { card: CardView; href?: 
       )}
       <span className="hidden w-24 shrink-0 text-right md:block">
         <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">Value</span>
-        <span className="font-bold tabular-nums">{card.valueMp !== null ? `${card.valueMp} MP` : "—"}</span>
+        <span className="font-bold tabular-nums">{card.valueMp !== null ? `${card.valueMp} MX` : "—"}</span>
         <Trend pct={card.trendPct} className="ml-1" />
       </span>
       {children}
@@ -60,7 +60,7 @@ export function Sparkline({ points, width = 96, height = 30 }: { points: number[
   const y = (v: number) => height - 2 - ((v - min) / span) * (height - 4);
   const d = points.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
   const up = points[points.length - 1] >= points[0];
-  const label = `Value ${up ? "up" : "down"} from ${points[0]} to ${points[points.length - 1]} MP`;
+  const label = `Value ${up ? "up" : "down"} from ${points[0]} to ${points[points.length - 1]} MX`;
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label}>
       <title>{label}</title>

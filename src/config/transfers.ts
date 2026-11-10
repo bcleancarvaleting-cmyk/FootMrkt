@@ -1,14 +1,14 @@
 /**
  * Launch stock for the Transfer list (product request 10 Nov 2026): a mix of Gold, Silver and
- * Bronze from Haaland at 45 MP down to League Two / National League players from 1 MP. Admins
+ * Bronze from Haaland at 45 MX down to League Two / National League players from 1 MX. Admins
  * stock it with one click in Admin → Economy, and can edit these numbers any time.
  *
- * Within each band the best player (market value, else league level / first-team number / MP
+ * Within each band the best player (market value, else league level / first-team number / MX
  * value) gets the max price and prices curve down towards the min.
  */
 export const LAUNCH_MIX = {
   days: 14,
-  /** Named players at fixed prices (MP). */
+  /** Named players at fixed prices (MX). */
   pinned: ["Haaland=45"],
   bands: [
     { tier: "GOLD", count: 20, minMp: 12, maxMp: 39.99, leagues: ["EPL"] },

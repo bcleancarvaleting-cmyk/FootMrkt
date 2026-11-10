@@ -8,7 +8,7 @@
  * assets are supplied (Club.crestUrl).
  *
  * Match data is SIMULATED (DEV provider). The seed plays three historical gameweeks so form,
- * results and MP value history exist, then opens the next gameweek for entries.
+ * results and MX value history exist, then opens the next gameweek for entries.
  */
 import "dotenv/config";
 import { readFileSync } from "node:fs";
@@ -140,7 +140,7 @@ async function main() {
     templatesByClub.set(short, active.map((t) => ({ id: t.id, category: t.category, position: t.player.position })));
   }
 
-  // Collection sets — examples; every completed set awards 10 MP credit (≈ £10).
+  // Collection sets — examples; every completed set awards 10 MX credit (≈ £10).
   const sets: Array<{ code: string; name: string; description: string; templateIds: string[] }> = [];
   for (const short of ["ARS", "LIV", "MCI", "MUN", "CHE", "TOT"]) {
     const golds = (templatesByClub.get(short) ?? []).filter((t) => t.category === "GOLD").slice(0, 4);

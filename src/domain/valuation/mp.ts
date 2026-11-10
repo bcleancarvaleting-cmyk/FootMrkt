@@ -1,17 +1,17 @@
 import type { Category } from "../packs/config";
 
 /**
- * MP — indicative market value (spec §4.2). MP is a valuation display only: it is not cash,
+ * MX — indicative market value (spec §4.2). MX is a valuation display only: it is not cash,
  * not withdrawable and not a promise of resale value.
  *
  * The algorithm is deliberately simple and explainable: every input and multiplier is
  * returned in `signals` and stored with the valuation so any number can be audited.
- * STATUS: PROPOSED — the final methodology needs product-owner approval (spec §18 "MP rules").
+ * STATUS: PROPOSED — the final methodology needs product-owner approval (spec §18 "MX rules").
  */
 
 export interface ValuationConfig {
   method: string;
-  /** Pence per MP for the indicative money reference. Spec example: 178 MP ≈ £178. */
+  /** Pence per MX for the indicative money reference. Spec example: 178 MX ≈ £178. */
   pencePerMp: number;
   baseMp: Record<Category, number>;
   minMp: number;
@@ -138,7 +138,7 @@ export function computeMp(input: ValuationInput, cfg: ValuationConfig = VALUATIO
 
 const round = (n: number) => Math.round(n * 100) / 100;
 
-/** "≈ £178" — always rendered next to MP and labelled indicative. */
+/** "≈ £178" — always rendered next to MX and labelled indicative. */
 export function indicativeMoney(valueMp: number, cfg: ValuationConfig = VALUATION_CONFIG): string {
   const pence = valueMp * cfg.pencePerMp;
   return `£${(pence / 100).toFixed(pence % 100 === 0 ? 0 : 2)}`;

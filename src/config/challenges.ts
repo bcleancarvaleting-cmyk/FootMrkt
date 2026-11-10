@@ -1,7 +1,7 @@
 /**
  * Default challenges (product request 10 Nov 2026: "Sets become Challenges… discard team to get
  * 1MP — it keeps cards revolving"). Admins can add, pause or edit challenges in Admin → Challenges;
- * these are seeded once. Rewards are reward MP (spent first on packs, transfers and entries; never withdrawable).
+ * these are seeded once. Rewards are reward MX (spent first on packs, transfers and entries; never withdrawable).
  */
 export interface ChallengeCriteria {
   /** Exactly this many cards are handed in. */
@@ -30,7 +30,7 @@ export const DEFAULT_CHALLENGES: ChallengeSeed[] = [
   {
     code: "discard-team",
     name: "Clear the bench",
-    description: "Hand in any 7 cards — a full starting line-up — for 1 MP.",
+    description: "Hand in any 7 cards — a full starting line-up — for 1 MX.",
     criteria: { count: 7 },
     rewardMinor: 100,
   },
@@ -60,7 +60,7 @@ export const DEFAULT_CHALLENGES: ChallengeSeed[] = [
   {
     code: "silver-trio",
     name: "Silver service",
-    description: "3 Silver cards for 3 MP.",
+    description: "3 Silver cards for 3 MX.",
     criteria: { count: 3, tiers: ["SILVER"] },
     rewardMinor: 300,
   },

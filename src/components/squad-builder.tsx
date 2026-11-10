@@ -116,7 +116,7 @@ export function SquadBuilder({
     });
   }
 
-  /** Fill empty slots with the best available players by recent form, then MP. */
+  /** Fill empty slots with the best available players by recent form, then MX. */
   function autoPick() {
     const score = (c: BuilderCard) => (avg(c.form) ?? 0) * 10 + (c.valueMp ?? 0);
     const pool = cards.filter(eligible).sort((a, b) => score(b) - score(a));

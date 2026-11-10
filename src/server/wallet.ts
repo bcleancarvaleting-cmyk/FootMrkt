@@ -8,12 +8,12 @@ import { grantPack, latestSku } from "./packs";
 import { paymentProvider } from "./payments/provider";
 
 /**
- * Wallet. Amounts are stored in hundredths (1 MP ≈ £1, so hundredths of an MP = pence).
+ * Wallet. Amounts are stored in hundredths (1 MX ≈ £1, so hundredths of an MX = pence).
  *
  * Two kinds of balance (product decision 10 Nov 2026):
- *  - MP (buckets CASH + BONUS): bought by card (CASH) or earned from rewards (BONUS) and card
+ *  - MX (buckets CASH + BONUS): bought by card (CASH) or earned from rewards (BONUS) and card
  *    sales (CASH). Spent on packs, transfers, auction bids and match entries. NEVER withdrawable.
- *    Bonus is spent first; the split is kept only to show where MP came from.
+ *    Bonus is spent first; the split is kept only to show where MX came from.
  *  - Winnings (bucket WINNINGS, £): prizes won in gameweek matches. The only money that can be
  *    withdrawn (minimum £10). It can't be spent in the game.
  *
@@ -24,7 +24,7 @@ import { paymentProvider } from "./payments/provider";
  * LEGAL: adding funds, cash prizes / withdrawals and trading are gated by the DEPOSITS,
  * PAID_ENTRY / WITHDRAWALS and MARKET flags, switchable only once LEGAL_GATES_CLEARED lists them.
  */
-export const SET_REWARD_MP_MINOR = 1000; // 10.00 MP ≈ £10
+export const SET_REWARD_MP_MINOR = 1000; // 10.00 MX ≈ £10
 export const MIN_WITHDRAWAL_MINOR = 1000; // £10 of winnings
 export const MIN_DEPOSIT_MINOR = 1000; // £10
 export const DEPOSIT_PRESETS_GBP = [10, 20, 50, 100] as const;
@@ -36,7 +36,7 @@ export async function balancesFor(userId: string, tx: Tx | typeof db = db) {
   const cash = rows.find((r) => r.bucket === "CASH")?._sum.amountMinor ?? 0;
   const bonus = rows.find((r) => r.bucket === "BONUS")?._sum.amountMinor ?? 0;
   const winnings = rows.find((r) => r.bucket === "WINNINGS")?._sum.amountMinor ?? 0;
-  /** total = spendable MP; winnings = withdrawable £. */
+  /** total = spendable MX; winnings = withdrawable £. */
   return { cash, bonus, total: cash + bonus, winnings, withdrawable: Math.max(0, winnings) };
 }
 
@@ -59,7 +59,7 @@ export async function credit(
 }
 
 /**
- * Spend MP inside a transaction (call lockWallet first). Bonus MP is used before bought MP.
+ * Spend MX inside a transaction (call lockWallet first). Bonus MX is used before bought MX.
  * Never touches winnings. Writes one entry per bucket used: `${refId}:b` / `${refId}:c`.
  */
 export async function debit(tx: Tx, args: { userId: string; amountMinor: number; kind: WalletEntryKind; refId: string; note?: string }) {
@@ -68,7 +68,7 @@ export async function debit(tx: Tx, args: { userId: string; amountMinor: number;
   const fromBonus = Math.min(Math.max(0, bal.bonus), args.amountMinor);
   const fromCash = args.amountMinor - fromBonus;
   if (fromCash > Math.max(0, bal.cash)) {
-    throw new DomainError("INSUFFICIENT_FUNDS", `Not enough MP — this needs ${fmtMp(args.amountMinor)} and you have ${fmtMp(Math.max(0, bal.total))}.`);
+    throw new DomainError("INSUFFICIENT_FUNDS", `Not enough MX — this needs ${fmtMp(args.amountMinor)} and you have ${fmtMp(Math.max(0, bal.total))}.`);
   }
   const rows = [];
   if (fromBonus > 0) rows.push({ userId: args.userId, kind: args.kind, bucket: "BONUS" as const, amountMinor: -fromBonus, refId: `${args.refId}:b`, note: args.note });
@@ -90,7 +90,7 @@ export async function release(tx: Tx, args: { userId: string; refId: string; kin
   }
 }
 
-/** Buy a pack with MP (bonus first, then cash). Idempotent on clientKey. */
+/** Buy a pack with MX (bonus first, then cash). Idempotent on clientKey. */
 export async function buyPackWithCredit(userId: string, skuCode: string, clientKey: string) {
   return withTx(async (tx) => {
     await lockWallet(tx, userId);
@@ -112,7 +112,7 @@ export const DepositSchema = z.object({
   acceptRisk: z.literal(true, { message: "Please confirm you understand card values can go down as well as up" }),
 });
 
-/** Start a card top-up (£ → MP, 1:1). Credited as MP when the payment provider confirms (verified webhook). */
+/** Start a card top-up (£ → MX, 1:1). Credited as MX when the payment provider confirms (verified webhook). */
 export async function startDeposit(userId: string, input: z.input<typeof DepositSchema>, clientKey: string, provider = paymentProvider()) {
   await requireFlag("DEPOSITS");
   const data = DepositSchema.parse(input);
@@ -158,7 +158,7 @@ export function profileGaps(u: { fullName: string | null; dateOfBirth: Date | nu
   return gaps;
 }
 
-/** Withdraw £ winnings (only winnings — MP can never be withdrawn). */
+/** Withdraw £ winnings (only winnings — MX can never be withdrawn). */
 export async function requestWithdrawal(userId: string, amountMinor: number) {
   await requireFlag("WITHDRAWALS");
   if (!Number.isInteger(amountMinor) || amountMinor < MIN_WITHDRAWAL_MINOR) throw new DomainError("MIN", "The minimum withdrawal is £10.");
@@ -193,7 +193,7 @@ export async function processWithdrawal(adminId: string, withdrawalId: string, d
 }
 
 export function fmtMp(minor: number): string {
-  return `${(minor / 100).toFixed(2)} MP`;
+  return `${(minor / 100).toFixed(2)} MX`;
 }
 
 export function fmtGbp(minor: number): string {

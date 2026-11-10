@@ -21,8 +21,8 @@ async function completeOneSet(userId: string) {
   return completeSet(userId, set.id, `k-${userId}`);
 }
 
-describe("MP credit (set rewards)", () => {
-  it("completing a set awards exactly 10 MP once, even if retried", async () => {
+describe("MX credit (set rewards)", () => {
+  it("completing a set awards exactly 10 MX once, even if retried", async () => {
     const { userId } = await makeUser();
     const c = await completeOneSet(userId);
     await completeSet(userId, c.setId, `k-${userId}`);
@@ -30,7 +30,7 @@ describe("MP credit (set rewards)", () => {
     expect(await db.walletEntry.count({ where: { userId, kind: "SET_REWARD" } })).toBe(1);
   });
 
-  it("credit buys packs at 1 MP ≈ £1, refuses overspending, and is idempotent per click", async () => {
+  it("credit buys packs at 1 MX ≈ £1, refuses overspending, and is idempotent per click", async () => {
     const { userId } = await makeUser();
     await completeOneSet(userId);
     const gold = await buyPackWithCredit(userId, "football-gold", "click-1");

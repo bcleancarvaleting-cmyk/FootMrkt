@@ -40,7 +40,7 @@ export default function HowItWorks() {
         </p>
         <p>
           Gold Packs always contain at least <b>2 Gold</b> top-flight players — sometimes 3 or 4 — with the rest Bronze or Silver.
-          Complete a collection set to earn <b>10 MP credit (≈ £10)</b> to spend on packs and build a stronger squad.
+          Complete a collection set to earn <b>10 MX credit (≈ £10)</b> to spend on packs and build a stronger squad.
         </p>
       </Section>
 
@@ -84,14 +84,14 @@ export default function HowItWorks() {
         </p>
       </Section>
 
-      <Section title="4. Indicative value (MP)">
+      <Section title="4. Indicative value (MX)">
         <p>
           Every card shows whether its value is <b className="text-mint">▲ rising</b> or <b className="text-danger">▼ falling</b>, a value
           graph, and how you got it — <b>Starter</b>, <b>Packed</b>, or what you paid.
         </p>
         <p>
-          Each card shows an indicative value in MP, with a money reference ({VALUATION_CONFIG.pencePerMp / 100 === 1 ? "1 MP ≈ £1" : ""}). It
-          reflects supply, recent form, league level and eligible completed sales. <b>MP is not cash</b>, cannot be withdrawn or redeemed,
+          Each card shows an indicative value in MX, with a money reference ({VALUATION_CONFIG.pencePerMp / 100 === 1 ? "1 MX ≈ £1" : ""}). It
+          reflects supply, recent form, league level and eligible completed sales. <b>MX is not cash</b>, cannot be withdrawn or redeemed,
           and is not a promise of what a card could sell for.
         </p>
       </Section>

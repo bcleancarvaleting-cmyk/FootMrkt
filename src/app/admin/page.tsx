@@ -58,7 +58,7 @@ export default async function AdminPage() {
         <div className="flex gap-2">
           <a href="/admin/economy" className="btn-primary">Economy: drops, auctions, challenges</a>
           <ActionButton action={runJobsAction}>Run scheduled jobs</ActionButton>
-          <ActionButton action={revalueAction}>Revalue MP</ActionButton>
+          <ActionButton action={revalueAction}>Revalue MX</ActionButton>
           <a href="/admin/values" className="btn-gold">
             Market values
           </a>

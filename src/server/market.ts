@@ -7,7 +7,7 @@ import { type PaymentProvider, paymentProvider } from "./payments/provider";
 import { fulfilDeposit } from "./wallet";
 
 /**
- * Card payments: paid packs (£ by card) and adding funds. P2P transfers and auctions are MP-only
+ * Card payments: paid packs (£ by card) and adding funds. P2P transfers and auctions are MX-only
  * and live in ./transfers. LEGAL GATE: PAID_PACKS / DEPOSITS must be cleared before use.
  */
 
@@ -83,7 +83,7 @@ export async function handlePaymentWebhook(rawBody: string, signature: string | 
       await fulfilDeposit(tx, o);
       return { status: "fulfilled" as const };
     }
-    // Transfers are MP-only now: a legacy card-paid market order is refunded, never fulfilled.
+    // Transfers are MX-only now: a legacy card-paid market order is refunded, never fulfilled.
     await tx.order.update({ where: { id: o.id }, data: { status: "REFUNDED" } });
     return { status: "refund_required" as const, refund: true, providerRef: event.providerRef, amountMinor: o.amountMinor };
   });

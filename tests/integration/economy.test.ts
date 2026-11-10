@@ -27,7 +27,7 @@ async function bronzePack(userId: string, n = 1) {
 }
 
 describe("challenges", () => {
-  it("hands in exactly the right cards for bonus MP, recycles them, and is idempotent", async () => {
+  it("hands in exactly the right cards for bonus MX, recycles them, and is idempotent", async () => {
     const { userId } = await makeUser();
     await bronzePack(userId, 2);
     const ch = await db.challenge.create({ data: { code: "t-three", name: "Three", description: "", criteria: { count: 3 }, rewardMinor: 100 } });
@@ -147,7 +147,7 @@ describe("welcome gifts", () => {
 });
 
 describe("winnings", () => {
-  it("only £ winnings can be withdrawn — never MP; rejected withdrawals return the winnings", async () => {
+  it("only £ winnings can be withdrawn — never MX; rejected withdrawals return the winnings", async () => {
     const { creditWinnings, processWithdrawal, requestWithdrawal } = await import("@/server/wallet");
     process.env.LEGAL_GATES_CLEARED = "WITHDRAWALS";
     process.env.FLAG_WITHDRAWALS = "true";
@@ -231,7 +231,7 @@ describe("prize guardrails", () => {
     return db.competition.create({ data: { sportId: sport.id, gameweekId: gw.id, code: `g-${Math.random()}`, name: "G", format: "OPEN", rosterRules: "football-roster-v3", scoringRules: "football-scoring-v2-draft", entryOpensAt: new Date(), locksAt: new Date(Date.now() + 86_400_000), status: "OPEN" } });
   }
 
-  it("£ prizes need free entry and free cards only; MP-entry matches can't carry them", async () => {
+  it("£ prizes need free entry and free cards only; MX-entry matches can't carry them", async () => {
     const admin = await makeUser("adm11");
     const c = await comp();
     await expect(updateCompetitionRules(admin.userId, c.id, { entryFeeMinor: 0, requirements: {}, prizes: "1=10" })).rejects.toMatchObject({ code: "PRIZE_RULES" });

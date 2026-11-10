@@ -264,3 +264,17 @@ describe("prize guardrails", () => {
     }
   });
 });
+
+describe("XP", () => {
+  it("XP converts to earned MX at 100 XP = 1 MX; the remainder stays", async () => {
+    const { creditXp, convertXp } = await import("@/server/wallet");
+    const { userId } = await makeUser("xp1");
+    await withTx((tx) => creditXp(tx, { userId, xp: 250, refId: "xp-a" }));
+    await withTx((tx) => creditXp(tx, { userId, xp: 250, refId: "xp-a" })); // idempotent
+    await expect(convertXp(userId, 50)).rejects.toMatchObject({ code: "MIN" });
+    await expect(convertXp(userId, 300)).rejects.toMatchObject({ code: "INSUFFICIENT_XP" });
+    const r = await convertXp(userId, 250);
+    expect(r).toEqual({ xpUsed: 250, mxMinor: 250 });
+    expect(await balancesFor(userId)).toMatchObject({ xp: 0, earned: 250, bought: 0 });
+  });
+});

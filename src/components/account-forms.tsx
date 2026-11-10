@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
-import { depositAction, setDepositLimitAction, updateProfileAction, withdrawAction } from "@/app/actions/account";
+import { convertXpAction, depositAction, setDepositLimitAction, updateProfileAction, withdrawAction } from "@/app/actions/account";
 import { ResultText } from "./action-button";
 
 export function DepositForm({ enabled, initial = 20 }: { enabled: boolean; initial?: number }) {
@@ -136,6 +136,21 @@ export function ProfileForm({ p, email, displayName, locked }: { p: Profile; ema
         <button className="btn-primary" disabled={pending}>{pending ? "Saving…" : "Save profile"}</button>
         {state && <ResultText result={state} />}
       </div>
+    </form>
+  );
+}
+
+export function ConvertXpForm({ xp, perMx }: { xp: number; perMx: number }) {
+  const [state, action, pending] = useActionState(convertXpAction, null);
+  const max = Math.floor(xp / perMx) * perMx;
+  const [amount, setAmount] = useState(String(max || perMx));
+  return (
+    <form action={action} className="flex flex-col items-end gap-1">
+      <span className="flex items-center gap-2">
+        <input name="xp" type="number" min={perMx} step={perMx} max={Math.max(perMx, max)} value={amount} onChange={(e) => setAmount(e.target.value)} className="input w-28 text-right tabular-nums" aria-label="XP to swap" />
+        <button className="btn-primary" disabled={pending || xp < perMx}>{pending ? "Swapping…" : `Swap for ${((Number(amount) || 0) / perMx).toFixed(2)} MX`}</button>
+      </span>
+      {state && <ResultText result={state} />}
     </form>
   );
 }

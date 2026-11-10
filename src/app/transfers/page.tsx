@@ -10,7 +10,7 @@ import { requireUser } from "@/server/auth/session";
 import { isEnabled } from "@/server/flags";
 import { cardsTradeableNow } from "@/server/launch";
 import { transferBoard } from "@/server/transfers-view";
-import { DEPOSIT_PRESETS_GBP, balancesFor, fmtMp } from "@/server/wallet";
+import { balancesFor, fmtMp } from "@/server/wallet";
 
 export const metadata = { title: "Transfers" };
 
@@ -48,16 +48,13 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
         intro="Buy cards in MX — from MATCHX at a fixed price, or from other managers (make an offer or buy now). Sellers pay a 5% fee. Prices are capped at 100 MX."
       />
 
-      <div className="mb-5 flex flex-wrap items-center gap-2 rounded-2xl border border-ink-700 bg-ink-900 px-4 py-3">
-        <span className="mr-auto text-sm">
-          <span className="text-muted">Your MX</span> <b className="ml-1 tabular-nums">{fmtMp(bal.total)}</b>
+      <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-ink-700 bg-ink-900 px-4 py-3 text-sm">
+        <span className="mr-auto">
+          <span className="text-muted">Earned MX to spend</span> <b className="ml-1 tabular-nums">{fmtMp(bal.earned)}</b>
+          <span className="ml-3 text-faint">· {bal.xp.toLocaleString("en-GB")} XP</span>
         </span>
-        <span className="w-full text-xs text-faint sm:w-auto">Top up (£1 = 1 MX)</span>
-        {DEPOSIT_PRESETS_GBP.map((a) => (
-          <Link key={a} href={`/account/wallet?amount=${a}#add`} className="btn-ghost px-3 py-1.5 text-[11px]">
-            +£{a}
-          </Link>
-        ))}
+        <span className="text-xs text-faint">The Transfer list uses earned MX: from XP, challenges and selling cards.</span>
+        <Link href="/account/wallet#xp" className="btn-ghost px-3 py-1.5 text-[11px]">Swap XP for MX</Link>
       </div>
 
       {!tradeableNow && (

@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { DepositForm, LimitForm, WithdrawForm } from "@/components/account-forms";
+import { ConvertXpForm, DepositForm, LimitForm, WithdrawForm } from "@/components/account-forms";
 import { GateNotice } from "@/components/page-header";
 import { requireUser } from "@/server/auth/session";
 import { db } from "@/server/db";
 import { isEnabled } from "@/server/flags";
-import { balancesFor, fmtGbp, fmtMp, profileGaps, walletHistory } from "@/server/wallet";
+import { XP_PER_MX, balancesFor, fmtGbp, fmtMp, profileGaps, walletHistory } from "@/server/wallet";
 import { fmtDate } from "@/lib/view";
 
 export const metadata = { title: "Wallet" };
@@ -25,6 +25,8 @@ const KIND_LABEL: Record<string, string> = {
   ENTRY_FEE: "Match entry",
   ENTRY_REFUND: "Entry refund",
   PRIZE: "Match prize",
+  XP_EARNED: "XP from a match",
+  XP_CONVERT: "XP swapped for MX",
 };
 const W_TONE: Record<string, string> = { REQUESTED: "text-warn", PAID: "text-mint", REJECTED: "text-danger" };
 
@@ -47,20 +49,36 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
         <h1 className="mt-1 text-4xl leading-none sm:text-5xl">Wallet</h1>
       </div>
 
-      <section className="grid gap-px overflow-hidden rounded-2xl border border-ink-700 bg-ink-700 sm:grid-cols-2">
+      <section className="grid gap-px overflow-hidden rounded-2xl border border-ink-700 bg-ink-700 sm:grid-cols-2 lg:grid-cols-4">
         <div className="bg-ink-900 p-5">
           <p className="eyebrow">MX balance</p>
           <p className="mt-1 font-display text-5xl font-extrabold italic tabular-nums">{fmtMp(bal.total)}</p>
-          <p className="mt-1 text-xs text-faint">
-            For packs, transfers and match entries. Not withdrawable.
-            {bal.bonus > 0 && ` Includes ${fmtMp(bal.bonus)} of reward MX (used first).`}
-          </p>
+          <p className="mt-1 text-xs text-faint">MatchX&apos;s in-game currency. Not withdrawable.</p>
+        </div>
+        <div className="bg-ink-900 p-5">
+          <p className="eyebrow">Earned MX</p>
+          <p className="mt-1 font-display text-3xl font-extrabold italic tabular-nums text-lime">{fmtMp(bal.earned)}</p>
+          <p className="mt-1 text-xs text-faint">From XP, challenges, sets and selling cards. Packs, entries <b className="text-muted">and the Transfer list</b>. Spent first.</p>
+        </div>
+        <div className="bg-ink-900 p-5">
+          <p className="eyebrow">Bought MX</p>
+          <p className="mt-1 font-display text-3xl font-extrabold italic tabular-nums">{fmtMp(bal.bought)}</p>
+          <p className="mt-1 text-xs text-faint">Added by card. Packs and match entries.</p>
         </div>
         <div className="bg-ink-900 p-5">
           <p className="eyebrow text-lime">Winnings</p>
-          <p className="mt-1 font-display text-5xl font-extrabold italic tabular-nums text-lime">{fmtGbp(bal.winnings)}</p>
-          <p className="mt-1 text-xs text-faint">£ prizes from gameweek matches. The only balance you can withdraw (minimum £10).</p>
+          <p className="mt-1 font-display text-3xl font-extrabold italic tabular-nums text-lime">{fmtGbp(bal.winnings)}</p>
+          <p className="mt-1 text-xs text-faint">£ prizes from free matches. The only balance you can withdraw (min £10).</p>
         </div>
+      </section>
+
+      <section id="xp" className="panel flex flex-wrap items-center gap-5 p-5">
+        <div className="min-w-0 flex-1">
+          <p className="eyebrow">XP</p>
+          <p className="mt-1 font-display text-4xl font-extrabold italic tabular-nums">{bal.xp.toLocaleString("en-GB")} XP</p>
+          <p className="mt-1 text-sm text-muted">Every point your players score in a match is XP. Swap {XP_PER_MX} XP for 1 earned MX.</p>
+        </div>
+        <ConvertXpForm xp={bal.xp} perMx={XP_PER_MX} />
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
@@ -115,10 +133,10 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
                 <span className="text-faint"> · {fmtDate(e.createdAt)}</span>
               </span>
               <span className="flex shrink-0 items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-faint">{e.bucket === "WINNINGS" ? "£ winnings" : e.bucket === "BONUS" ? "reward MX" : "MX"}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-faint">{e.bucket === "WINNINGS" ? "£ winnings" : e.bucket === "XP" ? "XP" : e.bucket === "BONUS" ? "earned MX" : "bought MX"}</span>
                 <b className={`tabular-nums ${e.amountMinor > 0 ? "text-mint" : "text-muted"}`}>
                   {e.amountMinor > 0 ? "+" : ""}
-                  {e.bucket === "WINNINGS" ? fmtGbp(e.amountMinor) : fmtMp(e.amountMinor)}
+                  {e.bucket === "WINNINGS" ? fmtGbp(e.amountMinor) : e.bucket === "XP" ? `${e.amountMinor} XP` : fmtMp(e.amountMinor)}
                 </b>
               </span>
             </li>

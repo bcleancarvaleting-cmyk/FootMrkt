@@ -118,7 +118,7 @@ async function settleSale(tx: Tx, listing: { id: string; cardId: string; sellerI
   }
   const fee = feeFor(priceMinor);
   const now = new Date();
-  await credit(tx, { userId: listing.sellerId, amountMinor: priceMinor - fee, kind: "MARKET_SALE", bucket: "CASH", refId: `listing:${listing.id}:sale`, note: `Sold for ${fmtMp(priceMinor)} (5% fee ${fmtMp(fee)})` });
+  await credit(tx, { userId: listing.sellerId, amountMinor: priceMinor - fee, kind: "MARKET_SALE", bucket: "BONUS", refId: `listing:${listing.id}:sale`, note: `Sold for ${fmtMp(priceMinor)} (5% fee ${fmtMp(fee)})` });
   await tx.marketListing.update({ where: { id: listing.id }, data: { status: "SOLD", buyerId, soldPriceMinor: priceMinor, soldAt: now, feeMinor: fee } });
   const closed = await tx.cardOwnership.updateMany({
     where: { cardId: listing.cardId, userId: listing.sellerId, releasedAt: null },
@@ -160,7 +160,7 @@ export async function buyNow(buyerId: string, listingId: string) {
     await lockWallets(tx, buyerId, l.sellerId);
     // A buyer with a pending offer on this listing gets that hold back first, then pays in full.
     await lapseOffers(tx, l.id);
-    await debit(tx, { userId: buyerId, amountMinor: l.askingPriceMinor, kind: "MARKET_PURCHASE", refId: `listing:${l.id}:buy`, note: "Transfer — buy now" });
+    await debit(tx, { userId: buyerId, amountMinor: l.askingPriceMinor, kind: "MARKET_PURCHASE", refId: `listing:${l.id}:buy`, note: "Transfer — buy now", earnedOnly: true });
     return settleSale(tx, l, buyerId, l.askingPriceMinor);
   });
 }
@@ -204,7 +204,7 @@ export async function makeOffer(buyerId: string, listingId: string, amountMinor:
       await tx.marketOffer.update({ where: { id: previous.id }, data: { status: "WITHDRAWN", respondedAt: new Date() } });
     }
     const offer = await tx.marketOffer.create({ data: { listingId, buyerId, amountMinor } });
-    await debit(tx, { userId: buyerId, amountMinor, kind: "OFFER_HOLD", refId: `offer:${offer.id}`, note: "Offer — MX held until the seller responds" });
+    await debit(tx, { userId: buyerId, amountMinor, kind: "OFFER_HOLD", refId: `offer:${offer.id}`, note: "Offer — MX held until the seller responds", earnedOnly: true });
     return offer;
   });
 }
@@ -244,7 +244,7 @@ export async function respondToOffer(sellerId: string, offerId: string, accept: 
     if (l.status !== "ACTIVE") throw new DomainError("NOT_AVAILABLE", "This listing is no longer active.");
     // The held MX becomes the payment: release the hold and take the purchase in one step.
     await release(tx, { userId: o.buyerId, refId: `offer:${o.id}`, kind: "OFFER_RELEASE", note: "Offer accepted" });
-    await debit(tx, { userId: o.buyerId, amountMinor: o.amountMinor, kind: "MARKET_PURCHASE", refId: `listing:${l.id}:buy`, note: "Transfer — offer accepted" });
+    await debit(tx, { userId: o.buyerId, amountMinor: o.amountMinor, kind: "MARKET_PURCHASE", refId: `listing:${l.id}:buy`, note: "Transfer — offer accepted", earnedOnly: true });
     await tx.marketOffer.update({ where: { id: o.id }, data: { status: "ACCEPTED", respondedAt: new Date() } });
     await lapseOffers(tx, l.id, o.id);
     await settleSale(tx, l, o.buyerId, o.amountMinor);
@@ -310,7 +310,7 @@ export async function placeBid(userId: string, auctionId: string, amountMinor: n
       await tx.auctionBid.update({ where: { id: leading.id }, data: { status: "OUTBID" } });
     }
     const bid = await tx.auctionBid.create({ data: { auctionId, userId, amountMinor } });
-    await debit(tx, { userId, amountMinor, kind: "AUCTION_HOLD", refId: `bid:${bid.id}`, note: "Auction bid — MX held" });
+    await debit(tx, { userId, amountMinor, kind: "AUCTION_HOLD", refId: `bid:${bid.id}`, note: "Auction bid — MX held", earnedOnly: true });
     // Anti-sniping: a late bid pushes the end back so others get a fair chance to respond.
     const snipe = a.antiSnipeMinutes * 60_000;
     const endsAt = a.endsAt.getTime() - now.getTime() < snipe ? new Date(now.getTime() + snipe) : a.endsAt;
@@ -341,7 +341,7 @@ export async function settleAuctions(now = new Date()) {
       }
       await lockWallet(tx, top.userId);
       await release(tx, { userId: top.userId, refId: `bid:${top.id}`, kind: "AUCTION_RELEASE", note: "Auction won" });
-      await debit(tx, { userId: top.userId, amountMinor: top.amountMinor, kind: "MARKET_PURCHASE", refId: `auction:${id}:win`, note: "Auction won" });
+      await debit(tx, { userId: top.userId, amountMinor: top.amountMinor, kind: "MARKET_PURCHASE", refId: `auction:${id}:win`, note: "Auction won", earnedOnly: true });
       await tx.auctionBid.update({ where: { id: top.id }, data: { status: "WON" } });
       const tradeStatus = (await cardsTradeableNow()) ? "TRADEABLE" : "NON_TRADEABLE";
       await tx.cardInstance.update({ where: { id: a.cardId }, data: { supplyState: "HELD", ownerId: top.userId, lock: "NONE", lockRef: null, tradeStatus } });

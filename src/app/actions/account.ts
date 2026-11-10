@@ -8,7 +8,7 @@ import { completeChallenge } from "@/server/challenges";
 import { db } from "@/server/db";
 import { claimDrop } from "@/server/drops";
 import { DomainError } from "@/server/errors";
-import { isAdult, requestWithdrawal, startDeposit } from "@/server/wallet";
+import { convertXp, fmtMp, isAdult, requestWithdrawal, startDeposit } from "@/server/wallet";
 import { type ActionResult, attempt } from "./result";
 
 const opt = (max: number) =>
@@ -113,4 +113,11 @@ export async function claimDropAction(dropId: string): Promise<ActionResult<{ en
   const res = await attempt(async () => ({ entitlementId: (await claimDrop(user.id, dropId)).id }), "Free pack claimed");
   revalidatePath("/", "layout");
   return res;
+}
+
+export async function convertXpAction(_: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const user = await requireUser();
+  const res = await attempt(() => convertXp(user.id, Number(form.get("xp"))));
+  revalidatePath("/", "layout");
+  return res.ok ? { ok: true, data: undefined, message: `Swapped ${res.data.xpUsed} XP for ${fmtMp(res.data.mxMinor)}` } : res;
 }

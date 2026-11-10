@@ -12,7 +12,7 @@ import { audit } from "./audit";
 import { type Tx, db, withTx } from "./db";
 import { DomainError } from "./errors";
 import { grantPack } from "./packs";
-import { creditWinnings } from "./wallet";
+import { creditWinnings, creditXp } from "./wallet";
 import { splitPrizePot } from "@/domain/football/prizes";
 
 const TERMINAL = new Set(["FINISHED", "POSTPONED", "ABANDONED"]);
@@ -156,6 +156,8 @@ export async function settleCompetition(competitionId: string, actorId: string |
         }
       }
     }
+    // XP: every manager earns their match points as XP (converts to earned MX).
+    for (const t of totals) await creditXp(tx, { userId: t.userId, xp: t.total, refId: `xp:${competitionId}:${t.userId}`, note: `${t.total} pts` });
     // £ prize pot: dead-heat rule — tied managers split the prizes for the positions they share.
     const shares = splitPrizePot(totals, rewards);
     for (const t of totals) {

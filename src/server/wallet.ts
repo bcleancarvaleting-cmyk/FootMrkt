@@ -10,10 +10,13 @@ import { paymentProvider } from "./payments/provider";
 /**
  * Wallet. Amounts are stored in hundredths (1 MX ≈ £1, so hundredths of an MX = pence).
  *
- * Two kinds of balance (product decision 10 Nov 2026):
- *  - MX (buckets CASH + BONUS): bought by card (CASH) or earned from rewards (BONUS) and card
- *    sales (CASH). Spent on packs, transfers, auction bids and match entries. NEVER withdrawable.
- *    Bonus is spent first; the split is kept only to show where MX came from.
+ * Balances (product decisions 10 Nov 2026):
+ *  - MX, the in-game currency, in two kinds (the Ultimate Team model):
+ *      bought MX (bucket CASH): added by card. Buys packs and pays match entries only.
+ *      earned MX (bucket BONUS): from XP, challenges, sets and selling cards. Buys packs, pays
+ *      entries AND trades on the Transfer list / auctions. Earned MX is spent first.
+ *    MX is never withdrawable.
+ *  - XP (bucket XP): your players' match points. Converts into earned MX at XP_PER_MX.
  *  - Winnings (bucket WINNINGS, £): prizes won in gameweek matches. The only money that can be
  *    withdrawn (minimum £10). It can't be spent in the game.
  *
@@ -36,8 +39,9 @@ export async function balancesFor(userId: string, tx: Tx | typeof db = db) {
   const cash = rows.find((r) => r.bucket === "CASH")?._sum.amountMinor ?? 0;
   const bonus = rows.find((r) => r.bucket === "BONUS")?._sum.amountMinor ?? 0;
   const winnings = rows.find((r) => r.bucket === "WINNINGS")?._sum.amountMinor ?? 0;
-  /** total = spendable MX; winnings = withdrawable £. */
-  return { cash, bonus, total: cash + bonus, winnings, withdrawable: Math.max(0, winnings) };
+  const xp = rows.find((r) => r.bucket === "XP")?._sum.amountMinor ?? 0;
+  /** total = spendable MX (bought = cash, earned = bonus); xp = whole XP points; winnings = withdrawable £. */
+  return { cash, bonus, bought: cash, earned: bonus, total: cash + bonus, xp, winnings, withdrawable: Math.max(0, winnings) };
 }
 
 export async function balanceMinor(userId: string, tx: Tx | typeof db = db): Promise<number> {
@@ -62,11 +66,20 @@ export async function credit(
  * Spend MX inside a transaction (call lockWallet first). Bonus MX is used before bought MX.
  * Never touches winnings. Writes one entry per bucket used: `${refId}:b` / `${refId}:c`.
  */
-export async function debit(tx: Tx, args: { userId: string; amountMinor: number; kind: WalletEntryKind; refId: string; note?: string }) {
+export async function debit(
+  tx: Tx,
+  args: { userId: string; amountMinor: number; kind: WalletEntryKind; refId: string; note?: string; earnedOnly?: boolean },
+) {
   if (args.amountMinor <= 0) throw new Error("debit amount must be positive");
   const bal = await balancesFor(args.userId, tx);
   const fromBonus = Math.min(Math.max(0, bal.bonus), args.amountMinor);
   const fromCash = args.amountMinor - fromBonus;
+  if (args.earnedOnly && fromCash > 0) {
+    throw new DomainError(
+      "EARNED_ONLY",
+      `Transfers use earned MX only — this needs ${fmtMp(args.amountMinor)} and you have ${fmtMp(Math.max(0, bal.bonus))} earned. Earn MX from XP, challenges and selling cards.`,
+    );
+  }
   if (fromCash > Math.max(0, bal.cash)) {
     throw new DomainError("INSUFFICIENT_FUNDS", `Not enough MX — this needs ${fmtMp(args.amountMinor)} and you have ${fmtMp(Math.max(0, bal.total))}.`);
   }
@@ -75,6 +88,34 @@ export async function debit(tx: Tx, args: { userId: string; amountMinor: number;
   if (fromCash > 0) rows.push({ userId: args.userId, kind: args.kind, bucket: "CASH" as const, amountMinor: -fromCash, refId: `${args.refId}:c`, note: args.note });
   await tx.walletEntry.createMany({ data: rows });
   return { fromBonus, fromCash };
+}
+
+// ───────────── XP ─────────────
+
+/** XP needed for 1 MX (default 100 XP = 1.00 MX). XP is stored as whole points. */
+export const XP_PER_MX = Number(process.env.XP_PER_MX ?? 100);
+export const MIN_XP_CONVERT = XP_PER_MX;
+
+/** Credit XP (whole points) inside a transaction. Idempotent on refId. */
+export async function creditXp(tx: Tx, args: { userId: string; xp: number; refId: string; note?: string }) {
+  if (args.xp <= 0) return;
+  await tx.walletEntry.createMany({ data: [{ userId: args.userId, bucket: "XP", kind: "XP_EARNED", amountMinor: Math.round(args.xp), refId: args.refId, note: args.note }], skipDuplicates: true });
+}
+
+/** Exchange XP for earned MX at XP_PER_MX; any XP that doesn't make a whole hundredth stays as XP. */
+export async function convertXp(userId: string, xp: number) {
+  if (!Number.isInteger(xp) || xp < MIN_XP_CONVERT) throw new DomainError("MIN", `Convert at least ${MIN_XP_CONVERT} XP.`);
+  return withTx(async (tx) => {
+    await lockWallet(tx, userId);
+    const bal = await balancesFor(userId, tx);
+    if (xp > bal.xp) throw new DomainError("INSUFFICIENT_XP", `You have ${bal.xp} XP.`);
+    const minor = Math.floor((xp * 100) / XP_PER_MX);
+    const used = Math.ceil((minor * XP_PER_MX) / 100);
+    const ref = `xpconvert:${userId}:${Date.now()}`;
+    await tx.walletEntry.create({ data: { userId, bucket: "XP", kind: "XP_CONVERT", amountMinor: -used, refId: ref, note: `Converted to ${fmtMp(minor)}` } });
+    await credit(tx, { userId, amountMinor: minor, kind: "XP_CONVERT", bucket: "BONUS", refId: `${ref}:mx`, note: `${used} XP converted` });
+    return { xpUsed: used, mxMinor: minor };
+  });
 }
 
 /** Credit £ winnings (match prizes). Idempotent on refId. */

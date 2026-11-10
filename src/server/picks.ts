@@ -105,7 +105,7 @@ export async function pickOptions(userId: string, entitlementId: string) {
     return [face];
   });
   const views = (await enrichCards(samples)).map((v) =>
-    pick.loanGameweeks ? { ...v, edition: "LOAN" as const, loan: { left: pick.loanGameweeks, total: pick.loanGameweeks }, valueMp: null, trendPct: null, lock: "NONE" as const } : v,
+    pick.loanGameweeks ? { ...v, edition: "LOAN" as const, loan: { left: pick.loanGameweeks, total: pick.loanGameweeks, ended: false }, valueMp: null, trendPct: null, lock: "NONE" as const } : v,
   );
   return { entitlement: ent, category: pick.category, pick, playerIds: ids, cards: views, opened: ent.status !== "UNOPENED" };
 }

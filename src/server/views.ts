@@ -72,7 +72,7 @@ export async function enrichCards(cards: CardWithTemplate[]): Promise<CardView[]
       trendPct: t?.trendPct ?? null,
       acquired: c.loanGameweeks ? "Loan" : (acquired.get(c.id) ?? null),
       pointsForYou: points.get(c.id) ?? null,
-      loanLeft: loans.get(c.id),
+      loan: loans.get(c.id),
     });
   });
 }

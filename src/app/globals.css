@@ -335,6 +335,30 @@ h2 {
   }
 }
 
+/* Loan player whose loan has ended: flashes until the manager discards them. */
+.loan-ended {
+  border-color: var(--color-danger) !important;
+  animation: loan-flash 1.1s ease-in-out infinite !important;
+}
+.card-premium.loan-ended {
+  background: linear-gradient(135deg, #ff6b6b, #b3261e 55%, #ff6b6b) !important;
+}
+@keyframes loan-flash {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px rgb(255 77 77 / 0.35), 0 0 18px -6px rgb(255 77 77 / 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgb(255 77 77 / 0.9), 0 0 34px -4px rgb(255 77 77 / 0.8);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loan-ended {
+    animation: none;
+    box-shadow: 0 0 0 2px rgb(255 77 77 / 0.9);
+  }
+}
+
 /* Recent-transfers ticker: two copies of the list slide left forever; pauses on hover. */
 .ticker-track {
   animation: ticker 60s linear infinite;

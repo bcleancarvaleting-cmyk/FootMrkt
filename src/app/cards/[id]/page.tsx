@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { discardLoanAction } from "@/app/actions/account";
 import { notFound } from "next/navigation";
 import { toggleFavouriteAction } from "@/app/actions/game";
 import { cancelListingAction } from "@/app/actions/transfers";
@@ -8,7 +9,6 @@ import { listingGuidance } from "@/server/transfers-view";
 import { PlayerCard } from "@/components/player-card";
 import { ValueChart } from "@/components/value-chart";
 import { enrichCards } from "@/server/views";
-import { indicativeMoney } from "@/domain/valuation/mp";
 import { getCurrentUser } from "@/server/auth/session";
 import { cardDetail } from "@/server/binder";
 import { db } from "@/server/db";
@@ -62,6 +62,11 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
     <div className="grid gap-8 md:grid-cols-[auto_1fr]">
       <div className="flex flex-col items-center gap-3">
         <PlayerCard card={view} size="lg" />
+        {isOwner && view.loan?.ended && view.lock === "NONE" && (
+          <ActionButton action={discardLoanAction.bind(null, id)} className="btn-primary bg-danger text-white" confirm={`Discard ${view.name}? Their loan has ended and they go back to their club.`}>
+            Discard loan player
+          </ActionButton>
+        )}
         {isOwner && (
           <ActionButton action={toggleFavouriteAction.bind(null, id)} className="btn-ghost text-xs">
             {favourite ? "★ Favourited" : "☆ Favourite"}
@@ -72,7 +77,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
       <div className="space-y-6">
         <div>
           <p className="eyebrow">
-            {card.template.category} · {card.template.edition === "STARTER" ? "Starter edition" : "Standard edition"}
+            {card.template.category} · {card.template.edition === "STARTER" ? "Starter edition" : card.template.edition === "LOAN" ? "Loan player" : "Standard edition"}
           </p>
           <h1 className="text-5xl font-extrabold">
             <Link href={`/players/${card.template.playerId}`} className="hover:text-lime">
@@ -85,10 +90,18 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
-          <Info label="Indicative value">
-            <span className="text-2xl font-black text-lime">{latest ? `${latest.valueMp} MX` : "—"}</span>
-            {latest && <span className="block text-xs text-faint">≈ {indicativeMoney(latest.valueMp)} indicative</span>}
-          </Info>
+          {view.loan ? (
+            <Info label="On loan">
+              <span className={`text-2xl font-black ${view.loan.ended ? "text-danger" : "text-lime"}`}>
+                {view.loan.ended ? "Loan ended" : `${view.loan.left} of ${view.loan.total} uses`}
+              </span>
+              <span className="block text-xs text-faint">Free · untradeable · no value</span>
+            </Info>
+          ) : (
+            <Info label="Indicative value">
+              <span className="text-2xl font-black text-lime">{latest ? `${latest.valueMp} MX` : "—"}</span>
+            </Info>
+          )}
           <Info label={isOwner ? "You got it" : "Status"}>
             {isOwner && view.acquired ? <span className="text-lg font-bold">{view.acquired}</span> : null}
             <span className="block text-xs text-faint">{status}</span>
@@ -102,6 +115,13 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
           </Info>
         </div>
 
+        {view.loan ? (
+          <p className="text-sm text-muted">
+            Loan players play for your squad in the first {view.loan.total} gameweeks you enter. When the last of those gameweeks has finished, the card flashes and you can
+            discard them — they go back to their club.
+          </p>
+        ) : (
+          <>
         <p className="text-xs text-faint">
           MX is an indicative valuation based on supply, recent form, league and eligible completed sales. It is not cash, cannot be
           withdrawn, and is not a promise that this card can be sold for that amount.
@@ -135,6 +155,8 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
             </div>
           )}
         </section>
+          </>
+        )}
 
         {isOwner && (
           <section className="panel p-5">

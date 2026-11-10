@@ -5,6 +5,7 @@ import { PlayerCard } from "@/components/player-card";
 import { StadiumScene } from "@/components/stadium";
 import { HeroCarousel } from "@/components/hero-carousel";
 import { TakeItOnTheGo } from "@/components/app-install";
+import { EndedLoansBanner } from "@/components/loan-banner";
 import { RowStat } from "@/components/card-row";
 import { getCurrentUser } from "@/server/auth/session";
 import { binderTotals } from "@/server/binder";
@@ -259,6 +260,8 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
           </div>
         </div>
       </section>
+
+      <EndedLoansBanner userId={userId} />
 
       {drop && (
         <Link href="/packs" className="drop-glow flex items-center gap-4 rounded-2xl border border-accent/70 bg-ink-900 px-4 py-3">

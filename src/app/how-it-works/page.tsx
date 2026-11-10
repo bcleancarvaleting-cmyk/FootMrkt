@@ -1,6 +1,5 @@
 import { FORMATIONS } from "@/domain/football/rules";
 import { CURRENT_SCORING_RULES, getScoringRules } from "@/domain/football/scoring";
-import { VALUATION_CONFIG } from "@/domain/valuation/mp";
 
 export const metadata = { title: "How it works" };
 
@@ -39,7 +38,7 @@ export default function HowItWorks() {
         </p>
         <p>
           Gold Packs always contain at least <b>2 Gold</b> top-flight players — sometimes 3 or 4 — with the rest Bronze or Silver.
-          Complete a collection set to earn <b>10 MX credit (≈ £10)</b> to spend on packs and build a stronger squad.
+          Complete a collection set to earn <b>10 MX credit</b> to spend on packs and build a stronger squad.
         </p>
       </Section>
 
@@ -89,7 +88,7 @@ export default function HowItWorks() {
           graph, and how you got it — <b>Starter</b>, <b>Packed</b>, or what you paid.
         </p>
         <p>
-          Each card shows an indicative value in MX, with a money reference ({VALUATION_CONFIG.pencePerMp / 100 === 1 ? "1 MX ≈ £1" : ""}). It
+          Each card shows an indicative value in MX, MATCHX&apos;s in-game points currency. It
           reflects supply, recent form, league level and eligible completed sales. <b>MX is not cash</b>, cannot be withdrawn or redeemed,
           and is not a promise of what a card could sell for.
         </p>

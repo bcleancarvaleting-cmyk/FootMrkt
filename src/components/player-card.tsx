@@ -1,5 +1,5 @@
 import type { CardView } from "@/lib/view";
-import { moneyRef, mpLabel } from "@/lib/view";
+import { mpLabel } from "@/lib/view";
 import { ClubBadge } from "./club-badge";
 import { KitShirt } from "./kit-shirt";
 
@@ -41,8 +41,8 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
   const tier = card.category.toLowerCase();
   return (
     <div
-      className={`card-premium theme-dark relative ${w} aspect-[5/7] select-none overflow-hidden rounded-[18px] p-[3px] foil-${tier} ${
-        card.category === "GOLD" ? "is-gold shadow-[0_10px_40px_-12px_rgba(242,207,99,0.7)]" : "shadow-[0_10px_30px_-16px_rgba(0,0,0,0.8)]"
+      className={`card-premium theme-dark relative ${w} aspect-[5/7] ${card.loan?.ended ? "loan-ended" : ""} select-none overflow-hidden rounded-[18px] p-[3px] foil-${tier} ${
+        card.category === "GOLD" && !card.loan?.ended ? "is-gold shadow-[0_10px_40px_-12px_rgba(242,207,99,0.7)]" : "shadow-[0_10px_30px_-16px_rgba(0,0,0,0.8)]"
       } ${className}`}
     >
       <span className="sheen" aria-hidden="true" />
@@ -71,7 +71,7 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
           <div className="pointer-events-none absolute left-1 top-1 flex flex-col items-start gap-1">
             {card.lock === "COMPETITION" && <Badge tone="lime">In squad</Badge>}
             {card.lock === "LISTED" && <Badge tone="warn">Listed</Badge>}
-            {card.loan && <Badge tone="muted">On loan</Badge>}
+            {card.loan && (card.loan.ended ? <Badge tone="warn">Loan ended</Badge> : <Badge tone="muted">On loan</Badge>)}
           </div>
           {(card.acquired || card.edition === "STARTER") && !card.loan && !small && (
             <span className="absolute right-1 top-1 rounded bg-ink-950/85 px-1.5 text-[9px] font-semibold text-muted">
@@ -92,7 +92,7 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
             <div className="min-w-0" title="Loan players are free, untradeable and have no value">
               <div className="whitespace-nowrap text-[11px] font-bold text-lime">Loan</div>
               <div className="truncate text-[9px] text-faint">
-                {card.loan.left ? `${card.loan.left} of ${card.loan.total} GW left` : "Loan ended"}
+                {card.loan.ended ? "Discard loan player" : card.loan.left ? `${card.loan.left} of ${card.loan.total} uses left` : "Last use played"}
               </div>
             </div>
           ) : (
@@ -100,7 +100,7 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
               <div className="flex items-baseline gap-1 whitespace-nowrap text-[11px] font-bold text-lime">
                 {mpLabel(card.valueMp)} <Trend pct={card.trendPct} />
               </div>
-              <div className="truncate text-[9px] text-faint">{moneyRef(card.valueMp)}</div>
+              <div className="truncate text-[9px] text-faint">{card.valueMp !== null ? "value" : ""}</div>
             </div>
           )}
           <div className="min-w-0 text-right" title="Points this card has won for you in settled competitions">

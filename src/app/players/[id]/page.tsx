@@ -3,7 +3,6 @@ import { requireUser } from "@/server/auth/session";
 import { playerProfile } from "@/server/binder";
 import { DomainError } from "@/server/errors";
 import { POSITION_LABEL, ageFrom, fmtDate } from "@/lib/view";
-import { indicativeMoney } from "@/domain/valuation/mp";
 
 export const metadata = { title: "Player" };
 
@@ -46,7 +45,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
           const mp = values.get(`${player.id}:${t.category}`);
           return (
             <span key={t.id} className="chip">
-              {t.category} card · {mp ? `${mp} MX (≈ ${indicativeMoney(mp)})` : "no value yet"}
+              {t.category} card · {mp ? `${mp} MX` : "no value yet"}
             </span>
           );
         })}

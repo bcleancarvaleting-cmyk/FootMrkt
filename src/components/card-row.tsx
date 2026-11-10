@@ -31,7 +31,7 @@ export function CardRow({ card, href, children, sub }: { card: CardView; href?: 
     </>
   );
   return (
-    <li className={`row-item tier-${card.category} gap-3 sm:gap-4`}>
+    <li className={`row-item tier-${card.category} gap-3 sm:gap-4 ${card.loan?.ended ? "loan-ended" : ""}`}>
       <span className="w-9 shrink-0 text-center text-[11px] font-extrabold tracking-[0.12em] text-muted">{card.position}</span>
       {href ? (
         <Link href={href} className="flex min-w-0 flex-1 items-center gap-3 hover:opacity-90">
@@ -44,7 +44,9 @@ export function CardRow({ card, href, children, sub }: { card: CardView; href?: 
         {card.loan ? (
           <>
             <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">On loan</span>
-            <span className="font-bold tabular-nums">{card.loan.left ? `${card.loan.left} GW left` : "Ended"}</span>
+            <span className={`font-bold tabular-nums ${card.loan.ended ? "text-danger" : ""}`}>
+              {card.loan.ended ? "Loan ended" : `${card.loan.left} of ${card.loan.total} uses`}
+            </span>
           </>
         ) : (
           <>

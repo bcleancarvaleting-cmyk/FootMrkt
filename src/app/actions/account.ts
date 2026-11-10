@@ -7,6 +7,7 @@ import { requireUser } from "@/server/auth/session";
 import { completeChallenge } from "@/server/challenges";
 import { db } from "@/server/db";
 import { claimDrop } from "@/server/drops";
+import { discardLoan } from "@/server/loans";
 import { choosePick, isPick } from "@/server/picks";
 import { DomainError } from "@/server/errors";
 import { convertXp, fmtMp, isAdult, requestWithdrawal, startDeposit } from "@/server/wallet";
@@ -125,6 +126,13 @@ export async function convertXpAction(_: ActionResult | null, form: FormData): P
   const res = await attempt(() => convertXp(user.id, Number(form.get("xp"))));
   revalidatePath("/", "layout");
   return res.ok ? { ok: true, data: undefined, message: `Swapped ${res.data.xpUsed} XP for ${fmtMp(res.data.mxMinor)}` } : res;
+}
+
+export async function discardLoanAction(cardId: string): Promise<ActionResult> {
+  const user = await requireUser();
+  const res = await attempt(() => discardLoan(user.id, cardId));
+  revalidatePath("/", "layout");
+  return res.ok ? { ok: true, data: undefined, message: "Loan player sent back to their club" } : res;
 }
 
 export async function choosePickAction(entitlementId: string, playerIds: string | string[]): Promise<ActionResult<{ openingId: string }>> {

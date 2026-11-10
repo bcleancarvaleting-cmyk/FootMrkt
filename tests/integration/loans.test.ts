@@ -4,7 +4,7 @@ import { createChallenge, eligibleCards } from "@/server/challenges";
 import { submitEntry } from "@/server/competitions";
 import { db, withTx } from "@/server/db";
 import { createGameweek } from "@/server/gameweeks";
-import { LOAN_GAMEWEEKS, assertLoansUsable, expireLoans, loansLeft } from "@/server/loans";
+import { LOAN_GAMEWEEKS, assertLoansUsable, discardLoan, endedLoans, loansLeft } from "@/server/loans";
 import { openPack } from "@/server/packs";
 import { choosePick, pickOptions } from "@/server/picks";
 import { cardViews } from "@/server/views";
@@ -65,7 +65,7 @@ describe("starter loan players", () => {
     expect(eligible.cards.some((c) => r.cardIds.includes(c.id))).toBe(false);
   });
 
-  it("plays in the first 4 gameweeks the manager enters, then leaves the club once they've settled", async () => {
+  it("plays in the first 4 gameweeks the manager enters; once they have settled it can be discarded", async () => {
     const u = await makeUser("loaner2");
     await openPack(u.userId, u.starterEntitlementId);
     const ent = await db.packEntitlement.findFirstOrThrow({ where: { userId: u.userId, packSku: { code: LOAN_PICK_CODE } } });
@@ -79,23 +79,37 @@ describe("starter loan players", () => {
     expect(squad.starters.filter((s) => cardIds.includes(s.cardId))).toHaveLength(2);
     await submitEntry(u.userId, gws[0].open.id, squad);
     const left = await loansLeft(await db.cardInstance.findMany({ where: { id: { in: cardIds } } }));
-    expect([...left.values()]).toEqual([3, 3]);
+    expect([...left.values()].map((l) => l.left)).toEqual([3, 3]);
 
     // Gameweeks 2-4 entered (with or without the loans, they count).
     for (const g of gws.slice(1, 4)) await db.competitionEntry.create({ data: { competitionId: g.open.id, userId: u.userId, formation: "2-2-2" } });
-    expect([...(await loansLeft(await db.cardInstance.findMany({ where: { id: { in: cardIds } } }))).values()]).toEqual([0, 0]);
+    expect([...(await loansLeft(await db.cardInstance.findMany({ where: { id: { in: cardIds } } }))).values()]).toEqual([
+      { left: 0, ended: false },
+      { left: 0, ended: false },
+    ]);
     // Still fine for a gameweek already counted, not for a 5th.
     await withTx((tx) => assertLoansUsable(tx, u.userId, gws[3].gw.id, cardIds));
     await expect(withTx((tx) => assertLoansUsable(tx, u.userId, gws[4].gw.id, cardIds))).rejects.toMatchObject({ code: "LOAN_ENDED" });
 
-    // Loans stay while any of those gameweeks is unsettled, then retire.
+    // The loan only ends once all 4 gameweeks have settled; until then it can't be discarded.
     await db.cardInstance.updateMany({ where: { lock: "COMPETITION" }, data: { lock: "NONE", lockRef: null } });
     await db.competition.updateMany({ where: { id: { in: gws.slice(0, 3).map((g) => g.open.id) } }, data: { status: "SETTLED" } });
-    expect(await expireLoans([u.userId])).toBe(0);
+    expect(await endedLoans(u.userId)).toEqual([]);
+    await expect(discardLoan(u.userId, cardIds[0])).rejects.toMatchObject({ code: "LOAN_ACTIVE" });
     await db.competition.update({ where: { id: gws[3].open.id }, data: { status: "SETTLED" } });
-    expect(await expireLoans([u.userId])).toBe(2);
+
+    // Ended: still in the club (flashing "Discard loan player") until the manager discards it.
+    expect((await endedLoans(u.userId)).sort()).toEqual([...cardIds].sort());
+    const views = await cardViews({ id: { in: cardIds } });
+    expect(views.every((v) => v.loan?.ended && v.loan.left === 0)).toBe(true);
+    expect(await db.cardInstance.count({ where: { id: { in: cardIds }, ownerId: u.userId, supplyState: "HELD" } })).toBe(2);
+
+    const other = await makeUser("nosy");
+    await expect(discardLoan(other.userId, cardIds[0])).rejects.toMatchObject({ code: "NOT_FOUND" });
+    for (const id of cardIds) await discardLoan(u.userId, id);
     const after = await db.cardInstance.findMany({ where: { id: { in: cardIds } } });
     expect(after.every((c) => c.supplyState === "RETIRED" && c.ownerId === null)).toBe(true);
     expect(await db.cardOwnership.count({ where: { cardId: { in: cardIds }, releasedAt: null } })).toBe(0);
+    expect(await endedLoans(u.userId)).toEqual([]);
   });
 });

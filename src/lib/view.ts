@@ -1,4 +1,3 @@
-import { indicativeMoney } from "@/domain/valuation/mp";
 import { type Kit, toKit } from "./kit";
 
 export type Category = "BRONZE" | "SILVER" | "GOLD";
@@ -15,7 +14,7 @@ export interface CardView {
   category: Category;
   edition: "STANDARD" | "STARTER" | "LOAN";
   /** Loan players only: gameweeks left of the loan (counted by gameweeks the manager enters). */
-  loan: { left: number; total: number } | null;
+  loan: { left: number; total: number; ended: boolean } | null;
   clubCode: string | null;
   clubShort: string | null;
   clubName: string | null;
@@ -89,11 +88,11 @@ export function toCardView(
     pointsForYou?: number | null;
     favourite?: boolean;
     duplicateCount?: number;
-    loanLeft?: number;
+    loan?: { left: number; ended: boolean };
   } = {},
 ): CardView {
   const p = c.template.player;
-  const loan = c.loanGameweeks ? { total: c.loanGameweeks, left: extra.loanLeft ?? c.loanGameweeks } : null;
+  const loan = c.loanGameweeks ? { total: c.loanGameweeks, left: extra.loan?.left ?? c.loanGameweeks, ended: extra.loan?.ended ?? false } : null;
   return {
     id: c.id,
     playerId: p.id,
@@ -134,10 +133,6 @@ export function toCardView(
 
 export function mpLabel(mp: number | null): string {
   return mp === null ? "— MX" : `${mp} MX`;
-}
-
-export function moneyRef(mp: number | null): string {
-  return mp === null ? "" : `≈ ${indicativeMoney(mp)}`;
 }
 
 export function gbp(minor: number): string {

@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { CardRow, RowStat } from "@/components/card-row";
+import { discardLoanAction } from "@/app/actions/account";
+import { ActionButton } from "@/components/action-button";
+import { EndedLoansBanner } from "@/components/loan-banner";
 import { EmptyState } from "@/components/page-header";
 import { requireUser } from "@/server/auth/session";
 import { type BinderFilters, binder, binderTotals } from "@/server/binder";
@@ -37,6 +40,7 @@ export default async function MyClubPage({ searchParams }: { searchParams: Promi
 
   return (
     <div>
+      <EndedLoansBanner userId={user.id} />
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow">Squad</p>
@@ -102,7 +106,11 @@ export default async function MyClubPage({ searchParams }: { searchParams: Promi
                       <span className="text-sm font-semibold">{c.acquired ?? "—"}</span>
                     </RowStat>
                     <span className="w-24 shrink-0 text-right">
-                      {c.lock === "LISTED" ? (
+                      {c.loan?.ended && c.lock === "NONE" ? (
+                        <ActionButton action={discardLoanAction.bind(null, c.id)} className="btn-ghost border-danger px-3 py-1.5 text-[11px] text-danger" confirm={`Discard ${c.name}? Their loan has ended and they go back to their club.`}>
+                          Discard loan player
+                        </ActionButton>
+                      ) : c.lock === "LISTED" ? (
                         <span className="tag border-accent/50 text-lime">Listed</span>
                       ) : c.lock === "COMPETITION" ? (
                         <span className="tag text-warn">In squad</span>

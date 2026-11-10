@@ -1,3 +1,6 @@
+import { challengeByNameAction } from "@/app/actions/h2h";
+import { ActionButton } from "@/components/action-button";
+import { getCurrentUser } from "@/server/auth/session";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ClubCrest, ManagerBadge } from "@/components/club-crest";
@@ -33,7 +36,7 @@ function Cards({ title, cards, size = "md" }: { title: string; cards: Awaited<Re
 /** A manager's public club page and trophy cabinet. */
 export default async function ClubPage({ params }: { params: Promise<{ name: string }> }) {
   const { name } = await params;
-  const p = await clubProfile(decodeURIComponent(name));
+  const [p, viewer] = await Promise.all([clubProfile(decodeURIComponent(name)), getCurrentUser()]);
   if (!p) notFound();
   const m = p.manager;
   return (
@@ -50,8 +53,13 @@ export default async function ClubPage({ params }: { params: Promise<{ name: str
             <span>· {m.cards} cards</span>
           </p>
         </div>
-        <div className="w-full sm:w-64">
+        <div className="w-full space-y-2 sm:w-64">
           <LevelBadge level={p.level} />
+          {viewer && viewer.displayName !== m.name && (
+            <ActionButton action={challengeByNameAction.bind(null, m.name)} className="btn-ghost w-full py-2 text-xs">
+              ⚔️ Challenge to head-to-head
+            </ActionButton>
+          )}
         </div>
       </section>
 

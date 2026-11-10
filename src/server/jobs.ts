@@ -1,6 +1,8 @@
 import { db } from "./db";
 import { runScheduledJobs } from "./gameweeks";
 import { reportError } from "./monitoring";
+import { weeklyRhythm } from "./rhythm";
+import { settleH2H } from "./h2h";
 import { executeDueReleases } from "./supply";
 import { expireListings, settleAuctions } from "./transfers";
 import { grantAllDueWelcomePacks } from "./welcome";
@@ -16,6 +18,8 @@ export async function tick() {
     ["expired listings", expireListings],
     ["auctions", settleAuctions],
     ["welcome packs", grantAllDueWelcomePacks],
+    ["weekly reminders & results", weeklyRhythm],
+    ["head-to-head", settleH2H],
     ["expired logins", async () => (await db.session.deleteMany({ where: { expiresAt: { lt: new Date() } } })).count],
   ];
   const out: Record<string, unknown> = {};

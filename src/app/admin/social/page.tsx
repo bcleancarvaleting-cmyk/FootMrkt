@@ -17,6 +17,7 @@ import {
   RarePackPoster,
   RarityPoster,
   TopPerformersPoster,
+  WinnersPoster,
 } from "@/components/social-poster";
 import { RARE_PACK_CODE } from "@/config/packs";
 import { fmtDate, gbp } from "@/lib/view";
@@ -38,6 +39,7 @@ import {
   weeklyTopCards,
 } from "@/server/social";
 import { fmtMp } from "@/server/wallet";
+import { gameweekWinners } from "@/server/rhythm";
 import { AdminTitle } from "../_parts/title";
 
 export const metadata = { title: "Admin · Social content" };
@@ -52,6 +54,7 @@ const TEMPLATES = [
   ["found", "Found! — a real Ruby / Diamond / Rainbow pull"],
   ["hunt", "The Rainbow hunt — how many found"],
   ["rare", "Rare pack"],
+  ["winners", "Gameweek winners (Monday post)"],
   ["top", "Top performers this week"],
   ["drop", "Drop alert"],
   ["join", "Join free"],
@@ -125,6 +128,10 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
     const ids = golds?.players.filter((p) => p.category === "GOLD").map((p) => p.id) ?? [];
     const cards = [...(await posterCards(ids.slice(0, 1), "RUBY")), ...(await posterCards(ids.slice(1, 2), "DIAMOND")), ...(await posterCards(ids.slice(2, 3), "RAINBOW"))];
     poster = <RarePackPoster price={gbp(sku?.priceMinor ?? 1999)} live={live} cards={cards} format={format} />;
+  } else if (t === "winners") {
+    const w = await gameweekWinners();
+    if (w && w.winners.length) poster = <WinnersPoster number={w.number} winners={w.winners} format={format} />;
+    else note = "No gameweek has been settled yet — this fills in once one is.";
   } else if (t === "top") {
     const rows = await weeklyTopCards(5);
     poster = <TopPerformersPoster rows={rows.map((r) => ({ card: r.card, points: r.row.points, name: r.row.name, club: r.row.club }))} gameweek={null} format={format} />;

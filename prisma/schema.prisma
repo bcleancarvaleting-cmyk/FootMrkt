@@ -1352,3 +1352,24 @@ model PushSubscription {
 
   @@index([userId])
 }
+
+// Head-to-head: one manager challenges another for a gameweek; best score that gameweek wins.
+// No stakes — the winner earns bonus XP and the record shows on both club pages.
+model H2HChallenge {
+  id               String    @id @default(uuid()) @db.Uuid
+  gameweekId       String    @db.Uuid
+  challengerId     String    @db.Uuid
+  opponentId       String    @db.Uuid
+  status           String    @default("PENDING") // PENDING | ACCEPTED | DECLINED | SETTLED | EXPIRED
+  challengerPoints Float?
+  opponentPoints   Float?
+  winnerId         String?   @db.Uuid // null on a draw
+  createdAt        DateTime  @default(now())
+  respondedAt      DateTime?
+  settledAt        DateTime?
+
+  @@unique([gameweekId, challengerId, opponentId])
+  @@index([challengerId])
+  @@index([opponentId])
+  @@index([status, gameweekId])
+}

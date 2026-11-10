@@ -231,6 +231,33 @@ export function LeagueStarsPoster({ leagueName, cards, format }: { leagueName: s
   );
 }
 
+/** Monday post: who won each match last gameweek. */
+export function WinnersPoster({ number, winners, format }: { number: number; winners: Array<{ match: string; manager: string; club: string | null; points: number }>; format: PosterFormat }) {
+  const rows = winners.slice(0, format === "square" ? 5 : format === "portrait" ? 6 : 8);
+  return (
+    <Frame format={format} bg="LIME">
+      <p className="text-[28px] font-bold uppercase tracking-[0.3em] text-white/70">Gameweek {number}</p>
+      <Headline className="mb-10 text-[110px]">
+        The <span className="text-[#adfc07]">winners</span>
+      </Headline>
+      <div className="w-full space-y-4">
+        {rows.map((w) => (
+          <div key={w.match} className="flex items-center gap-6 rounded-[28px] border border-white/15 bg-white/[0.06] px-8 py-5">
+            <span className="text-[44px]" aria-hidden="true">🏆</span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[22px] font-bold uppercase tracking-[0.18em] text-white/60">{w.match}</span>
+              <span className="block truncate font-display text-[46px] font-black uppercase italic leading-tight">{w.manager}</span>
+              {w.club && <span className="block truncate text-[22px] text-white/60">{w.club}</span>}
+            </span>
+            <span className="whitespace-nowrap font-display text-[56px] font-black tabular-nums text-[#adfc07]">{w.points}<span className="text-[26px] text-white/60"> pts</span></span>
+          </div>
+        ))}
+      </div>
+      <p className="mt-10 text-center text-[28px] font-semibold text-white/80">Your turn — this week&apos;s Freeroll and Free Draft are free.</p>
+    </Frame>
+  );
+}
+
 /** The Rare pack. */
 export function RarePackPoster({ price, live, cards, format }: { price: string; live: boolean; cards: CardView[]; format: PosterFormat }) {
   return (

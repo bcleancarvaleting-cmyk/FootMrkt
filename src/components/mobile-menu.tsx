@@ -32,6 +32,7 @@ const ACCOUNT: Section = {
     ["Achievements & level", "/account/achievements"],
     ["Watchlist", "/account/watchlist"],
     ["Mini-leagues", "/leagues"],
+    ["Head-to-head", "/h2h"],
     ["My Club", "/account/club"],
     ["Challenges", "/account/challenges"],
     ["Wallet & XP", "/account/wallet"],

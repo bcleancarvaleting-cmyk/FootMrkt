@@ -34,6 +34,9 @@ export function AdminChart({
         <span className="font-semibold">{title}</span>
         {last && <span className="text-sm tabular-nums text-muted">Latest: <b className="text-fg">{format(last.value)}</b></span>}
       </figcaption>
+      {points.every((p) => p.value === 0) ? (
+        <p className="flex h-[150px] items-center justify-center rounded-xl border border-dashed border-ink-700 text-sm text-faint">No data yet for these 12 weeks.</p>
+      ) : (
       <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label={`${title}. ${points.map((p) => `${p.label}: ${format(p.value)}`).join(", ")}`}>
         {[0, 0.5, 1].map((f) => (
           <g key={f}>
@@ -81,6 +84,7 @@ export function AdminChart({
           </text>
         )}
       </svg>
+      )}
     </figure>
   );
 }

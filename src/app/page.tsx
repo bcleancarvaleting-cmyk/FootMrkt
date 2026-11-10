@@ -381,32 +381,6 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
         </section>
       )}
 
-      {top.length > 0 && (
-        <section>
-          <div className="mb-3 flex items-end justify-between">
-            <h2 className="text-3xl">Top performers</h2>
-            <Link href="/top-performers" className="text-xs font-bold uppercase tracking-[0.14em] text-lime">All rankings →</Link>
-          </div>
-          <ol className="divide-y divide-ink-700 overflow-hidden rounded-2xl border border-ink-700 bg-ink-900">
-            {top.slice(0, 5).map((r, i) => (
-              <li key={r.playerId}>
-                <Link href={`/players/${r.playerId}`} className="flex items-center gap-3 px-4 py-3 hover:bg-ink-850">
-                  <span className={`w-5 text-center font-display text-lg font-black ${i === 0 ? "text-lime" : "text-muted"}`}>{i + 1}</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-semibold">{r.name}</span>
-                    <span className="block truncate text-xs text-muted">
-                      {r.position} · {r.club} · {r.leagueName}
-                    </span>
-                  </span>
-                  <span className="font-display text-2xl font-black tabular-nums">{r.points}</span>
-                  <span className="text-xs text-muted">pts</span>
-                </Link>
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
-
       <CommunityLinks />
 
       <TakeItOnTheGo />

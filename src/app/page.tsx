@@ -1,4 +1,8 @@
 import Link from "next/link";
+import { PredictionButtons } from "@/components/daily-panel";
+import { LevelBadge } from "@/components/level-badge";
+import { PREDICTION_XP, predictionPanel } from "@/server/predictions";
+import { managerLevel } from "@/server/progression";
 import { CardRow } from "@/components/card-row";
 import { Countdown } from "@/components/countdown";
 import { PlayerCard } from "@/components/player-card";
@@ -216,7 +220,7 @@ function Feature({ eyebrow, title, body, href, cta }: { eyebrow: string; title: 
 }
 
 async function Hub({ userId, name }: { userId: string; name: string }) {
-  const [gw, totals, unopened, recent, bal, drop, playerDrops, marketOn, top] = await Promise.all([
+  const [gw, totals, unopened, recent, bal, drop, playerDrops, marketOn, top, level, streak, prediction] = await Promise.all([
     currentGameweek(),
     binderTotals(userId),
     db.packEntitlement.count({ where: { userId, status: "UNOPENED" } }),
@@ -226,6 +230,9 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
     db.marketListing.count({ where: { house: true, status: "ACTIVE", liveAt: { lte: new Date() }, card: { packable: false } } }),
     isEnabled("MARKET"),
     performanceTable({ window: "last" }),
+    managerLevel(userId),
+    db.user.findUniqueOrThrow({ where: { id: userId }, select: { loginStreak: true, bestStreak: true } }),
+    predictionPanel(userId),
   ]);
   const comps = gw
     ? await db.competition.findMany({ where: { gameweekId: gw.id }, include: { entries: { where: { userId } }, _count: { select: { entries: true } } }, orderBy: { name: "asc" } })
@@ -265,6 +272,37 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
       </section>
 
       <EndedLoansBanner userId={userId} />
+
+      {/* Level · daily streak · today's prediction */}
+      <section className="grid gap-3 md:grid-cols-3">
+        <Link href="/account/achievements" className="block">
+          <LevelBadge level={level} />
+        </Link>
+        <div className="rounded-2xl border border-ink-700 bg-ink-900 p-4">
+          <p className="eyebrow">Daily streak</p>
+          <p className="mt-1 font-display text-3xl font-black">
+            {streak.loginStreak} day{streak.loginStreak === 1 ? "" : "s"} <span aria-hidden="true">🔥</span>
+          </p>
+          <div className="mt-2 flex gap-1" aria-label={`${streak.loginStreak % 7 || (streak.loginStreak ? 7 : 0)} of 7 days to a free pack`}>
+            {Array.from({ length: 7 }, (_, i) => (
+              <span key={i} className={`h-1.5 flex-1 rounded-full ${i < (streak.loginStreak % 7 || (streak.loginStreak ? 7 : 0)) ? "bg-[var(--color-chart)]" : "bg-ink-800"}`} />
+            ))}
+          </div>
+          <p className="mt-1 text-[11px] text-faint">Log in every day for XP · every 7th day a free Choice of Bronze · best {streak.bestStreak}</p>
+        </div>
+        <div className="rounded-2xl border border-ink-700 bg-ink-900 p-4">
+          <p className="eyebrow">Daily prediction · +{PREDICTION_XP} XP</p>
+          {prediction.question ? (
+            <>
+              <p className="mt-1 font-semibold">{prediction.question.question}</p>
+              <p className="mb-2 text-[11px] text-faint">Locks {fmtDate(prediction.question.locksAt)}</p>
+              <PredictionButtons questionId={prediction.question.id} initial={prediction.mine?.guess ?? null} locked={prediction.question.locksAt <= new Date()} />
+            </>
+          ) : (
+            <p className="mt-1 text-sm text-muted">No matches coming up — the next question appears with the next fixtures.</p>
+          )}
+        </div>
+      </section>
 
       {drop && (
         <Link href="/packs" className="drop-glow flex items-center gap-4 rounded-2xl border border-accent/70 bg-ink-900 px-4 py-3">

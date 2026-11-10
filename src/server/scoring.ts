@@ -187,6 +187,9 @@ export async function settleCompetition(competitionId: string, actorId: string |
     // Card history stamps for the big moments (hat-tricks, clean sheets, match winners…).
     const { stampCompetition } = await import("./stamps");
     await stampCompetition(competitionId);
+    // Achievements and level-up packs for everyone who played.
+    const { refreshProgress } = await import("./progression");
+    for (const e of await db.competitionEntry.findMany({ where: { competitionId }, select: { userId: true } })) await refreshProgress(e.userId);
   }
   return result;
 }

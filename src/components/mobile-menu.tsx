@@ -27,7 +27,11 @@ const PLAY: Section = {
 const ACCOUNT: Section = {
   title: "My account",
   links: [
+    ["Notifications", "/notifications"],
     ["Overview & invite friends", "/account"],
+    ["Achievements & level", "/account/achievements"],
+    ["Watchlist", "/account/watchlist"],
+    ["Mini-leagues", "/leagues"],
     ["My Club", "/account/club"],
     ["Challenges", "/account/challenges"],
     ["Wallet & XP", "/account/wallet"],
@@ -49,7 +53,7 @@ const GUEST: Section = {
  * Phone menu: a Menu button in the header that opens a full-screen sheet with every section of the
  * site — and, for admins, every admin page — so nothing is only reachable from the desktop header.
  */
-export function MobileMenu({ user, theme }: { user: { name: string; isAdmin: boolean; isMod: boolean } | null; theme: Theme }) {
+export function MobileMenu({ user, theme, unread = 0 }: { user: { name: string; isAdmin: boolean; isMod: boolean } | null; theme: Theme; unread?: number }) {
   const [open, setOpen] = useState(false);
   const path = usePathname();
   // The header uses backdrop-filter, which traps fixed children — so the sheet is portalled to <body>.
@@ -95,11 +99,12 @@ export function MobileMenu({ user, theme }: { user: { name: string; isAdmin: boo
         onClick={() => setOpen(true)}
         aria-label="Open menu"
         aria-expanded={open}
-        className="flex h-9 w-9 items-center justify-center rounded-xl border border-ink-700 bg-ink-900 text-fg md:hidden"
+        className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-ink-700 bg-ink-900 text-fg md:hidden"
       >
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
           <path d="M4 7h16M4 12h16M4 17h16" />
         </svg>
+        {unread > 0 && <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-ink-950 bg-danger" aria-label={`${unread} new notifications`} />}
       </button>
       {open && mounted && createPortal(
         <div className="fixed inset-0 z-[60] flex flex-col bg-ink-950 md:hidden" role="dialog" aria-modal="true" aria-label="Menu" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>

@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { after } from "next/server";
+import { onVisit } from "@/server/activity";
 import { Barlow_Condensed, Geist, Geist_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import { BottomNav } from "@/components/bottom-nav";
@@ -31,7 +33,12 @@ export const viewport: Viewport = { themeColor: "#07080a", width: "device-width"
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const theme: Theme = (await cookies()).get("collectr_theme")?.value === "light" ? "light" : "dark";
   const [user, stats] = await Promise.all([getCurrentUser(), liveStats()]);
-  if (user) await grantDueWelcomePacks(user.id);
+  if (user) {
+    await grantDueWelcomePacks(user.id);
+    // Streak, achievements, level rewards and predictions — after the page has been sent.
+    const userId = user.id;
+    after(() => onVisit(userId));
+  }
   const unopened = user ? await db.packEntitlement.count({ where: { userId: user.id, status: "UNOPENED" } }) : 0;
   return (
     <html

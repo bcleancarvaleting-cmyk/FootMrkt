@@ -47,6 +47,10 @@ model User {
   // The manager's own club: its name and a crest they design (shape, colours, pattern, emblem, initials).
   clubName                 String?
   crest                    Json?
+  // Daily login streak (UK calendar days).
+  loginStreak              Int        @default(0)
+  bestStreak               Int        @default(0)
+  lastActiveDay            String? // YYYY-MM-DD
   role                     UserRole   @default(USER)
   status                   UserStatus @default(ACTIVE)
   emailVerifiedAt          DateTime?
@@ -360,6 +364,93 @@ model CardStamp {
 
   @@unique([cardId, kind, competitionId])
   @@index([userId])
+}
+
+// Achievements a manager has unlocked (codes are defined in src/config/achievements.ts).
+model UserAchievement {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  code       String
+  unlockedAt DateTime @default(now())
+
+  @@unique([userId, code])
+  @@index([userId])
+}
+
+// In-app notifications: achievements, level-ups, streak rewards, watchlist and price alerts.
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  kind      String
+  title     String
+  body      String
+  href      String?
+  // Stops the same alert being sent twice (e.g. "drop:<listingId>:<userId>").
+  dedupeKey String?   @unique
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// Private mini-leagues: friends compete on their gameweek scores. Join with a 6-character code.
+model MiniLeague {
+  id        String             @id @default(uuid()) @db.Uuid
+  name      String
+  code      String             @unique
+  ownerId   String             @db.Uuid
+  createdAt DateTime           @default(now())
+  members   MiniLeagueMember[]
+}
+
+model MiniLeagueMember {
+  id       String     @id @default(uuid()) @db.Uuid
+  leagueId String     @db.Uuid
+  league   MiniLeague @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  userId   String   @db.Uuid
+  joinedAt DateTime @default(now())
+
+  @@unique([leagueId, userId])
+  @@index([userId])
+}
+
+// Daily prediction: one yes/no question a day about a real upcoming match; right answers pay XP.
+model PredictionQuestion {
+  id         String             @id @default(uuid()) @db.Uuid
+  day        String             @unique // YYYY-MM-DD
+  kind       String // SCORE (will they score?)
+  question   String
+  playerId   String             @db.Uuid
+  fixtureId  String             @db.Uuid
+  locksAt    DateTime
+  answer     Boolean?
+  resolvedAt DateTime?
+  answers    PredictionAnswer[]
+}
+
+model PredictionAnswer {
+  id         String             @id @default(uuid()) @db.Uuid
+  questionId String             @db.Uuid
+  question   PredictionQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  userId     String             @db.Uuid
+  guess      Boolean
+  correct    Boolean?
+  createdAt  DateTime           @default(now())
+
+  @@unique([questionId, userId])
+  @@index([userId])
+}
+
+// Watchlist: players a manager follows, with an optional "tell me if listed at or under" price.
+model WatchItem {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @db.Uuid
+  playerId      String   @db.Uuid
+  maxPriceMinor Int?
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, playerId])
+  @@index([playerId])
 }
 
 enum AcquisitionKind {

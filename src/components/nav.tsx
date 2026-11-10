@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { unreadCount } from "@/server/notifications";
 import Link from "next/link";
 import { getCurrentUser } from "@/server/auth/session";
 import { isEnabled } from "@/server/flags";
@@ -22,7 +23,7 @@ export function Logo({ height = 26 }: { height?: number }) {
 
 export async function Header({ theme, unopenedPacks }: { theme: Theme; unopenedPacks: number }) {
   const user = await getCurrentUser();
-  const [bal, beta] = await Promise.all([user ? balancesFor(user.id) : null, isEnabled("BETA")]);
+  const [bal, beta, unread] = await Promise.all([user ? balancesFor(user.id) : null, isEnabled("BETA"), user ? unreadCount(user.id) : 0]);
   return (
     <header
       className="sticky z-30 border-b border-ink-800 bg-ink-950/90 backdrop-blur-xl"
@@ -40,6 +41,17 @@ export async function Header({ theme, unopenedPacks }: { theme: Theme; unopenedP
           </span>
           {user && bal ? (
             <>
+              <Link
+                href="/notifications"
+                className="relative hidden h-9 w-9 items-center justify-center rounded-xl border border-ink-700 bg-ink-900 text-fg hover:border-ink-600 md:flex"
+                aria-label={unread ? `${unread} new notifications` : "Notifications"}
+              >
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15Z" />
+                  <path d="M10 20a2 2 0 0 0 4 0" />
+                </svg>
+                {unread > 0 && <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-danger px-1 text-center text-[10px] font-bold leading-4 text-white">{unread > 9 ? "9+" : unread}</span>}
+              </Link>
               <Link
                 href="/account/wallet"
                 className="flex items-center gap-2 whitespace-nowrap rounded-xl border border-ink-700 bg-ink-900 px-3 py-1.5 text-sm font-bold tabular-nums hover:border-ink-600"
@@ -67,7 +79,7 @@ export async function Header({ theme, unopenedPacks }: { theme: Theme; unopenedP
               </Link>
             </>
           )}
-          <MobileMenu theme={theme} user={user ? { name: user.displayName, isAdmin: user.role === "ADMIN", isMod: canModerate(user.role) } : null} />
+          <MobileMenu theme={theme} unread={unread} user={user ? { name: user.displayName, isAdmin: user.role === "ADMIN", isMod: canModerate(user.role) } : null} />
         </div>
       </div>
     </header>

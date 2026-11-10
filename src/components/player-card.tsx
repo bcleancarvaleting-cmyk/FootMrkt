@@ -105,6 +105,11 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
           <PlayerImage card={card} />
           <div className="pointer-events-none absolute left-1 top-1 flex flex-col items-start gap-1">
             {finish && <FinishPill finish={finish} id={`badge-${card.id}`} size="xs" />}
+            {card.stamps > 0 && (
+              <span title={`${card.stamps} history stamp${card.stamps === 1 ? "" : "s"}`}>
+                <Badge tone="muted">★ {card.stamps}</Badge>
+              </span>
+            )}
             {card.lock === "COMPETITION" && <Badge tone="lime">In squad</Badge>}
             {card.lock === "LISTED" && <Badge tone="warn">Listed</Badge>}
             {card.loan && (card.loan.ended ? <Badge tone="warn">Loan ended</Badge> : <Badge tone="muted">On loan</Badge>)}

@@ -19,6 +19,8 @@ export interface CardView {
   finish: { kind: "RUBY" | "DIAMOND" | "RAINBOW"; serial: number; of: number } | null;
   /** Copies of this design issued so far (null when not looked up). */
   issued: number | null;
+  /** History stamps earned by this copy (hat-tricks, clean sheets, match wins…). */
+  stamps: number;
   clubCode: string | null;
   clubShort: string | null;
   clubName: string | null;
@@ -95,6 +97,7 @@ export function toCardView(
     duplicateCount?: number;
     loan?: { left: number; ended: boolean };
     issued?: number;
+    stamps?: number;
   } = {},
 ): CardView {
   const p = c.template.player;
@@ -113,6 +116,7 @@ export function toCardView(
       ? { kind: c.finish.kind as "RUBY" | "DIAMOND" | "RAINBOW", serial: c.finish.serial, of: c.finish.kind === "RAINBOW" ? 1 : c.finish.kind === "DIAMOND" ? 5 : 10 }
       : null,
     issued: extra.issued ?? null,
+    stamps: extra.stamps ?? 0,
     clubCode: p.club?.code ?? null,
     clubShort: p.club?.shortName ?? null,
     clubName: p.club?.name ?? null,

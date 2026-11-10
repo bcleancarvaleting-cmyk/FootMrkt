@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { STAMPS, type StampKind, stampsForCard } from "@/server/stamps";
 import { FINISH_STYLE, FinishPill } from "@/components/finish-art";
 import { discardLoanAction } from "@/app/actions/account";
 import { notFound } from "next/navigation";
@@ -32,6 +33,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
   const [view] = await enrichCards([card]);
   const favourite = user ? !!(await db.favouriteCard.findUnique({ where: { userId_cardId: { userId: user.id, cardId: id } } })) : false;
   const listing = card.listings[0];
+  const stamps = await stampsForCard(id);
   const pointsHistory =
     isOwner && user
       ? await db.cardPoints.findMany({
@@ -164,6 +166,32 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
         </section>
           </>
         )}
+
+        <section className="panel p-5">
+          <div className="mb-3 flex items-baseline justify-between">
+            <h2 className="font-bold">Card history</h2>
+            <span className="text-xs text-faint">{stamps.length ? `${stamps.length} stamp${stamps.length === 1 ? "" : "s"}` : ""}</span>
+          </div>
+          {stamps.length ? (
+            <ul className="space-y-2">
+              {stamps.map((st) => (
+                <li key={st.id} className="flex items-start gap-3 rounded-xl border border-gold/30 bg-gold/5 px-3 py-2">
+                  <span className="mt-0.5 w-9 shrink-0 text-center text-sm" aria-hidden="true">
+                    {STAMPS[st.kind as StampKind]?.icon ?? "★"}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-bold text-gold">{st.label}</span>
+                    <span className="block text-xs text-muted">{st.detail}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-faint">
+              No stamps yet. When this player scores a hat-trick, keeps a clean sheet, or wins a match while in your squad, it&apos;s stamped on this card for good.
+            </p>
+          )}
+        </section>
 
         {isOwner && (
           <section className="panel p-5">

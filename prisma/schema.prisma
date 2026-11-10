@@ -312,6 +312,7 @@ model CardInstance {
   points     CardPoints[]
   auctions   Auction[]
   finish     CardFinish?
+  stamps     CardStamp[]
 
   @@unique([templateId, serial])
   @@index([supplyState])
@@ -339,6 +340,26 @@ model CardFinish {
   createdAt DateTime       @default(now())
 
   @@unique([playerId, kind, serial])
+}
+
+// Card history stamps (product decision 10 Nov 2026): permanent marks on a card for what its player
+// did while in a manager's squad — "Hat-trick vs Arsenal · GW12 · in Hackney Wanderers' squad".
+// They make two copies of the same player different. Written once at settlement (idempotent).
+model CardStamp {
+  id            String       @id @default(uuid()) @db.Uuid
+  cardId        String       @db.Uuid
+  card          CardInstance @relation(fields: [cardId], references: [id])
+  userId        String       @db.Uuid
+  kind          String // HAT_TRICK, BRACE, PLAYMAKER, CLEAN_SHEET, PEN_SAVE, CAPTAIN_HAUL, BIG_HAUL, MATCH_WINNER
+  label         String
+  detail        String
+  gameweek      Int
+  competitionId String       @db.Uuid
+  points        Float
+  createdAt     DateTime     @default(now())
+
+  @@unique([cardId, kind, competitionId])
+  @@index([userId])
 }
 
 enum AcquisitionKind {

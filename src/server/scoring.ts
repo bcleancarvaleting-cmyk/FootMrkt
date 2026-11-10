@@ -182,7 +182,12 @@ export async function settleCompetition(competitionId: string, actorId: string |
     });
     return { alreadySettled: false, entries: totals.length };
   });
-  if (!result.alreadySettled) await settlementEmails(competitionId);
+  if (!result.alreadySettled) {
+    await settlementEmails(competitionId);
+    // Card history stamps for the big moments (hat-tricks, clean sheets, match winners…).
+    const { stampCompetition } = await import("./stamps");
+    await stampCompetition(competitionId);
+  }
   return result;
 }
 

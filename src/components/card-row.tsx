@@ -30,6 +30,7 @@ export function CardRow({ card, href, children, sub }: { card: CardView; href?: 
         <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted">
           <ClubBadge short={card.clubShort} primary={card.clubPrimary} secondary={card.clubSecondary} kit={card.kit} crestUrl={card.crestUrl} size={14} title={card.clubName ?? undefined} />
           <span className="truncate">{card.clubName ?? "Free agent"}</span>
+          {card.stamps > 0 && <span className="rounded bg-ink-700 px-1.5 text-[10px] font-bold text-gold" title="History stamps">★ {card.stamps}</span>}
           {sub}
         </span>
       </span>

@@ -6,6 +6,7 @@ import { STARTER_PACK_CODE } from "@/config/packs";
 import { ensureTemplate, mintInstances } from "./cards";
 import { type Tx, db, withTx } from "./db";
 import { DomainError } from "./errors";
+import { cardsTradeableNow } from "./launch";
 
 /**
  * Server-side pack engine (spec §5.3).
@@ -64,6 +65,7 @@ export async function openPack(
   entitlementId: string,
   rng: RandomSource = cryptoRandom,
 ): Promise<OpenPackResult> {
+  const tradeableNow = await cardsTradeableNow();
   return withTx(async (tx) => {
     // Atomically consume the entitlement. Only one transaction can win this update.
     const consumed = await tx.packEntitlement.updateMany({
@@ -131,7 +133,7 @@ export async function openPack(
       if (cfg.mode === "POOL") {
         const updated = await tx.cardInstance.updateMany({
           where: { id: d.cardId, supplyState: { in: ["AVAILABLE", "RECIRCULATING"] } },
-          data: { supplyState: "HELD", ownerId: userId, ...(nonTradeable ? { tradeStatus: "NON_TRADEABLE" } : {}) },
+          data: { supplyState: "HELD", ownerId: userId, ...(nonTradeable || !tradeableNow ? { tradeStatus: "NON_TRADEABLE" } : {}) },
         });
         if (updated.count !== 1) throw new Error(`Card ${d.cardId} left the pool mid-opening`);
       }

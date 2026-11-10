@@ -109,7 +109,10 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
           </Link>
         </div>
         {!flags.PAID_PACKS && (
-          <p className="mb-5 rounded-xl border border-warn/40 bg-warn/10 px-4 py-3 text-sm">Card payments open once our UK legal and payment-provider review is complete. You can already use MP you&apos;ve earned.</p>
+          <p className="mb-5 rounded-xl border border-warn/40 bg-warn/10 px-4 py-3 text-sm">
+            Card payments open once our UK legal and payment-provider review is complete. You can already use MP you&apos;ve earned. Cards you open before then
+            are yours to keep and play, but can&apos;t be resold.
+          </p>
         )}
         <div className="space-y-8">
           {order.map((region) => (

@@ -8,6 +8,7 @@ import { OfferButton } from "@/components/transfer-forms";
 import type { CardCategory, Position } from "@/generated/prisma/client";
 import { requireUser } from "@/server/auth/session";
 import { isEnabled } from "@/server/flags";
+import { cardsTradeableNow } from "@/server/launch";
 import { transferBoard } from "@/server/transfers-view";
 import { DEPOSIT_PRESETS_GBP, balancesFor, fmtMp } from "@/server/wallet";
 
@@ -37,7 +38,7 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
   const tier = TIERS.find((t) => t === sp.tier) as CardCategory | undefined;
   const pos = POSITIONS.find((p) => p === sp.pos) as Position | undefined;
   const sort = (SORTS.find(([k]) => k === sp.sort)?.[0] ?? "new") as "new";
-  const [open, rows, bal] = await Promise.all([isEnabled("MARKET"), transferBoard({ tier, pos, q: sp.q?.trim() || undefined, sort }, user.id), balancesFor(user.id)]);
+  const [open, tradeableNow, rows, bal] = await Promise.all([isEnabled("MARKET"), cardsTradeableNow(), transferBoard({ tier, pos, q: sp.q?.trim() || undefined, sort }, user.id), balancesFor(user.id)]);
 
   return (
     <div>
@@ -59,6 +60,9 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
         ))}
       </div>
 
+      {!tradeableNow && (
+        <GateNotice>Cards you get before paid packs launch are yours to keep and play, but they can&apos;t be resold.</GateNotice>
+      )}
       {!open && <GateNotice>Trading isn&apos;t switched on yet — it opens once our UK legal and payment checks are complete. You can browse in the meantime.</GateNotice>}
 
       <div className="mb-4 flex flex-wrap items-center gap-2">

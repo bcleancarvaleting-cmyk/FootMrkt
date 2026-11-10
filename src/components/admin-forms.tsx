@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { addWelcomeGiftAction, wipeTeamsAction, competitionRulesAction, createAuctionAction, createChallengeAction, pinnedListingsAction, scheduleDropAction, stockHouseAction } from "@/app/actions/economy";
+import { addWelcomeGiftAction, competitionRulesAction, createAuctionAction, createChallengeAction, pinnedListingsAction, scheduleDropAction, stockHouseAction } from "@/app/actions/economy";
 import type { ActionResult } from "@/app/actions/result";
 import { ResultText } from "./action-button";
 
@@ -157,35 +157,5 @@ export function PinnedListingsForm() {
       </div>
       <I name="days" label="Listed for (days)" type="number" min="1" max="30" defaultValue="14" />
     </Form>
-  );
-}
-
-export function WipeTeamsForm() {
-  const [state, run, pending] = useActionState(wipeTeamsAction, null);
-  return (
-    <form
-      action={run}
-      onSubmit={(e) => {
-        if (!window.confirm("Wipe every team? Cards, packs, listings and MP go for everyone. This can't be undone.")) e.preventDefault();
-      }}
-      className="space-y-3"
-    >
-      <div className="flex flex-wrap gap-4 text-sm">
-        <label className="flex items-center gap-2">
-          <input type="checkbox" name="freshStarter" defaultChecked className="accent-lime" /> Give everyone a new Starter Pack
-        </label>
-        <label className="flex items-center gap-2">
-          <input type="checkbox" name="freshRelease" defaultChecked className="accent-lime" /> Mint a fresh card release
-        </label>
-      </div>
-      <div className="flex flex-wrap items-end gap-3">
-        <div>
-          <label className="label" htmlFor="f-confirm">Type WIPE TEAMS to confirm</label>
-          <input id="f-confirm" name="confirm" className="input w-56" autoComplete="off" required />
-        </div>
-        <button className="btn-danger" disabled={pending}>{pending ? "Wiping…" : "Wipe all teams"}</button>
-      </div>
-      {state && <ResultText result={state} />}
-    </form>
   );
 }

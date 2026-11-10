@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { backfillFoundersAction, cancelAuctionAction, cancelDropAction, clearHouseAction, launchMixAction, processWithdrawalAction, syncPacksAction, toggleChallengeAction, updateWelcomeGiftAction } from "@/app/actions/economy";
+import { backfillFoundersAction, lockHeldCardsAction, cancelAuctionAction, cancelDropAction, clearHouseAction, launchMixAction, processWithdrawalAction, syncPacksAction, toggleChallengeAction, updateWelcomeGiftAction } from "@/app/actions/economy";
 import { ActionButton } from "@/components/action-button";
-import { AuctionForm, ChallengeForm, DropForm, HouseStockForm, MatchRulesForm, PinnedListingsForm, WelcomeGiftForm, WipeTeamsForm } from "@/components/admin-forms";
-import { wipePreview } from "@/server/trial";
+import { AuctionForm, ChallengeForm, DropForm, HouseStockForm, MatchRulesForm, PinnedListingsForm, WelcomeGiftForm } from "@/components/admin-forms";
 import { isEnabled } from "@/server/flags";
 import { LAUNCH_MIX } from "@/config/transfers";
 import { FOOTBALL_PACKS } from "@/config/packs";
@@ -30,7 +29,7 @@ function Section({ title, intro, children }: { title: string; intro?: string; ch
 
 export default async function EconomyAdmin() {
   await requireAdmin();
-  const [drops, auctions, challenges, comps, withdrawals, fees, gifts, house, founders, nonFounders, foundingOpen, wipe] = await Promise.all([
+  const [drops, auctions, challenges, comps, withdrawals, fees, gifts, house, founders, nonFounders, foundingOpen, tradeableHeld, paidPacks] = await Promise.all([
     upcomingDrops(),
     db.auction.findMany({ where: { status: { in: ["LIVE", "SCHEDULED"] } }, include: { card: { include: { template: { include: { player: true } } } }, bids: { where: { status: "LEADING" } } }, orderBy: { endsAt: "asc" } }),
     db.challenge.findMany({ orderBy: { createdAt: "desc" }, include: { _count: { select: { completions: true } } } }),
@@ -42,7 +41,8 @@ export default async function EconomyAdmin() {
     db.user.count({ where: { foundingNumber: { not: null } } }),
     db.user.count({ where: { foundingNumber: null } }),
     isEnabled("FOUNDING_SIGNUPS"),
-    wipePreview(),
+    db.cardInstance.count({ where: { supplyState: "HELD", tradeStatus: "TRADEABLE" } }),
+    isEnabled("PAID_PACKS"),
   ]);
   const houseActive = house.find((h) => h.status === "ACTIVE")?._count._all ?? 0;
   const houseSold = house.find((h) => h.status === "SOLD");
@@ -61,8 +61,8 @@ export default async function EconomyAdmin() {
         <ActionButton action={syncPacksAction}>Publish new pack versions</ActionButton>
       </div>
 
-      <Section title="Free trial & founding members" intro="Everyone who signs up while Founding sign-ups is on becomes a numbered Founding Member, with a badge next to their name for good. When the trial ends, wipe the teams: accounts, badges, match history and £ winnings stay.">
-        <div className="mb-4 flex flex-wrap items-center gap-3 text-sm">
+      <Section title="Founding members" intro="Everyone who signs up while Founding sign-ups is on becomes a numbered Founding Member, with a badge next to their name for good. Use the match rule 'Founding members only' for founders' freerolls.">
+        <div className="flex flex-wrap items-center gap-3 text-sm">
           <span><b>{founders}</b> founding members</span>
           <span className={`tag ${foundingOpen ? "text-lime" : "text-faint"}`}>Founding sign-ups {foundingOpen ? "open" : "closed"}</span>
           <Link href="/admin#flags" className="text-xs text-muted underline">Switch on/off in Feature flags</Link>
@@ -70,13 +70,16 @@ export default async function EconomyAdmin() {
             <ActionButton action={backfillFoundersAction} className="btn-ghost px-3 py-1.5 text-[11px]">Make the other {nonFounders} account(s) founders</ActionButton>
           )}
         </div>
-        <p className="mb-3 text-sm text-muted">
-          Wipe will retire <b className="text-fg">{wipe.held}</b> cards in clubs, revoke <b className="text-fg">{wipe.unopened}</b> unopened packs, close <b className="text-fg">{wipe.listings}</b> listings and{" "}
-          <b className="text-fg">{wipe.auctions}</b> auctions (offers and bids returned first), withdraw squads from matches that haven&apos;t locked, and reset{" "}
-          <b className="text-fg">{fmtMp(wipe.mpMinor)}</b> of MP to zero across {wipe.users} accounts.
-          {wipe.inPlay > 0 && <span className="text-warn"> {wipe.inPlay} match(es) are live — settle the gameweek first.</span>}
-        </p>
-        <WipeTeamsForm />
+      </Section>
+
+      <Section title="Launch: untradeable cards" intro="Until paid packs are switched on, every card a manager gets (packs, MATCHX listings, auctions) is untradeable for good. They keep it, play it, use it in sets and challenges, but can't sell it. Handed-in cards go back into packs as tradeable.">
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <span className={`tag ${paidPacks ? "text-lime" : "text-warn"}`}>{paidPacks ? "Paid packs live — new cards are tradeable" : "Launch period — new cards are untradeable"}</span>
+          <span><b>{tradeableHeld}</b> tradeable card(s) currently held</span>
+          {!paidPacks && tradeableHeld > 0 && (
+            <ActionButton action={lockHeldCardsAction} className="btn-ghost px-3 py-1.5 text-[11px]" confirm="Make every card managers hold untradeable?">Make them untradeable</ActionButton>
+          )}
+        </div>
       </Section>
 
       <Section title="Welcome gifts" intro="Free untradeable packs every new manager gets after the Starter Pack, counted in days from registering. Changes apply to everyone who hasn't received that gift yet.">

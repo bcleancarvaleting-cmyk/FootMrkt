@@ -174,7 +174,7 @@ describe("winnings", () => {
   });
 });
 
-describe("free trial: founding members and the team wipe", () => {
+describe("founding members", () => {
   it("sign-ups get sequential founding numbers while founding sign-ups are open, none after", async () => {
     const a = await makeUser("founder1");
     const b = await makeUser("founder2");
@@ -198,25 +198,28 @@ describe("free trial: founding members and the team wipe", () => {
     expect((await db.competition.findUniqueOrThrow({ where: { id: comp.id } })).rewards).toEqual([{ rankFrom: 1, rankTo: 1, cashMinor: 1000 }]);
   });
 
-  it("wiping teams clears cards, packs, listings and MP but keeps accounts, badges and £ winnings", async () => {
-    const { wipeTeams } = await import("@/server/trial");
-    const { creditWinnings } = await import("@/server/wallet");
-    const admin = await makeUser("adm8");
-    const { userId } = await makeUser("player8");
-    await bronzePack(userId, 1);
-    await withTx((tx) => credit(tx, { userId, amountMinor: 700, kind: "DEPOSIT", bucket: "CASH", refId: "w-c" }));
-    await withTx((tx) => credit(tx, { userId, amountMinor: 300, kind: "CHALLENGE_REWARD", refId: "w-b" }));
-    await withTx((tx) => creditWinnings(tx, { userId, amountMinor: 1000, refId: "w-w" }));
-    await expect(wipeTeams(admin.userId, { confirm: "nope", freshStarter: true, freshRelease: false })).rejects.toMatchObject({ code: "CONFIRM" });
-    const r = await wipeTeams(admin.userId, { confirm: "wipe teams", freshStarter: true, freshRelease: true });
-    expect(r.cardsRetired).toBeGreaterThan(0);
-    expect(await db.cardInstance.count({ where: { ownerId: userId } })).toBe(0);
-    expect(await balancesFor(userId)).toMatchObject({ total: 0, winnings: 1000 });
-    const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
-    expect(user.foundingNumber).not.toBeNull();
-    const packs = await db.packEntitlement.findMany({ where: { userId, status: "UNOPENED" }, include: { packSku: true } });
-    expect(packs.map((p) => p.packSku.code)).toEqual(["football-starter"]);
-    expect(r.minted).toBeGreaterThan(0);
-    expect((await supplyReport()).reconciled).toBe(true);
+});
+
+describe("launch period: untradeable cards", () => {
+  it("before paid packs, cards from packs are untradeable but still count for sets and challenges; handed-in cards return tradeable", async () => {
+    const { userId } = await makeUser("launch1");
+    const ids = await bronzePack(userId, 1);
+    const cards = await db.cardInstance.findMany({ where: { id: { in: ids } } });
+    expect(cards.every((c) => c.tradeStatus === "NON_TRADEABLE")).toBe(true);
+    const ch = await db.challenge.create({ data: { code: "t-launch", name: "L", description: "", criteria: { count: 2 }, rewardMinor: 100 } });
+    await completeChallenge(userId, ch.id, ids.slice(0, 2), "launch-k");
+    const back = await db.cardInstance.findMany({ where: { id: { in: ids.slice(0, 2) } } });
+    expect(back.every((c) => c.supplyState === "RECIRCULATING" && c.tradeStatus === "TRADEABLE")).toBe(true);
+  });
+
+  it("once paid packs are live, new cards are tradeable; lockAllHeldCards locks what's already held", async () => {
+    const { lockAllHeldCards } = await import("@/server/launch");
+    process.env.LEGAL_GATES_CLEARED = "PAID_PACKS";
+    process.env.FLAG_PAID_PACKS = "true";
+    const { userId } = await makeUser("launch2");
+    const ids = await bronzePack(userId, 1);
+    expect((await db.cardInstance.findMany({ where: { id: { in: ids } } })).every((c) => c.tradeStatus === "TRADEABLE")).toBe(true);
+    expect(await lockAllHeldCards()).toBe(ids.length);
+    expect((await db.cardInstance.findMany({ where: { id: { in: ids } } })).every((c) => c.tradeStatus === "NON_TRADEABLE")).toBe(true);
   });
 });

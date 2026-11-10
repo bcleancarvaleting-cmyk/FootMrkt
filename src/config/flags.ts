@@ -38,7 +38,7 @@ export const FLAG_DEFINITIONS = {
     env: "FLAG_FOUNDING_SIGNUPS",
     default: true,
     legalGate: false,
-    description: "New sign-ups become Founding Members (badge kept forever). Switch off when the free trial ends.",
+    description: "New sign-ups become numbered Founding Members (badge kept forever). Switch off when the founding period ends.",
   },
   DEV_TOOLS: {
     env: "FLAG_DEV_TOOLS",

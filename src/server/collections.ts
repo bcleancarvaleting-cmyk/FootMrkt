@@ -10,8 +10,9 @@ import { SET_REWARD_MP_MINOR, credit } from "./wallet";
  * RECIRCULATING (they are only ever re-issued through normal pack openings). Instance ids and
  * the full ownership history are preserved.
  *
- * Only TRADEABLE, unlocked cards count towards completion: starter cards are permanently locked
- * and listed/competition cards are busy.
+ * Only unlocked pool cards (STANDARD edition) count towards completion — free/starter copies are a
+ * separate edition, and listed/competition cards are busy. Launch-period cards that are untradeable
+ * still count; once handed in they go back into packs as tradeable cards.
  * Reward: £10 of MP credit per completed set (confirmed 9 Nov 2026); set definitions TO CONFIRM.
  */
 
@@ -24,12 +25,12 @@ export async function setProgress(userId: string) {
   const templateIds = sets.flatMap((s) => s.requirements.map((r) => r.templateId));
   const owned = await db.cardInstance.findMany({
     where: { ownerId: userId, supplyState: "HELD", templateId: { in: templateIds } },
-    select: { id: true, templateId: true, lock: true, tradeStatus: true },
+    select: { id: true, templateId: true, lock: true, template: { select: { edition: true } } },
   });
   return sets.map((set) => {
     const reqs = set.requirements.map((r) => {
       const mine = owned.filter((c) => c.templateId === r.templateId);
-      const usable = mine.filter((c) => c.lock === "NONE" && c.tradeStatus === "TRADEABLE");
+      const usable = mine.filter((c) => c.lock === "NONE" && c.template.edition === "STANDARD");
       return { requirement: r, owned: mine.length, usable: usable.length, satisfied: usable.length >= r.quantity };
     });
     return { set, requirements: reqs, complete: reqs.every((r) => r.satisfied) };
@@ -49,7 +50,7 @@ export async function completeSet(userId: string, setId: string, idempotencyKey:
         const cards = await tx.$queryRaw<Array<{ id: string }>>`
           SELECT id FROM "CardInstance"
           WHERE "ownerId" = ${userId}::uuid AND "templateId" = ${req.templateId}::uuid AND "supplyState" = 'HELD'
-            AND "lock" = 'NONE' AND "tradeStatus" = 'TRADEABLE'
+            AND "lock" = 'NONE'
           ORDER BY serial DESC LIMIT ${req.quantity} FOR UPDATE`;
         if (cards.length < req.quantity) throw new DomainError("INCOMPLETE", "You don't have every card needed for this collection.");
         chosen.push(...cards.map((c) => c.id));
@@ -66,7 +67,7 @@ export async function completeSet(userId: string, setId: string, idempotencyKey:
       if (closed.count !== chosen.length) throw new Error("Ownership records out of sync");
       const moved = await tx.cardInstance.updateMany({
         where: { id: { in: chosen }, ownerId: userId, supplyState: "HELD", lock: "NONE" },
-        data: { supplyState: "RECIRCULATING", ownerId: null, recycledCount: { increment: 1 } },
+        data: { supplyState: "RECIRCULATING", ownerId: null, tradeStatus: "TRADEABLE", recycledCount: { increment: 1 } },
       });
       if (moved.count !== chosen.length) throw new Error("Cards changed during completion");
       await tx.favouriteCard.deleteMany({ where: { cardId: { in: chosen } } });

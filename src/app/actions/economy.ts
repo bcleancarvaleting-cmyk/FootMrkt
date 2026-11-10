@@ -10,7 +10,9 @@ import { DomainError } from "@/server/errors";
 import { syncPackCatalogue } from "@/server/packs";
 import { cancelAuction, clearHouseListings, createAuction, stockHouseListings, stockLaunchMix, stockPinnedListings } from "@/server/transfers";
 import { addWelcomeGift, updateWelcomeGift } from "@/server/welcome";
-import { backfillFoundingMembers, wipeTeams } from "@/server/trial";
+import { backfillFoundingMembers } from "@/server/founders";
+import { lockAllHeldCards } from "@/server/launch";
+import { audit } from "@/server/audit";
 import { processWithdrawal } from "@/server/wallet";
 import { type ActionResult, attempt } from "./result";
 
@@ -202,11 +204,14 @@ export async function backfillFoundersAction(): Promise<ActionResult> {
   return res.ok ? { ok: true, data: undefined, message: `${res.data} manager(s) made Founding Members` } : res;
 }
 
-export async function wipeTeamsAction(_: ActionResult | null, f: FormData): Promise<ActionResult> {
+
+export async function lockHeldCardsAction(): Promise<ActionResult> {
   const admin = await requireAdmin();
-  const res = await attempt(() => wipeTeams(admin.id, { confirm: str(f, "confirm"), freshStarter: f.get("freshStarter") === "on", freshRelease: f.get("freshRelease") === "on" }));
+  const res = await attempt(async () => {
+    const n = await lockAllHeldCards();
+    await audit(db, { actorId: admin.id, action: "launch.lock_cards", entityType: "CardInstance", after: { locked: n } });
+    return n;
+  });
   done();
-  if (!res.ok) return res;
-  const s = res.data;
-  return { ok: true, data: undefined, message: `Teams wiped: ${s.cardsRetired} cards retired · ${s.listingsClosed} listings closed · ${s.entriesWithdrawn} entries withdrawn · ${s.mpReset} MP balances reset · ${s.starters} new Starter Packs · ${s.minted} cards minted` };
+  return res.ok ? { ok: true, data: undefined, message: `${res.data} card(s) made untradeable` } : res;
 }

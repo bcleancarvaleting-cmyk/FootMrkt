@@ -53,7 +53,9 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
       : card.lock === "COMPETITION"
         ? "Locked in a competition squad"
         : card.tradeStatus === "NON_TRADEABLE"
-          ? "Owned · untradeable"
+          ? card.template.edition === "STANDARD"
+            ? "Owned · untradeable (issued before paid packs launched)"
+            : "Owned · free card, untradeable"
           : "Owned · available";
 
   return (

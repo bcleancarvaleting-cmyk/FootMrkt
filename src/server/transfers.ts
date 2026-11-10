@@ -5,6 +5,7 @@ import { lockOwnedCard } from "./cards";
 import { type Tx, db, withTx } from "./db";
 import { DomainError } from "./errors";
 import { requireFlag } from "./flags";
+import { cardsTradeableNow } from "./launch";
 import { latestValues } from "./valuation";
 import { credit, debit, fmtMp, lockWallet, release } from "./wallet";
 
@@ -137,7 +138,8 @@ async function settleHouseSale(tx: Tx, listing: { id: string; cardId: string }, 
   const now = new Date();
   await tx.marketListing.update({ where: { id: listing.id }, data: { status: "SOLD", buyerId, soldPriceMinor: priceMinor, soldAt: now } });
   await tx.cardOwnership.create({ data: { cardId: listing.cardId, userId: buyerId, acquiredVia: "MARKET", acquiredRef: `listing:${listing.id}`, acquiredAt: now } });
-  await tx.cardInstance.update({ where: { id: listing.cardId }, data: { supplyState: "HELD", ownerId: buyerId, lock: "NONE", lockRef: null } });
+  const tradeStatus = (await cardsTradeableNow()) ? "TRADEABLE" : "NON_TRADEABLE";
+  await tx.cardInstance.update({ where: { id: listing.cardId }, data: { supplyState: "HELD", ownerId: buyerId, lock: "NONE", lockRef: null, tradeStatus } });
   return { fee: 0 };
 }
 
@@ -340,7 +342,8 @@ export async function settleAuctions(now = new Date()) {
       await release(tx, { userId: top.userId, refId: `bid:${top.id}`, kind: "AUCTION_RELEASE", note: "Auction won" });
       await debit(tx, { userId: top.userId, amountMinor: top.amountMinor, kind: "MARKET_PURCHASE", refId: `auction:${id}:win`, note: "Auction won" });
       await tx.auctionBid.update({ where: { id: top.id }, data: { status: "WON" } });
-      await tx.cardInstance.update({ where: { id: a.cardId }, data: { supplyState: "HELD", ownerId: top.userId, lock: "NONE", lockRef: null } });
+      const tradeStatus = (await cardsTradeableNow()) ? "TRADEABLE" : "NON_TRADEABLE";
+      await tx.cardInstance.update({ where: { id: a.cardId }, data: { supplyState: "HELD", ownerId: top.userId, lock: "NONE", lockRef: null, tradeStatus } });
       await tx.cardOwnership.create({ data: { cardId: a.cardId, userId: top.userId, acquiredVia: "MARKET", acquiredRef: `auction:${id}`, acquiredAt: now } });
       await tx.auction.update({ where: { id }, data: { status: "SETTLED", winnerId: top.userId, winningBidMinor: top.amountMinor, settledAt: now } });
     });

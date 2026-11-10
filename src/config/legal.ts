@@ -40,6 +40,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
           "Packs cost the price shown (for example £2.99 by card or 2.99 MP). The odds for every pack are published on the Packs page and fixed for each pack version.",
           "What you get from a pack is random. Card values shown are estimates and can go down as well as up.",
           "Free and starter packs are untradeable.",
+          "Cards issued before paid packs launch (from packs, MATCHX listings or auctions) are permanently untradeable. You keep them and can play with them, use them in sets and hand them in for challenges, but you can't sell them.",
         ],
       ],
       [

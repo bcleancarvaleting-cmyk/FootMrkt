@@ -42,8 +42,8 @@ function eligibleWhere(userId: string, c: ChallengeCriteria): Prisma.CardInstanc
     ownerId: userId,
     supplyState: "HELD",
     lock: "NONE",
-    tradeStatus: c.includeUntradeable ? undefined : "TRADEABLE",
-    template: { category: c.tiers ? { in: c.tiers } : undefined, player },
+    // Free/starter cards (minted STARTER edition) only count when the challenge allows them.
+    template: { category: c.tiers ? { in: c.tiers } : undefined, edition: c.includeUntradeable ? undefined : "STANDARD", player },
   };
 }
 
@@ -113,10 +113,11 @@ export async function completeChallenge(userId: string, challengeId: string, car
         data: { releasedAt: now, releasedVia: "COLLECTION_COMPLETION", releasedRef: `challenge:${completion.id}` },
       });
       if (closed.count !== ids.length) throw new Error("Ownership records out of sync");
-      const tradeable = cards.filter((x) => x.tradeStatus === "TRADEABLE").map((x) => x.id);
-      const locked = cards.filter((x) => x.tradeStatus !== "TRADEABLE").map((x) => x.id);
-      if (tradeable.length) await tx.cardInstance.updateMany({ where: { id: { in: tradeable } }, data: { supplyState: "RECIRCULATING", ownerId: null, recycledCount: { increment: 1 } } });
-      if (locked.length) await tx.cardInstance.updateMany({ where: { id: { in: locked } }, data: { supplyState: "RETIRED", ownerId: null } });
+      // Pool cards go back into packs (tradeable again for whoever pulls them next); minted free cards are retired.
+      const pool = cards.filter((x) => x.template.edition === "STANDARD").map((x) => x.id);
+      const minted = cards.filter((x) => x.template.edition !== "STANDARD").map((x) => x.id);
+      if (pool.length) await tx.cardInstance.updateMany({ where: { id: { in: pool } }, data: { supplyState: "RECIRCULATING", ownerId: null, tradeStatus: "TRADEABLE", recycledCount: { increment: 1 } } });
+      if (minted.length) await tx.cardInstance.updateMany({ where: { id: { in: minted } }, data: { supplyState: "RETIRED", ownerId: null } });
       await tx.favouriteCard.deleteMany({ where: { cardId: { in: ids } } });
 
       if (ch.rewardMinor > 0) await credit(tx, { userId, amountMinor: ch.rewardMinor, kind: "CHALLENGE_REWARD", refId: `challenge:${completion.id}`, note: ch.name });

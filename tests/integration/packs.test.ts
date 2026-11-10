@@ -73,7 +73,7 @@ describe("regular packs (spec §5.1, §5.3)", () => {
       const plan = (opening.rngAudit as { slots: Array<{ floor: string; issued: string }> }).slots;
       for (const s of plan) expect(categoryRank[s.issued as "GOLD"]).toBeGreaterThanOrEqual(categoryRank[s.floor as "GOLD"]);
       const cards = await db.cardInstance.findMany({ where: { id: { in: res.cards.map((c) => c.cardId) } } });
-      expect(cards.every((c) => c.ownerId === userId && c.tradeStatus === "TRADEABLE")).toBe(true);
+      expect(cards.every((c) => c.ownerId === userId && c.tradeStatus === "NON_TRADEABLE" /* launch period: paid packs not live */)).toBe(true);
     }
     const goldOpening = await db.packOpening.findFirstOrThrow({ where: { userId, packSku: { code: "football-gold" } }, include: { cards: { include: { card: { include: { template: { include: { player: { include: { club: { include: { league: true } } } } } } } } } } } });
     const golds = goldOpening.cards.filter((c) => c.category === "GOLD");

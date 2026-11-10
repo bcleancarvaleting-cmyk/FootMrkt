@@ -19,6 +19,8 @@ export const RegisterSchema = z.object({
     .regex(/^[A-Za-z0-9_ .-]+$/, "Letters, numbers, spaces, . _ - only"),
   /** Manager name of whoever invited them (refer a friend). */
   ref: z.string().trim().max(24).optional(),
+  /** Club code of the team they support, or "none". */
+  favouriteClub: z.string().trim().max(10).optional(),
 });
 
 function adminEmails(): string[] {
@@ -40,6 +42,7 @@ export async function registerUser(input: z.input<typeof RegisterSchema>) {
   const passwordHash = await hashPassword(data.password);
   const emailVerificationToken = randomBytes(24).toString("base64url");
   const founding = await isEnabled("FOUNDING_SIGNUPS");
+  const favourite = data.favouriteClub && data.favouriteClub !== "none" ? await db.club.findUnique({ where: { code: data.favouriteClub }, select: { id: true } }) : null;
   const referrer = data.ref ? await db.user.findFirst({ where: { displayName: { equals: data.ref, mode: "insensitive" }, status: "ACTIVE" }, select: { id: true } }) : null;
   try {
     return await withTx(async (tx) => {
@@ -59,6 +62,7 @@ export async function registerUser(input: z.input<typeof RegisterSchema>) {
           role: adminEmails().includes(data.email) ? "ADMIN" : "USER",
           foundingNumber,
           referredById: referrer?.id,
+          favouriteClubId: favourite?.id,
         },
       });
       const starter = await grantStarterPack(tx, user.id);

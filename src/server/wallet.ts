@@ -92,9 +92,11 @@ export async function debit(
 
 // ───────────── XP ─────────────
 
-/** XP needed for 1 MX (default 100 XP = 1.00 MX). XP is stored as whole points. */
-export const XP_PER_MX = Number(process.env.XP_PER_MX ?? 100);
-export const MIN_XP_CONVERT = XP_PER_MX;
+/** XP needed for 1 MX — admin setting `xpPerMx` (default 500). XP is stored as whole points. */
+export async function xpPerMx() {
+  const { getSetting } = await import("./settings");
+  return getSetting("xpPerMx");
+}
 
 /** Credit XP (whole points) inside a transaction. Idempotent on refId. */
 export async function creditXp(tx: Tx, args: { userId: string; xp: number; refId: string; note?: string }) {
@@ -104,13 +106,14 @@ export async function creditXp(tx: Tx, args: { userId: string; xp: number; refId
 
 /** Exchange XP for earned MX at XP_PER_MX; any XP that doesn't make a whole hundredth stays as XP. */
 export async function convertXp(userId: string, xp: number) {
-  if (!Number.isInteger(xp) || xp < MIN_XP_CONVERT) throw new DomainError("MIN", `Convert at least ${MIN_XP_CONVERT} XP.`);
+  const rate = await xpPerMx();
+  if (!Number.isInteger(xp) || xp < rate) throw new DomainError("MIN", `Convert at least ${rate} XP.`);
   return withTx(async (tx) => {
     await lockWallet(tx, userId);
     const bal = await balancesFor(userId, tx);
     if (xp > bal.xp) throw new DomainError("INSUFFICIENT_XP", `You have ${bal.xp} XP.`);
-    const minor = Math.floor((xp * 100) / XP_PER_MX);
-    const used = Math.ceil((minor * XP_PER_MX) / 100);
+    const minor = Math.floor((xp * 100) / rate);
+    const used = Math.ceil((minor * rate) / 100);
     const ref = `xpconvert:${userId}:${Date.now()}`;
     await tx.walletEntry.create({ data: { userId, bucket: "XP", kind: "XP_CONVERT", amountMinor: -used, refId: ref, note: `Converted to ${fmtMp(minor)}` } });
     await credit(tx, { userId, amountMinor: minor, kind: "XP_CONVERT", bucket: "BONUS", refId: `${ref}:mx`, note: `${used} XP converted` });

@@ -4,7 +4,7 @@ import { GateNotice } from "@/components/page-header";
 import { requireUser } from "@/server/auth/session";
 import { db } from "@/server/db";
 import { isEnabled } from "@/server/flags";
-import { XP_PER_MX, balancesFor, fmtGbp, fmtMp, profileGaps, walletHistory } from "@/server/wallet";
+import { xpPerMx, balancesFor, fmtGbp, fmtMp, profileGaps, walletHistory } from "@/server/wallet";
 import { fmtDate } from "@/lib/view";
 
 export const metadata = { title: "Wallet" };
@@ -33,6 +33,7 @@ const W_TONE: Record<string, string> = { REQUESTED: "text-warn", PAID: "text-min
 export default async function WalletPage({ searchParams }: { searchParams: Promise<{ amount?: string }> }) {
   const user = await requireUser();
   const { amount } = await searchParams;
+  const XP_PER_MX = await xpPerMx();
   const [u, bal, ledger, withdrawals, depositsOn, withdrawalsOn] = await Promise.all([
     db.user.findUniqueOrThrow({ where: { id: user.id } }),
     balancesFor(user.id),

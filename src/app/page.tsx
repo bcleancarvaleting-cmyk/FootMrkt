@@ -4,6 +4,7 @@ import { Countdown } from "@/components/countdown";
 import { PlayerCard } from "@/components/player-card";
 import { StadiumScene } from "@/components/stadium";
 import { HeroCarousel } from "@/components/hero-carousel";
+import { TakeItOnTheGo } from "@/components/app-install";
 import { RowStat } from "@/components/card-row";
 import { getCurrentUser } from "@/server/auth/session";
 import { binderTotals } from "@/server/binder";
@@ -148,6 +149,8 @@ async function Landing() {
         <Feature eyebrow="Matches" title="Every gameweek, a new table" body="Open leagues, Bronze-only cups and more. Squads lock 10 minutes before the first kick-off." href="/register" cta="Enter a match" />
         <Feature eyebrow="Free packs" title="Drop days" body="We drop free packs on big matchdays. Claim within 24 hours — keep an eye on the Packs page." href="/register" cta="Join free" />
       </section>
+
+      <TakeItOnTheGo />
 
       {/* Final CTA */}
       <section className="relative overflow-hidden rounded-[28px] border border-ink-700 bg-ink-900 px-6 py-14 text-center">
@@ -303,6 +306,8 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
           </ul>
         </section>
       )}
+
+      <TakeItOnTheGo />
 
       {recent.length > 0 && (
         <section>

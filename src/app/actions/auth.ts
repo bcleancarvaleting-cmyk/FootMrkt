@@ -23,6 +23,7 @@ export async function registerAction(_: ActionResult | null, form: FormData): Pr
       password: String(form.get("password") ?? ""),
       displayName: String(form.get("displayName") ?? ""),
       ref: String(form.get("ref") ?? "") || undefined,
+      favouriteClub: String(form.get("favouriteClub") ?? "") || undefined,
     }),
   );
   if (!res.ok) return res;

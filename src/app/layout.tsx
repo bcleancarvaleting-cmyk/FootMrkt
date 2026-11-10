@@ -3,6 +3,7 @@ import { Barlow_Condensed, Geist, Geist_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import { BottomNav } from "@/components/bottom-nav";
 import { ChatDrawer } from "@/components/chat-drawer";
+import { AppTracker } from "@/components/app-install";
 import { Logo } from "@/components/nav";
 import { CHAT_ROOMS, CHAT_RULES } from "@/config/chat";
 import { canModerate } from "@/server/moderation";
@@ -44,6 +45,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <main className={`mx-auto w-full max-w-6xl flex-1 px-4 pt-6 sm:px-6 ${user ? "pb-32 md:pb-16" : "pb-16"}`}>{children}</main>
         <SiteFooter loggedIn={!!user} />
         {user && <BottomNav unopenedPacks={unopened} />}
+        {user && <AppTracker />}
         {user && (
           <ChatDrawer
             rooms={CHAT_ROOMS.map((r) => ({ id: r.id, name: r.name }))}

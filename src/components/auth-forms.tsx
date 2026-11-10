@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { loginAction, registerAction } from "@/app/actions/auth";
 
-export function RegisterForm({ referrer }: { referrer?: string }) {
+export function RegisterForm({ referrer, clubs }: { referrer?: string; clubs: Array<{ league: string; clubs: Array<{ code: string; name: string }> }> }) {
   const [state, action, pending] = useActionState(registerAction, null);
   return (
     <form action={action} className="space-y-4">
@@ -15,6 +15,26 @@ export function RegisterForm({ referrer }: { referrer?: string }) {
           Manager name
         </label>
         <input className="input" id="displayName" name="displayName" required minLength={3} maxLength={24} autoComplete="nickname" />
+      </div>
+      <div>
+        <label className="label" htmlFor="favouriteClub">
+          Who do you support?
+        </label>
+        <select className="input" id="favouriteClub" name="favouriteClub" required defaultValue="">
+          <option value="" disabled>
+            Choose your club
+          </option>
+          {clubs.map((g) => (
+            <optgroup key={g.league} label={g.league}>
+              {g.clubs.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.name}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+          <option value="none">I don&apos;t support an English club</option>
+        </select>
       </div>
       <div>
         <label className="label" htmlFor="email">

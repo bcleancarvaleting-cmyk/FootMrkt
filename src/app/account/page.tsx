@@ -4,6 +4,7 @@ import { respondInviteAction } from "@/app/actions/moderation";
 import { ActionButton } from "@/components/action-button";
 import { FoundingBadge } from "@/components/founding-badge";
 import { CopyLink } from "@/components/copy-link";
+import { TakeItOnTheGo } from "@/components/app-install";
 import { headers } from "next/headers";
 import { requireUser } from "@/server/auth/session";
 import { binderTotals } from "@/server/binder";
@@ -105,6 +106,8 @@ export default async function AccountPage() {
           </Link>
         ))}
       </section>
+
+      <TakeItOnTheGo />
 
       <section className="flex flex-wrap items-center gap-4 rounded-2xl border border-accent/40 bg-ink-900 p-5">
         <div className="min-w-0 flex-1 basis-72">

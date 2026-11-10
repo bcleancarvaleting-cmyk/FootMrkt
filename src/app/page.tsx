@@ -3,6 +3,8 @@ import { CardRow } from "@/components/card-row";
 import { Countdown } from "@/components/countdown";
 import { PlayerCard } from "@/components/player-card";
 import { StadiumScene } from "@/components/stadium";
+import { HeroCarousel } from "@/components/hero-carousel";
+import { RowStat } from "@/components/card-row";
 import { getCurrentUser } from "@/server/auth/session";
 import { binderTotals } from "@/server/binder";
 import { db } from "@/server/db";
@@ -25,47 +27,85 @@ async function Landing() {
     40,
   );
   const picks = [showcase[3], showcase[0], showcase[11]].filter(Boolean);
+  const market = [showcase[5], showcase[8], showcase[14], showcase[20]].filter(Boolean);
   const [players, clubs] = await Promise.all([db.player.count({ where: { active: true } }), db.club.count()]);
 
   return (
     <div className="-mt-6 space-y-20">
-      {/* Hero */}
-      <section className="relative -mx-4 overflow-hidden sm:-mx-6 lg:mx-0 lg:rounded-b-[28px]">
-        <StadiumScene className="absolute inset-0 h-full w-full" />
-        <div className="relative grid min-h-[620px] items-end gap-10 px-5 pb-10 pt-28 sm:px-10 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:pb-16">
-          <div className="max-w-xl space-y-6 text-[#f4f5f2]">
-            <span className="tag border-white/25 text-white/80">Premier League → National League</span>
-            <h1 className="text-[64px] leading-[0.86] sm:text-8xl">
-              Your club
-              <br />
-              <span className="text-[#adfc07]">starts here.</span>
-            </h1>
-            <p className="max-w-md text-lg text-white/75">
-              Open packs of real English footballers, build a seven-a-side squad and score points from what they do on the pitch every weekend.
-            </p>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Link href="/register" className="btn-primary px-7 py-4 text-sm">
-                Join free — get 11 players
-              </Link>
-              <Link href="/how-it-works" className="btn border border-white/30 px-7 py-4 text-sm text-white hover:border-white/70">
-                How it works
-              </Link>
-            </div>
-            <p className="text-xs text-white/60">Free welcome gifts: a Silver pack on day 3 and a lucky Gold player on day 7 · 18+</p>
-          </div>
-          <div className="relative hidden h-[400px] items-center justify-center lg:flex">
-            {picks.map((c, i) => (
-              <div
-                key={c.id}
-                className="absolute"
-                style={{ transform: `translateX(${(i - 1) * 130}px) translateY(${i === 1 ? -10 : 18}px) rotate(${(i - 1) * 8}deg)`, zIndex: i === 1 ? 2 : 1 }}
-              >
-                <PlayerCard card={c} size={i === 1 ? "lg" : "md"} />
+      {/* Hero: swipe between the three things you do on MATCHX */}
+      <div className="-mx-4 sm:-mx-6 lg:mx-0">
+        <HeroCarousel labels={["Manage your team", "Transfer market", "Buy packs"]}>
+          <Slide
+            background={<StadiumScene className="absolute inset-0 h-full w-full" />}
+            eyebrow="Manage your team"
+            title={
+              <>
+                Your club
+                <br />
+                <span className="text-[#adfc07]">starts here.</span>
+              </>
+            }
+            body="Pick seven real English footballers from your club, choose a formation and score points from what they do on the pitch every weekend."
+            points={["2-2-2, 2-3-1, 3-2-1 or 3-1-2", "Four subs come on if a starter doesn't play", "Free matches every gameweek, with prizes"]}
+            visual={
+              <div className="relative flex h-[380px] items-center justify-center">
+                {picks.map((c, i) => (
+                  <div key={c.id} className="absolute" style={{ transform: `translateX(${(i - 1) * 130}px) translateY(${i === 1 ? -10 : 18}px) rotate(${(i - 1) * 8}deg)`, zIndex: i === 1 ? 2 : 1 }}>
+                    <PlayerCard card={c} size={i === 1 ? "lg" : "md"} />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
+            }
+          />
+          <Slide
+            eyebrow="Transfer market"
+            title={
+              <>
+                Buy, sell,
+                <br />
+                <span className="text-[#adfc07]">make offers.</span>
+              </>
+            }
+            body="Trade players with other managers using MX you've earned from XP, challenges and sales. See every player's value graph before you buy."
+            points={["Earn XP from every point your players score", "Swap 100 XP for 1 MX", "Opening soon"]}
+            visual={
+              <ul className="w-full max-w-lg space-y-2 text-left">
+                {market.map((c) => (
+                  <CardRow key={c.id} card={c}>
+                    <RowStat label="Buy now" className="w-20">
+                      <span className="text-lime">{c.valueMp ?? 1} MX</span>
+                    </RowStat>
+                  </CardRow>
+                ))}
+              </ul>
+            }
+          />
+          <Slide
+            eyebrow="Buy packs"
+            title={
+              <>
+                Rip packs,
+                <br />
+                <span className="text-[#adfc07]">pull Golds.</span>
+              </>
+            }
+            body="Free packs for your first four weeks: 12 players when you join, then a Squad Boost, a Gold, a Mixed Pack and your choice of Gold. Invite friends for more."
+            points={["England Bronze, Silver and Gold packs", "Published odds on every pack", "Pack shop coming soon"]}
+            visual={
+              <div className="flex items-end justify-center gap-4">
+                {(["bronze", "silver", "gold"] as const).map((t, i) => (
+                  <div key={t} className={`card-premium ${t === "gold" ? "is-gold" : ""} foil-${t} relative flex h-48 w-32 items-end overflow-hidden rounded-2xl p-3 shadow-2xl sm:h-60 sm:w-40`} style={{ transform: `translateY(${i === 2 ? -16 : 0}px)` }}>
+                    <span className="sheen" aria-hidden="true" />
+                    {t === "gold" && <span className="holo" aria-hidden="true" />}
+                    <span className="absolute left-3 top-3 text-[10px] font-extrabold uppercase italic tracking-[0.2em] text-black/60">England</span>
+                    <span className="relative font-display text-3xl font-extrabold uppercase italic leading-none text-black/75 sm:text-4xl">{t}</span>
+                  </div>
+                ))}
+              </div>
+            }
+          />
+        </HeroCarousel>
+      </div>
 
       {/* Proof bar */}
       <section className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-ink-700 bg-ink-700 sm:grid-cols-4">
@@ -88,7 +128,7 @@ async function Landing() {
         <h2 className="mt-1 text-5xl">Three steps to matchday</h2>
         <ol className="mt-8 grid gap-4 md:grid-cols-3">
           {[
-            ["01", "Open packs", "Start with a free 11-player squad, then a Silver pack on day 3 and a lucky Gold on day 7. Every card is a numbered copy of a real player — Bronze, Silver or Gold by real market value."],
+            ["01", "Open packs", "Start with 12 free players, then free packs every few days for your first four weeks. Every card is a numbered copy of a real player — Bronze, Silver or Gold by real market value."],
             ["02", "Pick your seven", "Choose a formation, a keeper, defenders, midfielders and attackers, plus four subs who come on if a starter doesn't play."],
             ["03", "Score real points", "Goals, assists, clean sheets and saves from real games become your points. Top the table, win packs."],
           ].map(([n, t, d]) => (
@@ -119,6 +159,37 @@ async function Landing() {
         </Link>
         <p className="relative mt-4 text-xs text-faint">Player values go up and down. MX is an in-game balance, not an investment.</p>
       </section>
+    </div>
+  );
+}
+
+function Slide({ background, eyebrow, title, body, points, visual }: { background?: React.ReactNode; eyebrow: string; title: React.ReactNode; body: string; points: string[]; visual: React.ReactNode }) {
+  return (
+    <div className="relative h-full overflow-hidden bg-[#0b0e0c] lg:rounded-[28px]">
+      {background ?? <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_80%_20%,rgb(173_252_7/0.14),transparent_60%)]" aria-hidden="true" />}
+      <div className="relative grid min-h-[600px] items-center gap-10 px-5 pb-10 pt-20 sm:px-10 lg:grid-cols-[1.05fr_1fr] lg:pt-14">
+        <div className="max-w-xl space-y-5 text-[#f4f5f2]">
+          <span className="tag border-white/25 text-white/80">{eyebrow}</span>
+          <h1 className="text-[56px] leading-[0.86] sm:text-7xl">{title}</h1>
+          <p className="max-w-md text-lg text-white/75">{body}</p>
+          <ul className="space-y-1.5 text-sm text-white/80">
+            {points.map((p) => (
+              <li key={p} className="flex items-center gap-2">
+                <span className="text-[#adfc07]">✓</span> {p}
+              </li>
+            ))}
+          </ul>
+          <div className="flex flex-col gap-3 pt-1 sm:flex-row">
+            <Link href="/register" className="btn-primary px-7 py-4 text-sm">
+              Play free — get 12 players
+            </Link>
+            <Link href="/how-it-works" className="btn border border-white/30 px-7 py-4 text-sm text-white hover:border-white/70">
+              How it works
+            </Link>
+          </div>
+        </div>
+        <div className="flex justify-center">{visual}</div>
+      </div>
     </div>
   );
 }

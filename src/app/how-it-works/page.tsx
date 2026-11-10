@@ -35,8 +35,7 @@ export default function HowItWorks() {
           unique numbered copy with its own ownership history.
         </p>
         <p>
-          New managers get a free 11-card Starter Pack, then a <b>Welcome Silver pack</b> 3 days after joining and a <b>lucky Gold player</b> 4 days
-          after that. We also drop free packs on big matchdays. All free cards are yours to play with but are untradeable.
+          New managers get a free 12-player Starter Pack, then free packs through their first four weeks: a <b>Squad Boost</b> on day 3, a <b>Gold</b> on day 6, a <b>Mixed Pack</b> on day 9 and their <b>choice of Gold</b> on day 12. We also drop free packs on big matchdays. All free cards are yours to play with but are untradeable.
         </p>
         <p>
           Gold Packs always contain at least <b>2 Gold</b> top-flight players — sometimes 3 or 4 — with the rest Bronze or Silver.

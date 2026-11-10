@@ -25,14 +25,16 @@ export async function Header({ theme, unopenedPacks }: { theme: Theme; unopenedP
       className="sticky z-30 border-b border-ink-800 bg-ink-950/90 backdrop-blur-xl"
       style={{ top: "env(safe-area-inset-top, 0px)" }}
     >
-      <div className="mx-auto flex max-w-6xl items-center gap-8 px-4 py-3 sm:px-6">
+      <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:gap-8 sm:px-6">
         <Link href="/" aria-label="MATCHX home" className="flex shrink-0 items-center gap-2">
           <Logo />
-          {beta && <span className="rounded-md border border-accent/60 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-lime">Beta</span>}
+          {beta && <span className="hidden rounded-md border border-accent/60 px-1.5 py-0.5 sm:inline text-[10px] font-extrabold uppercase tracking-[0.16em] text-lime">Beta</span>}
         </Link>
         {user && <TopNav unopenedPacks={unopenedPacks} />}
         <div className="ml-auto flex items-center gap-2">
-          <ThemeToggle initial={theme} />
+          <span className={user ? "" : "hidden sm:block"}>
+            <ThemeToggle initial={theme} />
+          </span>
           {user && bal ? (
             <>
               <Link
@@ -54,10 +56,10 @@ export async function Header({ theme, unopenedPacks }: { theme: Theme; unopenedP
             </>
           ) : (
             <>
-              <Link href="/login" className="btn-ghost px-4 py-2 text-xs">
+              <Link href="/login" className="btn-ghost whitespace-nowrap px-2.5 py-2 text-[11px] sm:px-4 sm:text-xs">
                 Log in
               </Link>
-              <Link href="/register" className="btn-primary px-4 py-2 text-xs">
+              <Link href="/register" className="btn-primary whitespace-nowrap px-2.5 py-2 text-[11px] sm:px-4 sm:text-xs">
                 Join free
               </Link>
             </>

@@ -43,6 +43,10 @@ export const ELITE_GOLD = { count: 30, maxSupply: 250 };
 /**
  * Special finishes on Gold cards — cosmetic only (they play, score and trade as the Gold).
  * At most this many of each, per Gold player, ever. Rarest first.
+ *
+ * Adding another special later (e.g. "Young Talent", icons, trendsetters) follows the same pattern:
+ * a CardFinishKind value + a migration widening the serial check, an entry here, an odds setting,
+ * a palette in components/finish-art.tsx and foil/face/halo styles in globals.css.
  */
 export const FINISHES = {
   DIAMOND: { label: "Diamond", perPlayer: 5 },

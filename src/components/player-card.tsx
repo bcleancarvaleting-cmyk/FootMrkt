@@ -114,6 +114,7 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
         <div className="px-2.5 pt-1.5 text-center">
           <div className={`truncate font-display font-bold uppercase leading-tight tracking-wide ${small ? "text-sm" : "text-[17px]"} ${finish ? (finish.kind === "DIAMOND" ? "diamond-name" : "ruby-name") : ""}`}>{card.name}</div>
           <div className="truncate text-[10px] text-muted">{card.clubName ?? "Free agent"}</div>
+          <CardNumber card={card} />
         </div>
 
         {/* MX value · points won for you */}
@@ -130,25 +131,14 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
               <div className="flex items-baseline gap-1 whitespace-nowrap text-[11px] font-bold text-lime">
                 {mpLabel(card.valueMp)} <Trend pct={card.trendPct} />
               </div>
-              <div className="truncate text-[9px] text-faint">{card.valueMp !== null ? "value" : ""}</div>
+              <div className="truncate text-[9px] text-faint">value</div>
             </div>
           )}
           <div className="min-w-0 text-right" title="Points this card has won for you in settled competitions">
-            {card.pointsForYou !== null ? (
-              <>
-                <div className={`text-[11px] font-black ${card.pointsForYou > 0 ? "text-fg" : card.pointsForYou < 0 ? "text-danger" : "text-faint"}`}>
-                  {formatPts(card.pointsForYou)} pts
-                </div>
-                <div className="truncate text-[9px] text-faint">won for you</div>
-              </>
-            ) : (
-              card.serial > 0 && (
-                <div className="text-[9px] text-faint">
-                  #{card.serial}
-                  {card.maxSupply && !card.loan ? `/${card.maxSupply}` : ""}
-                </div>
-              )
-            )}
+            <div className={`text-[11px] font-black ${card.pointsForYou ? (card.pointsForYou > 0 ? "text-fg" : "text-danger") : "text-faint"}`}>
+              {card.pointsForYou !== null ? `${formatPts(card.pointsForYou)} pts` : "—"}
+            </div>
+            <div className="truncate text-[9px] text-faint">{card.pointsForYou !== null ? "won for you" : "points"}</div>
           </div>
         </div>
       </div>
@@ -157,6 +147,29 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
 }
 
 const formatPts = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+
+/**
+ * Every card carries its own number, so no two are alike: "147/500" for a Gold (147th of a possible
+ * 500), "4/10" for a Ruby, "3/5" for a Diamond. Free starter and loan cards are numbered on their own.
+ */
+function CardNumber({ card }: { card: CardView }) {
+  const [num, of, label] = card.finish
+    ? [card.finish.serial, card.finish.of, card.finish.kind === "DIAMOND" ? "Diamond" : "Ruby"]
+    : card.edition === "LOAN"
+      ? [card.serial, null, "Loan"]
+      : card.edition === "STARTER"
+        ? [card.serial, null, "Starter"]
+        : [card.serial, card.maxSupply, "No."];
+  if (!num) return <div className="h-4" />;
+  return (
+    <div className="mt-0.5 flex h-4 items-center justify-center gap-1 text-[10px] tabular-nums" title={of ? `Number ${num} of ${of}` : `Number ${num}`}>
+      <span className="font-semibold uppercase tracking-wider text-faint">{label}</span>
+      <span className="font-black text-fg">{num}</span>
+      {of ? <span className="text-faint">/ {of.toLocaleString("en-GB")}</span> : null}
+    </div>
+  );
+}
+
 
 /** Licensed headshot if one is set; otherwise the player's home shirt with their squad number. */
 export function PlayerImage({ card }: { card: CardView }) {

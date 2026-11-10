@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { addWelcomeGiftAction, competitionRulesAction, createAuctionAction, createChallengeAction, scheduleDropAction, stockHouseAction } from "@/app/actions/economy";
+import { addWelcomeGiftAction, competitionRulesAction, createAuctionAction, createChallengeAction, pinnedListingsAction, scheduleDropAction, stockHouseAction } from "@/app/actions/economy";
 import type { ActionResult } from "@/app/actions/result";
 import { ResultText } from "./action-button";
 
@@ -135,10 +135,24 @@ export function HouseStockForm() {
         </select>
       </div>
       <I name="count" label="How many cards" type="number" min="1" max="200" defaultValue="20" required />
-      <I name="price" label="Fixed price (MP, blank = recommended)" type="number" step="0.01" min="0.10" max="100" />
-      <I name="markup" label="Markup on recommended (%)" type="number" min="-50" max="200" defaultValue="0" />
+      <I name="min" label="Price range: min (MP)" type="number" step="0.01" min="0.10" max="100" placeholder="1.00" />
+      <I name="max" label="Price range: max (MP)" type="number" step="0.01" min="0.10" max="100" placeholder="4.99" />
+      <I name="price" label="…or one fixed price (MP)" type="number" step="0.01" min="0.10" max="100" />
+      <I name="markup" label="…or recommended + markup (%)" type="number" min="-50" max="200" defaultValue="0" />
       <I name="days" label="Listed for (days)" type="number" min="1" max="30" defaultValue="7" />
       <I name="leagues" label="Leagues only (optional)" placeholder="EPL,CHA" />
+    </Form>
+  );
+}
+
+export function PinnedListingsForm() {
+  return (
+    <Form action={pinnedListingsAction} submit="List these players">
+      <div className="sm:col-span-2 lg:col-span-3">
+        <label className="label" htmlFor="f-pinned">Players at set prices (one per line or comma-separated)</label>
+        <textarea id="f-pinned" name="pinned" rows={3} className="input" placeholder={"Haaland=45\nSalah=40"} required />
+      </div>
+      <I name="days" label="Listed for (days)" type="number" min="1" max="30" defaultValue="14" />
     </Form>
   );
 }

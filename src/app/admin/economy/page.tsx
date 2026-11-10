@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { cancelAuctionAction, cancelDropAction, clearHouseAction, processWithdrawalAction, syncPacksAction, toggleChallengeAction, updateWelcomeGiftAction } from "@/app/actions/economy";
+import { cancelAuctionAction, cancelDropAction, clearHouseAction, launchMixAction, processWithdrawalAction, syncPacksAction, toggleChallengeAction, updateWelcomeGiftAction } from "@/app/actions/economy";
 import { ActionButton } from "@/components/action-button";
-import { AuctionForm, ChallengeForm, DropForm, HouseStockForm, MatchRulesForm, WelcomeGiftForm } from "@/components/admin-forms";
+import { AuctionForm, ChallengeForm, DropForm, HouseStockForm, MatchRulesForm, PinnedListingsForm, WelcomeGiftForm } from "@/components/admin-forms";
+import { LAUNCH_MIX } from "@/config/transfers";
 import { FOOTBALL_PACKS } from "@/config/packs";
 import { requireAdmin } from "@/server/auth/session";
 import { type Requirements, prizesSummary, requirementsSummary } from "@/server/competitions";
@@ -77,6 +78,18 @@ export default async function EconomyAdmin() {
         <p className="mb-4 text-sm">
           <b>{houseActive}</b> live · <b>{houseSold?._count._all ?? 0}</b> sold for <b>{fmtMp(houseSold?._sum.soldPriceMinor ?? 0)}</b>
         </p>
+        <div className="mb-5 rounded-xl border border-accent/40 bg-accent/5 p-4">
+          <p className="font-semibold">Launch mix</p>
+          <p className="mt-1 text-xs text-muted">
+            {LAUNCH_MIX.pinned.join(", ")} · {LAUNCH_MIX.bands.map((b) => `${b.count} ${b.tier.toLowerCase()} ${b.leagues.join("/")} ${b.minMp}–${b.maxMp}`).join(" · ")} · {LAUNCH_MIX.days} days. Edit in src/config/transfers.ts.
+          </p>
+          <div className="mt-3">
+            <ActionButton action={launchMixAction} className="btn-primary px-4 py-2 text-xs" confirm="List the launch mix on Transfers?">Stock launch mix</ActionButton>
+          </div>
+        </div>
+        <p className="mb-2 text-sm font-semibold">Named players</p>
+        <PinnedListingsForm />
+        <p className="mb-2 mt-6 text-sm font-semibold">By tier</p>
         <HouseStockForm />
         {houseActive > 0 && (
           <div className="mt-4">

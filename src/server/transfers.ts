@@ -367,16 +367,50 @@ export async function cancelAuction(adminId: string, auctionId: string) {
 
 // ───────────── House listings (MATCHX sells from circulation) ─────────────
 
-export const HouseStockSchema = z.object({
-  tier: z.enum(["BRONZE", "SILVER", "GOLD"]),
-  count: z.number().int().min(1).max(200),
-  /** Fixed price for every card, or null to use each card's recommended price. */
-  priceMinor: price.nullable().default(null),
-  /** % on top of the recommended price, e.g. 10 = +10%. Ignored for fixed prices. */
-  markupPct: z.number().min(-50).max(200).default(0),
-  days: z.number().int().min(1).max(30).default(7),
-  leagues: z.array(z.string()).optional(),
-});
+export const HouseStockSchema = z
+  .object({
+    tier: z.enum(["BRONZE", "SILVER", "GOLD"]),
+    count: z.number().int().min(1).max(200),
+    /** Fixed price for every card. */
+    priceMinor: price.nullable().default(null),
+    /** Price range: the best player gets the max, the weakest the min, curving down in between. */
+    minPriceMinor: price.nullable().default(null),
+    maxPriceMinor: price.nullable().default(null),
+    /** % on top of the recommended price (when no fixed price or range is given). */
+    markupPct: z.number().min(-50).max(200).default(0),
+    days: z.number().int().min(1).max(30).default(7),
+    leagues: z.array(z.string()).optional(),
+  })
+  .refine((d) => (d.minPriceMinor === null) === (d.maxPriceMinor === null), "Give both a minimum and a maximum price, or neither")
+  .refine((d) => d.minPriceMinor === null || d.maxPriceMinor === null || d.minPriceMinor <= d.maxPriceMinor, "The minimum price is above the maximum");
+
+/**
+ * How good a player is, for ordering prices within a range: real market value when we have it,
+ * otherwise league level, a first-team shirt number (1–11) and the card's current MP value.
+ */
+export function qualityScore(p: { marketValueGbp: number | null; leagueTier: number | null; squadNumber: number | null; valueMp: number | null }) {
+  if (p.marketValueGbp) return 1_000_000 + p.marketValueGbp / 1000;
+  const league = (6 - Math.min(5, p.leagueTier ?? 5)) * 100;
+  const firstTeam = p.squadNumber !== null && p.squadNumber >= 1 && p.squadNumber <= 11 ? 40 : p.squadNumber !== null && p.squadNumber <= 30 ? 15 : 0;
+  return league + firstTeam + (p.valueMp ?? 0);
+}
+
+/** Price for rank i of n in a range: a few expensive stars, most cards near the bottom. */
+export function bandPrice(i: number, n: number, min: number, max: number) {
+  const r = n <= 1 ? 0 : i / (n - 1);
+  const raw = min + (max - min) * (1 - r) ** 2;
+  // Shop-style prices: x.99 from 5 MP up, 0.25 steps below.
+  const shop = raw >= 500 ? Math.round(raw / 100) * 100 - 1 : Math.round(raw / 25) * 25;
+  return clampPrice(Math.min(max, Math.max(min, shop)));
+}
+
+async function listFromPool(tx: Tx, cardId: string, priceMinor: number, expiresAt: Date) {
+  await tx.$queryRaw`SELECT id FROM "CardInstance" WHERE id = ${cardId}::uuid FOR UPDATE`;
+  const moved = await tx.cardInstance.updateMany({ where: { id: cardId, supplyState: { in: ["AVAILABLE", "RECIRCULATING"] } }, data: { supplyState: "RESERVED" } });
+  if (!moved.count) return false;
+  await tx.marketListing.create({ data: { cardId, sellerId: null, house: true, askingPriceMinor: priceMinor, currency: "MP", expiresAt } });
+  return true;
+}
 
 /** Admin: take `count` cards of a tier out of the pack pool and list them at buy-now prices. */
 export async function stockHouseListings(adminId: string, input: z.input<typeof HouseStockSchema>) {
@@ -384,31 +418,91 @@ export async function stockHouseListings(adminId: string, input: z.input<typeof 
   return withTx(
     async (tx) => {
       const leagueSql = d.leagues?.length ? Prisma.sql`AND l.code = ANY(${d.leagues}::text[])` : Prisma.empty;
-      // One copy per player, spread across the pool at random.
-      const cards = await tx.$queryRaw<Array<{ id: string; playerId: string }>>`
-        SELECT DISTINCT ON (t."playerId") c.id, t."playerId"
+      // One copy per player not already on the list, chosen at random from the pool.
+      const cards = await tx.$queryRaw<Array<{ id: string; playerId: string; marketValueGbp: number | null; squadNumber: number | null; leagueTier: number | null }>>`
+        SELECT DISTINCT ON (t."playerId") c.id, t."playerId", p."marketValueGbp", p."squadNumber", l.tier AS "leagueTier"
         FROM "CardInstance" c JOIN "CardTemplate" t ON t.id = c."templateId" JOIN "Player" p ON p.id = t."playerId"
         LEFT JOIN "Club" cl ON cl.id = p."clubId" LEFT JOIN "League" l ON l.id = cl."leagueId"
         WHERE t.category = ${d.tier}::"CardCategory" AND t.edition = 'STANDARD' AND c."supplyState" IN ('AVAILABLE', 'RECIRCULATING') ${leagueSql}
+          AND NOT EXISTS (
+            SELECT 1 FROM "MarketListing" ml JOIN "CardInstance" c2 ON c2.id = ml."cardId" JOIN "CardTemplate" t2 ON t2.id = c2."templateId"
+            WHERE ml.house AND ml.status = 'ACTIVE' AND t2."playerId" = t."playerId" AND t2.category = t.category)
         ORDER BY t."playerId", random()`;
       const picked = cards.sort(() => Math.random() - 0.5).slice(0, d.count);
       if (!picked.length) throw new DomainError("NO_STOCK", "No unowned cards of that tier are left in circulation.");
-      const values = await latestValues(picked.map((c) => ({ playerId: c.playerId, category: d.tier })));
-      const avgs = await averageSalePrices(picked.map((c) => ({ playerId: c.playerId, category: d.tier })));
+      const keys = picked.map((c) => ({ playerId: c.playerId, category: d.tier }));
+      const [values, avgs] = await Promise.all([latestValues(keys), averageSalePrices(keys)]);
+      const key = (c: { playerId: string }) => `${c.playerId}:${d.tier}`;
+      const ranked = [...picked].sort((a, b) => qualityScore({ ...b, valueMp: values.get(key(b)) ?? null }) - qualityScore({ ...a, valueMp: values.get(key(a)) ?? null }));
       const expiresAt = new Date(Date.now() + d.days * 86_400_000);
-      for (const c of picked) {
-        const k = `${c.playerId}:${d.tier}`;
-        const priceMinor = d.priceMinor ?? clampPrice(recommendPrice(values.get(k) ?? null, avgs.get(k)) * (1 + d.markupPct / 100));
-        await tx.$queryRaw`SELECT id FROM "CardInstance" WHERE id = ${c.id}::uuid FOR UPDATE`;
-        const moved = await tx.cardInstance.updateMany({ where: { id: c.id, supplyState: { in: ["AVAILABLE", "RECIRCULATING"] } }, data: { supplyState: "RESERVED" } });
-        if (!moved.count) continue;
-        await tx.marketListing.create({ data: { cardId: c.id, sellerId: null, house: true, askingPriceMinor: priceMinor, currency: "MP", expiresAt } });
+      let listed = 0;
+      for (const [i, c] of ranked.entries()) {
+        const priceMinor =
+          d.minPriceMinor !== null && d.maxPriceMinor !== null
+            ? bandPrice(i, ranked.length, d.minPriceMinor, d.maxPriceMinor)
+            : (d.priceMinor ?? clampPrice(recommendPrice(values.get(key(c)) ?? null, avgs.get(key(c))) * (1 + d.markupPct / 100)));
+        if (await listFromPool(tx, c.id, priceMinor, expiresAt)) listed++;
       }
-      await audit(tx, { actorId: adminId, action: "house.stock", entityType: "MarketListing", after: { ...d, listed: picked.length } });
-      return picked.length;
+      await audit(tx, { actorId: adminId, action: "house.stock", entityType: "MarketListing", after: { ...d, listed } });
+      return listed;
     },
     { timeoutMs: 60_000 },
   );
+}
+
+/**
+ * Admin: list named players at set prices, e.g. "Haaland=45". Uses the player's best tier with a
+ * copy left in circulation. Returns what was listed and what couldn't be.
+ */
+export async function stockPinnedListings(adminId: string, text: string, days = 7) {
+  const lines = text.split(/[,\n]/).map((x) => x.trim()).filter(Boolean);
+  const listed: string[] = [];
+  const missed: string[] = [];
+  for (const line of lines) {
+    const m = /^(.+?)\s*=\s*£?\s*(\d+(?:\.\d{1,2})?)$/.exec(line);
+    if (!m) {
+      missed.push(`${line} (use Name=price)`);
+      continue;
+    }
+    const priceMinor = Math.round(Number(m[2]) * 100);
+    if (priceMinor < MIN_PRICE_MINOR || priceMinor > MAX_PRICE_MINOR) {
+      missed.push(`${m[1]} (price must be 0.10–100)`);
+      continue;
+    }
+    const ok = await withTx(async (tx) => {
+      const [card] = await tx.$queryRaw<Array<{ id: string; name: string }>>`
+        SELECT c.id, p."displayName" AS name FROM "CardInstance" c JOIN "CardTemplate" t ON t.id = c."templateId" JOIN "Player" p ON p.id = t."playerId"
+        WHERE p."displayName" ILIKE ${"%" + m[1] + "%"} AND t.edition = 'STANDARD' AND c."supplyState" IN ('AVAILABLE', 'RECIRCULATING')
+        ORDER BY t.category DESC, p."marketValueGbp" DESC NULLS LAST, c.serial LIMIT 1`;
+      if (!card) return null;
+      return (await listFromPool(tx, card.id, priceMinor, new Date(Date.now() + days * 86_400_000))) ? card.name : null;
+    });
+    if (ok) listed.push(`${ok} ${(priceMinor / 100).toFixed(2)} MP`);
+    else missed.push(`${m[1]} (no copy left in circulation)`);
+  }
+  await audit(db, { actorId: adminId, action: "house.pinned", entityType: "MarketListing", after: { listed, missed } });
+  return { listed, missed };
+}
+
+/** Admin: stock the launch mix from src/config/transfers.ts in one go. */
+export async function stockLaunchMix(adminId: string) {
+  const { LAUNCH_MIX } = await import("@/config/transfers");
+  const pinned = await stockPinnedListings(adminId, LAUNCH_MIX.pinned.join(","), LAUNCH_MIX.days);
+  let total = pinned.listed.length;
+  for (const b of LAUNCH_MIX.bands) {
+    total += await stockHouseListings(adminId, {
+      tier: b.tier,
+      count: b.count,
+      minPriceMinor: Math.round(b.minMp * 100),
+      maxPriceMinor: Math.round(b.maxMp * 100),
+      leagues: [...b.leagues],
+      days: LAUNCH_MIX.days,
+    }).catch((e) => {
+      if (e instanceof DomainError) return 0;
+      throw e;
+    });
+  }
+  return { total, missed: pinned.missed };
 }
 
 /** Admin: withdraw every active house listing (cards go back into packs). */

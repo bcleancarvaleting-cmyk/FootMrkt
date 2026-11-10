@@ -12,6 +12,7 @@ import {
   createAuction,
   createListing,
   expireListings,
+  bandPrice,
   clearHouseListings,
   feeFor,
   makeOffer,
@@ -20,6 +21,7 @@ import {
   respondToOffer,
   settleAuctions,
   stockHouseListings,
+  stockPinnedListings,
   withdrawOffer,
 } from "@/server/transfers";
 import { balancesFor, credit } from "@/server/wallet";
@@ -198,6 +200,40 @@ describe("P2P transfers in MP", () => {
     expect(recommendPrice(4, { avgMinor: 600, sales: 3 })).toBe(500);
     expect(recommendPrice(500, undefined)).toBe(10_000);
     expect(recommendPrice(null, undefined)).toBe(100);
+  });
+});
+
+describe("MATCHX launch pricing", () => {
+  it("price ranges put the best player at the max, curve down to the min, and use shop-style prices", () => {
+    const n = 10;
+    const prices = Array.from({ length: n }, (_, i) => bandPrice(i, n, 1200, 3999));
+    expect(prices[0]).toBe(3999);
+    expect(prices[n - 1]).toBe(1200);
+    expect(prices.every((p, i) => i === 0 || p <= prices[i - 1])).toBe(true);
+    expect(prices.every((p) => p % 100 === 99 || p === 1200)).toBe(true);
+    expect(bandPrice(4, 5, 100, 199)).toBe(100);
+    expect(bandPrice(0, 5, 100, 199)).toBe(199);
+    expect(bandPrice(2, 5, 100, 400)).toBe(175);
+  });
+
+  it("a range listing prices higher-league players above lower-league ones, and named players get their set price", async () => {
+    enableLegalGates();
+    const admin = await makeUser("adm10");
+    await stockHouseListings(admin.userId, { tier: "BRONZE", count: 8, minPriceMinor: 100, maxPriceMinor: 499 });
+    const rows = await db.marketListing.findMany({ where: { house: true }, include: { card: { include: { template: { include: { player: { include: { club: { include: { league: true } } } } } } } } } });
+    const top = Math.max(...rows.filter((r) => r.card.template.player.club!.league.tier === 1).map((r) => r.askingPriceMinor));
+    const low = Math.min(...rows.filter((r) => r.card.template.player.club!.league.tier === 2).map((r) => r.askingPriceMinor));
+    expect(top).toBeGreaterThanOrEqual(low);
+    expect(Math.max(...rows.map((r) => r.askingPriceMinor))).toBe(499);
+    expect(Math.min(...rows.map((r) => r.askingPriceMinor))).toBe(100);
+
+    const name = (await db.player.findFirstOrThrow({ where: { templates: { some: { category: "GOLD" } } } })).displayName;
+    const res = await stockPinnedListings(admin.userId, `${name}=45, Nobody=5, ${name}=200`);
+    expect(res.listed).toHaveLength(1);
+    expect(res.missed).toHaveLength(2);
+    const pinned = await db.marketListing.findFirstOrThrow({ where: { house: true, askingPriceMinor: 4500 }, include: { card: { include: { template: true } } } });
+    expect(pinned.card.template.category).toBe("GOLD");
+    expect((await supplyReport()).reconciled).toBe(true);
   });
 });
 

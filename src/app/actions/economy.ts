@@ -8,7 +8,7 @@ import { db } from "@/server/db";
 import { cancelDrop, scheduleDrop } from "@/server/drops";
 import { DomainError } from "@/server/errors";
 import { syncPackCatalogue } from "@/server/packs";
-import { cancelAuction, clearHouseListings, createAuction, stockHouseListings } from "@/server/transfers";
+import { cancelAuction, clearHouseListings, createAuction, stockHouseListings, stockLaunchMix, stockPinnedListings } from "@/server/transfers";
 import { addWelcomeGift, updateWelcomeGift } from "@/server/welcome";
 import { processWithdrawal } from "@/server/wallet";
 import { type ActionResult, attempt } from "./result";
@@ -157,6 +157,8 @@ export async function stockHouseAction(_: ActionResult | null, f: FormData): Pro
       tier: str(f, "tier") as "GOLD",
       count: Number(str(f, "count")),
       priceMinor: str(f, "price") ? mp(f, "price") : null,
+      minPriceMinor: str(f, "min") ? mp(f, "min") : null,
+      maxPriceMinor: str(f, "max") ? mp(f, "max") : null,
       markupPct: Number(str(f, "markup") || 0),
       days: Number(str(f, "days") || 7),
       leagues: list(f, "leagues"),
@@ -171,4 +173,22 @@ export async function clearHouseAction(): Promise<ActionResult> {
   const res = await attempt(() => clearHouseListings(admin.id));
   done();
   return res.ok ? { ok: true, data: undefined, message: `${res.data} MATCHX listing(s) withdrawn` } : res;
+}
+
+export async function pinnedListingsAction(_: ActionResult | null, f: FormData): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const res = await attempt(() => stockPinnedListings(admin.id, str(f, "pinned"), Number(str(f, "days") || 7)));
+  done();
+  if (!res.ok) return res;
+  const { listed, missed } = res.data;
+  return listed.length
+    ? { ok: true, data: undefined, message: `Listed ${listed.join(", ")}${missed.length ? ` · not listed: ${missed.join(", ")}` : ""}` }
+    : { ok: false, error: `Nothing listed: ${missed.join(", ")}` };
+}
+
+export async function launchMixAction(): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const res = await attempt(() => stockLaunchMix(admin.id));
+  done();
+  return res.ok ? { ok: true, data: undefined, message: `${res.data.total} cards listed${res.data.missed.length ? ` · not listed: ${res.data.missed.join(", ")}` : ""}` } : res;
 }

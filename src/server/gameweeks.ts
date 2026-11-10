@@ -100,6 +100,7 @@ export async function createGameweek(args: {
           rosterRules: t.rosterRules,
           scoringRules: t.scoringRules,
           rewards: (devRewards ? t.devRewards : t.rewards) as unknown as Prisma.InputJsonValue,
+          requirements: (t.requirements ?? {}) as Prisma.InputJsonValue,
           entryOpensAt: args.opensAt,
           locksAt,
           status: args.opensAt <= new Date() ? "OPEN" : "UPCOMING",

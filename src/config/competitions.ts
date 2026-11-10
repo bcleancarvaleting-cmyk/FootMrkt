@@ -16,9 +16,23 @@ export interface CompetitionTemplate {
   scoringRules: string;
   rewards: RewardRule[];
   devRewards: RewardRule[];
+  /** Extra entry rules (see RequirementsSchema). */
+  requirements?: Record<string, unknown>;
 }
 
 export const FOOTBALL_COMPETITION_TEMPLATES: CompetitionTemplate[] = [
+  {
+    // Every gameweek has a freeroll (product decision 10 Nov 2026): free to enter, free cards only,
+    // £10 to the winner (paid into withdrawable winnings). Admins can change the prize per gameweek.
+    key: "freeroll",
+    name: "Freeroll",
+    format: "OPEN",
+    rosterRules: "football-roster-v3",
+    scoringRules: "football-scoring-v2-draft",
+    rewards: [{ rankFrom: 1, rankTo: 1, cashMinor: 1000 }],
+    devRewards: [{ rankFrom: 1, rankTo: 1, cashMinor: 1000 }],
+    requirements: { freeCardsOnly: true },
+  },
   {
     key: "open",
     name: "Open League",

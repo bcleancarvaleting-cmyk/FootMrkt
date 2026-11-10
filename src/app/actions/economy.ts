@@ -114,6 +114,7 @@ export async function competitionRulesAction(_: ActionResult | null, f: FormData
         maxPerClub: str(f, "maxPerClub") ? Number(str(f, "maxPerClub")) : undefined,
         maxSquadValueMp: str(f, "maxValue") ? Number(str(f, "maxValue")) : undefined,
         foundersOnly: f.get("foundersOnly") === "on" ? true : undefined,
+        freeCardsOnly: f.get("freeCardsOnly") === "on" ? true : undefined,
       },
       prizes: str(f, "prizes"),
     });

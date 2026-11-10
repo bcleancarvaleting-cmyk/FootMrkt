@@ -18,12 +18,18 @@ export const RequirementsSchema = z
     tiers: z.array(z.enum(["BRONZE", "SILVER", "GOLD"])).min(1).optional(),
     /** Only Founding Members can enter (e.g. the founders' freeroll). */
     foundersOnly: z.boolean().optional(),
+    /**
+     * Only free cards (Starter Pack, welcome gifts, free drops — the minted STARTER edition) may be
+     * picked, so buying packs or cards can't improve anyone's chance of winning. Required for £ prizes.
+     */
+    freeCardsOnly: z.boolean().optional(),
   })
   .strict();
 export type Requirements = z.infer<typeof RequirementsSchema>;
 
 export function requirementsSummary(r: Requirements, format: string) {
   const bits: string[] = [];
+  if (r.freeCardsOnly) bits.push("Free cards only");
   if (r.foundersOnly) bits.push("Founding members only");
   if (format !== "OPEN") bits.push(`${format.split("_")[0][0]}${format.split("_")[0].slice(1).toLowerCase()} only`);
   if (r.tiers) bits.push(`${r.tiers.map((t) => t[0] + t.slice(1).toLowerCase()).join("/")} only`);
@@ -69,8 +75,8 @@ export async function submitEntry(userId: string, competitionId: string, input: 
 
     const cardIds = [...submission.starters.map((s) => s.cardId), ...submission.bench];
     const rows = await tx.$queryRaw<
-      Array<{ id: string; ownerId: string | null; lock: string; lockRef: string | null; playerId: string; position: string; category: string; clubId: string | null; league: string | null }>
-    >`SELECT ci.id, ci."ownerId", ci."lock", ci."lockRef", t."playerId", p.position::text AS position, t.category::text AS category,
+      Array<{ id: string; ownerId: string | null; lock: string; lockRef: string | null; playerId: string; position: string; category: string; edition: string; clubId: string | null; league: string | null }>
+    >`SELECT ci.id, ci."ownerId", ci."lock", ci."lockRef", t."playerId", p.position::text AS position, t.category::text AS category, t.edition::text AS edition,
              p."clubId", l.code AS league
       FROM "CardInstance" ci JOIN "CardTemplate" t ON t.id = ci."templateId" JOIN "Player" p ON p.id = t."playerId"
       LEFT JOIN "Club" c ON c.id = p."clubId" LEFT JOIN "League" l ON l.id = c."leagueId"
@@ -160,7 +166,7 @@ export async function withdrawEntry(userId: string, competitionId: string) {
 async function checkRequirements(
   tx: Parameters<Parameters<typeof withTx>[0]>[0],
   raw: unknown,
-  rows: Array<{ id: string; playerId: string; category: string; clubId: string | null; league: string | null }>,
+  rows: Array<{ id: string; playerId: string; category: string; edition: string; clubId: string | null; league: string | null }>,
   starterIds: string[],
 ): Promise<SquadIssue[]> {
   const parsed = RequirementsSchema.safeParse(raw ?? {});
@@ -168,6 +174,7 @@ async function checkRequirements(
   const r = parsed.data;
   const issues: SquadIssue[] = [];
   const picked = rows;
+  if (r.freeCardsOnly) for (const c of picked) if (c.edition !== "STARTER") issues.push({ code: "UNKNOWN_CARD", message: "Only free cards (Starter Pack, welcome gifts, free drops) can be entered", cardId: c.id });
   if (r.tiers) for (const c of picked) if (!r.tiers.includes(c.category as never)) issues.push({ code: "UNKNOWN_CARD", message: `Only ${r.tiers.join("/").toLowerCase()} cards can be entered`, cardId: c.id });
   if (r.leagues) for (const c of picked) if (!c.league || !r.leagues.includes(c.league)) issues.push({ code: "UNKNOWN_CARD", message: `Only ${r.leagues.join("/")} players can be entered`, cardId: c.id });
   if (r.maxPerClub) {
@@ -189,6 +196,17 @@ async function checkRequirements(
     if (total > r.maxSquadValueMp) issues.push({ code: "UNKNOWN_CARD", message: `Your starters are worth ${total} MP — the limit is ${r.maxSquadValueMp} MP` });
   }
   return issues;
+}
+
+/**
+ * Guardrail: £ prizes only on matches that are free to enter AND limited to free cards, so nothing
+ * anyone bought (MP, packs, cards) can buy a better chance of real money. Matches with an MP entry
+ * fee or open to bought cards pay in-game prizes only (MP, packs).
+ */
+export function assertPrizeRules(feeMinor: number, req: Requirements, rewards: Array<{ cashMinor?: number }>) {
+  if (!rewards.some((r) => (r.cashMinor ?? 0) > 0)) return;
+  if (feeMinor > 0) throw new DomainError("PRIZE_RULES", "£ prizes are only allowed on free-entry matches. Matches with an MP entry fee can give MP or pack prizes.");
+  if (!req.freeCardsOnly) throw new DomainError("PRIZE_RULES", "£ prizes need the 'Free cards only' rule, so bought cards can't improve anyone's chances.");
 }
 
 /** Admin: set a match's entry fee (MP) and extra requirements. */
@@ -220,6 +238,7 @@ export async function updateCompetitionRules(adminId: string, competitionId: str
     if (!["UPCOMING", "OPEN"].includes(before.status)) throw new DomainError("LOCKED", "Rules can only change before the match locks.");
     const entries = await tx.competitionEntry.count({ where: { competitionId } });
     if (entries > 0 && fee !== before.entryFeeMinor) throw new DomainError("HAS_ENTRIES", "Managers have already entered — the entry fee can't change now.");
+    assertPrizeRules(fee, requirements, cashRules ?? ((before.rewards as Array<{ cashMinor?: number }>) ?? []));
     const keep = ((before.rewards as Array<{ cashMinor?: number }>) ?? []).filter((r) => !r.cashMinor);
     const rewards = cashRules ? [...keep, ...cashRules] : (before.rewards as never);
     const after = await tx.competition.update({ where: { id: competitionId }, data: { entryFeeMinor: fee, requirements, rewards } });

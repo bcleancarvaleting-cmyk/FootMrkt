@@ -193,7 +193,7 @@ describe("founding members", () => {
     const sport = await db.sport.findFirstOrThrow();
     const gw = await db.gameweek.create({ data: { sportId: sport.id, season: "f", number: 1, startsAt: new Date(), endsAt: new Date(Date.now() + 86_400_000), status: "OPEN" } });
     const comp = await db.competition.create({ data: { sportId: sport.id, gameweekId: gw.id, code: "freeroll", name: "Founders Freeroll", format: "OPEN", rosterRules: "football-roster-v3", scoringRules: "football-scoring-v2-draft", entryOpensAt: new Date(), locksAt: new Date(Date.now() + 86_400_000), status: "OPEN" } });
-    await rules(admin.userId, comp.id, { entryFeeMinor: 0, requirements: { foundersOnly: true }, prizes: "1=10" });
+    await rules(admin.userId, comp.id, { entryFeeMinor: 0, requirements: { foundersOnly: true, freeCardsOnly: true }, prizes: "1=10" });
     await expect(enter(userId, comp.id, { formation: "2-2-2", starters: [], bench: [] })).rejects.toMatchObject({ code: "FOUNDERS_ONLY" });
     expect((await db.competition.findUniqueOrThrow({ where: { id: comp.id } })).rewards).toEqual([{ rankFrom: 1, rankTo: 1, cashMinor: 1000 }]);
   });
@@ -221,5 +221,46 @@ describe("launch period: untradeable cards", () => {
     expect((await db.cardInstance.findMany({ where: { id: { in: ids } } })).every((c) => c.tradeStatus === "TRADEABLE")).toBe(true);
     expect(await lockAllHeldCards()).toBe(ids.length);
     expect((await db.cardInstance.findMany({ where: { id: { in: ids } } })).every((c) => c.tradeStatus === "NON_TRADEABLE")).toBe(true);
+  });
+});
+
+describe("prize guardrails", () => {
+  async function comp() {
+    const sport = await db.sport.findFirstOrThrow();
+    const gw = await db.gameweek.create({ data: { sportId: sport.id, season: "g", number: 1, startsAt: new Date(), endsAt: new Date(Date.now() + 86_400_000), status: "OPEN" } });
+    return db.competition.create({ data: { sportId: sport.id, gameweekId: gw.id, code: `g-${Math.random()}`, name: "G", format: "OPEN", rosterRules: "football-roster-v3", scoringRules: "football-scoring-v2-draft", entryOpensAt: new Date(), locksAt: new Date(Date.now() + 86_400_000), status: "OPEN" } });
+  }
+
+  it("£ prizes need free entry and free cards only; MP-entry matches can't carry them", async () => {
+    const admin = await makeUser("adm11");
+    const c = await comp();
+    await expect(updateCompetitionRules(admin.userId, c.id, { entryFeeMinor: 0, requirements: {}, prizes: "1=10" })).rejects.toMatchObject({ code: "PRIZE_RULES" });
+    await expect(updateCompetitionRules(admin.userId, c.id, { entryFeeMinor: 200, requirements: { freeCardsOnly: true }, prizes: "1=10" })).rejects.toMatchObject({ code: "PRIZE_RULES" });
+    await updateCompetitionRules(admin.userId, c.id, { entryFeeMinor: 0, requirements: { freeCardsOnly: true }, prizes: "1=10" });
+    await updateCompetitionRules(admin.userId, c.id, { entryFeeMinor: 200, requirements: {}, prizes: "" });
+  });
+
+  it("free-cards-only matches reject bought or pack cards", async () => {
+    const admin = await makeUser("adm12");
+    const { userId } = await makeUser("free1");
+    const c = await comp();
+    await updateCompetitionRules(admin.userId, c.id, { entryFeeMinor: 0, requirements: { freeCardsOnly: true }, prizes: "1=10" });
+    await bronzePack(userId, 2);
+    const starter = await db.packEntitlement.findFirstOrThrow({ where: { userId, source: "STARTER" } });
+    await openPack(userId, starter.id);
+    const cards = await db.cardInstance.findMany({ where: { ownerId: userId }, include: { template: { include: { player: true } } } });
+    const pick = (edition: string) => {
+      const pool = cards.filter((x) => x.template.edition === edition);
+      const by = (p: string, n: number) => pool.filter((x) => x.template.player.position === p).slice(0, n);
+      const starters = [...by("GK", 1), ...by("DEF", 2), ...by("MID", 2), ...by("ATT", 2)];
+      return { formation: "2-2-2", starters: starters.map((x) => ({ cardId: x.id, position: x.template.player.position })), bench: pool.filter((x) => !starters.includes(x)).slice(0, 4).map((x) => x.id) };
+    };
+    await submitEntry(userId, c.id, pick("STARTER"));
+    const mixed = pick("STARTER");
+    const bought = cards.find((x) => x.template.edition === "STANDARD" && x.template.player.position === "ATT");
+    if (bought) {
+      mixed.starters[6] = { cardId: bought.id, position: "ATT" };
+      await expect(submitEntry(userId, c.id, mixed)).rejects.toMatchObject({ code: "SQUAD_INVALID" });
+    }
   });
 });

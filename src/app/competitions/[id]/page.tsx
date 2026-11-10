@@ -90,7 +90,7 @@ async function Builder({
   entry,
 }: {
   userId: string;
-  competition: { id: string; gameweekId: string; rosterRules: string; format: "OPEN" | "BRONZE_ONLY" | "SILVER_ONLY" | "GOLD_ONLY" };
+  competition: { id: string; gameweekId: string; rosterRules: string; format: "OPEN" | "BRONZE_ONLY" | "SILVER_ONLY" | "GOLD_ONLY"; requirements: unknown };
   entry: { id: string; formation: string; selections: Array<{ cardId: string; slot: string; position: string; order: number }> } | null;
 }) {
   const rules = getRosterRules(competition.rosterRules);
@@ -107,11 +107,12 @@ async function Builder({
   };
   const builderCards: BuilderCard[] = cards.map((c) => {
     const mine = c.lock === "COMPETITION" && entry && c.lockRef === entry.id;
-    const available = c.lock === "NONE" || !!mine;
+    const notFree = !!(competition.requirements as Requirements | null)?.freeCardsOnly && c.edition !== "STARTER";
+    const available = (c.lock === "NONE" || !!mine) && !notFree;
     return {
       ...c,
       available,
-      unavailableReason: available ? undefined : c.lock === "LISTED" ? "listed on market" : "in another squad",
+      unavailableReason: available ? undefined : notFree ? "not a free card" : c.lock === "LISTED" ? "listed on market" : "in another squad",
       form: form.get(c.playerId) ?? [],
       fixture: fixtureFor(c.clubCode),
     };

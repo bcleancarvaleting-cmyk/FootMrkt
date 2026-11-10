@@ -93,7 +93,7 @@ export function ChallengeForm({ packs }: { packs: Array<{ code: string; name: st
   );
 }
 
-export function MatchRulesForm({ id, fee, req, prizes }: { id: string; fee: number; req: { tiers?: string[]; leagues?: string[]; maxPerClub?: number; maxSquadValueMp?: number; foundersOnly?: boolean }; prizes: string }) {
+export function MatchRulesForm({ id, fee, req, prizes }: { id: string; fee: number; req: { tiers?: string[]; leagues?: string[]; maxPerClub?: number; maxSquadValueMp?: number; foundersOnly?: boolean; freeCardsOnly?: boolean }; prizes: string }) {
   return (
     <Form action={competitionRulesAction} submit="Save">
       <input type="hidden" name="competitionId" value={id} />
@@ -102,7 +102,10 @@ export function MatchRulesForm({ id, fee, req, prizes }: { id: string; fee: numb
       <I name="leagues" label="Leagues only" placeholder="EPL" defaultValue={req.leagues?.join(",")} />
       <I name="maxPerClub" label="Max per club" type="number" min="1" defaultValue={req.maxPerClub} />
       <I name="maxValue" label="Max starters value (MP)" type="number" min="1" defaultValue={req.maxSquadValueMp} />
-      <I name="prizes" label="£ prizes (e.g. 1=10, 2-3=5)" placeholder="1=10, 2-3=5" defaultValue={prizes} />
+      <I name="prizes" label="£ prizes — free entry + free cards only (e.g. 1=10, 2-3=5)" placeholder="1=10, 2-3=5" defaultValue={prizes} />
+      <label className="flex items-center gap-2 self-end pb-2.5 text-sm">
+        <input type="checkbox" name="freeCardsOnly" defaultChecked={req.freeCardsOnly} className="accent-lime" /> Free cards only
+      </label>
       <label className="flex items-center gap-2 self-end pb-2.5 text-sm">
         <input type="checkbox" name="foundersOnly" defaultChecked={req.foundersOnly} className="accent-lime" /> Founding members only
       </label>

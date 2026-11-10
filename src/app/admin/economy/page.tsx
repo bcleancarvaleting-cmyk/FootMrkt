@@ -172,7 +172,7 @@ export default async function EconomyAdmin() {
         </ul>
       </Section>
 
-      <Section title="Match entry rules" intro="Entry fees are only charged once PAID_ENTRY is legally cleared — until then paid matches can't be entered. Fees can't change after someone has entered.">
+      <Section title="Match entry rules" intro="£ prizes are only allowed on free-entry matches with 'Free cards only', so nothing anyone bought can improve their chances of real money. Matches with an MP entry fee pay MP or pack prizes. MP entry fees are charged once PAID_ENTRY is cleared; fees can't change after someone has entered.">
         <div className="space-y-5">
           {comps.map((c) => (
             <div key={c.id} className="border-t border-ink-700 pt-4 first:border-0 first:pt-0">

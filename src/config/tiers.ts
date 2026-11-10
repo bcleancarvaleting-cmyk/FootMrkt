@@ -33,7 +33,12 @@ export function tierForValue(valueGbp: number, t = VALUE_TIERS): Category {
 }
 
 /**
- * Hard caps on how many copies of a card design can ever exist. Set 10 Nov 2026 for launch demand
- * (history: 40 / 120 / 400 → 80 / 240 / 800 → 1,000 / 3,000 / 8,000).
+ * Hard caps on how many copies of a card design can ever exist (launch caps, 10 Nov 2026).
+ * A cap can safely be lowered later (never below what's issued) but raising one dilutes holders —
+ * new supply should come from new-season designs instead.
  */
-export const MAX_SUPPLY: Record<Category, number> = { GOLD: 1000, SILVER: 3000, BRONZE: 8000 };
+export const MAX_SUPPLY: Record<Category, number> = { GOLD: 500, SILVER: 1500, BRONZE: 3000 };
+/** The most valuable Gold players are "elite": rarer still. Set at launch by migration. */
+export const ELITE_GOLD = { count: 30, maxSupply: 250 };
+/** Diamond finish: at most this many per Gold player, ever. */
+export const DIAMONDS_PER_PLAYER = 5;

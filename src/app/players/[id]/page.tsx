@@ -10,7 +10,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   await requireUser();
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
-  const { player, matches, values } = await playerProfile(id).catch((e) => {
+  const { player, matches, values, issued, diamonds } = await playerProfile(id).catch((e) => {
     if (e instanceof DomainError) notFound();
     throw e;
   });
@@ -46,9 +46,11 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
           return (
             <span key={t.id} className="chip">
               {t.category} card · {mp ? `${mp} MX` : "no value yet"}
+              {t.maxSupply ? ` · ${(issued.get(t.id) ?? 0).toLocaleString("en-GB")} of ${t.maxSupply.toLocaleString("en-GB")} issued` : ""}
             </span>
           );
         })}
+        {player.templates.some((t) => t.category === "GOLD") && <span className="chip border-[#8fe3ff]/50 text-[#8fe3ff]">◆ Diamonds · {diamonds} of 5 found</span>}
       </div>
 
       <section className="panel overflow-x-auto">

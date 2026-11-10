@@ -33,7 +33,7 @@ export default async function OpeningPage({ params }: { params: Promise<{ id: st
       <div className="text-center">
         <p className="eyebrow">{opening.packSku.name}</p>
         <h1 className="mt-1 text-5xl font-extrabold">
-          {counts.GOLD > 0 ? `${counts.GOLD} Gold!` : counts.SILVER > 0 ? `${counts.SILVER} Silver` : "Your new cards"}
+          {cards.some((c) => c.diamond) ? "◆ DIAMOND!" : counts.GOLD > 0 ? `${counts.GOLD} Gold!` : counts.SILVER > 0 ? `${counts.SILVER} Silver` : "Your new cards"}
         </h1>
         <p className="mt-1 text-sm text-muted">
           {cards.length} card{cards.length === 1 ? "" : "s"} added to your club

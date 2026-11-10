@@ -223,6 +223,66 @@ h2 {
     radial-gradient(120% 80% at 50% 0%, rgb(205 138 87 / 0.3), transparent 60%),
     linear-gradient(180deg, #24150c, #0b0705 70%);
 }
+/* Diamond finish (cosmetic, max 5 per Gold player): icy prismatic foil, faceted face, sparkles. */
+.foil-diamond {
+  background: linear-gradient(
+    135deg,
+    #5fd4ff 0%,
+    #ffffff 14%,
+    #b19bff 28%,
+    #e9fbff 40%,
+    #7ef0d4 52%,
+    #ffffff 62%,
+    #ff9ee6 76%,
+    #d9f4ff 88%,
+    #5fd4ff 100%
+  );
+  background-size: 220% 220%;
+}
+.face-diamond {
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgb(160 230 255 / 0.4), transparent 60%),
+    repeating-conic-gradient(from 22deg at 50% 38%, rgb(255 255 255 / 0.05) 0 12deg, transparent 12deg 24deg),
+    linear-gradient(180deg, #0e2433, #04090f 72%);
+}
+.tier-DIAMOND {
+  border-left: 4px solid #8fe3ff;
+}
+.diamond-glint {
+  pointer-events: none;
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: radial-gradient(circle, #fff 0 18%, transparent 20%), conic-gradient(from 45deg, transparent 0 20%, #fff 22% 28%, transparent 30% 45%, #fff 47% 53%, transparent 55% 70%, #fff 72% 78%, transparent 80%);
+  border-radius: 50%;
+  opacity: 0.9;
+  z-index: 3;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .foil-diamond {
+    animation: diamond-shift 6s ease-in-out infinite;
+  }
+  .diamond-glint {
+    animation: diamond-twinkle 2.4s ease-in-out infinite;
+  }
+}
+@keyframes diamond-shift {
+  50% {
+    background-position: 100% 100%;
+  }
+}
+@keyframes diamond-twinkle {
+  0%,
+  100% {
+    transform: scale(0.4) rotate(0deg);
+    opacity: 0.2;
+  }
+  50% {
+    transform: scale(1.2) rotate(45deg);
+    opacity: 1;
+  }
+}
+
 /* Light sweeping across the foil. */
 .sheen {
   pointer-events: none;

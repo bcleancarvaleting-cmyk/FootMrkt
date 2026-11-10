@@ -4,7 +4,7 @@ import { db } from "./db";
 import { DomainError } from "./errors";
 import type { CardView } from "@/lib/view";
 import { latestValues, valueKey } from "./valuation";
-import { CARD_INCLUDE, enrichCards } from "./views";
+import { CARD_INCLUDE, enrichCards, issuedCounts } from "./views";
 
 export interface BinderFilters {
   category?: CardCategory;
@@ -113,5 +113,5 @@ export async function playerProfile(playerId: string) {
     return { stat: s, line, points: scorePlayer(rules, player.position, [line]) };
   });
   const values = await latestValues(player.templates.map((t) => ({ playerId, category: t.category })));
-  return { player, matches, values };
+  return { player, matches, values, issued: await issuedCounts(player.templates.map((t) => t.id)), diamonds: await db.diamondCard.count({ where: { playerId } }) };
 }

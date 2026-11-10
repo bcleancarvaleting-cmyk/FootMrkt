@@ -13,6 +13,13 @@ export const SETTINGS = {
     min: 50,
     max: 100_000,
   },
+  diamondOneIn: {
+    label: "Diamond chance: 1 in … Gold cards",
+    help: "Each Gold card that comes out of a pack has a 1-in-this chance of being a Diamond (cosmetic only, max 5 per player, ever). Higher = rarer.",
+    default: 200,
+    min: 10,
+    max: 1_000_000,
+  },
   prizeFundSharePct: {
     label: "Prize fund share (%)",
     help: "Share of the last 7 days' card revenue suggested for next week's prizes. Admin-only.",

@@ -99,6 +99,7 @@ export async function pickOptions(userId: string, entitlementId: string) {
       recycledCount: 0,
       packable: false,
       loanGameweeks: null,
+      diamond: null,
       mintedAt: new Date(0),
       updatedAt: new Date(0),
     };

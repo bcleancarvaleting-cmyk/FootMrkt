@@ -15,6 +15,10 @@ export interface CardView {
   edition: "STANDARD" | "STARTER" | "LOAN";
   /** Loan players only: gameweeks left of the loan (counted by gameweeks the manager enters). */
   loan: { left: number; total: number; ended: boolean } | null;
+  /** Diamond finish serial (1–5) — cosmetic only; null for normal cards. */
+  diamond: number | null;
+  /** Copies of this design issued so far (null when not looked up). */
+  issued: number | null;
   clubCode: string | null;
   clubShort: string | null;
   clubName: string | null;
@@ -48,6 +52,7 @@ type CardLike = {
   id: string;
   serial: number;
   loanGameweeks?: number | null;
+  diamond?: { serial: number } | null;
   tradeStatus: string;
   lock: string;
   lockRef: string | null;
@@ -89,6 +94,7 @@ export function toCardView(
     favourite?: boolean;
     duplicateCount?: number;
     loan?: { left: number; ended: boolean };
+    issued?: number;
   } = {},
 ): CardView {
   const p = c.template.player;
@@ -103,6 +109,8 @@ export function toCardView(
     category: c.template.category as Category,
     edition: c.template.edition as CardView["edition"],
     loan,
+    diamond: c.diamond?.serial ?? null,
+    issued: extra.issued ?? null,
     clubCode: p.club?.code ?? null,
     clubShort: p.club?.shortName ?? null,
     clubName: p.club?.name ?? null,

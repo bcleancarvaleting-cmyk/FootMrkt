@@ -225,6 +225,7 @@ model Player {
   stats      PlayerMatchStat[]
   valuations MPValuation[]
   selections CompetitionSelection[]
+  diamonds   DiamondCard[]
 
   @@index([sportId, position])
 }
@@ -310,10 +311,26 @@ model CardInstance {
   favourites FavouriteCard[]
   points     CardPoints[]
   auctions   Auction[]
+  diamond    DiamondCard?
 
   @@unique([templateId, serial])
   @@index([supplyState])
   @@index([ownerId])
+}
+
+// Diamond cards (product decision 10 Nov 2026): a purely cosmetic finish on a Gold card — it plays,
+// scores and trades exactly like the Gold. A Gold drawn from a pack has a small chance of being
+// Diamond; there are only ever 5 per player, numbered 1–5 (enforced by the unique index).
+model DiamondCard {
+  id        String       @id @default(uuid()) @db.Uuid
+  playerId  String       @db.Uuid
+  player    Player       @relation(fields: [playerId], references: [id])
+  serial    Int // 1..5
+  cardId    String       @unique @db.Uuid
+  card      CardInstance @relation(fields: [cardId], references: [id])
+  createdAt DateTime     @default(now())
+
+  @@unique([playerId, serial])
 }
 
 enum AcquisitionKind {

@@ -20,7 +20,11 @@ export function CardRow({ card, href, children, sub }: { card: CardView; href?: 
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
           <span className="truncate font-display text-lg font-bold uppercase leading-tight tracking-wide">{card.name}</span>
-          <span className={`hidden text-[10px] font-extrabold uppercase tracking-[0.16em] sm:inline ${TIER_TEXT[card.category]}`}>{card.category}</span>
+          {card.diamond ? (
+            <span className="rounded bg-gradient-to-r from-[#8fe3ff] via-white to-[#c9b6ff] px-1.5 text-[10px] font-extrabold uppercase tracking-[0.12em] text-ink-950">◆ Diamond {card.diamond}/5</span>
+          ) : (
+            <span className={`hidden text-[10px] font-extrabold uppercase tracking-[0.16em] sm:inline ${TIER_TEXT[card.category]}`}>{card.category}</span>
+          )}
         </span>
         <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted">
           <ClubBadge short={card.clubShort} primary={card.clubPrimary} secondary={card.clubSecondary} kit={card.kit} crestUrl={card.crestUrl} size={14} title={card.clubName ?? undefined} />
@@ -31,7 +35,7 @@ export function CardRow({ card, href, children, sub }: { card: CardView; href?: 
     </>
   );
   return (
-    <li className={`row-item tier-${card.category} gap-3 sm:gap-4 ${card.loan?.ended ? "loan-ended" : ""}`}>
+    <li className={`row-item tier-${card.diamond ? "DIAMOND" : card.category} gap-3 sm:gap-4 ${card.loan?.ended ? "loan-ended" : ""}`}>
       <span className="w-9 shrink-0 text-center text-[11px] font-extrabold tracking-[0.12em] text-muted">{card.position}</span>
       {href ? (
         <Link href={href} className="flex min-w-0 flex-1 items-center gap-3 hover:opacity-90">

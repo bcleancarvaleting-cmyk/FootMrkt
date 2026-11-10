@@ -6,6 +6,7 @@ import { valueKey, valueTrends } from "./valuation";
 
 export const CARD_INCLUDE = {
   template: { include: { player: { include: { club: { include: { league: true } } } } } },
+  diamond: { select: { serial: true } },
 } satisfies Prisma.CardInstanceInclude;
 
 export type CardWithTemplate = Prisma.CardInstanceGetPayload<{ include: typeof CARD_INCLUDE }>;
@@ -59,11 +60,12 @@ export async function pointsForOwners(cards: Array<{ id: string; ownerId: string
 
 /** Turn DB cards into view models with value, trend, acquisition and points won for the owner. */
 export async function enrichCards(cards: CardWithTemplate[]): Promise<CardView[]> {
-  const [trends, acquired, points, loans] = await Promise.all([
+  const [trends, acquired, points, loans, issued] = await Promise.all([
     valueTrends(cards.map((c) => ({ playerId: c.template.playerId, category: c.template.category }))),
     acquisitionLabels(cards.filter((c) => c.ownerId).map((c) => c.id)),
     pointsForOwners(cards),
     loansLeft(cards),
+    issuedCounts([...new Set(cards.map((c) => c.templateId))]),
   ]);
   return cards.map((c) => {
     const t = trends.get(valueKey(c.template.playerId, c.template.category));
@@ -73,6 +75,7 @@ export async function enrichCards(cards: CardWithTemplate[]): Promise<CardView[]
       acquired: c.loanGameweeks ? "Loan" : (acquired.get(c.id) ?? null),
       pointsForYou: points.get(c.id) ?? null,
       loan: loans.get(c.id),
+      issued: issued.get(c.templateId),
     });
   });
 }
@@ -80,4 +83,11 @@ export async function enrichCards(cards: CardWithTemplate[]): Promise<CardView[]
 export async function cardViews(where: Prisma.CardInstanceWhereInput, orderBy?: Prisma.CardInstanceOrderByWithRelationInput[], take?: number): Promise<CardView[]> {
   const cards = await db.cardInstance.findMany({ where, include: CARD_INCLUDE, orderBy, take });
   return enrichCards(cards);
+}
+
+/** Copies of each design issued so far (everything not retired), for "148 issued of 500". */
+export async function issuedCounts(templateIds: string[]) {
+  if (!templateIds.length) return new Map<string, number>();
+  const rows = await db.cardInstance.groupBy({ by: ["templateId"], where: { templateId: { in: templateIds }, supplyState: { not: "RETIRED" } }, _count: { _all: true } });
+  return new Map(rows.map((r) => [r.templateId, r._count._all]));
 }

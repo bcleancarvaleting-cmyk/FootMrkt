@@ -77,7 +77,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
       <div className="space-y-6">
         <div>
           <p className="eyebrow">
-            {card.template.category} · {card.template.edition === "STARTER" ? "Starter edition" : card.template.edition === "LOAN" ? "Loan player" : "Standard edition"}
+            {card.template.category} · {view.diamond ? `◆ Diamond ${view.diamond} of 5` : card.template.edition === "STARTER" ? "Starter edition" : card.template.edition === "LOAN" ? "Loan player" : "Standard edition"}
           </p>
           <h1 className="text-5xl font-extrabold">
             <Link href={`/players/${card.template.playerId}`} className="hover:text-lime">
@@ -110,8 +110,9 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
             <span className="break-all font-mono text-[11px] text-muted">{card.id}</span>
             <span className="block text-xs text-faint">
               Serial #{card.serial}
-              {card.template.maxSupply ? ` of max ${card.template.maxSupply}` : ""}
+              {view.issued !== null && card.template.maxSupply ? ` · ${view.issued.toLocaleString("en-GB")} issued of ${card.template.maxSupply.toLocaleString("en-GB")}` : ""}
             </span>
+            {view.diamond && <span className="mt-1 block text-xs font-bold text-[#8fe3ff]">◆ Diamond {view.diamond} of 5 — only five exist</span>}
           </Info>
         </div>
 

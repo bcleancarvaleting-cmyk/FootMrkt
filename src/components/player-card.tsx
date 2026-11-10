@@ -22,6 +22,12 @@ const TIER = {
     text: "text-[#fff3c4]",
     label: "Gold",
   },
+  DIAMOND: {
+    frame: "",
+    ring: "ring-[#8fe3ff]/60",
+    text: "text-[#e6f9ff]",
+    label: "Diamond",
+  },
 } as const;
 
 export function tierStyle(c: CardView["category"]) {
@@ -35,19 +41,32 @@ export function tierStyle(c: CardView["category"]) {
  * in place it shows the player's shirt in club colours with their squad number.
  */
 export function PlayerCard({ card, size = "md", className = "" }: { card: CardView; size?: "sm" | "md" | "lg"; className?: string }) {
-  const t = TIER[card.category];
+  // Diamond is a finish on a Gold: same card in every way, it just looks the part.
+  const diamond = card.diamond !== null && card.diamond !== undefined;
+  const t = diamond ? TIER.DIAMOND : TIER[card.category];
   const w = size === "sm" ? "w-32" : size === "lg" ? "w-60" : "w-44";
   const small = size === "sm";
-  const tier = card.category.toLowerCase();
+  const tier = diamond ? "diamond" : card.category.toLowerCase();
   return (
     <div
       className={`card-premium theme-dark relative ${w} aspect-[5/7] ${card.loan?.ended ? "loan-ended" : ""} select-none overflow-hidden rounded-[18px] p-[3px] foil-${tier} ${
-        card.category === "GOLD" && !card.loan?.ended ? "is-gold shadow-[0_10px_40px_-12px_rgba(242,207,99,0.7)]" : "shadow-[0_10px_30px_-16px_rgba(0,0,0,0.8)]"
+        diamond
+          ? "is-gold shadow-[0_10px_44px_-10px_rgba(143,227,255,0.85)]"
+          : card.category === "GOLD" && !card.loan?.ended
+            ? "is-gold shadow-[0_10px_40px_-12px_rgba(242,207,99,0.7)]"
+            : "shadow-[0_10px_30px_-16px_rgba(0,0,0,0.8)]"
       } ${className}`}
     >
       <span className="sheen" aria-hidden="true" />
       <div className={`face-${tier} relative flex h-full flex-col overflow-hidden rounded-[15px]`}>
-        {card.category === "GOLD" && <span className="holo" aria-hidden="true" />}
+        {card.category === "GOLD" && <span className={`holo ${diamond ? "!opacity-70" : ""}`} aria-hidden="true" />}
+        {diamond && (
+          <>
+            <span className="diamond-glint left-[14%] top-[22%]" aria-hidden="true" />
+            <span className="diamond-glint right-[12%] top-[46%] [animation-delay:0.8s]" aria-hidden="true" />
+            <span className="diamond-glint bottom-[26%] left-[30%] [animation-delay:1.6s]" aria-hidden="true" />
+          </>
+        )}
         {/* Position · club · tier */}
         <div className="flex items-center justify-between px-2.5 pt-2.5">
           <span className={`rounded-md bg-ink-950/75 px-1.5 py-0.5 font-black tracking-wider ${small ? "text-[10px]" : "text-xs"} ${t.text}`}>
@@ -69,6 +88,7 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
         <div className="relative mx-2.5 mt-1.5 flex flex-1 items-end justify-center overflow-hidden rounded-xl bg-gradient-to-b from-white/5 to-transparent">
           <PlayerImage card={card} />
           <div className="pointer-events-none absolute left-1 top-1 flex flex-col items-start gap-1">
+            {diamond && <Badge tone="diamond">◆ {card.diamond}/5</Badge>}
             {card.lock === "COMPETITION" && <Badge tone="lime">In squad</Badge>}
             {card.lock === "LISTED" && <Badge tone="warn">Listed</Badge>}
             {card.loan && (card.loan.ended ? <Badge tone="warn">Loan ended</Badge> : <Badge tone="muted">On loan</Badge>)}
@@ -149,9 +169,15 @@ export function Trend({ pct, className = "" }: { pct: number | null; className?:
   );
 }
 
-function Badge({ children, tone }: { children: React.ReactNode; tone: "muted" | "lime" | "warn" }) {
+function Badge({ children, tone }: { children: React.ReactNode; tone: "muted" | "lime" | "warn" | "diamond" }) {
   const cls =
-    tone === "lime" ? "bg-lime text-ink-950" : tone === "warn" ? "bg-warn text-ink-950" : "bg-ink-950/80 text-muted border border-ink-600";
+    tone === "lime"
+      ? "bg-lime text-ink-950"
+      : tone === "warn"
+        ? "bg-warn text-ink-950"
+        : tone === "diamond"
+          ? "bg-gradient-to-r from-[#8fe3ff] via-white to-[#c9b6ff] text-ink-950"
+          : "bg-ink-950/80 text-muted border border-ink-600";
   return <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${cls}`}>{children}</span>;
 }
 

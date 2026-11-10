@@ -1,4 +1,7 @@
 import { Prisma, type CardCategory, type EntitlementSource } from "@/generated/prisma/client";
+import { CARD_INCLUDE } from "./views";
+import { DIAMONDS_PER_PLAYER } from "@/config/tiers";
+import { getSetting } from "./settings";
 import { type PlannedSlot, honoursGuarantees, planPack } from "@/domain/packs/compose";
 import { type PackConfig, type SlotFilters, parsePackConfig } from "@/domain/packs/config";
 import { AuditedRandom, type RandomSource, cryptoRandom } from "@/domain/random";
@@ -64,6 +67,19 @@ interface DrawAudit {
   pick: number;
   playerId: string;
   cardId: string;
+  /** Diamond serial (1–5) if this Gold came out as a Diamond. */
+  diamond?: number | null;
+}
+
+/**
+ * Give this card the next Diamond serial for its player, if any are left. Returns the serial, or
+ * null when all 5 are out (or another opening took the last one at the same moment).
+ */
+async function claimDiamond(tx: Tx, playerId: string, cardId: string): Promise<number | null> {
+  const taken = await tx.diamondCard.count({ where: { playerId } });
+  if (taken >= DIAMONDS_PER_PLAYER) return null;
+  const made = await tx.diamondCard.createMany({ data: [{ playerId, cardId, serial: taken + 1 }], skipDuplicates: true });
+  return made.count === 1 ? taken + 1 : null;
 }
 
 export interface OpenPackResult {
@@ -77,7 +93,7 @@ export async function openPack(
   entitlementId: string,
   rng: RandomSource = cryptoRandom,
 ): Promise<OpenPackResult> {
-  const tradeableNow = await cardsTradeableNow();
+  const [tradeableNow, diamondOneIn] = await Promise.all([cardsTradeableNow(), getSetting("diamondOneIn")]);
   return withTx(async (tx) => {
     // Atomically consume the entitlement. Only one transaction can win this update.
     const pickSku = await tx.packEntitlement.findUnique({ where: { id: entitlementId }, select: { packSku: { select: { code: true } } } });
@@ -129,6 +145,14 @@ export async function openPack(
     if (!honoursGuarantees(plan, draws.map((d) => d.issued))) {
       // Defensive: should be impossible by construction. Never issue a pack below its guarantee.
       throw new Error("Pack guarantee violated — aborting opening");
+    }
+
+    // Diamond finish: every Gold has a 1-in-N chance (same audited RNG), while that player has
+    // Diamonds left. Purely cosmetic — the card is otherwise the same Gold.
+    for (const d of draws) {
+      if (d.issued !== "GOLD") continue;
+      if (audited.withPurpose("diamond").int(diamondOneIn) !== 0) continue;
+      d.diamond = await claimDiamond(tx, d.playerId, d.cardId);
     }
 
     const opening = await tx.packOpening.create({
@@ -284,7 +308,7 @@ export async function getOpening(userId: string, openingId: string) {
       packSku: true,
       cards: {
         orderBy: { slotIndex: "asc" },
-        include: { card: { include: { template: { include: { player: { include: { club: { include: { league: true } } } } } } } } },
+        include: { card: { include: CARD_INCLUDE } },
       },
     },
   });

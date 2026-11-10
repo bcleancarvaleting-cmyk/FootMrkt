@@ -31,7 +31,7 @@ export async function playerDatabase(f: { q?: string; league?: string; tier?: st
   const order =
     f.sort === "pct_desc" ? Prisma.sql`pct DESC NULLS LAST` : f.sort === "pct_asc" ? Prisma.sql`pct ASC NULLS FIRST` : f.sort === "name" ? Prisma.sql`p."displayName" ASC` : Prisma.sql`p."marketValueGbp" DESC NULLS LAST`;
   return db.$queryRaw<
-    Array<{ playerId: string; name: string; club: string | null; league: string | null; tier: string; position: string; valueGbp: number | null; maxSupply: number | null; issued: number; held: number; inPacks: number; pct: number | null; onDrop: boolean }>
+    Array<{ playerId: string; name: string; club: string | null; league: string | null; tier: string; position: string; valueGbp: number | null; maxSupply: number | null; issued: number; held: number; inPacks: number; pct: number | null; onDrop: boolean; diamonds: number }>
   >`
     SELECT p.id AS "playerId", p."displayName" AS name, c.name AS club, l.code AS league, t.category::text AS tier, p.position::text AS position,
            p."marketValueGbp" AS "valueGbp", t."maxSupply",
@@ -40,7 +40,8 @@ export async function playerDatabase(f: { q?: string; league?: string; tier?: st
            COUNT(ci.id) FILTER (WHERE ci."supplyState" IN ('AVAILABLE', 'RECIRCULATING') AND ci.packable)::int AS "inPacks",
            CASE WHEN t."maxSupply" > 0 THEN ROUND(100.0 * COUNT(ci.id) FILTER (WHERE ci."supplyState" = 'HELD') / t."maxSupply", 1)::float END AS pct,
            EXISTS (SELECT 1 FROM "MarketListing" ml JOIN "CardInstance" c2 ON c2.id = ml."cardId" JOIN "CardTemplate" t2 ON t2.id = c2."templateId"
-                   WHERE ml.house AND ml.status = 'ACTIVE' AND NOT c2.packable AND t2."playerId" = p.id) AS "onDrop"
+                   WHERE ml.house AND ml.status = 'ACTIVE' AND NOT c2.packable AND t2."playerId" = p.id) AS "onDrop",
+           (SELECT COUNT(*) FROM "DiamondCard" dc WHERE dc."playerId" = p.id)::int AS diamonds
     FROM "CardTemplate" t JOIN "Player" p ON p.id = t."playerId"
     LEFT JOIN "Club" c ON c.id = p."clubId" LEFT JOIN "League" l ON l.id = c."leagueId"
     LEFT JOIN "CardInstance" ci ON ci."templateId" = t.id

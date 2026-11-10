@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DiamondGem } from "@/components/diamond-art";
 import { LOAN_PICK_CODE } from "@/config/packs";
 import { db } from "@/server/db";
 import { notFound } from "next/navigation";
@@ -32,8 +33,9 @@ export default async function OpeningPage({ params }: { params: Promise<{ id: st
     <div className="space-y-8">
       <div className="text-center">
         <p className="eyebrow">{opening.packSku.name}</p>
-        <h1 className="mt-1 text-5xl font-extrabold">
-          {cards.some((c) => c.diamond) ? "◆ DIAMOND!" : counts.GOLD > 0 ? `${counts.GOLD} Gold!` : counts.SILVER > 0 ? `${counts.SILVER} Silver` : "Your new cards"}
+        <h1 className="mt-1 flex items-center justify-center gap-3 text-5xl font-extrabold">
+          {cards.some((c) => c.diamond) && <DiamondGem id="headline" size={52} className="drop-shadow-[0_0_14px_rgba(155,232,255,0.9)]" />}
+          {cards.some((c) => c.diamond) ? <span className="diamond-name">DIAMOND!</span> : counts.GOLD > 0 ? `${counts.GOLD} Gold!` : counts.SILVER > 0 ? `${counts.SILVER} Silver` : "Your new cards"}
         </h1>
         <p className="mt-1 text-sm text-muted">
           {cards.length} card{cards.length === 1 ? "" : "s"} added to your club

@@ -1,4 +1,5 @@
 import type { CardView } from "@/lib/view";
+import { DiamondFacets, DiamondGem, DiamondSparkles } from "./diamond-art";
 import { mpLabel } from "@/lib/view";
 import { ClubBadge } from "./club-badge";
 import { KitShirt } from "./kit-shirt";
@@ -51,7 +52,7 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
     <div
       className={`card-premium theme-dark relative ${w} aspect-[5/7] ${card.loan?.ended ? "loan-ended" : ""} select-none overflow-hidden rounded-[18px] ${diamond ? "p-[6px]" : "p-[3px]"} foil-${tier} ${
         diamond
-          ? "is-gold shadow-[0_10px_44px_-10px_rgba(143,227,255,0.85)]"
+          ? "is-gold diamond-halo"
           : card.category === "GOLD" && !card.loan?.ended
             ? "is-gold shadow-[0_10px_40px_-12px_rgba(242,207,99,0.7)]"
             : "shadow-[0_10px_30px_-16px_rgba(0,0,0,0.8)]"
@@ -59,14 +60,9 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
     >
       <span className="sheen" aria-hidden="true" />
       <div className={`face-${tier} relative flex h-full flex-col overflow-hidden rounded-[15px]`}>
-        {card.category === "GOLD" && <span className={`holo ${diamond ? "!opacity-70" : ""}`} aria-hidden="true" />}
-        {diamond && (
-          <>
-            <span className="diamond-glint left-[14%] top-[22%]" aria-hidden="true" />
-            <span className="diamond-glint right-[12%] top-[46%] [animation-delay:0.8s]" aria-hidden="true" />
-            <span className="diamond-glint bottom-[26%] left-[30%] [animation-delay:1.6s]" aria-hidden="true" />
-          </>
-        )}
+        {diamond && <DiamondFacets />}
+        {card.category === "GOLD" && <span className={`holo ${diamond ? "!opacity-60" : ""}`} aria-hidden="true" />}
+        {diamond && <DiamondSparkles />}
         {/* Position · club · tier */}
         <div className="flex items-center justify-between px-2.5 pt-2.5">
           <span className={`rounded-md bg-ink-950/75 px-1.5 py-0.5 font-black tracking-wider ${small ? "text-[10px]" : "text-xs"} ${t.text}`}>
@@ -81,14 +77,28 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
             size={small ? 16 : size === "lg" ? 26 : 20}
             title={card.clubName ?? undefined}
           />
-          <span className={`text-[9px] font-bold uppercase tracking-[0.18em] ${t.text}`}>{t.label}</span>
+          {diamond ? (
+            <span className="flex items-center gap-1">
+              <DiamondGem id={`tier-${card.id}`} size={small ? 14 : 18} />
+              {!small && <span className="diamond-name text-[9px] font-black uppercase tracking-[0.18em]">Diamond</span>}
+            </span>
+          ) : (
+            <span className={`text-[9px] font-bold uppercase tracking-[0.18em] ${t.text}`}>{t.label}</span>
+          )}
         </div>
 
         {/* Player image */}
-        <div className="relative mx-2.5 mt-1.5 flex flex-1 items-end justify-center overflow-hidden rounded-xl bg-gradient-to-b from-white/5 to-transparent">
+        <div className={`relative mx-2.5 mt-1.5 flex flex-1 items-end justify-center overflow-hidden rounded-xl ${diamond ? "bg-gradient-to-b from-white/15 to-transparent" : "bg-gradient-to-b from-white/5 to-transparent"}`}>
           <PlayerImage card={card} />
           <div className="pointer-events-none absolute left-1 top-1 flex flex-col items-start gap-1">
-            {diamond && <Badge tone="diamond">◆ {card.diamond}/5</Badge>}
+            {diamond && (
+              <Badge tone="diamond">
+                <span className="flex items-center gap-1">
+                  <DiamondGem id={`badge-${card.id}`} size={11} />
+                  {card.diamond} of 5
+                </span>
+              </Badge>
+            )}
             {card.lock === "COMPETITION" && <Badge tone="lime">In squad</Badge>}
             {card.lock === "LISTED" && <Badge tone="warn">Listed</Badge>}
             {card.loan && (card.loan.ended ? <Badge tone="warn">Loan ended</Badge> : <Badge tone="muted">On loan</Badge>)}
@@ -102,7 +112,7 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
 
         {/* Name */}
         <div className="px-2.5 pt-1.5 text-center">
-          <div className={`truncate font-display font-bold uppercase leading-tight tracking-wide ${small ? "text-sm" : "text-[17px]"}`}>{card.name}</div>
+          <div className={`truncate font-display font-bold uppercase leading-tight tracking-wide ${small ? "text-sm" : "text-[17px]"} ${diamond ? "diamond-name" : ""}`}>{card.name}</div>
           <div className="truncate text-[10px] text-muted">{card.clubName ?? "Free agent"}</div>
         </div>
 

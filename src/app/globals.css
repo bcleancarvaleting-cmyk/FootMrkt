@@ -223,73 +223,125 @@ h2 {
     radial-gradient(120% 80% at 50% 0%, rgb(205 138 87 / 0.3), transparent 60%),
     linear-gradient(180deg, #24150c, #0b0705 70%);
 }
-/* Diamond finish (cosmetic, max 5 per Gold player): icy prismatic foil, faceted face, sparkles. */
+/* Diamond finish (cosmetic, max 5 per Gold player). A cut gem: rainbow "fire" turning round an
+   icy edge, glitter, a crystal-faceted face, star sparkles and a cool halo. */
+@property --gem-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
 .foil-diamond {
-  /* Glitter: three layers of tiny sparkles over a bright, icy diamond-white edge. */
   background:
     radial-gradient(circle at 30% 30%, #fff 0 1.3px, transparent 2px) 0 0 / 7px 7px,
-    radial-gradient(circle at 70% 60%, #5fd4ff 0 1.1px, transparent 1.8px) 3px 2px / 9px 9px,
-    radial-gradient(circle at 50% 50%, #c9a8ff 0 1px, transparent 1.7px) 1px 5px / 11px 11px,
-    linear-gradient(135deg, #8fd9f5 0%, #ffffff 16%, #a9c4f0 30%, #f2fbff 44%, #97e6f7 56%, #ffffff 68%, #cbb8f5 82%, #9edcf2 100%) 0 0 / 220% 220%;
+    radial-gradient(circle at 70% 60%, rgb(255 255 255 / 0.85) 0 1px, transparent 1.7px) 3px 2px / 9px 9px,
+    conic-gradient(
+      from var(--gem-angle),
+      #ffffff,
+      #9be8ff 8%,
+      #ffffff 14%,
+      #ff9ad5 22%,
+      #ffffff 28%,
+      #ffe58a 36%,
+      #ffffff 42%,
+      #8bffcf 50%,
+      #ffffff 56%,
+      #8fb4ff 64%,
+      #ffffff 70%,
+      #d6a8ff 80%,
+      #ffffff 88%,
+      #9be8ff 94%,
+      #ffffff
+    );
 }
 .face-diamond {
   background:
-    radial-gradient(120% 80% at 50% 0%, rgb(160 230 255 / 0.4), transparent 60%),
-    repeating-conic-gradient(from 22deg at 50% 38%, rgb(255 255 255 / 0.05) 0 12deg, transparent 12deg 24deg),
-    linear-gradient(180deg, #0e2433, #04090f 72%);
+    radial-gradient(90% 55% at 50% 40%, rgb(220 246 255 / 0.55), transparent 70%),
+    linear-gradient(180deg, #2b5a86 0%, #183a63 45%, #0b1d36 100%);
+}
+.diamond-halo {
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.9),
+    0 0 26px 2px rgb(155 232 255 / 0.75),
+    0 0 60px 8px rgb(200 168 255 / 0.35);
+}
+.diamond-name {
+  background: linear-gradient(100deg, #ffffff 0%, #c8f1ff 30%, #ffffff 50%, #e3d5ff 70%, #ffffff 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 3px rgb(0 20 50 / 0.8));
 }
 .tier-DIAMOND {
-  border-left: 4px solid #8fe3ff;
+  border-left: 4px solid #9be8ff;
 }
-.diamond-glint {
+.diamond-star {
   pointer-events: none;
   position: absolute;
-  width: 10px;
-  height: 10px;
-  background: radial-gradient(circle, #fff 0 18%, transparent 20%), conic-gradient(from 45deg, transparent 0 20%, #fff 22% 28%, transparent 30% 45%, #fff 47% 53%, transparent 55% 70%, #fff 72% 78%, transparent 80%);
-  border-radius: 50%;
+  z-index: 4;
+  filter: drop-shadow(0 0 4px #ffffff) drop-shadow(0 0 8px #9be8ff);
   opacity: 0.9;
-  z-index: 3;
 }
 @media (prefers-reduced-motion: no-preference) {
   .foil-diamond {
-    animation: diamond-glitter 1.6s steps(4) infinite, diamond-shift 6s ease-in-out infinite;
+    animation:
+      gem-turn 5s linear infinite,
+      diamond-glitter 1.4s steps(4) infinite;
   }
-  .diamond-glint {
-    animation: diamond-twinkle 2.4s ease-in-out infinite;
+  .diamond-halo {
+    animation: diamond-halo 2.8s ease-in-out infinite;
+  }
+  .diamond-name {
+    animation: diamond-name 3.5s linear infinite;
+  }
+  .diamond-star {
+    animation: diamond-twinkle 2.2s ease-in-out infinite;
   }
 }
-/* The sparkle layers jump about (like glitter catching the light) while the sheen drifts. */
+@keyframes gem-turn {
+  to {
+    --gem-angle: 360deg;
+  }
+}
+/* The glitter layers jump about like glitter catching the light. */
 @keyframes diamond-glitter {
   0% {
-    background-position: 0 0, 3px 2px, 1px 5px, 0 0;
+    background-position: 0 0, 3px 2px, 0 0;
   }
   25% {
-    background-position: 2px 3px, 0 5px, 4px 1px, 10% 10%;
+    background-position: 2px 3px, 0 5px, 0 0;
   }
   50% {
-    background-position: 4px 1px, 5px 0, 0 3px, 20% 20%;
+    background-position: 4px 1px, 5px 0, 0 0;
   }
   75% {
-    background-position: 1px 4px, 2px 6px, 5px 4px, 10% 10%;
+    background-position: 1px 4px, 2px 6px, 0 0;
   }
   100% {
-    background-position: 0 0, 3px 2px, 1px 5px, 0 0;
+    background-position: 0 0, 3px 2px, 0 0;
   }
 }
-@keyframes diamond-shift {
+@keyframes diamond-halo {
   50% {
-    filter: brightness(1.12) saturate(1.2);
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 1),
+      0 0 38px 6px rgb(155 232 255 / 0.95),
+      0 0 80px 14px rgb(200 168 255 / 0.5);
+  }
+}
+@keyframes diamond-name {
+  to {
+    background-position: -200% 0;
   }
 }
 @keyframes diamond-twinkle {
   0%,
   100% {
-    transform: scale(0.4) rotate(0deg);
-    opacity: 0.2;
+    transform: scale(0.3) rotate(0deg);
+    opacity: 0.15;
   }
   50% {
-    transform: scale(1.2) rotate(45deg);
+    transform: scale(1.15) rotate(45deg);
     opacity: 1;
   }
 }

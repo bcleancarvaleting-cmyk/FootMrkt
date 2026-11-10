@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { DiamondGem } from "./diamond-art";
 import { useEffect, useState } from "react";
 import type { CardView } from "@/lib/view";
 import { PlayerCard } from "./player-card";
@@ -23,8 +24,9 @@ export function PackReveal({ cards }: { cards: CardView[] }) {
         {order.map((c, i) => (
           <div key={c.id} className={`relative ${i < shown ? "animate-reveal" : "invisible"}`}>
             {c.diamond && i < shown && (
-              <span className="absolute -top-7 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-to-r from-[#8fe3ff] via-white to-[#c9b6ff] px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-ink-950 shadow-lg">
-                ◆ Diamond {c.diamond} of 5
+              <span className="diamond-halo absolute -top-8 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-gradient-to-r from-[#9be8ff] via-white to-[#d6a8ff] px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-ink-950">
+                <DiamondGem id={`reveal-${c.id}`} size={16} />
+                Diamond {c.diamond} of 5
               </span>
             )}
             <Link href={`/cards/${c.id}`}>

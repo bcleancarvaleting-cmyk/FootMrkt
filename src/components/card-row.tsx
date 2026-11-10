@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DiamondGem } from "./diamond-art";
 import type { CardView } from "@/lib/view";
 import { ClubBadge } from "./club-badge";
 import { KitShirt } from "./kit-shirt";
@@ -21,7 +22,10 @@ export function CardRow({ card, href, children, sub }: { card: CardView; href?: 
         <span className="flex items-center gap-2">
           <span className="truncate font-display text-lg font-bold uppercase leading-tight tracking-wide">{card.name}</span>
           {card.diamond ? (
-            <span className="rounded bg-gradient-to-r from-[#8fe3ff] via-white to-[#c9b6ff] px-1.5 text-[10px] font-extrabold uppercase tracking-[0.12em] text-ink-950">◆ Diamond {card.diamond}/5</span>
+            <span className="flex items-center gap-1 rounded bg-gradient-to-r from-[#9be8ff] via-white to-[#d6a8ff] px-1.5 text-[10px] font-extrabold uppercase tracking-[0.12em] text-ink-950">
+              <DiamondGem id={`row-${card.id}`} size={12} />
+              Diamond {card.diamond}/5
+            </span>
           ) : (
             <span className={`hidden text-[10px] font-extrabold uppercase tracking-[0.16em] sm:inline ${TIER_TEXT[card.category]}`}>{card.category}</span>
           )}

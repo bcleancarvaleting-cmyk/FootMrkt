@@ -28,7 +28,7 @@ async function starterSquad(userId: string, entitlementId: string) {
     ...by("ATT").slice(0, 2).map((c) => ({ cardId: c.id, position: "ATT" as const })),
   ];
   const used = new Set(starters.map((s) => s.cardId));
-  const bench = cards.filter((c) => !used.has(c.id)).map((c) => c.id);
+  const bench = cards.filter((c) => !used.has(c.id)).map((c) => c.id).slice(0, 4);
   return { formation: "2-2-2", starters, bench };
 }
 

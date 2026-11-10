@@ -7,6 +7,7 @@ import { requireUser } from "@/server/auth/session";
 import { db } from "@/server/db";
 import { dropStatus } from "@/server/drops";
 import { upcomingWelcomePacks } from "@/server/welcome";
+import { isPick } from "@/server/picks";
 import { allFlags } from "@/server/flags";
 import { balancesFor, fmtMp } from "@/server/wallet";
 import { fmtDate, gbp } from "@/lib/view";
@@ -89,7 +90,13 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
                     <span className="block font-display text-xl font-bold uppercase italic">{e.packSku.name}</span>
                     <span className="block text-xs text-muted">{cardCount(cfg)} cards · {e.source === "WEEKLY" ? "free drop" : e.sourceRef?.startsWith("welcome:") ? "welcome gift · untradeable" : e.source.toLowerCase().replace("_", " ")}</span>
                   </span>
-                  <OpenPackButton entitlementId={e.id} />
+                  {isPick(e.packSku.code) ? (
+                    <Link href={`/packs/pick/${e.id}`} className="btn-gold">
+                      Choose your Gold
+                    </Link>
+                  ) : (
+                    <OpenPackButton entitlementId={e.id} />
+                  )}
                 </li>
               );
             })}

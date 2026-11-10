@@ -6,6 +6,8 @@ import { audit } from "./audit";
 import { db, withTx } from "./db";
 import { DomainError } from "./errors";
 import { isEnabled } from "./flags";
+import { grantPack } from "./packs";
+import { REFERRAL_PACK_CODE } from "@/config/packs";
 import { debit, fmtMp, lockWallet, release } from "./wallet";
 import { potTotal } from "@/domain/football/prizes";
 
@@ -106,6 +108,7 @@ export async function submitEntry(userId: string, competitionId: string, input: 
     issues.push(...(await checkRequirements(tx, comp.requirements, rows, submission.starters.map((x) => x.cardId))));
     if (issues.length) throw new SquadInvalidError(issues);
 
+    if (!existing) await rewardReferrer(tx, userId);
     const entry = existing
       ? await tx.competitionEntry.update({ where: { id: existing.id }, data: { formation: submission.formation, status: "ACTIVE" } })
       : await tx.competitionEntry.create({ data: { competitionId, userId, formation: submission.formation } });
@@ -208,6 +211,15 @@ export function assertPrizeRules(feeMinor: number, req: Requirements, rewards: A
   if (!rewards.some((r) => (r.cashMinor ?? 0) > 0)) return;
   if (feeMinor > 0) throw new DomainError("PRIZE_RULES", "£ prizes are only allowed on free-entry matches. Matches with an MX entry fee can give MX or pack prizes.");
   if (!req.freeCardsOnly) throw new DomainError("PRIZE_RULES", "£ prizes need the 'Free cards only' rule, so bought cards can't improve anyone's chances.");
+}
+
+/** Refer a friend: the first time a referred manager enters a match, their referrer gets a free pack. */
+async function rewardReferrer(tx: Parameters<Parameters<typeof withTx>[0]>[0], userId: string) {
+  const u = await tx.user.findUnique({ where: { id: userId }, select: { referredById: true } });
+  if (!u?.referredById) return;
+  const ref = `referral:${userId}`;
+  if (await tx.packEntitlement.findUnique({ where: { sourceRef: ref } })) return;
+  await grantPack(tx, { userId: u.referredById, skuCode: REFERRAL_PACK_CODE, source: "REWARD", sourceRef: ref });
 }
 
 /** Admin: set a match's entry fee (MX) and extra requirements. */

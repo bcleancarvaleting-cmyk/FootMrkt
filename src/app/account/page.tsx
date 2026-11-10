@@ -3,6 +3,8 @@ import { logoutAction } from "@/app/actions/auth";
 import { respondInviteAction } from "@/app/actions/moderation";
 import { ActionButton } from "@/components/action-button";
 import { FoundingBadge } from "@/components/founding-badge";
+import { CopyLink } from "@/components/copy-link";
+import { headers } from "next/headers";
 import { requireUser } from "@/server/auth/session";
 import { binderTotals } from "@/server/binder";
 import { db } from "@/server/db";
@@ -24,6 +26,13 @@ export default async function AccountPage() {
     isEnabled("DEV_TOOLS"),
   ]);
   const gaps = profileGaps(full);
+  const h = await headers();
+  const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host") ?? "matchx.app"}`;
+  const referLink = `${origin}/register?ref=${encodeURIComponent(user.displayName)}`;
+  const [referred, referralPacks] = await Promise.all([
+    db.user.count({ where: { referredById: user.id } }),
+    db.packEntitlement.count({ where: { userId: user.id, sourceRef: { startsWith: "referral:" } } }),
+  ]);
   const points = entries.reduce((s, e) => s + (e.finalPoints ?? 0), 0);
   const best = entries.length ? Math.min(...entries.map((e) => e.rank ?? 999)) : null;
 
@@ -95,6 +104,18 @@ export default async function AccountPage() {
             <p className="text-xs text-faint">{s}</p>
           </Link>
         ))}
+      </section>
+
+      <section className="flex flex-wrap items-center gap-4 rounded-2xl border border-accent/40 bg-ink-900 p-5">
+        <div className="min-w-0 flex-1 basis-72">
+          <p className="eyebrow text-lime">Refer a friend</p>
+          <p className="mt-1 font-semibold">Get a free 3-player pack for every friend who joins and plays a match.</p>
+          <p className="text-sm text-muted">Usually 2 Bronze and a Silver, sometimes a Gold. Untradeable; they count in challenges and freerolls. No limit.</p>
+          <p className="mt-2 text-xs text-faint">
+            {referred} friend{referred === 1 ? "" : "s"} joined · {referralPacks} pack{referralPacks === 1 ? "" : "s"} earned
+          </p>
+        </div>
+        <CopyLink value={referLink} />
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">

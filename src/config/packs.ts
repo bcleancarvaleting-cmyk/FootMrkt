@@ -30,11 +30,12 @@ export const WEEKLY_PACK_CODE = "football-weekly";
 export const FOOTBALL_PACKS: PackSkuSeed[] = [
   {
     code: STARTER_PACK_CODE,
-    version: 1,
+    // v2 (10 Nov 2026): 12 players — a starting seven, four subs and one extra.
+    version: 2,
     name: "Starter Pack",
     kind: "STARTER",
     priceMinor: 0,
-    blurb: "11 players — a full squad of 7 starters and 4 subs. Free on registration. Locked and untradeable.",
+    blurb: "12 players — a starting seven, four subs and one extra. Free when you join. Untradeable.",
     config: {
       mode: "MINT",
       nonTradeable: true,
@@ -51,6 +52,7 @@ export const FOOTBALL_PACKS: PackSkuSeed[] = [
         { label: "Sub MID", count: 1, base: "BRONZE", filters: { positions: ["MID"] }, upgrades: [{ category: "SILVER", chanceBp: 3000 }] },
         { label: "Sub ATT", count: 1, base: "BRONZE", filters: { positions: ["ATT"] }, upgrades: [{ category: "SILVER", chanceBp: 3000 }] },
         { label: "Sub GK", count: 1, base: "BRONZE", filters: { positions: ["GK"] }, upgrades: [] },
+        { label: "Extra", count: 1, base: "BRONZE", upgrades: [{ category: "SILVER", chanceBp: 3000 }] },
       ],
     },
   },
@@ -223,8 +225,45 @@ FOOTBALL_PACKS.push(
   },
 );
 
-/** When each welcome gift unlocks, counted from registration. */
+export const WELCOME_FOUR_CODE = "football-welcome-four";
+export const WELCOME_MIX_CODE = "football-welcome-mix";
+/** Choice of Gold: three Golds are offered and the manager keeps one (see src/server/picks.ts). */
+export const GOLD_PICK_CODE = "football-gold-pick";
+export const REFERRAL_PACK_CODE = "football-referral";
+
+const free = (code: string, name: string, blurb: string, slots: PackSkuSeed["config"]["slots"]): PackSkuSeed => ({
+  code,
+  version: 1,
+  name,
+  kind: "WEEKLY",
+  priceMinor: 0,
+  hiddenInShop: true,
+  blurb,
+  config: { mode: "MINT", nonTradeable: true, uniquePlayers: true, slots },
+});
+
+/** Starter period packs (product decision 10 Nov 2026) and the refer-a-friend pack. All free and untradeable. */
+FOOTBALL_PACKS.push(
+  free(WELCOME_FOUR_CODE, "Squad Boost", "4 more players for your squad, 3 days after you join. Untradeable.", [
+    { label: "Bronze", count: 3, base: "BRONZE", upgrades: [{ category: "SILVER", chanceBp: 2500 }] },
+    { label: "Bronze+", count: 1, base: "BRONZE", upgrades: [{ category: "SILVER", chanceBp: 5000 }] },
+  ]),
+  free(WELCOME_MIX_CODE, "Mixed Pack", "A mix of Bronze, Silver and Gold. Untradeable.", [
+    { label: "Bronze", count: 2, base: "BRONZE", upgrades: [] },
+    { label: "Silver", count: 2, base: "SILVER", upgrades: [] },
+    { label: "Gold", count: 1, base: "GOLD", upgrades: [] },
+  ]),
+  free(GOLD_PICK_CODE, "Choice of Gold", "Pick one of three Gold players to keep. Untradeable.", [{ label: "Gold", count: 1, base: "GOLD", upgrades: [] }]),
+  free(REFERRAL_PACK_CODE, "Refer-a-Friend Pack", "3 players for every friend who joins and plays: usually 2 Bronze and a Silver, sometimes a Gold. Untradeable.", [
+    { label: "Bronze", count: 2, base: "BRONZE", upgrades: [] },
+    { label: "Bonus", count: 1, base: "SILVER", upgrades: [{ category: "GOLD", chanceBp: 1500 }] },
+  ]),
+);
+
+/** When each welcome gift unlocks, counted from registration: the 4-week starter period. */
 export const WELCOME_SCHEDULE = [
-  { code: WELCOME_SILVER_CODE, afterDays: 3 },
-  { code: WELCOME_GOLD_CODE, afterDays: 7 },
+  { code: WELCOME_FOUR_CODE, afterDays: 3 },
+  { code: WELCOME_GOLD_CODE, afterDays: 6 },
+  { code: WELCOME_MIX_CODE, afterDays: 9 },
+  { code: GOLD_PICK_CODE, afterDays: 12 },
 ] as const;

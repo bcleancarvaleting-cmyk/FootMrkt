@@ -17,6 +17,8 @@ export const RegisterSchema = z.object({
     .min(3, "Manager name must be 3–24 characters")
     .max(24, "Manager name must be 3–24 characters")
     .regex(/^[A-Za-z0-9_ .-]+$/, "Letters, numbers, spaces, . _ - only"),
+  /** Manager name of whoever invited them (refer a friend). */
+  ref: z.string().trim().max(24).optional(),
 });
 
 function adminEmails(): string[] {
@@ -38,6 +40,7 @@ export async function registerUser(input: z.input<typeof RegisterSchema>) {
   const passwordHash = await hashPassword(data.password);
   const emailVerificationToken = randomBytes(24).toString("base64url");
   const founding = await isEnabled("FOUNDING_SIGNUPS");
+  const referrer = data.ref ? await db.user.findFirst({ where: { displayName: { equals: data.ref, mode: "insensitive" }, status: "ACTIVE" }, select: { id: true } }) : null;
   try {
     return await withTx(async (tx) => {
       // Founding members get the next number; an advisory lock stops two sign-ups taking the same one.
@@ -55,6 +58,7 @@ export async function registerUser(input: z.input<typeof RegisterSchema>) {
           emailVerificationToken,
           role: adminEmails().includes(data.email) ? "ADMIN" : "USER",
           foundingNumber,
+          referredById: referrer?.id,
         },
       });
       const starter = await grantStarterPack(tx, user.id);

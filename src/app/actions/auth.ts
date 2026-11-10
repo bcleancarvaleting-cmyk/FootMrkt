@@ -22,6 +22,7 @@ export async function registerAction(_: ActionResult | null, form: FormData): Pr
       email: String(form.get("email") ?? ""),
       password: String(form.get("password") ?? ""),
       displayName: String(form.get("displayName") ?? ""),
+      ref: String(form.get("ref") ?? "") || undefined,
     }),
   );
   if (!res.ok) return res;

@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { loginAction, registerAction } from "@/app/actions/auth";
 
-export function RegisterForm() {
+export function RegisterForm({ referrer }: { referrer?: string }) {
   const [state, action, pending] = useActionState(registerAction, null);
   return (
     <form action={action} className="space-y-4">
+      {referrer && <input type="hidden" name="ref" value={referrer} />}
+      {referrer && <p className="rounded-xl border border-accent/40 bg-accent/5 px-3 py-2 text-sm">Invited by <b>{referrer}</b> — welcome to MATCHX!</p>}
       <div>
         <label className="label" htmlFor="displayName">
           Manager name

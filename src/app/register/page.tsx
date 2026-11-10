@@ -4,7 +4,8 @@ import { getCurrentUser } from "@/server/auth/session";
 
 export const metadata = { title: "Create account" };
 
-export default async function RegisterPage() {
+export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ ref?: string }> }) {
+  const { ref } = await searchParams;
   if (await getCurrentUser()) redirect("/");
   return (
     <div className="mx-auto grid max-w-4xl gap-10 pt-6 md:grid-cols-2">
@@ -24,7 +25,7 @@ export default async function RegisterPage() {
         </ul>
       </div>
       <div className="panel p-6">
-        <RegisterForm />
+        <RegisterForm referrer={ref?.slice(0, 24)} />
       </div>
     </div>
   );

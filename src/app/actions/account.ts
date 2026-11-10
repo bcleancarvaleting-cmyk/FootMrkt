@@ -7,6 +7,7 @@ import { requireUser } from "@/server/auth/session";
 import { completeChallenge } from "@/server/challenges";
 import { db } from "@/server/db";
 import { claimDrop } from "@/server/drops";
+import { choosePick } from "@/server/picks";
 import { DomainError } from "@/server/errors";
 import { convertXp, fmtMp, isAdult, requestWithdrawal, startDeposit } from "@/server/wallet";
 import { type ActionResult, attempt } from "./result";
@@ -120,4 +121,11 @@ export async function convertXpAction(_: ActionResult | null, form: FormData): P
   const res = await attempt(() => convertXp(user.id, Number(form.get("xp"))));
   revalidatePath("/", "layout");
   return res.ok ? { ok: true, data: undefined, message: `Swapped ${res.data.xpUsed} XP for ${fmtMp(res.data.mxMinor)}` } : res;
+}
+
+export async function choosePickAction(entitlementId: string, playerId: string): Promise<ActionResult<{ openingId: string }>> {
+  const user = await requireUser();
+  const res = await attempt(async () => ({ openingId: (await choosePick(user.id, entitlementId, playerId)).openingId }));
+  revalidatePath("/", "layout");
+  return res;
 }

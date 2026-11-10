@@ -124,8 +124,8 @@ describe("match entry fees and requirements", () => {
   });
 });
 
-describe("welcome gifts", () => {
-  it("Silver pack on day 3 and a lucky Gold on day 7 — once each, untradeable", async () => {
+describe("welcome gifts (4-week starter period)", () => {
+  it("Squad Boost day 3, Lucky Gold day 6, Mixed Pack day 9, Choice of Gold day 12 — once each, untradeable", async () => {
     const { grantDueWelcomePacks } = await import("@/server/welcome");
     const { userId } = await makeUser();
     const joined = (await db.user.findUniqueOrThrow({ where: { id: userId } })).createdAt.getTime();
@@ -133,15 +133,16 @@ describe("welcome gifts", () => {
     expect(await grantDueWelcomePacks(userId, new Date(joined + 2 * day))).toBe(0);
     expect(await grantDueWelcomePacks(userId, new Date(joined + 3 * day + 1))).toBe(1);
     expect(await grantDueWelcomePacks(userId, new Date(joined + 3 * day + 2))).toBe(0);
-    expect(await grantDueWelcomePacks(userId, new Date(joined + 7 * day + 1))).toBe(1);
+    expect(await grantDueWelcomePacks(userId, new Date(joined + 12 * day + 1))).toBe(3);
     const ents = await db.packEntitlement.findMany({ where: { userId, sourceRef: { startsWith: "welcome:" } }, include: { packSku: true } });
-    expect(ents.map((e) => e.packSku.code).sort()).toEqual(["football-welcome-gold", "football-welcome-silver"]);
+    expect(ents.map((e) => e.packSku.code).sort()).toEqual(["football-gold-pick", "football-welcome-four", "football-welcome-gold", "football-welcome-mix"]);
+    const four = await openPack(userId, ents.find((e) => e.packSku.code === "football-welcome-four")!.id);
+    expect(four.cards).toHaveLength(4);
     const gold = await openPack(userId, ents.find((e) => e.packSku.code === "football-welcome-gold")!.id);
-    expect(gold.cards).toHaveLength(1);
     expect(gold.cards[0].category).toBe("GOLD");
-    const silver = await openPack(userId, ents.find((e) => e.packSku.code === "football-welcome-silver")!.id);
-    expect(silver.cards).toHaveLength(6);
-    const cards = await db.cardInstance.findMany({ where: { id: { in: [...gold.cards, ...silver.cards].map((c) => c.cardId) } } });
+    const mix = await openPack(userId, ents.find((e) => e.packSku.code === "football-welcome-mix")!.id);
+    expect(mix.cards.map((c) => c.category).sort()).toEqual(["BRONZE", "BRONZE", "GOLD", "SILVER", "SILVER"]);
+    const cards = await db.cardInstance.findMany({ where: { id: { in: [...four.cards, ...gold.cards, ...mix.cards].map((c) => c.cardId) } } });
     expect(cards.every((c) => c.tradeStatus === "NON_TRADEABLE")).toBe(true);
   });
 });
@@ -276,5 +277,47 @@ describe("XP", () => {
     const r = await convertXp(userId, 250);
     expect(r).toEqual({ xpUsed: 250, mxMinor: 250 });
     expect(await balancesFor(userId)).toMatchObject({ xp: 0, earned: 250, bought: 0 });
+  });
+});
+
+describe("starter period, Gold pick and referrals", () => {
+  it("Choice of Gold offers the same three Golds every time and keeps exactly one", async () => {
+    const { pickOptions, choosePick } = await import("@/server/picks");
+    const { GOLD_PICK_CODE } = await import("@/config/packs");
+    const { userId } = await makeUser("picker");
+    const ent = await withTx((tx) => grantPack(tx, { userId, skuCode: GOLD_PICK_CODE, source: "REWARD", sourceRef: `pick:${userId}` }));
+    await expect(openPack(userId, ent.id)).rejects.toMatchObject({ code: "USE_PICK" });
+    const a = await pickOptions(userId, ent.id);
+    const b = await pickOptions(userId, ent.id);
+    expect(a.playerIds).toHaveLength(3);
+    expect(b.playerIds).toEqual(a.playerIds);
+    await expect(choosePick(userId, ent.id, "00000000-0000-0000-0000-000000000000")).rejects.toMatchObject({ code: "NOT_OFFERED" });
+    const r = await choosePick(userId, ent.id, a.playerIds[1]);
+    const card = await db.cardInstance.findUniqueOrThrow({ where: { id: r.cardId }, include: { template: true } });
+    expect(card).toMatchObject({ ownerId: userId, tradeStatus: "NON_TRADEABLE" });
+    expect(card.template).toMatchObject({ playerId: a.playerIds[1], category: "GOLD", edition: "STARTER" });
+    await expect(choosePick(userId, ent.id, a.playerIds[0])).rejects.toMatchObject({ code: "ALREADY_PICKED" });
+  });
+
+  it("a referrer gets one 3-player pack when each friend plays their first match", async () => {
+    const { registerUser } = await import("@/server/auth/accounts");
+    const referrer = await makeUser("inviter");
+    const friend = await registerUser({ email: "friend@test.dev", password: "correct-horse-battery", displayName: "friend1", ref: "INVITER" });
+    expect(friend.user.referredById).toBe(referrer.userId);
+    expect(await db.packEntitlement.count({ where: { userId: referrer.userId, sourceRef: { startsWith: "referral:" } } })).toBe(0);
+    const sport = await db.sport.findFirstOrThrow();
+    const gw = await db.gameweek.create({ data: { sportId: sport.id, season: "r", number: 1, startsAt: new Date(), endsAt: new Date(Date.now() + 86_400_000), status: "OPEN" } });
+    const comp = await db.competition.create({ data: { sportId: sport.id, gameweekId: gw.id, code: "ref-c", name: "R", format: "OPEN", rosterRules: "football-roster-v3", scoringRules: "football-scoring-v2-draft", entryOpensAt: new Date(), locksAt: new Date(Date.now() + 86_400_000), status: "OPEN" } });
+    await openPack(friend.user.id, friend.starterEntitlementId);
+    const cards = await db.cardInstance.findMany({ where: { ownerId: friend.user.id }, include: { template: { include: { player: true } } } });
+    const by = (p: string, n: number) => cards.filter((x) => x.template.player.position === p).slice(0, n);
+    const starters = [...by("GK", 1), ...by("DEF", 2), ...by("MID", 2), ...by("ATT", 2)];
+    const sub = { formation: "2-2-2", starters: starters.map((x) => ({ cardId: x.id, position: x.template.player.position })), bench: cards.filter((x) => !starters.includes(x)).slice(0, 4).map((x) => x.id) };
+    await submitEntry(friend.user.id, comp.id, sub);
+    await submitEntry(friend.user.id, comp.id, sub);
+    const packs = await db.packEntitlement.findMany({ where: { userId: referrer.userId, sourceRef: { startsWith: "referral:" } }, include: { packSku: true } });
+    expect(packs.map((p) => p.packSku.code)).toEqual(["football-referral"]);
+    const opened = await openPack(referrer.userId, packs[0].id);
+    expect(opened.cards).toHaveLength(3);
   });
 });

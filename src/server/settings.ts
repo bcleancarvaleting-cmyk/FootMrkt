@@ -43,3 +43,38 @@ export async function setSetting(adminId: string, key: SettingKey, value: number
   await db.appSetting.upsert({ where: { key }, create: { key, value, updatedBy: adminId }, update: { value, updatedBy: adminId } });
   await audit(db, { actorId: adminId, action: "setting.set", entityType: "AppSetting", entityId: key, before, after: value });
 }
+
+/** Text settings (links, choices). */
+export const TEXT_SETTINGS = {
+  facebookGroupUrl: {
+    label: "Facebook group link",
+    help: "Your MATCHX Facebook group. Shown with the Share button after every pack opening. Leave blank until the group is ready.",
+    default: "",
+  },
+  referralRewardSku: {
+    label: "Refer-a-friend reward",
+    help: "The free pack a manager gets for each friend who joins with their link and plays a match.",
+    default: "football-bronze-pick",
+  },
+} as const;
+export type TextSettingKey = keyof typeof TEXT_SETTINGS;
+
+export async function getText(key: TextSettingKey): Promise<string> {
+  const row = await db.appSetting.findUnique({ where: { key } });
+  return typeof row?.value === "string" ? row.value : TEXT_SETTINGS[key].default;
+}
+
+export async function setText(adminId: string, key: TextSettingKey, value: string) {
+  if (!(key in TEXT_SETTINGS)) throw new DomainError("UNKNOWN", "Unknown setting.");
+  const v = value.trim();
+  if (key === "facebookGroupUrl" && v && !/^https:\/\/(www\.|m\.)?facebook\.com\/groups\/[\w.\-]+\/?$/i.test(v)) {
+    throw new DomainError("URL", "Paste the group link, e.g. https://www.facebook.com/groups/matchx");
+  }
+  if (key === "referralRewardSku") {
+    const { FOOTBALL_PACKS } = await import("@/config/packs");
+    if (!FOOTBALL_PACKS.some((p) => p.code === v && p.kind === "WEEKLY")) throw new DomainError("PACK", "Choose a free pack.");
+  }
+  const before = await getText(key);
+  await db.appSetting.upsert({ where: { key }, create: { key, value: v, updatedBy: adminId }, update: { value: v, updatedBy: adminId } });
+  await audit(db, { actorId: adminId, action: "setting.set", entityType: "AppSetting", entityId: key, before, after: v });
+}

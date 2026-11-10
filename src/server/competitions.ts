@@ -229,7 +229,9 @@ async function rewardReferrer(tx: Parameters<Parameters<typeof withTx>[0]>[0], u
   if (!u?.referredById) return;
   const ref = `referral:${userId}`;
   if (await tx.packEntitlement.findUnique({ where: { sourceRef: ref } })) return;
-  await grantPack(tx, { userId: u.referredById, skuCode: REFERRAL_PACK_CODE, source: "REWARD", sourceRef: ref });
+  const { getText } = await import("./settings");
+  const sku = (await getText("referralRewardSku")) || REFERRAL_PACK_CODE;
+  await grantPack(tx, { userId: u.referredById, skuCode: sku, source: "REWARD", sourceRef: ref });
 }
 
 /** Admin: set a match's entry fee (MX) and extra requirements. */

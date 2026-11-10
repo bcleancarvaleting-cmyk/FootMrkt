@@ -11,7 +11,7 @@ import { syncPackCatalogue } from "@/server/packs";
 import { ensureClubBinders } from "@/server/collections";
 import { applyPrizeFund } from "@/server/prize-fund";
 import { cancelPlayerDrop, scheduleDrops } from "@/server/player-drops";
-import { type SettingKey, setSetting } from "@/server/settings";
+import { type SettingKey, type TextSettingKey, setSetting, setText } from "@/server/settings";
 import { cancelAuction, clearHouseListings, createAuction, stockHouseListings, stockLaunchMix, stockPinnedListings } from "@/server/transfers";
 import { addWelcomeGift, updateWelcomeGift } from "@/server/welcome";
 import { backfillFoundingMembers } from "@/server/founders";
@@ -264,6 +264,15 @@ export async function scheduleDropsAction(items: Array<{ playerId: string; price
 export async function cancelPlayerDropAction(listingId: string): Promise<ActionResult> {
   const admin = await requireAdmin();
   const res = await attempt(() => cancelPlayerDrop(admin.id, listingId), "Drop withdrawn");
+  done();
+  return res;
+}
+
+export async function setTextSettingAction(_: ActionResult | null, f: FormData): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const res = await attempt(async () => {
+    await setText(admin.id, str(f, "key") as TextSettingKey, String(f.get("value") ?? ""));
+  }, "Saved");
   done();
   return res;
 }

@@ -1,14 +1,15 @@
 import { revalueAction, runJobsAction } from "@/app/actions/admin";
 import { ActionButton } from "@/components/action-button";
-import { SettingForm } from "@/components/admin-forms";
-import { SETTINGS, type SettingKey, allSettings } from "@/server/settings";
+import { SettingForm, TextSettingForm } from "@/components/admin-forms";
+import { SETTINGS, type SettingKey, TEXT_SETTINGS, allSettings, getText } from "@/server/settings";
+import { giftPacks } from "@/server/welcome";
 import { OpsSections } from "../_parts/ops";
 import { AdminTitle } from "../_parts/title";
 
 export const metadata = { title: "Admin · Settings" };
 
 export default async function SettingsPage() {
-  const values = await allSettings();
+  const [values, fbGroup, referral] = await Promise.all([allSettings(), getText("facebookGroupUrl"), getText("referralRewardSku")]);
   return (
     <>
       <AdminTitle title="Settings & flags" intro="Game settings, feature switches (pack shop, transfers, auctions, beta…) and the audit log.">
@@ -20,6 +21,8 @@ export default async function SettingsPage() {
         {(Object.keys(SETTINGS) as SettingKey[]).map((k) => (
           <SettingForm key={k} settingKey={k} label={SETTINGS[k].label} help={SETTINGS[k].help} value={values[k]} min={SETTINGS[k].min} max={SETTINGS[k].max} />
         ))}
+        <TextSettingForm settingKey="facebookGroupUrl" label={TEXT_SETTINGS.facebookGroupUrl.label} help={TEXT_SETTINGS.facebookGroupUrl.help} value={fbGroup} />
+        <TextSettingForm settingKey="referralRewardSku" label={TEXT_SETTINGS.referralRewardSku.label} help={TEXT_SETTINGS.referralRewardSku.help} value={referral} options={giftPacks()} />
       </section>
       <OpsSections only={["flags", "audit"]} />
     </>

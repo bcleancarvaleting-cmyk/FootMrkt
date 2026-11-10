@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PackReveal } from "@/components/pack-reveal";
+import { SharePack } from "@/components/share-pack";
+import { getText } from "@/server/settings";
 import { requireUser } from "@/server/auth/session";
 import { DomainError } from "@/server/errors";
 import { getOpening } from "@/server/packs";
@@ -27,7 +29,7 @@ export default async function OpeningPage({ params }: { params: Promise<{ id: st
           {counts.GOLD > 0 ? `${counts.GOLD} Gold!` : counts.SILVER > 0 ? `${counts.SILVER} Silver` : "Your new cards"}
         </h1>
         <p className="mt-1 text-sm text-muted">
-          {cards.length} cards added to your Binder
+          {cards.length} card{cards.length === 1 ? "" : "s"} added to your club
           {isStarter && " · Starter cards are locked to your account and can't be traded"}
         </p>
       </div>
@@ -39,13 +41,14 @@ export default async function OpeningPage({ params }: { params: Promise<{ id: st
           </Link>
         ) : (
           <Link href="/account/club" className="btn-primary">
-            View Binder
+            Send to club
           </Link>
         )}
         <Link href="/packs" className="btn-ghost">
           Back to packs
         </Link>
       </div>
+      <SharePack openingId={opening.id} groupUrl={await getText("facebookGroupUrl")} />
     </div>
   );
 }

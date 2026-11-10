@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { setSettingAction, addWelcomeGiftAction, competitionRulesAction, createAuctionAction, createChallengeAction, pinnedListingsAction, scheduleDropAction, stockHouseAction } from "@/app/actions/economy";
+import { setSettingAction, setTextSettingAction, addWelcomeGiftAction, competitionRulesAction, createAuctionAction, createChallengeAction, pinnedListingsAction, scheduleDropAction, stockHouseAction } from "@/app/actions/economy";
 import type { ActionResult } from "@/app/actions/result";
 import { ResultText } from "./action-button";
 
@@ -193,6 +193,30 @@ export function SettingForm({ settingKey, label, help, value, min, max }: { sett
         <label className="label" htmlFor={`s-${settingKey}`}>{label}</label>
         <p className="mb-2 text-xs text-faint">{help}</p>
         <input id={`s-${settingKey}`} name="value" type="number" min={min} max={max} defaultValue={value} className="input max-w-[180px] tabular-nums" />
+      </div>
+      <button className="btn-primary px-4 py-2 text-xs" disabled={pending}>{pending ? "Saving…" : "Save"}</button>
+      {state && <ResultText result={state} />}
+    </form>
+  );
+}
+
+export function TextSettingForm({ settingKey, label, help, value, options }: { settingKey: string; label: string; help: string; value: string; options?: Array<{ code: string; name: string }> }) {
+  const [state, run, pending] = useActionState(setTextSettingAction, null);
+  return (
+    <form action={run} className="flex flex-wrap items-end gap-3 border-t border-ink-700 pt-4">
+      <input type="hidden" name="key" value={settingKey} />
+      <div className="min-w-0 flex-1 basis-64">
+        <label className="label" htmlFor={`t-${settingKey}`}>{label}</label>
+        <p className="mb-2 text-xs text-faint">{help}</p>
+        {options ? (
+          <select id={`t-${settingKey}`} name="value" defaultValue={value} className="input max-w-sm">
+            {options.map((o) => (
+              <option key={o.code} value={o.code}>{o.name}</option>
+            ))}
+          </select>
+        ) : (
+          <input id={`t-${settingKey}`} name="value" defaultValue={value} className="input max-w-md" placeholder="https://www.facebook.com/groups/…" />
+        )}
       </div>
       <button className="btn-primary px-4 py-2 text-xs" disabled={pending}>{pending ? "Saving…" : "Save"}</button>
       {state && <ResultText result={state} />}

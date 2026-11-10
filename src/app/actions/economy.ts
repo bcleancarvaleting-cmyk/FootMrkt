@@ -10,6 +10,7 @@ import { DomainError } from "@/server/errors";
 import { syncPackCatalogue } from "@/server/packs";
 import { ensureClubBinders } from "@/server/collections";
 import { applyPrizeFund } from "@/server/prize-fund";
+import { cancelPlayerDrop, scheduleDrops } from "@/server/player-drops";
 import { type SettingKey, setSetting } from "@/server/settings";
 import { cancelAuction, clearHouseListings, createAuction, stockHouseListings, stockLaunchMix, stockPinnedListings } from "@/server/transfers";
 import { addWelcomeGift, updateWelcomeGift } from "@/server/welcome";
@@ -245,6 +246,24 @@ export async function setSettingAction(_: ActionResult | null, f: FormData): Pro
   const res = await attempt(async () => {
     await setSetting(admin.id, str(f, "key") as SettingKey, Number(str(f, "value")));
   }, "Saved");
+  done();
+  return res;
+}
+
+export async function scheduleDropsAction(items: Array<{ playerId: string; priceMinor: number; liveAt: string }>): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const res = await attempt(() => scheduleDrops(admin.id, items));
+  done();
+  if (!res.ok) return res;
+  const { created, skipped } = res.data;
+  return created.length
+    ? { ok: true, data: undefined, message: `${created.length} drop(s) scheduled${skipped.length ? ` · skipped: ${skipped.join("; ")}` : ""}` }
+    : { ok: false, error: `Nothing scheduled: ${skipped.join("; ")}` };
+}
+
+export async function cancelPlayerDropAction(listingId: string): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const res = await attempt(() => cancelPlayerDrop(admin.id, listingId), "Drop withdrawn");
   done();
   return res;
 }

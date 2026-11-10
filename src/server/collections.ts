@@ -70,11 +70,11 @@ export async function completeSet(userId: string, setId: string, idempotencyKey:
       if (closed.count !== chosen.length) throw new Error("Ownership records out of sync");
       // Pool cards go back into packs (tradeable for the next owner); free minted copies are retired.
       const recycled = await tx.cardInstance.updateMany({
-        where: { id: { in: chosen }, ownerId: userId, supplyState: "HELD", lock: "NONE", template: { edition: "STANDARD" } },
+        where: { id: { in: chosen }, ownerId: userId, supplyState: "HELD", lock: "NONE", packable: true, template: { edition: "STANDARD" } },
         data: { supplyState: "RECIRCULATING", ownerId: null, tradeStatus: "TRADEABLE", recycledCount: { increment: 1 } },
       });
       const retired = await tx.cardInstance.updateMany({
-        where: { id: { in: chosen }, ownerId: userId, supplyState: "HELD", lock: "NONE", template: { edition: { not: "STANDARD" } } },
+        where: { id: { in: chosen }, ownerId: userId, supplyState: "HELD", lock: "NONE", OR: [{ packable: false }, { template: { edition: { not: "STANDARD" } } }] },
         data: { supplyState: "RETIRED", ownerId: null },
       });
       if (recycled.count + retired.count !== chosen.length) throw new Error("Cards changed during completion");

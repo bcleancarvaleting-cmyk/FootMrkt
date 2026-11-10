@@ -19,7 +19,8 @@ export const ADMIN_MENU: Array<{ group: string; items: Array<{ href: string; lab
     items: [
       { href: "/admin/gifts", label: "Gifts & free packs" },
       { href: "/admin/packs", label: "Packs & supply" },
-      { href: "/admin/transfers", label: "Transfers & auctions" },
+      { href: "/admin/players", label: "Player database & drops" },
+      { href: "/admin/transfers", label: "Transfer listings" },
       { href: "/admin/values", label: "Player values" },
     ],
   },

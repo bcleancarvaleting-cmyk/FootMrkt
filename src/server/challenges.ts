@@ -114,8 +114,8 @@ export async function completeChallenge(userId: string, challengeId: string, car
       });
       if (closed.count !== ids.length) throw new Error("Ownership records out of sync");
       // Pool cards go back into packs (tradeable again for whoever pulls them next); minted free cards are retired.
-      const pool = cards.filter((x) => x.template.edition === "STANDARD").map((x) => x.id);
-      const minted = cards.filter((x) => x.template.edition !== "STANDARD").map((x) => x.id);
+      const pool = cards.filter((x) => x.template.edition === "STANDARD" && x.packable).map((x) => x.id);
+      const minted = cards.filter((x) => !(x.template.edition === "STANDARD" && x.packable)).map((x) => x.id);
       if (pool.length) await tx.cardInstance.updateMany({ where: { id: { in: pool } }, data: { supplyState: "RECIRCULATING", ownerId: null, tradeStatus: "TRADEABLE", recycledCount: { increment: 1 } } });
       if (minted.length) await tx.cardInstance.updateMany({ where: { id: { in: minted } }, data: { supplyState: "RETIRED", ownerId: null } });
       await tx.favouriteCard.deleteMany({ where: { cardId: { in: ids } } });

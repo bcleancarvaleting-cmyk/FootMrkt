@@ -292,6 +292,8 @@ model CardInstance {
   releaseId     String?         @db.Uuid
   release       SupplyRelease?  @relation(fields: [releaseId], references: [id])
   recycledCount Int             @default(0)
+  // false for player-drop copies: they are never drawn from packs, and are retired if handed in.
+  packable      Boolean         @default(true)
   mintedAt      DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
@@ -766,6 +768,8 @@ model MarketListing {
   feeMinor         Int? // MATCHX fee taken from the seller on sale (5%)
   status           ListingStatus @default(ACTIVE)
   expiresAt        DateTime
+  // Player drops: MATCHX listings that go live at a set time (null = live straight away).
+  liveAt           DateTime?
   buyerId          String?       @db.Uuid
   buyer            User?         @relation("Buyer", fields: [buyerId], references: [id])
   soldPriceMinor   Int?
@@ -1102,4 +1106,20 @@ model AppSetting {
   value     Json
   updatedAt DateTime @updatedAt
   updatedBy String?  @db.Uuid
+}
+
+// Transactional email outbox: every email is logged, then sent by the configured provider.
+model EmailLog {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String?   @db.Uuid
+  to        String
+  template  String
+  subject   String
+  status    String    @default("QUEUED") // QUEUED | SENT | FAILED | LOGGED (no provider configured)
+  error     String?
+  dedupeKey String?   @unique
+  createdAt DateTime  @default(now())
+  sentAt    DateTime?
+
+  @@index([createdAt])
 }

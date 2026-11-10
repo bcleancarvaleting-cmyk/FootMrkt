@@ -88,8 +88,8 @@ export async function createListing(userId: string, input: z.input<typeof Listin
 }
 
 async function lockListing(tx: Tx, listingId: string) {
-  const [l] = await tx.$queryRaw<Array<{ id: string; status: string; cardId: string; sellerId: string | null; house: boolean; askingPriceMinor: number; expiresAt: Date }>>`
-    SELECT id, status, "cardId", "sellerId", house, "askingPriceMinor", "expiresAt" FROM "MarketListing" WHERE id = ${listingId}::uuid FOR UPDATE`;
+  const [l] = await tx.$queryRaw<Array<{ id: string; status: string; cardId: string; sellerId: string | null; house: boolean; askingPriceMinor: number; expiresAt: Date; liveAt: Date | null }>>`
+    SELECT id, status, "cardId", "sellerId", house, "askingPriceMinor", "expiresAt", "liveAt" FROM "MarketListing" WHERE id = ${listingId}::uuid FOR UPDATE`;
   return l;
 }
 
@@ -147,7 +147,10 @@ async function settleHouseSale(tx: Tx, listing: { id: string; cardId: string }, 
 async function closeListing(tx: Tx, l: { id: string; house: boolean; cardId: string }, status: "CANCELLED" | "EXPIRED") {
   await lapseOffers(tx, l.id);
   await tx.marketListing.update({ where: { id: l.id }, data: { status } });
-  if (l.house) await tx.cardInstance.updateMany({ where: { id: l.cardId, supplyState: "RESERVED" }, data: { supplyState: "AVAILABLE" } });
+  if (l.house) {
+    await tx.cardInstance.updateMany({ where: { id: l.cardId, supplyState: "RESERVED", packable: true }, data: { supplyState: "AVAILABLE" } });
+    await tx.cardInstance.updateMany({ where: { id: l.cardId, supplyState: "RESERVED", packable: false }, data: { supplyState: "RETIRED" } });
+  }
   else await tx.cardInstance.updateMany({ where: { lock: "LISTED", lockRef: l.id }, data: { lock: "NONE", lockRef: null } });
 }
 
@@ -156,6 +159,7 @@ export async function buyNow(buyerId: string, listingId: string) {
   return withTx(async (tx) => {
     const l = await lockListing(tx, listingId);
     if (!l || l.status !== "ACTIVE" || l.expiresAt <= new Date()) throw new DomainError("NOT_AVAILABLE", "This listing is no longer available.");
+    if (l.liveAt && l.liveAt > new Date()) throw new DomainError("NOT_LIVE", "This player drop isn't live yet.");
     if (l.sellerId === buyerId) throw new DomainError("OWN_LISTING", "You can't buy your own listing.");
     await lockWallets(tx, buyerId, l.sellerId);
     // A buyer with a pending offer on this listing gets that hold back first, then pays in full.

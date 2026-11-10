@@ -60,7 +60,8 @@ export async function transferBoard(f: BoardFilters, viewerId: string | null, ta
   const orderBy: Prisma.MarketListingOrderByWithRelationInput =
     f.sort === "price_asc" ? { askingPriceMinor: "asc" } : f.sort === "price_desc" ? { askingPriceMinor: "desc" } : f.sort === "ending" ? { expiresAt: "asc" } : { createdAt: "desc" };
   const listings = await db.marketListing.findMany({
-    where: { status: "ACTIVE", expiresAt: { gt: new Date() }, card: { template: { category: f.tier, player } } },
+    // Player drops have their own tab; everything else on the Transfer list.
+    where: { status: "ACTIVE", expiresAt: { gt: new Date() }, card: { packable: true, template: { category: f.tier, player } } },
     include: {
       card: { include: CARD_INCLUDE },
       seller: { select: { displayName: true, foundingNumber: true } },

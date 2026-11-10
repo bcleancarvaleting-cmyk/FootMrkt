@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { buyNowAction, cancelListingAction } from "@/app/actions/transfers";
+import { cancelListingAction } from "@/app/actions/transfers";
+import { BuyButton } from "@/components/buy-button";
 import { ActionButton } from "@/components/action-button";
 import { CardRow, RowStat, Sparkline } from "@/components/card-row";
 import { EmptyState, GateNotice, PageHeader } from "@/components/page-header";
@@ -153,14 +154,7 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
                           <OfferButton listingId={r.id} askMinor={r.priceMinor} enabled={open} existing={r.myOffer?.amountMinor} />
                         )}
                       </span>
-                      <ActionButton
-                        action={buyNowAction.bind(null, r.id)}
-                        className="btn-primary min-w-[104px] px-3 py-2 text-[11px]"
-                        disabled={!open}
-                        confirm={`Buy ${r.card.name} for ${fmtMp(r.priceMinor)}?`}
-                      >
-                        {fmtMp(r.priceMinor)}
-                      </ActionButton>
+                      <BuyButton listingId={r.id} label={fmtMp(r.priceMinor)} confirm={`Sign ${r.card.name} for ${fmtMp(r.priceMinor)}?`} disabled={!open} />
                     </>
                   )}
                 </span>

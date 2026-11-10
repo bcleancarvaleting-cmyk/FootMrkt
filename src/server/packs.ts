@@ -187,7 +187,7 @@ async function drawPoolSlot(
       JOIN "Player" p ON p.id = t."playerId"
       LEFT JOIN "Club" c ON c.id = p."clubId"
       LEFT JOIN "League" l ON l.id = c."leagueId"
-      WHERE ci."supplyState" IN ('AVAILABLE', 'RECIRCULATING')
+      WHERE ci."supplyState" IN ('AVAILABLE', 'RECIRCULATING') AND ci.packable
         AND t.edition = 'STANDARD' AND t.active AND p.active
         AND p."sportId" = ${sportId}::uuid
         AND t.category::text = ${category}

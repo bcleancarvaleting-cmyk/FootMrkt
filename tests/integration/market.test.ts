@@ -323,3 +323,36 @@ describe("card payments", () => {
     expect(await db.packEntitlement.count({ where: { userId, source: "PURCHASE" } })).toBe(1);
   });
 });
+
+describe("player drops", () => {
+  it("one brand-new copy per player, live from a set time with no end; never packable; retired if withdrawn", async () => {
+    const { scheduleDrops, dropBoard, cancelPlayerDrop } = await import("@/server/player-drops");
+    enableLegalGates();
+    const admin = await makeUser("adm20");
+    const buyer = await makeUser("bbb20");
+    await fund(buyer.userId, 5000);
+    const tpl = await db.cardTemplate.findFirstOrThrow({ where: { category: "BRONZE", active: true, edition: "STANDARD" } });
+    const other = await db.cardTemplate.findFirstOrThrow({ where: { category: "SILVER", active: true, edition: "STANDARD" } });
+    const before = await db.cardInstance.count({ where: { templateId: tpl.id } });
+    const later = new Date(Date.now() + 3_600_000);
+    const r = await scheduleDrops(admin.userId, [
+      { playerId: tpl.playerId, priceMinor: 50, liveAt: new Date(Date.now() - 1000) },
+      { playerId: tpl.playerId, priceMinor: 60, liveAt: later },
+      { playerId: other.playerId, priceMinor: 250, liveAt: later },
+    ]);
+    expect(r.created).toHaveLength(2);
+    expect(r.skipped).toHaveLength(1);
+    expect(await db.cardInstance.count({ where: { templateId: tpl.id } })).toBe(before + 1);
+    const board = await dropBoard();
+    expect(board.live).toHaveLength(1);
+    expect(board.upcoming).toHaveLength(1);
+    await expect(buyNow(buyer.userId, board.upcoming[0].id)).rejects.toMatchObject({ code: "NOT_LIVE" });
+    await buyNow(buyer.userId, board.live[0].id);
+    const card = await db.cardInstance.findUniqueOrThrow({ where: { id: board.live[0].card.id } });
+    expect(card).toMatchObject({ ownerId: buyer.userId, supplyState: "HELD", packable: false });
+    await cancelPlayerDrop(admin.userId, board.upcoming[0].id);
+    const withdrawn = await db.marketListing.findUniqueOrThrow({ where: { id: board.upcoming[0].id }, include: { card: true } });
+    expect(withdrawn.card.supplyState).toBe("RETIRED");
+    expect((await supplyReport()).reconciled).toBe(true);
+  });
+});

@@ -75,7 +75,7 @@ function SiteFooter({ loggedIn }: { loggedIn: boolean }) {
   const cols: [string, [string, string][]][] = [
     ["Play", [["Packs", "/packs"], ["Transfers", "/transfers"], ["Matches", "/matches"], ["Top performers", "/top-performers"], ["Hall of Fame", "/hall-of-fame"], ["How it works", "/how-it-works"]]],
     ["Account", [["My Club", "/account/club"], ["Challenges", "/account/challenges"], ["Wallet", "/account/wallet"], ["Profile", "/account/profile"]]],
-    ["Legal", [["Terms", "/legal/terms"], ["Privacy", "/legal/privacy"], ["Responsible play", "/legal/responsible-play"], ["Risk warning", "/legal/risk"]]],
+    ["Legal", [["Terms", "/legal/terms"], ["Privacy", "/legal/privacy"], ["Responsible play", "/legal/responsible-play"], ["Risk warning", "/legal/risk"], ["Pack odds", "/odds"]]],
   ];
   return (
     <footer className={`border-t border-ink-800 bg-ink-950 ${loggedIn ? "pb-28 md:pb-0" : ""}`}>

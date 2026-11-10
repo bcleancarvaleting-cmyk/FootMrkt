@@ -115,7 +115,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
             <p className="eyebrow">Pack shop</p>
             <h2 className="mt-1 text-4xl leading-none sm:text-5xl">Packs</h2>
             <p className="mt-2 text-sm text-muted">
-              Every pack is 100% random: rolled by a secure random generator when you open it, against the published odds. Nobody picks or builds them, and every draw is logged.
+              Every pack is 100% random: rolled by a secure random generator when you open it, against the <Link href="/odds" className="text-lime underline">published odds</Link>. Nobody picks or builds them, and every draw is logged.
               Gold packs can hold a <b className="text-[#ff8fa6]">Ruby</b> (only 10 of each Gold player will ever exist), a <b className="text-[#8fe3ff]">Diamond</b> (only 5) or a
               one-of-one <b className="rainbow-name">Rainbow</b> of any player. The <b className="rainbow-name">Rare pack</b> guarantees one.
             </p>

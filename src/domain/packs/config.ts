@@ -115,3 +115,31 @@ export function advertisedGuarantee(cfg: PackConfig): Record<Category, number> {
   }
   return atLeast;
 }
+
+/** Chance (0–1) that one card from this slot comes out as each tier. Upgrades are exclusive, checked in order. */
+export function slotOdds(slot: Slot): Record<Category, number> {
+  const out = { BRONZE: 0, SILVER: 0, GOLD: 0 } as Record<Category, number>;
+  let used = 0;
+  for (const up of slot.upgrades) {
+    const p = Math.min(up.chanceBp, 10_000 - used) / 10_000;
+    out[up.category] += p;
+    used += up.chanceBp;
+  }
+  out[slot.base] += Math.max(0, 1 - used / 10_000);
+  return out;
+}
+
+/** Whole-pack odds: expected cards of each tier, and the chance of at least one of each. */
+export function packOdds(cfg: PackConfig) {
+  const expected = { BRONZE: 0, SILVER: 0, GOLD: 0 } as Record<Category, number>;
+  const none = { BRONZE: 1, SILVER: 1, GOLD: 1 } as Record<Category, number>;
+  for (const slot of cfg.slots) {
+    const o = slotOdds(slot);
+    for (const c of Object.keys(o) as Category[]) {
+      expected[c] += o[c] * slot.count;
+      none[c] *= (1 - o[c]) ** slot.count;
+    }
+  }
+  const atLeastOne = { BRONZE: 1 - none.BRONZE, SILVER: 1 - none.SILVER, GOLD: 1 - none.GOLD };
+  return { expected, atLeastOne };
+}

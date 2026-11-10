@@ -8,7 +8,8 @@ import { ensureDefaultChallenges } from "../src/server/challenges";
 import { db, withTx } from "../src/server/db";
 import { scheduleDrop, upcomingDrops } from "../src/server/drops";
 import { grantPack, openPack, syncPackCatalogue } from "../src/server/packs";
-import { createAuction, createListing, makeOffer } from "../src/server/transfers";
+import { createAuction, createListing, makeOffer, stockHouseListings } from "../src/server/transfers";
+import { creditWinnings } from "../src/server/wallet";
 import { credit } from "../src/server/wallet";
 
 async function main() {
@@ -51,6 +52,13 @@ async function main() {
       if (buyer && l.askingPriceMinor > 30) await makeOffer(buyer.id, l.id, Math.round(l.askingPriceMinor * 0.85)).catch(() => {});
     }
   }
+  if (!(await db.marketListing.count({ where: { house: true, status: "ACTIVE" } }))) {
+    for (const [tier, count, markup] of [["GOLD", 6, 10], ["SILVER", 10, 5], ["BRONZE", 14, 0]] as const) {
+      await stockHouseListings(admin.id, { tier, count, markupPct: markup, days: 7 });
+    }
+  }
+  const demo = managers.find((m) => m.displayName === "DemoManager");
+  if (demo) await withTx((tx) => creditWinnings(tx, { userId: demo.id, amountMinor: 1250, refId: "demo:prize:gw3", note: "Finished #1" }));
   console.log("listings", await db.marketListing.count({ where: { status: "ACTIVE" } }), "auctions", await db.auction.count({ where: { status: { in: ["LIVE", "SCHEDULED"] } } }));
 }
 

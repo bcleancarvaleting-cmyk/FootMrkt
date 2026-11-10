@@ -12,12 +12,14 @@ import {
   createAuction,
   createListing,
   expireListings,
+  clearHouseListings,
   feeFor,
   makeOffer,
   placeBid,
   recommendPrice,
   respondToOffer,
   settleAuctions,
+  stockHouseListings,
   withdrawOffer,
 } from "@/server/transfers";
 import { balancesFor, credit } from "@/server/wallet";
@@ -114,13 +116,35 @@ describe("P2P transfers in MP", () => {
     expect((await supplyReport()).reconciled).toBe(true);
   });
 
-  it("bonus MP can't buy cards (no turning rewards into withdrawable cash)", async () => {
+  it("reward MP can buy cards (MP is never withdrawable), and sale proceeds are MP, not winnings", async () => {
     enableLegalGates();
     const seller = await makeUser("sss2");
     const buyer = await makeUser("bbb3");
-    await withTx((tx) => credit(tx, { userId: buyer.userId, amountMinor: 5000, kind: "CHALLENGE_REWARD", refId: "bonus-1" }));
+    await withTx((tx) => credit(tx, { userId: buyer.userId, amountMinor: 500, kind: "CHALLENGE_REWARD", refId: "bonus-1" }));
     const listing = await createListing(seller.userId, { cardId: await tradeableCard(seller.userId), askingPriceMinor: 300 });
-    await expect(buyNow(buyer.userId, listing.id)).rejects.toMatchObject({ code: "INSUFFICIENT_FUNDS" });
+    await buyNow(buyer.userId, listing.id);
+    expect(await balancesFor(buyer.userId)).toMatchObject({ bonus: 200, total: 200 });
+    expect(await balancesFor(seller.userId)).toMatchObject({ total: 285, winnings: 0, withdrawable: 0 });
+  });
+
+  it("MATCHX listings: cards from circulation, buy now only, unsold cards return to packs", async () => {
+    enableLegalGates();
+    const admin = await makeUser("adm9");
+    const buyer = await makeUser("bbb9");
+    await fund(buyer.userId, 5000);
+    const before = (await supplyReport()).availableInPool;
+    expect(await stockHouseListings(admin.userId, { tier: "BRONZE", count: 3, priceMinor: 150 })).toBe(3);
+    expect((await supplyReport()).availableInPool).toBe(before - 3);
+    const listings = await db.marketListing.findMany({ where: { house: true, status: "ACTIVE" } });
+    expect(listings).toHaveLength(3);
+    await expect(makeOffer(buyer.userId, listings[0].id, 100)).rejects.toMatchObject({ code: "BUY_NOW_ONLY" });
+    await buyNow(buyer.userId, listings[0].id);
+    const card = await db.cardInstance.findUniqueOrThrow({ where: { id: listings[0].cardId } });
+    expect(card).toMatchObject({ ownerId: buyer.userId, supplyState: "HELD", tradeStatus: "TRADEABLE" });
+    expect((await balancesFor(buyer.userId)).total).toBe(4850);
+    expect(await clearHouseListings(admin.userId)).toBe(2);
+    expect((await supplyReport()).availableInPool).toBe(before - 1);
+    expect((await supplyReport()).reconciled).toBe(true);
   });
 
   it("offers hold MP; declined / withdrawn / lapsed offers return it; accepting completes the sale", async () => {

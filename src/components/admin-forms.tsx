@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { competitionRulesAction, createAuctionAction, createChallengeAction, scheduleDropAction } from "@/app/actions/economy";
+import { addWelcomeGiftAction, competitionRulesAction, createAuctionAction, createChallengeAction, scheduleDropAction, stockHouseAction } from "@/app/actions/economy";
 import type { ActionResult } from "@/app/actions/result";
 import { ResultText } from "./action-button";
 
@@ -93,7 +93,7 @@ export function ChallengeForm({ packs }: { packs: Array<{ code: string; name: st
   );
 }
 
-export function MatchRulesForm({ id, fee, req }: { id: string; fee: number; req: { tiers?: string[]; leagues?: string[]; maxPerClub?: number; maxSquadValueMp?: number } }) {
+export function MatchRulesForm({ id, fee, req, prizes }: { id: string; fee: number; req: { tiers?: string[]; leagues?: string[]; maxPerClub?: number; maxSquadValueMp?: number }; prizes: string }) {
   return (
     <Form action={competitionRulesAction} submit="Save">
       <input type="hidden" name="competitionId" value={id} />
@@ -102,6 +102,43 @@ export function MatchRulesForm({ id, fee, req }: { id: string; fee: number; req:
       <I name="leagues" label="Leagues only" placeholder="EPL" defaultValue={req.leagues?.join(",")} />
       <I name="maxPerClub" label="Max per club" type="number" min="1" defaultValue={req.maxPerClub} />
       <I name="maxValue" label="Max starters value (MP)" type="number" min="1" defaultValue={req.maxSquadValueMp} />
+      <I name="prizes" label="£ prizes (e.g. 1=10, 2-3=5)" placeholder="1=10, 2-3=5" defaultValue={prizes} />
+    </Form>
+  );
+}
+
+export function WelcomeGiftForm({ packs }: { packs: Array<{ code: string; name: string }> }) {
+  return (
+    <Form action={addWelcomeGiftAction} submit="Add gift">
+      <div>
+        <label className="label" htmlFor="f-skuCode">Free pack</label>
+        <select id="f-skuCode" name="skuCode" className="input">
+          {packs.map((p) => (
+            <option key={p.code} value={p.code}>{p.name}</option>
+          ))}
+        </select>
+      </div>
+      <I name="afterDays" label="Days after registering" type="number" min="0" max="365" defaultValue="3" required />
+    </Form>
+  );
+}
+
+export function HouseStockForm() {
+  return (
+    <Form action={stockHouseAction} submit="List cards">
+      <div>
+        <label className="label" htmlFor="f-tier">Tier</label>
+        <select id="f-tier" name="tier" className="input" defaultValue="BRONZE">
+          <option>BRONZE</option>
+          <option>SILVER</option>
+          <option>GOLD</option>
+        </select>
+      </div>
+      <I name="count" label="How many cards" type="number" min="1" max="200" defaultValue="20" required />
+      <I name="price" label="Fixed price (MP, blank = recommended)" type="number" step="0.01" min="0.10" max="100" />
+      <I name="markup" label="Markup on recommended (%)" type="number" min="-50" max="200" defaultValue="0" />
+      <I name="days" label="Listed for (days)" type="number" min="1" max="30" defaultValue="7" />
+      <I name="leagues" label="Leagues only (optional)" placeholder="EPL,CHA" />
     </Form>
   );
 }

@@ -8,21 +8,26 @@ import { grantPack, latestSku } from "./packs";
 import { paymentProvider } from "./payments/provider";
 
 /**
- * MP wallet. 1 MP ≈ £1; amounts are stored in hundredths of an MP (= pence).
+ * Wallet. Amounts are stored in hundredths (1 MP ≈ £1, so hundredths of an MP = pence).
  *
- * Two balances:
- *  - CASH: added by card or earned from selling cards. Withdrawable (minimum £10).
- *  - BONUS: rewards (sets, challenges, promotions). Spend-only — never withdrawable.
+ * Two kinds of balance (product decision 10 Nov 2026):
+ *  - MP (buckets CASH + BONUS): bought by card (CASH) or earned from rewards (BONUS) and card
+ *    sales (CASH). Spent on packs, transfers, auction bids and match entries. NEVER withdrawable.
+ *    Bonus is spent first; the split is kept only to show where MP came from.
+ *  - Winnings (bucket WINNINGS, £): prizes won in gameweek matches. The only money that can be
+ *    withdrawn (minimum £10). It can't be spent in the game.
  *
  * The ledger is append-only (DB trigger); balances are sums. Every entry has a unique refId so
  * retries never double-credit or double-spend. Holds (offers, bids, withdrawals) are negative
- * entries released by a matching positive entry, so held MP can't be spent twice.
+ * entries released by a matching positive entry, so held money can't be spent twice.
  *
- * LEGAL: adding funds, withdrawals and trading for profit are gated by the DEPOSITS, WITHDRAWALS
- * and MARKET flags, which can only be switched on once LEGAL_GATES_CLEARED records approval.
+ * LEGAL: adding funds, cash prizes / withdrawals and trading are gated by the DEPOSITS,
+ * PAID_ENTRY / WITHDRAWALS and MARKET flags, switchable only once LEGAL_GATES_CLEARED lists them.
  */
 export const SET_REWARD_MP_MINOR = 1000; // 10.00 MP ≈ £10
-export const MIN_WITHDRAWAL_MINOR = 1000; // £10
+export const MIN_WITHDRAWAL_MINOR = 1000; // £10 of winnings
+export const MIN_DEPOSIT_MINOR = 1000; // £10
+export const DEPOSIT_PRESETS_GBP = [10, 20, 50, 100] as const;
 export const MAX_DEPOSIT_MINOR = 50000; // £500 per deposit
 export const TERMS_VERSION = "2026-11-10";
 
@@ -30,7 +35,9 @@ export async function balancesFor(userId: string, tx: Tx | typeof db = db) {
   const rows = await tx.walletEntry.groupBy({ by: ["bucket"], where: { userId }, _sum: { amountMinor: true } });
   const cash = rows.find((r) => r.bucket === "CASH")?._sum.amountMinor ?? 0;
   const bonus = rows.find((r) => r.bucket === "BONUS")?._sum.amountMinor ?? 0;
-  return { cash, bonus, total: cash + bonus, withdrawable: Math.max(0, cash) };
+  const winnings = rows.find((r) => r.bucket === "WINNINGS")?._sum.amountMinor ?? 0;
+  /** total = spendable MP; winnings = withdrawable £. */
+  return { cash, bonus, total: cash + bonus, winnings, withdrawable: Math.max(0, winnings) };
 }
 
 export async function balanceMinor(userId: string, tx: Tx | typeof db = db): Promise<number> {
@@ -52,24 +59,16 @@ export async function credit(
 }
 
 /**
- * Debit inside a transaction (call lockWallet first). BONUS_FIRST spends rewards before cash (packs,
- * entry fees); CASH_ONLY is for trading, so reward MP can't be turned into withdrawable cash.
- * Writes one entry per bucket used: `${refId}:b` / `${refId}:c`.
+ * Spend MP inside a transaction (call lockWallet first). Bonus MP is used before bought MP.
+ * Never touches winnings. Writes one entry per bucket used: `${refId}:b` / `${refId}:c`.
  */
-export async function debit(
-  tx: Tx,
-  args: { userId: string; amountMinor: number; kind: WalletEntryKind; refId: string; note?: string; mode: "BONUS_FIRST" | "CASH_ONLY" },
-) {
+export async function debit(tx: Tx, args: { userId: string; amountMinor: number; kind: WalletEntryKind; refId: string; note?: string }) {
   if (args.amountMinor <= 0) throw new Error("debit amount must be positive");
   const bal = await balancesFor(args.userId, tx);
-  const fromBonus = args.mode === "BONUS_FIRST" ? Math.min(Math.max(0, bal.bonus), args.amountMinor) : 0;
+  const fromBonus = Math.min(Math.max(0, bal.bonus), args.amountMinor);
   const fromCash = args.amountMinor - fromBonus;
   if (fromCash > Math.max(0, bal.cash)) {
-    const have = args.mode === "CASH_ONLY" ? bal.cash : bal.total;
-    throw new DomainError(
-      "INSUFFICIENT_FUNDS",
-      `Not enough ${args.mode === "CASH_ONLY" ? "cash " : ""}MP — this needs ${fmtMp(args.amountMinor)} and you have ${fmtMp(Math.max(0, have))}.`,
-    );
+    throw new DomainError("INSUFFICIENT_FUNDS", `Not enough MP — this needs ${fmtMp(args.amountMinor)} and you have ${fmtMp(Math.max(0, bal.total))}.`);
   }
   const rows = [];
   if (fromBonus > 0) rows.push({ userId: args.userId, kind: args.kind, bucket: "BONUS" as const, amountMinor: -fromBonus, refId: `${args.refId}:b`, note: args.note });
@@ -78,9 +77,14 @@ export async function debit(
   return { fromBonus, fromCash };
 }
 
+/** Credit £ winnings (match prizes). Idempotent on refId. */
+export async function creditWinnings(tx: Tx, args: { userId: string; amountMinor: number; refId: string; note?: string }) {
+  await credit(tx, { ...args, kind: "PRIZE", bucket: "WINNINGS" });
+}
+
 /** Undo a debit made with `refId` (returns each bucket exactly as it was taken). Idempotent. */
 export async function release(tx: Tx, args: { userId: string; refId: string; kind: WalletEntryKind; note?: string }) {
-  const taken = await tx.walletEntry.findMany({ where: { userId: args.userId, refId: { in: [`${args.refId}:b`, `${args.refId}:c`] } } });
+  const taken = await tx.walletEntry.findMany({ where: { userId: args.userId, refId: { in: [`${args.refId}:b`, `${args.refId}:c`, `${args.refId}:w`] } } });
   for (const t of taken) {
     await credit(tx, { userId: args.userId, amountMinor: -t.amountMinor, kind: args.kind, bucket: t.bucket, refId: `${t.refId}:release`, note: args.note });
   }
@@ -95,7 +99,7 @@ export async function buyPackWithCredit(userId: string, skuCode: string, clientK
     if (done) return done;
     const sku = await latestSku(skuCode, tx);
     if (sku.kind !== "REGULAR" || sku.priceMinor <= 0) throw new DomainError("NOT_FOR_SALE", "This pack isn't for sale.");
-    await debit(tx, { userId, amountMinor: sku.priceMinor, kind: "PACK_PURCHASE", refId, note: `${sku.name}`, mode: "BONUS_FIRST" });
+    await debit(tx, { userId, amountMinor: sku.priceMinor, kind: "PACK_PURCHASE", refId, note: `${sku.name}` });
     return grantPack(tx, { userId, skuCode, source: "MP_CREDIT", sourceRef: `credit:${refId}` });
   });
 }
@@ -103,12 +107,12 @@ export async function buyPackWithCredit(userId: string, skuCode: string, clientK
 // ───────────── Adding funds ─────────────
 
 export const DepositSchema = z.object({
-  amountMinor: z.number().int().min(500, "The minimum top-up is £5").max(MAX_DEPOSIT_MINOR, "The maximum single top-up is £500"),
+  amountMinor: z.number().int().min(MIN_DEPOSIT_MINOR, "The minimum top-up is £10").max(MAX_DEPOSIT_MINOR, "The maximum single top-up is £500"),
   acceptTerms: z.literal(true, { message: "Please accept the terms to continue" }),
   acceptRisk: z.literal(true, { message: "Please confirm you understand card values can go down as well as up" }),
 });
 
-/** Start a card top-up. Credited as CASH MP when the payment provider confirms (verified webhook). */
+/** Start a card top-up (£ → MP, 1:1). Credited as MP when the payment provider confirms (verified webhook). */
 export async function startDeposit(userId: string, input: z.input<typeof DepositSchema>, clientKey: string, provider = paymentProvider()) {
   await requireFlag("DEPOSITS");
   const data = DepositSchema.parse(input);
@@ -134,7 +138,7 @@ export async function startDeposit(userId: string, input: z.input<typeof Deposit
 
 /** Fulfil a paid deposit order (called from the verified payment webhook, inside its transaction). */
 export async function fulfilDeposit(tx: Tx, order: { id: string; userId: string; amountMinor: number }) {
-  await credit(tx, { userId: order.userId, amountMinor: order.amountMinor, kind: "DEPOSIT", bucket: "CASH", refId: `deposit:${order.id}`, note: "Added funds by card" });
+  await credit(tx, { userId: order.userId, amountMinor: order.amountMinor, kind: "DEPOSIT", bucket: "CASH", refId: `deposit:${order.id}`, note: `Added £${(order.amountMinor / 100).toFixed(2)} by card` });
 }
 
 // ───────────── Withdrawals ─────────────
@@ -154,6 +158,7 @@ export function profileGaps(u: { fullName: string | null; dateOfBirth: Date | nu
   return gaps;
 }
 
+/** Withdraw £ winnings (only winnings — MP can never be withdrawn). */
 export async function requestWithdrawal(userId: string, amountMinor: number) {
   await requireFlag("WITHDRAWALS");
   if (!Number.isInteger(amountMinor) || amountMinor < MIN_WITHDRAWAL_MINOR) throw new DomainError("MIN", "The minimum withdrawal is £10.");
@@ -165,7 +170,9 @@ export async function requestWithdrawal(userId: string, amountMinor: number) {
     if (!isAdult(user.dateOfBirth)) throw new DomainError("AGE", "You must be 18 or over to withdraw.");
     if (user.status !== "ACTIVE") throw new DomainError("NOT_ALLOWED", "Withdrawals aren't available on this account.");
     const w = await tx.withdrawal.create({ data: { userId, amountMinor } });
-    await debit(tx, { userId, amountMinor, kind: "WITHDRAWAL_HOLD", refId: `withdrawal:${w.id}`, note: "Withdrawal requested", mode: "CASH_ONLY" });
+    const { winnings } = await balancesFor(userId, tx);
+    if (amountMinor > winnings) throw new DomainError("INSUFFICIENT_FUNDS", `You have ${fmtGbp(Math.max(0, winnings))} of winnings to withdraw.`);
+    await tx.walletEntry.create({ data: { userId, kind: "WITHDRAWAL_HOLD", bucket: "WINNINGS", amountMinor: -amountMinor, refId: `withdrawal:${w.id}:w`, note: "Withdrawal requested" } });
     if (user.kycStatus === "NONE") await tx.user.update({ where: { id: userId }, data: { kycStatus: "PENDING" } });
     return w;
   });
@@ -190,7 +197,7 @@ export function fmtMp(minor: number): string {
 }
 
 export function fmtGbp(minor: number): string {
-  return `£${(minor / 100).toFixed(2)}`;
+  return `${minor < 0 ? "−" : ""}£${(Math.abs(minor) / 100).toFixed(2)}`;
 }
 
 export async function walletHistory(userId: string, take = 30) {

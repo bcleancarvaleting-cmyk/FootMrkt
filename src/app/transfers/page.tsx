@@ -8,7 +8,7 @@ import type { CardCategory, Position } from "@/generated/prisma/client";
 import { requireUser } from "@/server/auth/session";
 import { isEnabled } from "@/server/flags";
 import { transferBoard } from "@/server/transfers-view";
-import { balancesFor, fmtMp } from "@/server/wallet";
+import { DEPOSIT_PRESETS_GBP, balancesFor, fmtMp } from "@/server/wallet";
 
 export const metadata = { title: "Transfers" };
 
@@ -41,14 +41,22 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
   return (
     <div>
       <PageHeader
-        eyebrow="Peer to peer"
+        eyebrow="Buy &amp; sell"
         title="Transfer list"
-        intro="Buy cards straight from other managers in MP, or make an offer. Sellers pay a 5% fee when a card sells. Prices are capped at 100 MP."
-      >
-        <span className="rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 text-xs text-muted">
-          Cash MP to spend <span className="ml-1 font-bold text-fg tabular-nums">{fmtMp(bal.cash)}</span>
+        intro="Buy cards in MP — from MATCHX at a fixed price, or from other managers (make an offer or buy now). Sellers pay a 5% fee. Prices are capped at 100 MP."
+      />
+
+      <div className="mb-5 flex flex-wrap items-center gap-2 rounded-2xl border border-ink-700 bg-ink-900 px-4 py-3">
+        <span className="mr-auto text-sm">
+          <span className="text-muted">Your MP</span> <b className="ml-1 tabular-nums">{fmtMp(bal.total)}</b>
         </span>
-      </PageHeader>
+        <span className="w-full text-xs text-faint sm:w-auto">Top up (£1 = 1 MP)</span>
+        {DEPOSIT_PRESETS_GBP.map((a) => (
+          <Link key={a} href={`/account/wallet?amount=${a}#add`} className="btn-ghost px-3 py-1.5 text-[11px]">
+            +£{a}
+          </Link>
+        ))}
+      </div>
 
       {!open && <GateNotice>Trading isn&apos;t switched on yet — it opens once our UK legal and payment checks are complete. You can browse in the meantime.</GateNotice>}
 
@@ -95,9 +103,20 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
       ) : (
         <ul className="space-y-2">
           {rows.map((r) => {
-            const mine = r.sellerId === user.id;
+            const mine = !r.house && r.sellerId === user.id;
             return (
-              <CardRow key={r.id} card={r.card} href={`/cards/${r.card.id}`} sub={<span className="truncate text-faint">· by <span className="text-muted">{r.seller}</span></span>}>
+              <CardRow
+                key={r.id}
+                card={r.card}
+                href={`/cards/${r.card.id}`}
+                sub={
+                  r.house ? (
+                    <span className="ml-1 rounded bg-accent px-1.5 text-[10px] font-extrabold uppercase tracking-wider text-accent-ink">MATCHX</span>
+                  ) : (
+                    <span className="truncate text-faint">· by <span className="text-muted">{r.seller}</span></span>
+                  )
+                }
+              >
                 <RowStat label="Avg sold" className="hidden w-24 lg:block">
                   {r.avgMinor !== null ? fmtMp(r.avgMinor) : "—"}
                   {r.sales > 0 && <span className="block text-[10px] font-normal text-faint">{r.sales} sale{r.sales > 1 ? "s" : ""}</span>}
@@ -116,7 +135,11 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
                   ) : (
                     <>
                       <span className="hidden sm:block">
-                        <OfferButton listingId={r.id} askMinor={r.priceMinor} enabled={open} existing={r.myOffer?.amountMinor} />
+                        {r.house ? (
+                          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-faint">Buy now only</span>
+                        ) : (
+                          <OfferButton listingId={r.id} askMinor={r.priceMinor} enabled={open} existing={r.myOffer?.amountMinor} />
+                        )}
                       </span>
                       <ActionButton
                         action={buyNowAction.bind(null, r.id)}
@@ -135,7 +158,7 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
         </ul>
       )}
       <p className="mt-6 text-xs text-faint">
-        Card values go up and down and past prices don&apos;t predict future ones. Buying uses cash MP only — reward MP from challenges can be spent on packs and match entries.
+        Card values go up and down and past prices don&apos;t predict future ones. MP can&apos;t be withdrawn — it&apos;s for buying cards and packs and entering matches.
       </p>
     </div>
   );

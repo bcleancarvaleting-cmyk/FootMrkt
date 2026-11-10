@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { cancelAuctionAction, cancelDropAction, processWithdrawalAction, syncPacksAction, toggleChallengeAction } from "@/app/actions/economy";
+import { cancelAuctionAction, cancelDropAction, clearHouseAction, processWithdrawalAction, syncPacksAction, toggleChallengeAction, updateWelcomeGiftAction } from "@/app/actions/economy";
 import { ActionButton } from "@/components/action-button";
-import { AuctionForm, ChallengeForm, DropForm, MatchRulesForm } from "@/components/admin-forms";
+import { AuctionForm, ChallengeForm, DropForm, HouseStockForm, MatchRulesForm, WelcomeGiftForm } from "@/components/admin-forms";
 import { FOOTBALL_PACKS } from "@/config/packs";
 import { requireAdmin } from "@/server/auth/session";
-import { type Requirements, requirementsSummary } from "@/server/competitions";
+import { type Requirements, prizesSummary, requirementsSummary } from "@/server/competitions";
+import { giftPacks, welcomeGiftsForAdmin } from "@/server/welcome";
 import { criteriaSummary } from "@/server/challenges";
 import type { ChallengeCriteria } from "@/config/challenges";
 import { db } from "@/server/db";
@@ -26,14 +27,18 @@ function Section({ title, intro, children }: { title: string; intro?: string; ch
 
 export default async function EconomyAdmin() {
   await requireAdmin();
-  const [drops, auctions, challenges, comps, withdrawals, fees] = await Promise.all([
+  const [drops, auctions, challenges, comps, withdrawals, fees, gifts, house] = await Promise.all([
     upcomingDrops(),
     db.auction.findMany({ where: { status: { in: ["LIVE", "SCHEDULED"] } }, include: { card: { include: { template: { include: { player: true } } } }, bids: { where: { status: "LEADING" } } }, orderBy: { endsAt: "asc" } }),
     db.challenge.findMany({ orderBy: { createdAt: "desc" }, include: { _count: { select: { completions: true } } } }),
     db.competition.findMany({ where: { status: { in: ["UPCOMING", "OPEN"] } }, include: { gameweek: true, _count: { select: { entries: true } } }, orderBy: { name: "asc" } }),
     db.withdrawal.findMany({ where: { status: "REQUESTED" }, include: { user: { select: { displayName: true, fullName: true, kycStatus: true } } }, orderBy: { createdAt: "asc" } }),
     db.marketListing.aggregate({ where: { status: "SOLD" }, _sum: { feeMinor: true, soldPriceMinor: true }, _count: true }),
+    welcomeGiftsForAdmin(),
+    db.marketListing.groupBy({ by: ["status"], where: { house: true }, _count: { _all: true }, _sum: { soldPriceMinor: true } }),
   ]);
+  const houseActive = house.find((h) => h.status === "ACTIVE")?._count._all ?? 0;
+  const houseSold = house.find((h) => h.status === "SOLD");
   const packs = FOOTBALL_PACKS.filter((p) => p.kind === "REGULAR").map((p) => ({ code: p.code, name: p.name }));
 
   return (
@@ -48,6 +53,37 @@ export default async function EconomyAdmin() {
         </div>
         <ActionButton action={syncPacksAction}>Publish new pack versions</ActionButton>
       </div>
+
+      <Section title="Welcome gifts" intro="Free untradeable packs every new manager gets after the Starter Pack, counted in days from registering. Changes apply to everyone who hasn't received that gift yet.">
+        <ul className="mb-4 divide-y divide-ink-700 text-sm">
+          {gifts.map((g) => (
+            <li key={g.id} className="flex flex-wrap items-center justify-between gap-3 py-2">
+              <span>
+                <b>{g.name}</b> <span className="text-faint">· day {g.afterDays} · given {g.given} time{g.given === 1 ? "" : "s"}</span>
+                {!g.active && <span className="ml-2 tag text-faint">Paused</span>}
+              </span>
+              <span className="flex gap-2">
+                <ActionButton action={updateWelcomeGiftAction.bind(null, g.id, { afterDays: Math.max(0, g.afterDays - 1) })} className="btn-ghost px-3 py-1.5 text-[11px]">Day −1</ActionButton>
+                <ActionButton action={updateWelcomeGiftAction.bind(null, g.id, { afterDays: g.afterDays + 1 })} className="btn-ghost px-3 py-1.5 text-[11px]">Day +1</ActionButton>
+                <ActionButton action={updateWelcomeGiftAction.bind(null, g.id, { active: !g.active })} className="btn-ghost px-3 py-1.5 text-[11px]">{g.active ? "Pause" : "Resume"}</ActionButton>
+              </span>
+            </li>
+          ))}
+        </ul>
+        <WelcomeGiftForm packs={giftPacks()} />
+      </Section>
+
+      <Section title="MATCHX listings on Transfers" intro="List cards straight from circulation at buy-now prices (no offers). Unsold cards go back into packs when the listing ends. The MP goes to MATCHX.">
+        <p className="mb-4 text-sm">
+          <b>{houseActive}</b> live · <b>{houseSold?._count._all ?? 0}</b> sold for <b>{fmtMp(houseSold?._sum.soldPriceMinor ?? 0)}</b>
+        </p>
+        <HouseStockForm />
+        {houseActive > 0 && (
+          <div className="mt-4">
+            <ActionButton action={clearHouseAction} className="btn-ghost px-3 py-1.5 text-[11px]" confirm="Withdraw every live MATCHX listing?">Withdraw all MATCHX listings</ActionButton>
+          </div>
+        )}
+      </Section>
 
       <Section title="Free pack drops" intro="Pick the days. Each drop shows a slim glowing banner on Packs with a countdown; every manager can claim one untradeable pack.">
         <DropForm />
@@ -101,16 +137,21 @@ export default async function EconomyAdmin() {
           {comps.map((c) => (
             <div key={c.id} className="border-t border-ink-700 pt-4 first:border-0 first:pt-0">
               <p className="mb-2 text-sm">
-                <b>{c.name}</b> <span className="text-faint">· GW{c.gameweek.number} · {c._count.entries} entries · {requirementsSummary((c.requirements ?? {}) as Requirements, c.format)}</span>
+                <b>{c.name}</b> <span className="text-faint">· GW{c.gameweek.number} · {c._count.entries} entries · {requirementsSummary((c.requirements ?? {}) as Requirements, c.format)}{prizesSummary(c.rewards) ? ` · prizes ${prizesSummary(c.rewards)}` : ""}</span>
               </p>
-              <MatchRulesForm id={c.id} fee={c.entryFeeMinor} req={(c.requirements ?? {}) as Requirements} />
+              <MatchRulesForm
+                id={c.id}
+                fee={c.entryFeeMinor}
+                req={(c.requirements ?? {}) as Requirements}
+                prizes={((c.rewards as Array<{ rankFrom: number; rankTo: number; cashMinor?: number }>) ?? []).filter((r) => r.cashMinor).map((r) => `${r.rankFrom === r.rankTo ? r.rankFrom : `${r.rankFrom}-${r.rankTo}`}=${r.cashMinor! / 100}`).join(", ")}
+              />
             </div>
           ))}
           {!comps.length && <p className="text-sm text-faint">No open matches.</p>}
         </div>
       </Section>
 
-      <Section title="Withdrawals" intro="Check identity and the bank details on file with the payout provider, then mark paid. Rejecting returns the MP to the manager.">
+      <Section title="Withdrawals" intro="Managers can only withdraw £ winnings from match prizes — never MP. Check identity and bank details with the payout provider, then mark paid. Rejecting returns the winnings.">
         <ul className="divide-y divide-ink-700 text-sm">
           {withdrawals.map((w) => (
             <li key={w.id} className="flex flex-wrap items-center justify-between gap-3 py-2">

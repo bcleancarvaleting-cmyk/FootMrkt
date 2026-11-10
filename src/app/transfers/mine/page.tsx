@@ -72,7 +72,7 @@ export default async function MyTransfersPage() {
               <li key={o.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
                 <span className="min-w-0">
                   <span className="font-semibold">{o.listing.card.template.player.displayName}</span>
-                  <span className="text-faint"> · from {o.listing.seller.displayName} · asking {fmtMp(o.listing.askingPriceMinor)}</span>
+                  <span className="text-faint"> · from {o.listing.seller?.displayName ?? "MATCHX"} · asking {fmtMp(o.listing.askingPriceMinor)}</span>
                 </span>
                 <span className="flex items-center gap-3">
                   <span className="font-bold tabular-nums">{fmtMp(o.amountMinor)}</span>
@@ -100,7 +100,7 @@ export default async function MyTransfersPage() {
                 <span className="min-w-0 truncate">
                   <span className={`mr-2 text-[10px] font-extrabold tracking-[0.14em] ${h.side === "SOLD" ? "text-mint" : "text-lime"}`}>{h.side}</span>
                   <span className="font-semibold">{h.card.template.player.displayName}</span>
-                  <span className="text-faint"> · {h.side === "SOLD" ? `to ${h.buyer?.displayName}` : `from ${h.seller.displayName}`}</span>
+                  <span className="text-faint"> · {h.side === "SOLD" ? `to ${h.buyer?.displayName}` : `from ${h.seller?.displayName ?? "MATCHX"}`}</span>
                 </span>
                 <span className="shrink-0 tabular-nums">
                   {h.side === "SOLD" ? "+" : "−"}

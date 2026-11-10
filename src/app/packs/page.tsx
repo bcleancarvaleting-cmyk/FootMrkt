@@ -61,7 +61,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
       {gifts.length > 0 && (
         <section className="flex flex-wrap gap-2">
           {gifts.map((g) => (
-            <div key={g.code} className="flex min-w-0 flex-1 basis-64 items-center gap-3 rounded-xl border border-ink-700 bg-ink-900 px-4 py-3">
+            <div key={g.id} className="flex min-w-0 flex-1 basis-64 items-center gap-3 rounded-xl border border-ink-700 bg-ink-900 px-4 py-3">
               <PackArt code={g.code} small />
               <span className="min-w-0 flex-1">
                 <span className="block text-[11px] font-extrabold uppercase tracking-[0.16em] text-lime">Welcome gift</span>

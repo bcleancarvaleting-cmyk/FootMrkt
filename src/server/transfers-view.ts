@@ -41,7 +41,8 @@ export interface ListingRow {
   card: CardView;
   priceMinor: number;
   seller: string;
-  sellerId: string;
+  sellerId: string | null;
+  house: boolean;
   expiresAt: Date;
   avgMinor: number | null;
   sales: number;
@@ -73,7 +74,7 @@ export async function transferBoard(f: BoardFilters, viewerId: string | null, ta
 async function buildRows(
   listings: Array<
     Prisma.MarketListingGetPayload<{ include: { card: { include: typeof CARD_INCLUDE } } }> & {
-      seller: { displayName: string };
+      seller: { displayName: string } | null;
       offers: Array<{ id: string; amountMinor: number; buyerId: string }>;
     }
   >,
@@ -88,8 +89,9 @@ async function buildRows(
       id: l.id,
       card: views[i],
       priceMinor: l.askingPriceMinor,
-      seller: l.seller.displayName,
+      seller: l.seller?.displayName ?? "MATCHX",
       sellerId: l.sellerId,
+      house: l.house,
       expiresAt: l.expiresAt,
       avgMinor: avgs.get(k)?.avgMinor ?? null,
       sales: avgs.get(k)?.sales ?? 0,

@@ -100,7 +100,7 @@ export async function submitEntry(userId: string, competitionId: string, input: 
     if (!existing && comp.entryFeeMinor > 0) {
       if (!(await isEnabled("PAID_ENTRY"))) throw new DomainError("FEATURE_DISABLED", "Paid entry isn't available yet — this match opens once our legal review is complete.");
       await lockWallet(tx, userId);
-      await debit(tx, { userId, amountMinor: comp.entryFeeMinor, kind: "ENTRY_FEE", refId: `entry:${entry.id}`, note: `Entry: ${fmtMp(comp.entryFeeMinor)}`, mode: "BONUS_FIRST" });
+      await debit(tx, { userId, amountMinor: comp.entryFeeMinor, kind: "ENTRY_FEE", refId: `entry:${entry.id}`, note: `Entry: ${fmtMp(comp.entryFeeMinor)}` });
     }
 
     // Release cards dropped from the squad, then lock the new selection to this entry.
@@ -185,15 +185,37 @@ async function checkRequirements(
 }
 
 /** Admin: set a match's entry fee (MP) and extra requirements. */
-export async function updateCompetitionRules(adminId: string, competitionId: string, input: { entryFeeMinor: number; requirements: unknown }) {
+/** "1=10, 2-3=5" → £ prizes by finishing position. */
+export function parsePrizes(text: string) {
+  const rules: Array<{ rankFrom: number; rankTo: number; cashMinor: number }> = [];
+  for (const part of text.split(/[,\n]/).map((p) => p.trim()).filter(Boolean)) {
+    const m = /^(\d+)(?:\s*-\s*(\d+))?\s*=\s*£?\s*(\d+(?:\.\d{1,2})?)$/.exec(part);
+    if (!m) throw new DomainError("PRIZES", `Couldn't read “${part}” — use e.g. 1=10, 2-3=5`);
+    const from = Number(m[1]);
+    const to = m[2] ? Number(m[2]) : from;
+    if (to < from) throw new DomainError("PRIZES", `“${part}”: the range is back to front.`);
+    rules.push({ rankFrom: from, rankTo: to, cashMinor: Math.round(Number(m[3]) * 100) });
+  }
+  return rules;
+}
+
+export function prizesSummary(rewards: unknown) {
+  const cash = ((rewards as Array<{ rankFrom: number; rankTo: number; cashMinor?: number }>) ?? []).filter((r) => r.cashMinor);
+  return cash.map((r) => `${r.rankFrom === r.rankTo ? `#${r.rankFrom}` : `#${r.rankFrom}–${r.rankTo}`} £${(r.cashMinor! / 100).toFixed(r.cashMinor! % 100 ? 2 : 0)}`).join(" · ");
+}
+
+export async function updateCompetitionRules(adminId: string, competitionId: string, input: { entryFeeMinor: number; requirements: unknown; prizes?: string }) {
   const fee = z.number().int().min(0).max(10_000).parse(input.entryFeeMinor);
   const requirements = RequirementsSchema.parse(input.requirements ?? {});
+  const cashRules = input.prizes !== undefined ? parsePrizes(input.prizes) : null;
   return withTx(async (tx) => {
     const before = await tx.competition.findUniqueOrThrow({ where: { id: competitionId } });
     if (!["UPCOMING", "OPEN"].includes(before.status)) throw new DomainError("LOCKED", "Rules can only change before the match locks.");
     const entries = await tx.competitionEntry.count({ where: { competitionId } });
     if (entries > 0 && fee !== before.entryFeeMinor) throw new DomainError("HAS_ENTRIES", "Managers have already entered — the entry fee can't change now.");
-    const after = await tx.competition.update({ where: { id: competitionId }, data: { entryFeeMinor: fee, requirements } });
+    const keep = ((before.rewards as Array<{ cashMinor?: number }>) ?? []).filter((r) => !r.cashMinor);
+    const rewards = cashRules ? [...keep, ...cashRules] : (before.rewards as never);
+    const after = await tx.competition.update({ where: { id: competitionId }, data: { entryFeeMinor: fee, requirements, rewards } });
     await audit(tx, { actorId: adminId, action: "competition.rules", entityType: "Competition", entityId: competitionId, before: { fee: before.entryFeeMinor, req: before.requirements }, after: { fee, requirements } });
     return after;
   });

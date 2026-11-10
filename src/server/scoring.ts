@@ -12,6 +12,7 @@ import { audit } from "./audit";
 import { type Tx, db, withTx } from "./db";
 import { DomainError } from "./errors";
 import { grantPack } from "./packs";
+import { creditWinnings } from "./wallet";
 
 const TERMINAL = new Set(["FINISHED", "POSTPONED", "ABANDONED"]);
 
@@ -105,7 +106,9 @@ export interface RewardRule {
   /** Inclusive rank range. */
   rankFrom: number;
   rankTo: number;
-  packSkuCode: string;
+  packSkuCode?: string;
+  /** £ prize in pence, paid into the manager's withdrawable winnings. */
+  cashMinor?: number;
 }
 
 /**
@@ -148,7 +151,8 @@ export async function settleCompetition(competitionId: string, actorId: string |
       await tx.competitionEntry.update({ where: { id: t.id }, data: { finalPoints: t.total, rank } });
       for (const [ri, r] of rewards.entries()) {
         if (rank >= r.rankFrom && rank <= r.rankTo) {
-          await grantPack(tx, { userId: t.userId, skuCode: r.packSkuCode, source: "REWARD", sourceRef: `reward:${competitionId}:${ri}:${t.userId}` });
+          if (r.packSkuCode) await grantPack(tx, { userId: t.userId, skuCode: r.packSkuCode, source: "REWARD", sourceRef: `reward:${competitionId}:${ri}:${t.userId}` });
+          if (r.cashMinor && r.cashMinor > 0) await creditWinnings(tx, { userId: t.userId, amountMinor: r.cashMinor, refId: `prize:${competitionId}:${ri}:${t.userId}`, note: `Finished #${rank}` });
         }
       }
     }

@@ -738,8 +738,10 @@ model MarketListing {
   id               String        @id @default(uuid()) @db.Uuid
   cardId           String        @db.Uuid
   card             CardInstance  @relation(fields: [cardId], references: [id])
-  sellerId         String        @db.Uuid
-  seller           User          @relation("Seller", fields: [sellerId], references: [id])
+  // null for MATCHX "house" listings: cards from circulation sold at a fixed buy-now price.
+  sellerId         String?       @db.Uuid
+  seller           User?         @relation("Seller", fields: [sellerId], references: [id])
+  house            Boolean       @default(false)
   askingPriceMinor Int // MP hundredths (1 MP ≈ £1). P2P transfers are priced in MP only.
   currency         String        @default("MP")
   feeMinor         Int? // MATCHX fee taken from the seller on sale (5%)
@@ -897,12 +899,16 @@ enum WalletEntryKind {
   AUCTION_RELEASE
   ENTRY_FEE
   ENTRY_REFUND
+  PRIZE // £ won in a match (WINNINGS bucket)
 }
 
-// CASH: deposited or earned from sales — withdrawable (min £10). BONUS: rewards — spend only.
+// MP buckets (never withdrawable — spend on packs, transfers and entries):
+//   CASH = bought with a card or earned from sales · BONUS = rewards (sets, challenges, promos).
+// WINNINGS: £ won in matches (pence). The only balance that can be withdrawn (min £10).
 enum WalletBucket {
   CASH
   BONUS
+  WINNINGS
 }
 
 // Immutable ledger of promotional MP credit (spec §11). Amounts are in hundredths of an MP
@@ -1053,4 +1059,14 @@ model AdminAuditLog {
 
   @@index([createdAt])
   @@index([entityType, entityId])
+}
+
+// Free untradeable packs given to new managers N days after registering (admin-configurable).
+model WelcomeGift {
+  id        String   @id @default(uuid()) @db.Uuid
+  skuCode   String
+  afterDays Int
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

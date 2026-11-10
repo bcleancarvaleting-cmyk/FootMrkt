@@ -3,7 +3,7 @@ import { Countdown } from "@/components/countdown";
 import { EmptyState } from "@/components/page-header";
 import { FORMATIONS, getRosterRules } from "@/domain/football/rules";
 import { requireUser } from "@/server/auth/session";
-import { type Requirements, requirementsSummary } from "@/server/competitions";
+import { type Requirements, prizesSummary, requirementsSummary } from "@/server/competitions";
 import { db } from "@/server/db";
 import { isEnabled } from "@/server/flags";
 import { footballSport } from "@/server/gameweeks";
@@ -99,6 +99,7 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
                     <span className="block truncate text-xs text-muted">
                       {requirementsSummary((c.requirements ?? {}) as Requirements, c.format)} · {rules.allowedFormations.map((f) => FORMATIONS[f].id).join(" / ")}
                     </span>
+                    {prizesSummary(c.rewards) && <span className="mt-0.5 block text-xs font-semibold text-lime">Prizes: {prizesSummary(c.rewards)}</span>}
                   </span>
                   <span className="w-20 text-right font-bold tabular-nums">{c.entryFeeMinor > 0 ? fmtMp(c.entryFeeMinor) : <span className="text-lime">Free</span>}</span>
                   <span className="w-20 text-right text-sm tabular-nums text-muted">{c._count.entries}</span>

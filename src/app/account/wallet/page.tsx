@@ -24,11 +24,13 @@ const KIND_LABEL: Record<string, string> = {
   AUCTION_RELEASE: "Bid released",
   ENTRY_FEE: "Match entry",
   ENTRY_REFUND: "Entry refund",
+  PRIZE: "Match prize",
 };
 const W_TONE: Record<string, string> = { REQUESTED: "text-warn", PAID: "text-mint", REJECTED: "text-danger" };
 
-export default async function WalletPage() {
+export default async function WalletPage({ searchParams }: { searchParams: Promise<{ amount?: string }> }) {
   const user = await requireUser();
+  const { amount } = await searchParams;
   const [u, bal, ledger, withdrawals, depositsOn, withdrawalsOn] = await Promise.all([
     db.user.findUniqueOrThrow({ where: { id: user.id } }),
     balancesFor(user.id),
@@ -45,35 +47,33 @@ export default async function WalletPage() {
         <h1 className="mt-1 text-4xl leading-none sm:text-5xl">Wallet</h1>
       </div>
 
-      <section className="grid gap-px overflow-hidden rounded-2xl border border-ink-700 bg-ink-700 sm:grid-cols-3">
+      <section className="grid gap-px overflow-hidden rounded-2xl border border-ink-700 bg-ink-700 sm:grid-cols-2">
         <div className="bg-ink-900 p-5">
-          <p className="eyebrow">Total balance</p>
+          <p className="eyebrow">MP balance</p>
           <p className="mt-1 font-display text-5xl font-extrabold italic tabular-nums">{fmtMp(bal.total)}</p>
-          <p className="text-xs text-faint">1 MP ≈ £1</p>
+          <p className="mt-1 text-xs text-faint">
+            For packs, transfers and match entries. Not withdrawable.
+            {bal.bonus > 0 && ` Includes ${fmtMp(bal.bonus)} of reward MP (used first).`}
+          </p>
         </div>
         <div className="bg-ink-900 p-5">
-          <p className="eyebrow">Cash MP</p>
-          <p className="mt-1 font-display text-3xl font-extrabold italic tabular-nums text-lime">{fmtMp(bal.cash)}</p>
-          <p className="text-xs text-faint">From adding funds and selling cards. Buys packs, cards and bids. Withdrawable (min £10).</p>
-        </div>
-        <div className="bg-ink-900 p-5">
-          <p className="eyebrow">Bonus MP</p>
-          <p className="mt-1 font-display text-3xl font-extrabold italic tabular-nums">{fmtMp(bal.bonus)}</p>
-          <p className="text-xs text-faint">From challenges and sets. Spend on packs (used first) and match entries. Not withdrawable.</p>
+          <p className="eyebrow text-lime">Winnings</p>
+          <p className="mt-1 font-display text-5xl font-extrabold italic tabular-nums text-lime">{fmtGbp(bal.winnings)}</p>
+          <p className="mt-1 text-xs text-faint">£ prizes from gameweek matches. The only balance you can withdraw (minimum £10).</p>
         </div>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
         <div id="add" className="panel p-5">
           <h2 className="mb-1 text-2xl">Add funds</h2>
-          <p className="mb-4 text-sm text-muted">Top up by card. Packs cost £2.99 by card or 2.99 MP from your balance — same price either way.</p>
+          <p className="mb-4 text-sm text-muted">Top up by card — £1 buys 1 MP. Packs cost the same in £ or MP.</p>
           {!depositsOn && <GateNotice>Adding funds opens once our payment provider and UK legal review sign off.</GateNotice>}
-          <DepositForm enabled={depositsOn} />
+          <DepositForm enabled={depositsOn} initial={[10, 20, 50, 100].includes(Number(amount)) ? Number(amount) : 20} />
         </div>
         <div id="withdraw" className="panel p-5">
-          <h2 className="mb-1 text-2xl">Withdraw</h2>
+          <h2 className="mb-1 text-2xl">Withdraw winnings</h2>
           <p className="mb-4 text-sm text-muted">
-            Cash out your cash MP to your bank — minimum £10. You can withdraw up to <b className="text-fg">{fmtGbp(bal.withdrawable)}</b>. Bonus MP can&apos;t be withdrawn.
+            Cash out £ you&apos;ve won in matches — minimum £10. You can withdraw up to <b className="text-fg">{fmtGbp(bal.withdrawable)}</b>. MP can&apos;t be withdrawn.
           </p>
           {!withdrawalsOn && <GateNotice>Withdrawals open once our UK legal, identity-check and payout approvals are in place.</GateNotice>}
           {gaps.length > 0 && (
@@ -115,10 +115,10 @@ export default async function WalletPage() {
                 <span className="text-faint"> · {fmtDate(e.createdAt)}</span>
               </span>
               <span className="flex shrink-0 items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-faint">{e.bucket.toLowerCase()}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-faint">{e.bucket === "WINNINGS" ? "£ winnings" : e.bucket === "BONUS" ? "reward MP" : "MP"}</span>
                 <b className={`tabular-nums ${e.amountMinor > 0 ? "text-mint" : "text-muted"}`}>
                   {e.amountMinor > 0 ? "+" : ""}
-                  {fmtMp(e.amountMinor)}
+                  {e.bucket === "WINNINGS" ? fmtGbp(e.amountMinor) : fmtMp(e.amountMinor)}
                 </b>
               </span>
             </li>

@@ -5,31 +5,31 @@ import { useActionState, useState } from "react";
 import { depositAction, setDepositLimitAction, updateProfileAction, withdrawAction } from "@/app/actions/account";
 import { ResultText } from "./action-button";
 
-export function DepositForm({ enabled }: { enabled: boolean }) {
+export function DepositForm({ enabled, initial = 20 }: { enabled: boolean; initial?: number }) {
   const [state, action, pending] = useActionState(depositAction, null);
   const [key] = useState(() => crypto.randomUUID());
-  const [amount, setAmount] = useState("10");
+  const [amount, setAmount] = useState(String(initial));
   return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="clientKey" value={key} />
       <div>
-        <label className="label" htmlFor="dep-amount">Amount (£) — 1 MP for every £1</label>
+        <label className="label" htmlFor="dep-amount">Amount — £1 buys 1 MP</label>
         <div className="flex flex-wrap gap-2">
-          {["5", "10", "20", "50"].map((v) => (
+          {["10", "20", "50", "100"].map((v) => (
             <button key={v} type="button" onClick={() => setAmount(v)} className={`chip px-3 py-1.5 text-sm ${amount === v ? "border-accent text-fg" : ""}`}>
               £{v}
             </button>
           ))}
-          <input id="dep-amount" name="amount" type="number" min="5" max="500" step="1" value={amount} onChange={(e) => setAmount(e.target.value)} className="input w-28" required />
+          <input id="dep-amount" name="amount" type="number" min="10" max="500" step="1" value={amount} onChange={(e) => setAmount(e.target.value)} className="input w-28" required />
         </div>
       </div>
       <div className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-xs leading-relaxed text-fg">
-        <b>Card values go down as well as up.</b> MP you add is used to buy packs and cards. What you pull from a pack is random, and a card&apos;s value can
-        fall — you may get back less than you put in, or nothing. Only add what you can afford to lose. Not an investment.
+        <b>MP can&apos;t be withdrawn or refunded</b> — it&apos;s for buying packs and cards and entering matches. What you pull from a pack is random and
+        card values go down as well as up. Only add what you can afford to spend. Not an investment.
       </div>
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" name="acceptRisk" className="mt-1 accent-lime" required />
-        <span>I understand player values go up and down and I could lose the money I add.</span>
+        <span>I understand MP can&apos;t be withdrawn and player values go up and down.</span>
       </label>
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" name="acceptTerms" className="mt-1 accent-lime" required />
@@ -40,7 +40,7 @@ export function DepositForm({ enabled }: { enabled: boolean }) {
         </span>
       </label>
       <button className="btn-primary w-full" disabled={!enabled || pending}>
-        {pending ? "Starting checkout…" : `Add £${amount || 0} by card`}
+        {pending ? "Starting checkout…" : `Add £${amount || 0} → ${amount || 0} MP`}
       </button>
       {state && <ResultText result={state} />}
     </form>
@@ -52,7 +52,7 @@ export function WithdrawForm({ enabled, maxMinor }: { enabled: boolean; maxMinor
   return (
     <form action={action} className="space-y-3">
       <div>
-        <label className="label" htmlFor="wd-amount">Amount (£) — minimum £10</label>
+        <label className="label" htmlFor="wd-amount">Amount of winnings (£) — minimum £10</label>
         <input id="wd-amount" name="amount" type="number" min="10" step="0.01" max={(maxMinor / 100).toFixed(2)} defaultValue="10" className="input" required />
       </div>
       <button className="btn-ghost w-full" disabled={!enabled || pending || maxMinor < 1000}>

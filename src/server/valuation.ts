@@ -42,7 +42,7 @@ export async function revalueAll(now = new Date()) {
       recentGameweekPoints: perGw,
       recentSales: sales
         .filter((s) => s.card.template.playerId === t.playerId && s.card.template.category === t.category)
-        .map((s) => ({ priceMinor: s.soldPriceMinor ?? 0, buyerId: s.buyerId ?? "", sellerId: s.sellerId })),
+        .map((s) => ({ priceMinor: s.soldPriceMinor ?? 0, buyerId: s.buyerId ?? "", sellerId: s.sellerId ?? "house" })),
       previousMp: previous?.valueMp ?? null,
     });
     // Snapshot every run (even when unchanged) so each card has a complete value history.

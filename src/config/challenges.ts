@@ -1,7 +1,7 @@
 /**
  * Default challenges (product request 10 Nov 2026: "Sets become Challenges… discard team to get
  * 1MP — it keeps cards revolving"). Admins can add, pause or edit challenges in Admin → Challenges;
- * these are seeded once. Rewards are BONUS MP (spend on packs and entries, never withdrawable).
+ * these are seeded once. Rewards are reward MP (spent first on packs, transfers and entries; never withdrawable).
  */
 export interface ChallengeCriteria {
   /** Exactly this many cards are handed in. */

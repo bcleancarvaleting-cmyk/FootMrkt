@@ -8,7 +8,8 @@ import { db } from "@/server/db";
 import { cancelDrop, scheduleDrop } from "@/server/drops";
 import { DomainError } from "@/server/errors";
 import { syncPackCatalogue } from "@/server/packs";
-import { cancelAuction, createAuction } from "@/server/transfers";
+import { cancelAuction, clearHouseListings, createAuction, stockHouseListings } from "@/server/transfers";
+import { addWelcomeGift, updateWelcomeGift } from "@/server/welcome";
 import { processWithdrawal } from "@/server/wallet";
 import { type ActionResult, attempt } from "./result";
 
@@ -110,6 +111,7 @@ export async function competitionRulesAction(_: ActionResult | null, f: FormData
         maxPerClub: str(f, "maxPerClub") ? Number(str(f, "maxPerClub")) : undefined,
         maxSquadValueMp: str(f, "maxValue") ? Number(str(f, "maxValue")) : undefined,
       },
+      prizes: str(f, "prizes"),
     });
   }, "Match rules saved");
   done();
@@ -128,4 +130,45 @@ export async function syncPacksAction(): Promise<ActionResult> {
   const res = await attempt(async () => `${await syncPackCatalogue()} new pack version(s) published`);
   done();
   return res.ok ? { ok: true, data: undefined, message: res.data } : res;
+}
+
+export async function addWelcomeGiftAction(_: ActionResult | null, f: FormData): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const res = await attempt(async () => {
+    await addWelcomeGift(admin.id, { skuCode: str(f, "skuCode"), afterDays: Number(str(f, "afterDays")) });
+  }, "Welcome gift added");
+  done();
+  return res;
+}
+
+export async function updateWelcomeGiftAction(id: string, patch: { afterDays?: number; active?: boolean }): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const res = await attempt(async () => {
+    await updateWelcomeGift(admin.id, id, patch);
+  }, "Saved");
+  done();
+  return res;
+}
+
+export async function stockHouseAction(_: ActionResult | null, f: FormData): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const res = await attempt(async () =>
+    stockHouseListings(admin.id, {
+      tier: str(f, "tier") as "GOLD",
+      count: Number(str(f, "count")),
+      priceMinor: str(f, "price") ? mp(f, "price") : null,
+      markupPct: Number(str(f, "markup") || 0),
+      days: Number(str(f, "days") || 7),
+      leagues: list(f, "leagues"),
+    }),
+  );
+  done();
+  return res.ok ? { ok: true, data: undefined, message: `${res.data} card(s) listed on Transfers` } : res;
+}
+
+export async function clearHouseAction(): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const res = await attempt(() => clearHouseListings(admin.id));
+  done();
+  return res.ok ? { ok: true, data: undefined, message: `${res.data} MATCHX listing(s) withdrawn` } : res;
 }

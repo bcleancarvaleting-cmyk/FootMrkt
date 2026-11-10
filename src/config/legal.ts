@@ -22,10 +22,16 @@ export const LEGAL_DOCS: LegalDoc[] = [
       [
         "MP (MATCHX Points)",
         [
-          "MP is the in-game balance. 1 MP is priced at £1 when you add funds.",
-          "Cash MP comes from adding funds and selling cards. It can buy packs, cards and auction bids, and can be withdrawn to a UK bank account (minimum £10) once withdrawals are available.",
-          "Bonus MP comes from challenges, sets and promotions. It can be spent on packs and match entries but can't be withdrawn, transferred or used to buy cards from other managers.",
+          "MP is the in-game balance. £1 buys 1 MP when you add funds. You can also earn MP from challenges, sets, promotions and selling cards.",
+          "MP is only for buying packs and cards, bidding in auctions and entering matches. It can't be withdrawn, refunded, exchanged for cash or transferred to another account.",
           "MP is not a deposit account, e-money or an investment and earns no interest.",
+        ],
+      ],
+      [
+        "Winnings",
+        [
+          "Some matches pay £ prizes, shown before you enter. Prizes go into your Winnings balance, which is separate from MP.",
+          "Winnings can be withdrawn to a UK bank account in your own name (minimum £10) once withdrawals are available. We check your identity first.",
         ],
       ],
       [
@@ -39,14 +45,14 @@ export const LEGAL_DOCS: LegalDoc[] = [
       [
         "Transfers and auctions",
         [
-          "You can list tradeable cards for 0.10–100 MP. When a card sells, we take a 5% fee from the seller.",
+          "You can list tradeable cards for 0.10–100 MP. When a card sells, we take a 5% fee from the seller. MATCHX also lists cards from circulation at fixed buy-now prices.",
           "Offers and bids hold the MP immediately. Held MP is returned if an offer is declined, withdrawn or lapses, or if you are outbid.",
           "A completed transfer is final. We may reverse transfers linked to fraud, mistakes or abuse.",
         ],
       ],
       ["Matches", ["Match points come from real-life player performance data. Results are final once a gameweek is settled, except for data corrections announced in-game. Entry fees and prizes are shown before you enter."]],
       ["Your content and chat", ["Be respectful. No hate, harassment, scams, links or personal information. Moderators can remove messages and we may suspend accounts."]],
-      ["Closing your account", ["You can close your account at any time. We'll pay out any withdrawable cash MP after checks. Bonus MP and cards are lost on closure."]],
+      ["Closing your account", ["You can close your account at any time. We'll pay out any winnings after checks. MP and cards are lost on closure."]],
       ["Liability", ["We provide MATCHX as is. Nothing in these terms limits liability that can't be limited by law."]],
     ],
   },
@@ -64,6 +70,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
       ],
       ["Packs are random", ["The cards in a pack are random. A pack can be worth less than you paid for it."]],
       ["No guaranteed resale", ["There's no guarantee anyone will buy your card, or buy it at the price you want. A 5% fee applies to every sale."]],
+      ["MP can't be cashed out", ["MP you add or earn can only be spent in the game. It can't be withdrawn or refunded. Only £ winnings from match prizes can be withdrawn."]],
       ["Only spend what you can afford", ["MATCHX is entertainment, not an investment or a way to make money. Set a deposit limit in Wallet → Responsible play."]],
     ],
   },

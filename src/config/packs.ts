@@ -180,7 +180,7 @@ FOOTBALL_PACKS.push(
 );
 
 /**
- * Welcome gifts (product decision 10 Nov 2026): after the Starter Pack, every new manager gets a
+ * Default welcome gifts (product decision 10 Nov 2026), editable in Admin → Economy: after the Starter Pack, a
  * Silver pack 3 days after registering and one lucky Gold player 4 days after that (day 7).
  * Both are freshly minted and untradeable, so they never drain the tradeable supply.
  */

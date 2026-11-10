@@ -145,3 +145,31 @@ describe("welcome gifts", () => {
     expect(cards.every((c) => c.tradeStatus === "NON_TRADEABLE")).toBe(true);
   });
 });
+
+describe("winnings", () => {
+  it("only £ winnings can be withdrawn — never MP; rejected withdrawals return the winnings", async () => {
+    const { creditWinnings, processWithdrawal, requestWithdrawal } = await import("@/server/wallet");
+    process.env.LEGAL_GATES_CLEARED = "WITHDRAWALS";
+    process.env.FLAG_WITHDRAWALS = "true";
+    const admin = await makeUser("adm5");
+    const { userId } = await makeUser();
+    await db.user.update({ where: { id: userId }, data: { fullName: "Test Person", dateOfBirth: new Date("1990-01-01"), addressLine1: "1 Road", city: "Leeds", postcode: "LS1 1AA" } });
+    await withTx((tx) => credit(tx, { userId, amountMinor: 5000, kind: "DEPOSIT", bucket: "CASH", refId: "dep" }));
+    await expect(requestWithdrawal(userId, 1000)).rejects.toMatchObject({ code: "INSUFFICIENT_FUNDS" });
+    await withTx((tx) => creditWinnings(tx, { userId, amountMinor: 1500, refId: "prize-1" }));
+    await expect(requestWithdrawal(userId, 900)).rejects.toMatchObject({ code: "MIN" });
+    const w = await requestWithdrawal(userId, 1200);
+    expect(await balancesFor(userId)).toMatchObject({ winnings: 300, total: 5000 });
+    await processWithdrawal(admin.userId, w.id, "REJECTED");
+    expect(await balancesFor(userId)).toMatchObject({ winnings: 1500, total: 5000 });
+  });
+
+  it("admin £ prizes parse from '1=10, 2-3=5'", async () => {
+    const { parsePrizes } = await import("@/server/competitions");
+    expect(parsePrizes("1=10, 2-3=5")).toEqual([
+      { rankFrom: 1, rankTo: 1, cashMinor: 1000 },
+      { rankFrom: 2, rankTo: 3, cashMinor: 500 },
+    ]);
+    expect(() => parsePrizes("first=10")).toThrow();
+  });
+});

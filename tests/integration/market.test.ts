@@ -25,7 +25,7 @@ import {
   withdrawOffer,
 } from "@/server/transfers";
 import { balancesFor, credit } from "@/server/wallet";
-import { buildWorld, makeUser, resetDb } from "./fixtures";
+import { buildWorld, makeTrader, makeUser, resetDb } from "./fixtures";
 
 const ENV = { ...process.env };
 beforeEach(async () => {
@@ -64,14 +64,14 @@ describe("legal gate (spec §9.3, §17)", () => {
     process.env.FLAG_PACK_SHOP = "true";
     process.env.FLAG_MARKET = "true";
     process.env.FLAG_PAID_PACKS = "true";
-    const { userId } = await makeUser();
+    const { userId } = await makeTrader();
     const card = await tradeableCard(userId);
     await expect(createListing(userId, { cardId: card, askingPriceMinor: 500 })).rejects.toMatchObject({ code: "FEATURE_DISABLED" });
     await expect(startPackPurchase(userId, "football-bronze", "k")).rejects.toMatchObject({ code: "FEATURE_DISABLED" });
   });
 
   it("an admin cannot switch a legal-gated flag on, and flag changes are audited", async () => {
-    const { userId } = await makeUser();
+    const { userId } = await makeTrader();
     await expect(setFlag(userId, "MARKET", true)).rejects.toMatchObject({ code: "LEGAL_GATE" });
     await expect(setFlag(userId, "WITHDRAWALS", true)).rejects.toMatchObject({ code: "LEGAL_GATE" });
     await setFlag(userId, "DEV_TOOLS", false);
@@ -82,7 +82,7 @@ describe("legal gate (spec §9.3, §17)", () => {
 describe("P2P transfers in MX", () => {
   it("locks listed cards, blocks untradeable, duplicate and over-100-MX listings", async () => {
     enableLegalGates();
-    const { userId, starterEntitlementId } = await makeUser();
+    const { userId, starterEntitlementId } = await makeTrader();
     const starter = await openPack(userId, starterEntitlementId);
     await expect(createListing(userId, { cardId: starter.cards[0].cardId, askingPriceMinor: 500 })).rejects.toMatchObject({ code: "NOT_TRADEABLE" });
     const card = await tradeableCard(userId);
@@ -97,9 +97,9 @@ describe("P2P transfers in MX", () => {
 
   it("buy now moves the card, pays the seller minus 5%, and a card can't be sold twice", async () => {
     enableLegalGates();
-    const seller = await makeUser("seller");
-    const b1 = await makeUser("buyer1");
-    const b2 = await makeUser("buyer2");
+    const seller = await makeTrader("seller");
+    const b1 = await makeTrader("buyer1");
+    const b2 = await makeTrader("buyer2");
     await fund(b1.userId, 2000);
     await fund(b2.userId, 2000);
     const card = await tradeableCard(seller.userId);
@@ -123,8 +123,8 @@ describe("P2P transfers in MX", () => {
 
   it("bought MX can't buy players from other managers (Transfer list is earned MX only)", async () => {
     enableLegalGates();
-    const seller = await makeUser("sss3");
-    const buyer = await makeUser("bbb5");
+    const seller = await makeTrader("sss3");
+    const buyer = await makeTrader("bbb5");
     await withTx((tx) => credit(tx, { userId: buyer.userId, amountMinor: 5000, kind: "DEPOSIT", bucket: "CASH", refId: "bought-1" }));
     const listing = await createListing(seller.userId, { cardId: await tradeableCard(seller.userId), askingPriceMinor: 300 });
     await expect(buyNow(buyer.userId, listing.id)).rejects.toMatchObject({ code: "EARNED_ONLY" });
@@ -132,8 +132,8 @@ describe("P2P transfers in MX", () => {
 
   it("earned MX can buy cards (MX is never withdrawable), and sale proceeds are earned MX, not winnings", async () => {
     enableLegalGates();
-    const seller = await makeUser("sss2");
-    const buyer = await makeUser("bbb3");
+    const seller = await makeTrader("sss2");
+    const buyer = await makeTrader("bbb3");
     await withTx((tx) => credit(tx, { userId: buyer.userId, amountMinor: 500, kind: "CHALLENGE_REWARD", refId: "bonus-1" }));
     const listing = await createListing(seller.userId, { cardId: await tradeableCard(seller.userId), askingPriceMinor: 300 });
     await buyNow(buyer.userId, listing.id);
@@ -143,8 +143,8 @@ describe("P2P transfers in MX", () => {
 
   it("MATCHX listings: cards from circulation, buy now only, unsold cards return to packs", async () => {
     enableLegalGates();
-    const admin = await makeUser("adm9");
-    const buyer = await makeUser("bbb9");
+    const admin = await makeTrader("adm9");
+    const buyer = await makeTrader("bbb9");
     await fund(buyer.userId, 5000);
     const before = (await supplyReport()).availableInPool;
     expect(await stockHouseListings(admin.userId, { tier: "BRONZE", count: 3, priceMinor: 150 })).toBe(3);
@@ -163,9 +163,9 @@ describe("P2P transfers in MX", () => {
 
   it("offers hold MX; declined / withdrawn / lapsed offers return it; accepting completes the sale", async () => {
     enableLegalGates();
-    const seller = await makeUser("sss4");
-    const a = await makeUser("aaa4");
-    const b = await makeUser("bbb4");
+    const seller = await makeTrader("sss4");
+    const a = await makeTrader("aaa4");
+    const b = await makeTrader("bbb4");
     await fund(a.userId, 1000);
     await fund(b.userId, 1000);
     const listing = await createListing(seller.userId, { cardId: await tradeableCard(seller.userId), askingPriceMinor: 800 });
@@ -197,8 +197,8 @@ describe("P2P transfers in MX", () => {
 
   it("expiring a listing returns held offers", async () => {
     enableLegalGates();
-    const seller = await makeUser("sss5");
-    const a = await makeUser("aaa5");
+    const seller = await makeTrader("sss5");
+    const a = await makeTrader("aaa5");
     await fund(a.userId, 500);
     const listing = await createListing(seller.userId, { cardId: await tradeableCard(seller.userId), askingPriceMinor: 400, days: 1 });
     await makeOffer(a.userId, listing.id, 300);
@@ -230,7 +230,7 @@ describe("MATCHX launch pricing", () => {
 
   it("a range listing prices higher-league players above lower-league ones, and named players get their set price", async () => {
     enableLegalGates();
-    const admin = await makeUser("adm10");
+    const admin = await makeTrader("adm10");
     await stockHouseListings(admin.userId, { tier: "BRONZE", count: 8, minPriceMinor: 100, maxPriceMinor: 499 });
     const rows = await db.marketListing.findMany({ where: { house: true }, include: { card: { include: { template: { include: { player: { include: { club: { include: { league: true } } } } } } } } } });
     const top = Math.max(...rows.filter((r) => r.card.template.player.club!.league.tier === 1).map((r) => r.askingPriceMinor));
@@ -251,8 +251,8 @@ describe("MATCHX launch pricing", () => {
   it("drops cost exactly the price shown, with no fee, and can be paid with bought MX", async () => {
     const { scheduleDrops, dropBoard } = await import("@/server/player-drops");
     enableLegalGates();
-    const admin = await makeUser("adm21");
-    const buyer = await makeUser("bbb21");
+    const admin = await makeTrader("adm21");
+    const buyer = await makeTrader("bbb21");
     await withTx((tx) => credit(tx, { userId: buyer.userId, amountMinor: 500, kind: "DEPOSIT", bucket: "CASH", refId: "bought-drop" }));
     const tpl = await db.cardTemplate.findFirstOrThrow({ where: { category: "BRONZE", active: true, edition: "STANDARD" } });
     await scheduleDrops(admin.userId, [{ playerId: tpl.playerId, priceMinor: 126, liveAt: new Date(Date.now() - 1000) }]);
@@ -278,9 +278,9 @@ describe("house auctions", () => {
 
   it("bids hold cash MX, outbid managers get it back, and the winner gets the card", async () => {
     enableLegalGates();
-    const admin = await makeUser("admin1");
-    const a = await makeUser("aaa6");
-    const b = await makeUser("bbb6");
+    const admin = await makeTrader("admin1");
+    const a = await makeTrader("aaa6");
+    const b = await makeTrader("bbb6");
     await fund(a.userId, 1000);
     await fund(b.userId, 1000);
     const au = await auction(admin.userId);
@@ -306,8 +306,8 @@ describe("house auctions", () => {
 
   it("a late bid extends the auction (anti-sniping)", async () => {
     enableLegalGates();
-    const admin = await makeUser("admin2");
-    const a = await makeUser("aaa7");
+    const admin = await makeTrader("admin2");
+    const a = await makeTrader("aaa7");
     await fund(a.userId, 500);
     const au = await auction(admin.userId);
     const nearEnd = new Date(au.endsAt.getTime() - 30_000);
@@ -317,8 +317,8 @@ describe("house auctions", () => {
 
   it("cancelling returns bids and puts the card back in the pool", async () => {
     enableLegalGates();
-    const admin = await makeUser("admin3");
-    const a = await makeUser("aaa8");
+    const admin = await makeTrader("admin3");
+    const a = await makeTrader("aaa8");
     await fund(a.userId, 500);
     const au = await auction(admin.userId);
     await placeBid(a.userId, au.id, 100);
@@ -335,13 +335,13 @@ describe("card payments", () => {
 
   it("refuses card pack purchases without an 18+ date of birth", async () => {
     enableLegalGates();
-    const { userId } = await makeUser();
+    const { userId } = await makeTrader();
     await expect(startPackPurchase(userId, "football-silver", "click-x")).rejects.toThrow(/18 or over/);
   });
 
   it("paid pack purchase grants exactly one pack, even if the webhook is delivered twice", async () => {
     enableLegalGates();
-    const { userId } = await makeUser();
+    const { userId } = await makeTrader();
     await db.user.update({ where: { id: userId }, data: { dateOfBirth: new Date("1990-01-01") } });
     const { orderId } = await startPackPurchase(userId, "football-silver", "click-1");
     expect((await startPackPurchase(userId, "football-silver", "click-1")).orderId).toBe(orderId);
@@ -355,7 +355,7 @@ describe("card payments", () => {
 describe("special-finish pricing", () => {
   it("normal cards cap at 100 MX; a Rainbow can be listed for thousands, with the same 5% fee", async () => {
     enableLegalGates();
-    const seller = await makeUser("rainbowseller");
+    const seller = await makeTrader("rainbowseller");
     const cardId = await tradeableCard(seller.userId);
     await expect(createListing(seller.userId, { cardId, askingPriceMinor: 10_001 })).rejects.toMatchObject({ code: "PRICE_CAP" });
     const card = await db.cardInstance.findUniqueOrThrow({ where: { id: cardId }, include: { template: true } });
@@ -370,8 +370,8 @@ describe("player drops", () => {
   it("one brand-new copy per player, live from a set time with no end; never packable; retired if withdrawn", async () => {
     const { scheduleDrops, dropBoard, cancelPlayerDrop } = await import("@/server/player-drops");
     enableLegalGates();
-    const admin = await makeUser("adm20");
-    const buyer = await makeUser("bbb20");
+    const admin = await makeTrader("adm20");
+    const buyer = await makeTrader("bbb20");
     await fund(buyer.userId, 5000);
     const tpl = await db.cardTemplate.findFirstOrThrow({ where: { category: "BRONZE", active: true, edition: "STANDARD" } });
     const other = await db.cardTemplate.findFirstOrThrow({ where: { category: "SILVER", active: true, edition: "STANDARD" } });
@@ -401,8 +401,8 @@ describe("player drops", () => {
   it("drops cost exactly the price shown, with no fee, and can be paid with bought MX", async () => {
     const { scheduleDrops, dropBoard } = await import("@/server/player-drops");
     enableLegalGates();
-    const admin = await makeUser("adm21");
-    const buyer = await makeUser("bbb21");
+    const admin = await makeTrader("adm21");
+    const buyer = await makeTrader("bbb21");
     await withTx((tx) => credit(tx, { userId: buyer.userId, amountMinor: 500, kind: "DEPOSIT", bucket: "CASH", refId: "bought-drop" }));
     const tpl = await db.cardTemplate.findFirstOrThrow({ where: { category: "BRONZE", active: true, edition: "STANDARD" } });
     await scheduleDrops(admin.userId, [{ playerId: tpl.playerId, priceMinor: 126, liveAt: new Date(Date.now() - 1000) }]);
@@ -417,5 +417,56 @@ describe("player drops", () => {
     const { transferBoard } = await import("@/server/transfers-view");
     await scheduleDrops(admin.userId, [{ playerId: tpl.playerId, priceMinor: 126, liveAt: new Date(Date.now() - 1000) }]);
     expect((await transferBoard({}, null)).some((r) => r.house)).toBe(false);
+  });
+});
+
+describe("market safeguards", () => {
+  it("new or unverified accounts can't list or buy on the Transfer list", async () => {
+    enableLegalGates();
+    const { userId: fresh } = await makeUser();
+    const card = await tradeableCard(fresh);
+    await expect(createListing(fresh, { cardId: card, askingPriceMinor: 200 })).rejects.toMatchObject({ code: "VERIFY_EMAIL" });
+    await db.user.update({ where: { id: fresh }, data: { emailVerifiedAt: new Date() } });
+    await expect(createListing(fresh, { cardId: card, askingPriceMinor: 200 })).rejects.toMatchObject({ code: "NEW_ACCOUNT" });
+
+    const seller = await makeTrader();
+    const listing = await createListing(seller.userId, { cardId: await tradeableCard(seller.userId), askingPriceMinor: 200 });
+    await fund(fresh, 1000);
+    await expect(buyNow(fresh, listing.id)).rejects.toMatchObject({ code: "NEW_ACCOUNT" });
+  });
+
+  it("asks the seller to confirm a price far above the guide", async () => {
+    enableLegalGates();
+    const seller = await makeTrader();
+    const cardId = await tradeableCard(seller.userId);
+    const card = await db.cardInstance.findUniqueOrThrow({ where: { id: cardId }, include: { template: true } });
+    await db.mPValuation.create({ data: { playerId: card.template.playerId, category: card.template.category, valueMp: 2, method: "test", signals: {} } });
+    await expect(createListing(seller.userId, { cardId, askingPriceMinor: 900 })).rejects.toMatchObject({ code: "HIGH_PRICE" });
+    await expect(createListing(seller.userId, { cardId, askingPriceMinor: 900, confirmHigh: true })).resolves.toBeTruthy();
+  });
+
+  it("holds repeat trades between the same two managers for review", async () => {
+    enableLegalGates();
+    const a = await makeTrader();
+    const b = await makeTrader();
+    await fund(b.userId, 5000);
+    for (let i = 0; i < 3; i++) {
+      const l = await createListing(a.userId, { cardId: await tradeableCard(a.userId), askingPriceMinor: 300 });
+      await buyNow(b.userId, l.id);
+    }
+    const flags = await db.tradeFlag.findMany();
+    expect(flags).toHaveLength(1);
+    expect(flags[0].reasons).toContain("PAIR_REPEAT");
+  });
+
+  it("holds sales between accounts that logged in from the same network", async () => {
+    enableLegalGates();
+    const a = await makeTrader();
+    const b = await makeTrader();
+    await db.session.createMany({ data: [{ id: "s-a", userId: a.userId, expiresAt: new Date(Date.now() + 1e8), ipHash: "same" }, { id: "s-b", userId: b.userId, expiresAt: new Date(Date.now() + 1e8), ipHash: "same" }] });
+    await fund(b.userId, 1000);
+    const l = await createListing(a.userId, { cardId: await tradeableCard(a.userId), askingPriceMinor: 300 });
+    await buyNow(b.userId, l.id);
+    expect((await db.tradeFlag.findFirstOrThrow()).reasons).toEqual(["SHARED_NETWORK"]);
   });
 });

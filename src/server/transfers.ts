@@ -1,3 +1,4 @@
+import { assertCanTrade, assertSensiblePrice, reviewSale } from "./market-safety";
 import { type CardCategory, Prisma } from "@/generated/prisma/client";
 import { alertNewListing } from "./watchlist";
 import { cryptoRandom } from "@/domain/random";
@@ -44,6 +45,8 @@ export const ListingSchema = z.object({
   cardId: z.string().uuid(),
   askingPriceMinor: price,
   days: z.number().int().min(1).max(14).default(7),
+  /** The seller ticked "I'm sure" after a high-price warning. */
+  confirmHigh: z.boolean().default(false),
 });
 
 // ───────────── Pricing guidance ─────────────
@@ -76,6 +79,21 @@ export function recommendPrice(valueMp: number | null, avg: { avgMinor: number; 
   return base !== null ? clampPrice(base) : avg ? clampPrice(avg.avgMinor) : MIN_PRICE_MINOR * 10;
 }
 
+/** Guide price for one card (normal finishes only — Ruby/Diamond/Rainbow have no guide). */
+export async function guidePriceFor(cardId: string, tx: Tx | typeof db = db): Promise<number | null> {
+  const card = await tx.cardInstance.findUnique({ where: { id: cardId }, select: { finish: { select: { kind: true } }, template: { select: { playerId: true, category: true } } } });
+  if (!card || card.finish) return null;
+  const { playerId, category } = card.template;
+  const [val, avg] = await Promise.all([
+    tx.mPValuation.findFirst({ where: { playerId, category }, orderBy: { computedAt: "desc" }, select: { valueMp: true } }),
+    averageSalePrices([{ playerId, category }]),
+  ]);
+  const sales = avg.get(`${playerId}:${category}`);
+  // No valuation and no sales yet = no guide (don't warn against a made-up number).
+  if (!val && !sales) return null;
+  return recommendPrice(val?.valueMp ?? null, sales);
+}
+
 /** All-time value history (MX valuation per day) for a player+tier, for the small transfer graph. */
 export async function valueHistory(playerId: string, category: CardCategory) {
   const rows = await db.mPValuation.findMany({ where: { playerId, category }, orderBy: { computedAt: "asc" }, select: { valueMp: true, computedAt: true } });
@@ -87,6 +105,8 @@ export async function valueHistory(playerId: string, category: CardCategory) {
 export async function createListing(userId: string, input: z.input<typeof ListingSchema>) {
   await requireFlag("MARKET");
   const data = ListingSchema.parse(input);
+  await assertCanTrade(userId);
+  await assertSensiblePrice(data.askingPriceMinor, await guidePriceFor(data.cardId), data.confirmHigh);
   const listing = await withTx(async (tx) => {
     const card = await lockOwnedCard(tx, userId, data.cardId);
     if (card.tradeStatus !== "TRADEABLE") throw new DomainError("NOT_TRADEABLE", "This card can't be traded.");
@@ -147,6 +167,7 @@ async function settleSale(tx: Tx, listing: { id: string; cardId: string; sellerI
   await tx.cardOwnership.create({ data: { cardId: listing.cardId, userId: buyerId, acquiredVia: "MARKET", acquiredRef: `listing:${listing.id}`, acquiredAt: now } });
   await tx.cardInstance.update({ where: { id: listing.cardId }, data: { ownerId: buyerId, lock: "NONE", lockRef: null } });
   await tx.favouriteCard.deleteMany({ where: { cardId: listing.cardId } });
+  await reviewSale(tx, { listingId: listing.id, sellerId: listing.sellerId, buyerId, priceMinor, guideMinor: await guidePriceFor(listing.cardId, tx) });
   return { fee };
 }
 
@@ -188,6 +209,7 @@ export async function buyNow(buyerId: string, listingId: string) {
     if (!l || l.status !== "ACTIVE" || l.expiresAt <= new Date()) throw new DomainError("NOT_AVAILABLE", "This listing is no longer available.");
     if (l.liveAt && l.liveAt > new Date()) throw new DomainError("NOT_LIVE", "This player drop isn't live yet.");
     if (l.sellerId === buyerId) throw new DomainError("OWN_LISTING", "You can't buy your own listing.");
+    if (!l.house) await assertCanTrade(buyerId);
     await lockWallets(tx, buyerId, l.sellerId);
     // A buyer with a pending offer on this listing gets that hold back first, then pays in full.
     await lapseOffers(tx, l.id);
@@ -237,6 +259,7 @@ export async function makeOffer(buyerId: string, listingId: string, amountMinor:
     if (l.house) throw new DomainError("BUY_NOW_ONLY", "MATCHX listings are buy-now only.");
     if (l.sellerId === buyerId) throw new DomainError("OWN_LISTING", "You can't make an offer on your own listing.");
     if (amountMinor >= l.askingPriceMinor) throw new DomainError("USE_BUY_NOW", "That's at or above the buy-now price — just buy it now.");
+    await assertCanTrade(buyerId);
     await lockWallet(tx, buyerId);
     const previous = await tx.marketOffer.findFirst({ where: { listingId, buyerId, status: "PENDING" } });
     if (previous) {

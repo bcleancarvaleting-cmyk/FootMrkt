@@ -64,6 +64,11 @@ export function ListingForm({
       <p className="text-xs text-muted">
         If it sells you get <b className="text-fg">{mp(Math.max(0, minor - (minor ? fee(minor) : 0)))} MX</b> (5% fee {minor ? mp(fee(minor)) : "0.00"} MX). Max price {(maxMinor / 100).toLocaleString("en-GB")} MX. Buyers can also send you offers.
       </p>
+      {state && !state.ok && /I'm sure/.test(state.error) && (
+        <label className="flex items-center gap-2 rounded-xl border border-warn/40 bg-warn/10 px-3 py-2 text-sm">
+          <input type="checkbox" name="confirmHigh" className="accent-lime" /> I&apos;m sure — list it at this price
+        </label>
+      )}
       <button className="btn-primary" disabled={pending || !enabled}>
         {pending ? "Listing…" : "List on Transfers"}
       </button>

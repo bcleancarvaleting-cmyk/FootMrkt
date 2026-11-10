@@ -1,6 +1,7 @@
 import "server-only";
 import { toCrest } from "@/lib/crest";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { hashIp } from "../market-safety";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { touchUser } from "../stats";
@@ -44,7 +45,9 @@ export async function requireAdmin(): Promise<CurrentUser> {
 }
 
 export async function startSession(userId: string) {
-  const { token, expiresAt } = await createSession(userId);
+  const h = await headers();
+  const ip = h.get("x-forwarded-for")?.split(",")[0] ?? h.get("x-real-ip");
+  const { token, expiresAt } = await createSession(userId, hashIp(ip));
   (await cookies()).set(COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",

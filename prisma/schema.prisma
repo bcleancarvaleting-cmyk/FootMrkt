@@ -128,8 +128,29 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
+  ipHash    String? // salted hash of the login IP — used only to spot linked accounts trading with each other
 
   @@index([userId])
+  @@index([ipHash])
+}
+
+// Trades held for a human to look at (market safeguards).
+model TradeFlag {
+  id         String    @id @default(uuid()) @db.Uuid
+  listingId  String    @db.Uuid
+  sellerId   String    @db.Uuid
+  buyerId    String    @db.Uuid
+  priceMinor Int
+  reasons    String[] // PAIR_REPEAT | PRICE_OUTLIER | NEW_ACCOUNT | SHARED_NETWORK
+  detail     String
+  status     String    @default("OPEN") // OPEN | CLEARED | ACTIONED
+  reviewedBy String?   @db.Uuid
+  reviewedAt DateTime?
+  note       String?
+  createdAt  DateTime  @default(now())
+
+  @@unique([listingId])
+  @@index([status, createdAt])
 }
 
 model FeatureFlag {

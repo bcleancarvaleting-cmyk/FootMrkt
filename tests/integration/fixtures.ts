@@ -69,3 +69,10 @@ export async function makeUser(name?: string) {
   const r = await registerUser({ email: `${displayName}@test.dev`, password: "correct-horse-battery", displayName });
   return { userId: r.user.id, starterEntitlementId: r.starterEntitlementId };
 }
+
+/** A manager who can use the Transfer list: email confirmed and past the new-account wait. */
+export async function makeTrader(name?: string) {
+  const u = await makeUser(name);
+  await db.user.update({ where: { id: u.userId }, data: { emailVerifiedAt: new Date(), createdAt: new Date(Date.now() - 30 * 86_400_000) } });
+  return u;
+}

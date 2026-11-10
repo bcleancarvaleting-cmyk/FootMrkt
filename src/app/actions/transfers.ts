@@ -20,7 +20,7 @@ export async function createListingAction(_: ActionResult | null, form: FormData
   const user = await requireUser();
   const cardId = String(form.get("cardId"));
   const res = await attempt(async () => {
-    await createListing(user.id, { cardId, askingPriceMinor: mpToMinor(form.get("price")), days: Number(form.get("days") ?? 7) });
+    await createListing(user.id, { cardId, askingPriceMinor: mpToMinor(form.get("price")), days: Number(form.get("days") ?? 7), confirmHigh: form.get("confirmHigh") === "on" });
   }, "Listed on Transfers");
   refresh(cardId);
   return res;

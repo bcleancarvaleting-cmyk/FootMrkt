@@ -34,6 +34,20 @@ export const SETTINGS = {
     min: 10,
     max: 1_000_000,
   },
+  newTraderDays: {
+    label: "New accounts: days before trading",
+    help: "How many days a new account waits before it can list, buy or make offers on the Transfer list. Player drops aren't affected.",
+    default: 3,
+    min: 0,
+    max: 60,
+  },
+  highPriceMultiple: {
+    label: "High-price warning: × the guide price",
+    help: "Sellers must confirm a price this many times the guide price (or more). Sales at 2× this are held for review.",
+    default: 3,
+    min: 2,
+    max: 50,
+  },
   prizeFundSharePct: {
     label: "Prize fund share (%)",
     help: "Share of the last 7 days' card revenue suggested for next week's prizes. Admin-only.",

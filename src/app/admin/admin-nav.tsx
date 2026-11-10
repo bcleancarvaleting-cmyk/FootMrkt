@@ -22,6 +22,7 @@ export const ADMIN_MENU: Array<{ group: string; items: Array<{ href: string; lab
       { href: "/admin/packs", label: "Packs & supply" },
       { href: "/admin/players", label: "Player database & drops" },
       { href: "/admin/transfers", label: "Transfer listings" },
+      { href: "/admin/trade-review", label: "Trade review" },
       { href: "/admin/values", label: "Player values" },
     ],
   },

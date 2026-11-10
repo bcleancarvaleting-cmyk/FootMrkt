@@ -110,3 +110,51 @@ export async function rainbowCount() {
   ]);
   return { found, total };
 }
+
+export async function leaguesForPicker() {
+  return db.league.findMany({ orderBy: { tier: "asc" }, select: { code: true, name: true } });
+}
+
+/** A small seeded shuffle, so the same seed always gives the same poster. */
+function seeded<T>(items: T[], seed: string): T[] {
+  let h = 2166136261;
+  for (const ch of seed) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  const next = () => ((h = Math.imul(h ^ (h >>> 15), 2246822507) ^ Math.imul(h ^ (h >>> 13), 3266489909)) >>> 0) / 4294967296;
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(next() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/**
+ * A league's stars: the most valuable player at every club, in a mix of finishes. Gold players are
+ * spread across Ruby, Diamond and Rainbow; anyone else can only be shown as their Rainbow.
+ */
+export async function leagueStars(leagueCode: string, seed = "1") {
+  const league = await db.league.findUnique({ where: { code: leagueCode } });
+  if (!league) return null;
+  const clubs = await db.club.findMany({
+    where: { leagueId: league.id },
+    select: {
+      players: {
+        where: { active: true, templates: { some: { edition: "STANDARD", active: true } } },
+        orderBy: [{ marketValueGbp: { sort: "desc", nulls: "last" } }, { displayName: "asc" }],
+        take: 1,
+        select: { id: true, marketValueGbp: true },
+      },
+    },
+  });
+  const stars = clubs.flatMap((c) => c.players).sort((a, b) => Number(b.marketValueGbp ?? 0) - Number(a.marketValueGbp ?? 0));
+  const base = await posterCards(stars.map((s) => s.id));
+  const golds = base.filter((c) => c.category === "GOLD");
+  const pattern: Finish[] = ["RUBY", "DIAMOND", "RAINBOW"];
+  const mix = seeded(golds.map((_, i) => pattern[i % 3]), `${leagueCode}:${seed}`);
+  const finishFor = new Map(golds.map((c, i) => [c.playerId, mix[i]]));
+  const cards = base.map((c) => {
+    const f: Finish = finishFor.get(c.playerId) ?? "RAINBOW";
+    return { ...c, finish: { kind: f, serial: 1, of: OF[f] } };
+  });
+  return { league, cards, golds: golds.length };
+}

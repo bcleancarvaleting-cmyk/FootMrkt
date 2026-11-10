@@ -208,6 +208,29 @@ export function ClubWallPoster({ clubName, cards, format }: { clubName: string; 
   );
 }
 
+/** A league's stars: the best player at every club, in a mix of Ruby, Diamond and Rainbow. */
+export function LeagueStarsPoster({ leagueName, cards, format }: { leagueName: string; cards: CardView[]; format: PosterFormat }) {
+  const { h } = FORMATS[format];
+  const { cols, width } = wallLayout(cards.length, 960, h - (format === "square" ? 430 : 480));
+  const kinds = new Set(cards.map((c) => c.finish?.kind));
+  const allRainbow = kinds.size === 1 && kinds.has("RAINBOW");
+  return (
+    <Frame format={format} bg="RAINBOW">
+      <p className="whitespace-nowrap text-[28px] font-bold uppercase tracking-[0.3em] text-white/70">{leagueName}</p>
+      <Headline className="rainbow-name mb-2 text-[80px]">{allRainbow ? "Every club's one-of-one" : "Ruby · Diamond · Rainbow"}</Headline>
+      <p className="mb-6 text-center text-[24px] font-semibold text-white/75">The most valuable player at all {cards.length} clubs</p>
+      <div className="grid justify-center gap-[14px]" style={{ gridTemplateColumns: `repeat(${cols}, ${width}px)` }}>
+        {cards.map((c) => (
+          <BigCard key={c.id} card={c} width={width} />
+        ))}
+      </div>
+      <p className="mt-6 text-center text-[24px] font-semibold text-white/80">
+        {allRainbow ? "Each Rainbow is a true 1 of 1. Every player in the game has one." : "Ruby 1 of 10 · Diamond 1 of 5 · Rainbow 1 of 1"}
+      </p>
+    </Frame>
+  );
+}
+
 /** The Rare pack. */
 export function RarePackPoster({ price, live, cards, format }: { price: string; live: boolean; cards: CardView[]; format: PosterFormat }) {
   return (

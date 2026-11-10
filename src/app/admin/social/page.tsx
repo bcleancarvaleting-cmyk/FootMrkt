@@ -8,6 +8,7 @@ import {
   FORMATS,
   FoundPoster,
   JoinPoster,
+  LeagueStarsPoster,
   OneOfOnePoster,
   type PosterFormat,
   RainbowHuntPoster,
@@ -25,6 +26,8 @@ import {
   clubTopPlayers,
   clubsForPicker,
   featuredDrop,
+  leagueStars,
+  leaguesForPicker,
   posterCards,
   possibleFinishes,
   rainbowCount,
@@ -40,6 +43,7 @@ const TEMPLATES = [
   ["one-of-one", "One of one — a player's Rainbow"],
   ["every", "Every player's Rainbow at a club (download all)"],
   ["wall", "Club Rainbow wall — the whole squad on one image"],
+  ["league", "League stars — best player at every club, mixed finishes"],
   ["club", "Club's one-of-ones — top 3 Rainbows"],
   ["rarity", "How rare do you go? — every finish"],
   ["found", "Found! — a real Ruby / Diamond / Rainbow pull"],
@@ -49,7 +53,7 @@ const TEMPLATES = [
   ["drop", "Drop alert"],
   ["join", "Join free"],
 ] as const;
-type SP = { t?: string; f?: string; club?: string; player?: string; kind?: string; find?: string; scale?: string };
+type SP = { t?: string; f?: string; club?: string; player?: string; kind?: string; find?: string; scale?: string; league?: string; seed?: string };
 
 export default async function SocialPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
@@ -58,7 +62,9 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
   const clubCode = sp.club ?? "GIL";
   const kind = (["RUBY", "DIAMOND", "RAINBOW"] as const).find((k) => k === sp.kind);
   const fullSize = sp.scale === "1";
-  const [clubs, top] = await Promise.all([clubsForPicker(), clubTopPlayers(clubCode, 40)]);
+  const leagueCode = sp.league ?? "EPL";
+  const seed = sp.seed ?? "1";
+  const [clubs, leagues, top] = await Promise.all([clubsForPicker(), leaguesForPicker(), clubTopPlayers(clubCode, 40)]);
   const playerId = top?.players.find((p) => p.id === sp.player)?.id ?? top?.players[0]?.id ?? null;
   const player = top?.players.find((p) => p.id === playerId) ?? null;
   const { w, h } = FORMATS[format];
@@ -84,6 +90,13 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
   } else if (t === "wall") {
     const all = await clubAllPlayers(clubCode);
     if (all) poster = <ClubWallPoster clubName={all.club.name} cards={await posterCards(all.players.map((p) => p.id), "RAINBOW")} format={format} />;
+  } else if (t === "league") {
+    const ls = await leagueStars(leagueCode, seed);
+    if (ls) {
+      poster = <LeagueStarsPoster leagueName={ls.league.name} cards={ls.cards} format={format} />;
+      if (ls.golds === 0) note = `${ls.league.name} has no Gold players yet. Rubies and Diamonds only come on Golds, so every card here is shown as its Rainbow.`;
+      else if (ls.golds < ls.cards.length) note = `${ls.golds} of these ${ls.cards.length} players are Gold, so only they are shown as Ruby or Diamond. The rest are shown as their Rainbow.`;
+    }
   } else if (t === "club" && top) {
     const cards = await posterCards(top.players.slice(0, 3).map((p) => p.id), "RAINBOW");
     poster = <ClubPoster clubName={top.club.name} cards={cards} format={format} />;
@@ -124,7 +137,7 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
     poster = <JoinPoster cards={cards} format={format} />;
   }
 
-  const filename = `matchx-${t}-${format}${player && ["one-of-one", "rarity"].includes(t) ? `-${slug(player.name)}` : t === "wall" || t === "club" ? `-${slug(top?.club.name ?? clubCode)}` : ""}`;
+  const filename = `matchx-${t}-${format}${player && ["one-of-one", "rarity"].includes(t) ? `-${slug(player.name)}` : t === "wall" || t === "club" ? `-${slug(top?.club.name ?? clubCode)}` : t === "league" ? `-${slug(leagues.find((l) => l.code === leagueCode)?.name ?? leagueCode)}-${seed}` : ""}`;
   if (fullSize) {
     if (batch) {
       return (
@@ -182,6 +195,16 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
           </select>
         </label>
         <label className="text-sm">
+          <span className="label">League</span>
+          <select name="league" defaultValue={leagueCode} className="input">
+            {leagues.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm">
           <span className="label">Player</span>
           <select name="player" defaultValue={playerId ?? ""} className="input">
             {top?.players.map((p) => (
@@ -214,9 +237,14 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
         )}
         <div className="sm:col-span-2 lg:col-span-4">
           <button className="btn-primary px-6 py-2 text-xs">Show</button>
-          <Link href={`/admin/social?t=${t}&f=${format}&club=${clubCode}${playerId ? `&player=${playerId}` : ""}${kind ? `&kind=${kind}` : ""}&scale=1`} className="ml-3 text-xs text-muted underline">
+          <Link href={`/admin/social?t=${t}&f=${format}&club=${clubCode}${playerId ? `&player=${playerId}` : ""}${kind ? `&kind=${kind}` : ""}&league=${leagueCode}&seed=${seed}&scale=1`} className="ml-3 text-xs text-muted underline">
             Open full size
           </Link>
+          {t === "league" && (
+            <Link href={`/admin/social?t=league&f=${format}&league=${leagueCode}&seed=${Number(seed) + 1 || 2}`} className="ml-3 text-xs text-muted underline">
+              Shuffle the mix
+            </Link>
+          )}
         </div>
       </form>
       {note && <p className="rounded-xl border border-warn/40 bg-warn/10 px-4 py-3 text-sm">{note}</p>}

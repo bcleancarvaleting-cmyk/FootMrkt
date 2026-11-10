@@ -12,7 +12,7 @@ import { giftPacks, welcomeGiftsForAdmin } from "@/server/welcome";
 import { criteriaSummary } from "@/server/challenges";
 import type { ChallengeCriteria } from "@/config/challenges";
 import { db } from "@/server/db";
-import { upcomingDrops } from "@/server/drops";
+import { giftLabel, upcomingDrops } from "@/server/drops";
 import { fmtGbp, fmtMp } from "@/server/wallet";
 import { fmtDate } from "@/lib/view";
 
@@ -166,7 +166,7 @@ export async function EconomySections({ only }: { only: string[] }) {
           {drops.map((d) => (
             <li key={d.id} className="flex items-center justify-between gap-3 py-2">
               <span>
-                <b>{d.title}</b> <span className="text-faint">· {fmtDate(d.startsAt)} → {fmtDate(d.endsAt)}</span>
+                <b>{d.title}</b> <span className="text-lime">· {giftLabel(d)}</span> <span className="text-faint">· {fmtDate(d.startsAt)} → {fmtDate(d.endsAt)}</span>
                 {d.startsAt <= new Date() && <span className="ml-2 tag text-lime">Live</span>}
               </span>
               <ActionButton action={cancelDropAction.bind(null, d.id)} className="btn-ghost px-3 py-1.5 text-[11px]" confirm="Cancel this drop?">

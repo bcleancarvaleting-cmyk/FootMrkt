@@ -2,7 +2,7 @@ import { Prisma, type CardCategory, type EntitlementSource } from "@/generated/p
 import { type PlannedSlot, honoursGuarantees, planPack } from "@/domain/packs/compose";
 import { type PackConfig, type SlotFilters, parsePackConfig } from "@/domain/packs/config";
 import { AuditedRandom, type RandomSource, cryptoRandom } from "@/domain/random";
-import { GOLD_PICK_CODE, STARTER_PACK_CODE } from "@/config/packs";
+import { PICK_CODES, STARTER_PACK_CODE } from "@/config/packs";
 import { ensureTemplate, mintInstances } from "./cards";
 import { type Tx, db, withTx } from "./db";
 import { DomainError } from "./errors";
@@ -69,7 +69,7 @@ export async function openPack(
   return withTx(async (tx) => {
     // Atomically consume the entitlement. Only one transaction can win this update.
     const pickSku = await tx.packEntitlement.findUnique({ where: { id: entitlementId }, select: { packSku: { select: { code: true } } } });
-    if (pickSku && pickSku.packSku.code === GOLD_PICK_CODE) throw new DomainError("USE_PICK", "Choose your player on the pick page.");
+    if (pickSku && (PICK_CODES as readonly string[]).includes(pickSku.packSku.code)) throw new DomainError("USE_PICK", "Choose your player on the pick page.");
     const consumed = await tx.packEntitlement.updateMany({
       where: { id: entitlementId, userId, status: "UNOPENED" },
       data: { status: "OPENED", openedAt: new Date() },

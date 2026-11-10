@@ -41,7 +41,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
         <section className="drop-glow flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl border border-accent/70 bg-ink-900 px-4 py-3 sm:flex-nowrap">
           <span className="live-dot shrink-0" aria-hidden="true" />
           <span className="min-w-0 flex-1">
-            <span className="block text-[11px] font-extrabold uppercase tracking-[0.18em] text-lime">Free pack drop</span>
+            <span className="block text-[11px] font-extrabold uppercase tracking-[0.18em] text-lime">Free gift · {drop.label}</span>
             <span className="block truncate font-display text-lg font-bold uppercase italic leading-tight">{drop.drop.title}</span>
           </span>
           <span className="shrink-0 text-right">
@@ -92,7 +92,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
                   </span>
                   {isPick(e.packSku.code) ? (
                     <Link href={`/packs/pick/${e.id}`} className="btn-gold">
-                      Choose your Gold
+                      Choose your player
                     </Link>
                   ) : (
                     <OpenPackButton entitlementId={e.id} />
@@ -109,7 +109,9 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
           <div>
             <p className="eyebrow">Pack shop</p>
             <h2 className="mt-1 text-4xl leading-none sm:text-5xl">Packs</h2>
-            <p className="mt-2 text-sm text-muted">Pay by card, or use MX already in your account — the same price either way. Bonus MX is used first.</p>
+            <p className="mt-2 text-sm text-muted">
+              Every pack is 100% random: rolled by a secure random generator when you open it, against the published odds. Nobody picks or builds them, and every draw is logged.
+            </p>
           </div>
           <Link href="/account/wallet" className="rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 text-xs text-muted hover:border-ink-600">
             Balance <b className="ml-1 text-fg tabular-nums">{fmtMp(bal.total)}</b>
@@ -163,7 +165,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
                                 {slot.upgrades.map((u) => ` · ${(u.chanceBp / 100).toFixed(u.chanceBp % 100 ? 1 : 0)}% chance each of ${u.category.toLowerCase()}`).join("")}
                               </li>
                             ))}
-                            <li className="pt-1 text-faint">Players are random among eligible cards in circulation. Pack version v{s.version}.</li>
+                            <li className="pt-1 text-faint">Every slot is rolled independently by a secure random generator at the moment you open the pack, then a player is drawn at random from all eligible cards. Nobody at MATCHX picks or builds packs. Pack version v{s.version}.</li>
                           </ul>
                         </details>
                         <div className="mt-auto grid grid-cols-2 gap-2 pt-5">

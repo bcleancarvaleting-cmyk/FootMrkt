@@ -38,6 +38,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
         "Packs",
         [
           "Packs cost the price shown (for example £2.99 by card or 2.99 MX). The odds for every pack are published on the Packs page and fixed for each pack version.",
+          "Pack contents are 100% random. Each slot is rolled by a cryptographically secure random number generator when the pack is opened, and the player is then drawn at random from every eligible card. Nobody at MATCHX selects, builds or adjusts the contents of any pack, and every draw is recorded so it can be audited.",
           "What you get from a pack is random. Card values shown are estimates and can go down as well as up.",
           "Free and starter packs are untradeable.",
           "Cards issued before paid packs launch (from packs, MATCHX listings or auctions) are permanently untradeable. You keep them and can play with them, use them in sets and hand them in for challenges, but you can't sell them.",

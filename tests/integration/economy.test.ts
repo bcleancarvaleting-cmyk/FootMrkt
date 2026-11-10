@@ -65,16 +65,38 @@ describe("challenges", () => {
 });
 
 describe("free pack drops", () => {
-  it("one claim per manager per drop; nothing outside the window", async () => {
+  it("one claim per manager per gift; nothing outside the window", async () => {
     const admin = await makeUser("adm");
     const { userId } = await makeUser();
     const drop = await scheduleDrop(admin.userId, { title: "Matchday freebie", startsAt: new Date(Date.now() - 60_000), hours: 24 });
     await expect(scheduleDrop(admin.userId, { title: "Overlap", startsAt: new Date(), hours: 2 })).rejects.toMatchObject({ code: "CLASH" });
     const [a, b] = await Promise.all([claimDrop(userId, drop.id), claimDrop(userId, drop.id)]);
-    expect(a.id).toBe(b.id);
+    expect(a.entitlement!.id).toBe(b.entitlement!.id);
     expect((await dropStatus(userId))?.claimed).toBe(true);
     await expect(claimDrop(userId, drop.id, new Date(Date.now() + 25 * 3_600_000))).rejects.toMatchObject({ code: "CLOSED" });
   });
+
+  it("gifts can be a pick, a gift pack, XP or earned MX — each claimed once", async () => {
+    const admin = await makeUser("adm14");
+    const { userId } = await makeUser("gifted");
+    const day = 86_400_000;
+    const t0 = Date.now() + 10 * day;
+    const xp = await scheduleDrop(admin.userId, { title: "XP boost", giftType: "XP", amount: 500, startsAt: new Date(t0), hours: 24 });
+    const mx = await scheduleDrop(admin.userId, { title: "MX gift", giftType: "MX", amount: 300, startsAt: new Date(t0 + day), hours: 24 });
+    const pick = await scheduleDrop(admin.userId, { title: "Christmas", giftType: "PACK", skuCode: "football-silver-pick", startsAt: new Date(t0 + 2 * day), hours: 24 });
+    await expect(scheduleDrop(admin.userId, { title: "Bad", giftType: "PACK", skuCode: "football-eng-gold", startsAt: new Date(t0 + 3 * day), hours: 24 })).rejects.toMatchObject({ code: "BAD_PACK" });
+    await claimDrop(userId, xp.id, new Date(t0 + 1000));
+    await claimDrop(userId, xp.id, new Date(t0 + 2000));
+    await claimDrop(userId, mx.id, new Date(t0 + day + 1000));
+    expect(await balancesFor(userId)).toMatchObject({ xp: 500, earned: 300 });
+    const p = await claimDrop(userId, pick.id, new Date(t0 + 2 * day + 1000));
+    expect(p.kind).toBe("PACK");
+    const { pickOptions } = await import("@/server/picks");
+    const opts = await pickOptions(userId, p.entitlement!.id);
+    expect(opts.category).toBe("SILVER");
+    expect(opts.playerIds).toHaveLength(3);
+  });
+
 });
 
 describe("match entry fees and requirements", () => {

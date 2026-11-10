@@ -9,7 +9,7 @@ import { RowStat } from "@/components/card-row";
 import { getCurrentUser } from "@/server/auth/session";
 import { binderTotals } from "@/server/binder";
 import { db } from "@/server/db";
-import { activeDrop } from "@/server/drops";
+import { activeDrop, giftLabel } from "@/server/drops";
 import { isEnabled } from "@/server/flags";
 import { currentGameweek } from "@/server/gameweeks";
 import { cardViews } from "@/server/views";
@@ -261,7 +261,9 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
       {drop && (
         <Link href="/packs" className="drop-glow flex items-center gap-4 rounded-2xl border border-accent/70 bg-ink-900 px-4 py-3">
           <span className="live-dot" aria-hidden="true" />
-          <span className="flex-1 font-semibold">Free pack drop: {drop.title}</span>
+          <span className="flex-1 font-semibold">
+            Free gift: {drop.title} <span className="text-lime">· {giftLabel(drop)}</span>
+          </span>
           <Countdown to={drop.endsAt.toISOString()} className="text-sm font-bold" />
           <span className="text-lime">→</span>
         </Link>

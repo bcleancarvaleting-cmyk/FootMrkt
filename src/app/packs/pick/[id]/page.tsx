@@ -20,7 +20,7 @@ export default async function PickPage({ params }: { params: Promise<{ id: strin
       <div>
         <p className="eyebrow">{data.entitlement.packSku.name}</p>
         <h1 className="mt-1 text-5xl">Choose your {data.category.toLowerCase()}</h1>
-        <p className="mx-auto mt-2 max-w-md text-sm text-muted">Keep one of these three players. The other two go back. Free cards are untradeable, and count in challenges and freerolls.</p>
+        <p className="mx-auto mt-2 max-w-md text-sm text-muted">Keep one of these three players, chosen at random for this pack. The other two go back. Free cards are untradeable, and count in challenges and freerolls.</p>
       </div>
       {data.opened ? (
         <p className="text-muted">

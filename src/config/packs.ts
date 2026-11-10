@@ -230,6 +230,10 @@ export const WELCOME_MIX_CODE = "football-welcome-mix";
 /** Choice of Gold: three Golds are offered and the manager keeps one (see src/server/picks.ts). */
 export const GOLD_PICK_CODE = "football-gold-pick";
 export const REFERRAL_PACK_CODE = "football-referral";
+export const BRONZE_PICK_CODE = "football-bronze-pick";
+export const SILVER_PICK_CODE = "football-silver-pick";
+/** Packs opened through the pick screen (choose 1 of 3) rather than a normal reveal. */
+export const PICK_CODES = [GOLD_PICK_CODE, SILVER_PICK_CODE, BRONZE_PICK_CODE] as const;
 
 const free = (code: string, name: string, blurb: string, slots: PackSkuSeed["config"]["slots"]): PackSkuSeed => ({
   code,
@@ -267,3 +271,16 @@ export const WELCOME_SCHEDULE = [
   { code: WELCOME_MIX_CODE, afterDays: 9 },
   { code: GOLD_PICK_CODE, afterDays: 12 },
 ] as const;
+
+/** Gift versions (free, untradeable, minted) of the shop packs, and Bronze/Silver picks — for admin gifts. */
+const giftOf = (code: string, name: string) => {
+  const base = FOOTBALL_PACKS.find((p) => p.code === code)!;
+  return free(`${code}-gift`, name, `${base.blurb} A gift from MATCHX — untradeable.`, base.config.slots);
+};
+FOOTBALL_PACKS.push(
+  free(BRONZE_PICK_CODE, "Choice of Bronze", "Pick one of three Bronze players to keep. Untradeable.", [{ label: "Bronze", count: 1, base: "BRONZE", upgrades: [] }]),
+  free(SILVER_PICK_CODE, "Choice of Silver", "Pick one of three Silver players to keep. Untradeable.", [{ label: "Silver", count: 1, base: "SILVER", upgrades: [] }]),
+  giftOf("football-eng-bronze", "Gift: Bronze Pack"),
+  giftOf("football-eng-silver", "Gift: Silver Pack"),
+  giftOf("football-eng-gold", "Gift: Gold Pack"),
+);

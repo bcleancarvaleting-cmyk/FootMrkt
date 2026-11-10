@@ -37,13 +37,25 @@ export function DropForm({ packs }: { packs: Array<{ code: string; name: string 
     <Form action={scheduleDropAction} submit="Schedule gift">
       <I name="title" label="Banner title" placeholder="Happy Christmas from MATCHX" required />
       <div>
-        <label className="label" htmlFor="f-gift-sku">Gift</label>
-        <select id="f-gift-sku" name="skuCode" className="input" defaultValue="football-weekly">
-          {packs.map((p) => (
-            <option key={p.code} value={p.code}>{p.name}</option>
-          ))}
+        <label className="label" htmlFor="f-gift">Gift</label>
+        <select id="f-gift" name="gift" className="input" defaultValue="PACK:football-gold-pick">
+          <optgroup label="Pick a player (choose 1 of 3)">
+            {packs.filter((p) => p.code.endsWith("-pick")).map((p) => (
+              <option key={p.code} value={`PACK:${p.code}`}>{p.name}</option>
+            ))}
+          </optgroup>
+          <optgroup label="Packs">
+            {packs.filter((p) => !p.code.endsWith("-pick")).map((p) => (
+              <option key={p.code} value={`PACK:${p.code}`}>{p.name}</option>
+            ))}
+          </optgroup>
+          <optgroup label="Credit">
+            <option value="XP">XP credit</option>
+            <option value="MX">Earned MX credit</option>
+          </optgroup>
         </select>
       </div>
+      <I name="amount" label="Amount (for XP or MX credit)" type="number" min="1" step="0.01" placeholder="e.g. 500 XP or 2.00 MX" />
       <I name="startsAt" label="Goes live" type="datetime-local" defaultValue={localNow()} required />
       <I name="hours" label="Hours open" type="number" min="1" max="72" defaultValue="24" />
     </Form>

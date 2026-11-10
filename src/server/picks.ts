@@ -1,5 +1,6 @@
+import { createHmac } from "node:crypto";
 import type { CardCategory } from "@/generated/prisma/client";
-import { GOLD_PICK_CODE } from "@/config/packs";
+import { BRONZE_PICK_CODE, GOLD_PICK_CODE, SILVER_PICK_CODE } from "@/config/packs";
 import { ensureTemplate, mintInstances } from "./cards";
 import { db, withTx } from "./db";
 import { DomainError } from "./errors";
@@ -7,21 +8,30 @@ import { CARD_INCLUDE, enrichCards } from "./views";
 
 /**
  * Player picks ("Choice of Gold"): the manager is offered three players of a tier and keeps one,
- * minted as a free, untradeable card. The three options are fixed for each pack (derived from the
- * entitlement id), so reloading the page never re-rolls them.
+ * minted as a free, untradeable card. The three options are random but fixed for each pack (see
+ * pickStream), so reloading the page never re-rolls them.
  */
 export const PICKS: Record<string, { category: CardCategory; options: number }> = {
   [GOLD_PICK_CODE]: { category: "GOLD", options: 3 },
+  [SILVER_PICK_CODE]: { category: "SILVER", options: 3 },
+  [BRONZE_PICK_CODE]: { category: "BRONZE", options: 3 },
 };
 
 export const isPick = (skuCode: string) => skuCode in PICKS;
 
-function seeded(seed: string) {
-  let h = 2166136261;
-  for (const ch of seed) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
-  return () => {
-    h = Math.imul(h ^ (h >>> 15), 2246822507) ^ Math.imul(h ^ (h >>> 13), 3266489909);
-    return ((h >>>= 0) % 1_000_000) / 1_000_000;
+/**
+ * Unpredictable but fixed per pack: HMAC-SHA256 of the pack id under a server secret, so nobody
+ * (managers or staff) can work out or re-roll the three options. Uniform via rejection sampling.
+ */
+function pickStream(seed: string) {
+  const secret = process.env.PICK_SECRET ?? process.env.SESSION_SECRET ?? process.env.DATABASE_URL ?? "matchx";
+  let counter = 0;
+  return (max: number) => {
+    const limit = Math.floor(0x1_0000_0000 / max) * max;
+    for (;;) {
+      const n = createHmac("sha256", secret).update(`${seed}:${counter++}`).digest().readUInt32BE(0);
+      if (n < limit) return n % max;
+    }
   };
 }
 
@@ -42,9 +52,9 @@ export async function pickOptions(userId: string, entitlementId: string) {
     orderBy: { id: "asc" },
   });
   if (players.length < pick.options) throw new DomainError("NO_PLAYERS", "Not enough players to pick from right now.");
-  const rnd = seeded(ent.id);
+  const next = pickStream(ent.id);
   const chosen = new Set<string>();
-  while (chosen.size < pick.options) chosen.add(players[Math.floor(rnd() * players.length)].id);
+  while (chosen.size < pick.options) chosen.add(players[next(players.length)].id);
   const ids = [...chosen];
   // Show each option as a card face: use any instance of the player's tier for the view.
   const samples = await Promise.all(

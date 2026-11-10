@@ -109,13 +109,13 @@ export async function completeChallengeAction(challengeId: string, cardIds: stri
   return res;
 }
 
-export async function claimDropAction(dropId: string): Promise<ActionResult<{ entitlementId: string; pick: boolean }>> {
+export async function claimDropAction(dropId: string): Promise<ActionResult<{ entitlementId: string | null; pick: boolean }>> {
   const user = await requireUser();
   const res = await attempt(async () => {
-    const ent = await claimDrop(user.id, dropId);
-    const sku = await db.packSku.findUniqueOrThrow({ where: { id: ent.packSkuId }, select: { code: true } });
-    return { entitlementId: ent.id, pick: isPick(sku.code) };
-  }, "Free pack claimed");
+    const r = await claimDrop(user.id, dropId);
+    if (r.kind !== "PACK") return { entitlementId: null, pick: false, label: r.label };
+    return { entitlementId: r.entitlement.id, pick: isPick(r.skuCode), label: r.label };
+  }, "Gift claimed");
   revalidatePath("/", "layout");
   return res;
 }

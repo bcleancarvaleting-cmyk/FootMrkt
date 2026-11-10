@@ -976,7 +976,10 @@ model Withdrawal {
 // Free pack drops scheduled by admins. Each manager can claim one per drop while it's live.
 model FreePackDrop {
   id          String   @id @default(uuid()) @db.Uuid
-  skuCode     String
+  // What everyone gets: a free pack (skuCode), or an XP / earned-MX credit (amount).
+  giftType    String   @default("PACK") // "PACK" | "XP" | "MX"
+  skuCode     String?
+  amount      Int? // XP points, or MX hundredths
   title       String
   startsAt    DateTime
   endsAt      DateTime

@@ -30,7 +30,10 @@ const done = () => revalidatePath("/", "layout");
 export async function scheduleDropAction(_: ActionResult | null, f: FormData): Promise<ActionResult> {
   const admin = await requireAdmin();
   const res = await attempt(async () => {
-    await scheduleDrop(admin.id, { title: str(f, "title"), skuCode: str(f, "skuCode") || undefined, startsAt: new Date(str(f, "startsAt")), hours: Number(str(f, "hours") || 24) });
+    const [type, code] = str(f, "gift").split(":");
+    const giftType = (type === "XP" || type === "MX" ? type : "PACK") as "PACK" | "XP" | "MX";
+    const amount = giftType === "XP" ? Math.round(Number(str(f, "amount"))) : giftType === "MX" ? mp(f, "amount") : undefined;
+    await scheduleDrop(admin.id, { title: str(f, "title"), giftType, skuCode: giftType === "PACK" ? code : undefined, amount, startsAt: new Date(str(f, "startsAt")), hours: Number(str(f, "hours") || 24) });
   }, "Free pack drop scheduled");
   done();
   return res;

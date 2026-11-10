@@ -70,3 +70,43 @@ export async function latestRainbow() {
   const [view] = await enrichCards([f.card]);
   return { card: { ...view, acquired: null, pointsForYou: null }, manager: f.card.owner?.displayName ?? "A manager", clubName: f.card.owner?.clubName ?? null, at: f.createdAt };
 }
+
+/** Recent Ruby / Diamond / Rainbow pulls (for 'Found!' posts), newest first. */
+export async function recentFinds(kind?: Finish, take = 20) {
+  const rows = await db.cardFinish.findMany({
+    where: kind ? { kind } : {},
+    orderBy: { createdAt: "desc" },
+    take,
+    include: { card: { include: { ...CARD_INCLUDE, owner: { select: { displayName: true, clubName: true } } } } },
+  });
+  const views = await enrichCards(rows.map((r) => r.card));
+  return rows.map((r, i) => ({
+    id: r.id,
+    kind: r.kind as Finish,
+    at: r.createdAt,
+    manager: r.card.owner?.displayName ?? "A manager",
+    clubName: r.card.owner?.clubName ?? null,
+    card: { ...views[i], acquired: null, pointsForYou: null, stamps: 0 },
+  }));
+}
+
+/** Every player at a club (by squad number) — for the club Rainbow wall and the 'every player' set. */
+export async function clubAllPlayers(clubCode: string) {
+  const club = await db.club.findUnique({ where: { code: clubCode } });
+  if (!club) return null;
+  const players = await db.player.findMany({
+    where: { clubId: club.id, active: true, templates: { some: { edition: "STANDARD", active: true } } },
+    orderBy: [{ squadNumber: { sort: "asc", nulls: "last" } }, { displayName: "asc" }],
+    select: { id: true, displayName: true },
+  });
+  return { club, players };
+}
+
+/** How many Rainbows have been found out of how many exist. */
+export async function rainbowCount() {
+  const [found, total] = await Promise.all([
+    db.cardFinish.count({ where: { kind: "RAINBOW" } }),
+    db.player.count({ where: { active: true, templates: { some: { edition: "STANDARD", active: true } } } }),
+  ]);
+  return { found, total };
+}

@@ -1,48 +1,114 @@
 import Link from "next/link";
+import { BatchExport } from "@/components/batch-export";
 import { PosterExport } from "@/components/poster-export";
-import { ClubPoster, DropPoster, FORMATS, OneOfOnePoster, type PosterFormat, PulledPoster, RarityPoster, TopPerformersPoster } from "@/components/social-poster";
-import { fmtDate } from "@/lib/view";
-import { clubTopPlayers, clubsForPicker, featuredDrop, latestRainbow, posterCards, possibleFinishes, weeklyTopCards } from "@/server/social";
+import {
+  ClubPoster,
+  ClubWallPoster,
+  DropPoster,
+  FORMATS,
+  FoundPoster,
+  JoinPoster,
+  OneOfOnePoster,
+  type PosterFormat,
+  RainbowHuntPoster,
+  RarePackPoster,
+  RarityPoster,
+  TopPerformersPoster,
+} from "@/components/social-poster";
+import { RARE_PACK_CODE } from "@/config/packs";
+import { fmtDate, gbp } from "@/lib/view";
+import { isEnabled } from "@/server/flags";
+import { latestSku } from "@/server/packs";
+import {
+  type Finish,
+  clubAllPlayers,
+  clubTopPlayers,
+  clubsForPicker,
+  featuredDrop,
+  posterCards,
+  possibleFinishes,
+  rainbowCount,
+  recentFinds,
+  weeklyTopCards,
+} from "@/server/social";
 import { fmtMp } from "@/server/wallet";
 import { AdminTitle } from "../_parts/title";
 
 export const metadata = { title: "Admin · Social content" };
 
 const TEMPLATES = [
-  ["one-of-one", "One of one (Rainbow)"],
-  ["rarity", "How rare do you go? (every finish)"],
-  ["club", "Club's one-of-ones (top 3 Rainbows)"],
+  ["one-of-one", "One of one — a player's Rainbow"],
+  ["every", "Every player's Rainbow at a club (download all)"],
+  ["wall", "Club Rainbow wall — the whole squad on one image"],
+  ["club", "Club's one-of-ones — top 3 Rainbows"],
+  ["rarity", "How rare do you go? — every finish"],
+  ["found", "Found! — a real Ruby / Diamond / Rainbow pull"],
+  ["hunt", "The Rainbow hunt — how many found"],
+  ["rare", "Rare pack"],
   ["top", "Top performers this week"],
   ["drop", "Drop alert"],
-  ["pulled", "Rainbow pulled (Hall of Fame)"],
+  ["join", "Join free"],
 ] as const;
-type SP = { t?: string; f?: string; club?: string; player?: string; scale?: string };
+type SP = { t?: string; f?: string; club?: string; player?: string; kind?: string; find?: string; scale?: string };
 
 export default async function SocialPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   const t = TEMPLATES.find(([k]) => k === sp.t)?.[0] ?? "one-of-one";
   const format = (Object.keys(FORMATS) as PosterFormat[]).find((k) => k === sp.f) ?? "portrait";
   const clubCode = sp.club ?? "GIL";
+  const kind = (["RUBY", "DIAMOND", "RAINBOW"] as const).find((k) => k === sp.kind);
   const fullSize = sp.scale === "1";
-  const [clubs, top] = await Promise.all([clubsForPicker(), clubTopPlayers(clubCode, 10)]);
+  const [clubs, top] = await Promise.all([clubsForPicker(), clubTopPlayers(clubCode, 40)]);
   const playerId = top?.players.find((p) => p.id === sp.player)?.id ?? top?.players[0]?.id ?? null;
   const player = top?.players.find((p) => p.id === playerId) ?? null;
+  const { w, h } = FORMATS[format];
+  const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
   let poster: React.ReactNode = null;
+  let batch: Array<{ filename: string; poster: React.ReactNode }> | null = null;
   let note: string | null = null;
+  let finds: Awaited<ReturnType<typeof recentFinds>> = [];
+
   if (t === "one-of-one" && playerId) {
     const [card] = await posterCards([playerId], "RAINBOW");
     if (card) poster = <OneOfOnePoster card={card} format={format} />;
+  } else if (t === "every") {
+    const all = await clubAllPlayers(clubCode);
+    if (all) {
+      const cards = await posterCards(
+        all.players.map((p) => p.id),
+        "RAINBOW",
+      );
+      batch = cards.map((c) => ({ filename: `${slug(all.club.name)}-${slug(c.name)}-rainbow-${format}`, poster: <OneOfOnePoster card={c} format={format} /> }));
+    }
+  } else if (t === "wall") {
+    const all = await clubAllPlayers(clubCode);
+    if (all) poster = <ClubWallPoster clubName={all.club.name} cards={await posterCards(all.players.map((p) => p.id), "RAINBOW")} format={format} />;
+  } else if (t === "club" && top) {
+    const cards = await posterCards(top.players.slice(0, 3).map((p) => p.id), "RAINBOW");
+    poster = <ClubPoster clubName={top.club.name} cards={cards} format={format} />;
   } else if (t === "rarity" && playerId && player) {
     const finishes = possibleFinishes(player.category);
     const [base] = await posterCards([playerId]);
     const shiny = await Promise.all(finishes.map((f) => posterCards([playerId], f).then((c) => c[0])));
     const cards = player.category === "GOLD" ? shiny : [base, ...shiny];
-    if (player.category !== "GOLD") note = `${player.name} is ${player.category.toLowerCase()}: Rubies and Diamonds only exist for Gold players, so this shows the normal card next to their one Rainbow.`;
+    if (player.category !== "GOLD") note = `${player.name} is ${player.category.toLowerCase()}: Rubies and Diamonds come on Gold players, so this shows the normal card next to their one Rainbow.`;
     poster = <RarityPoster cards={cards.filter(Boolean)} format={format} />;
-  } else if (t === "club" && top) {
-    const cards = await posterCards(top.players.slice(0, 3).map((p) => p.id), "RAINBOW");
-    poster = <ClubPoster clubName={top.club.name} cards={cards} format={format} />;
+  } else if (t === "found") {
+    finds = await recentFinds(kind, 30);
+    const f = finds.find((x) => x.id === sp.find) ?? finds[0];
+    if (f) poster = <FoundPoster card={f.card} kind={f.kind as Finish} manager={f.manager} clubName={f.clubName} format={format} />;
+    else note = `No ${kind ? kind.toLowerCase() : "Ruby, Diamond or Rainbow"} has been pulled yet — this fills in automatically when one is.`;
+  } else if (t === "hunt") {
+    const { found, total } = await rainbowCount();
+    const sample = top ? await posterCards(top.players.slice(0, 3).map((p) => p.id), "RAINBOW") : [];
+    poster = <RainbowHuntPoster found={found} total={total} cards={sample} format={format} />;
+  } else if (t === "rare") {
+    const [sku, live] = await Promise.all([latestSku(RARE_PACK_CODE).catch(() => null), isEnabled("PAID_PACKS")]);
+    const golds = await clubTopPlayers("MCI", 6);
+    const ids = golds?.players.filter((p) => p.category === "GOLD").map((p) => p.id) ?? [];
+    const cards = [...(await posterCards(ids.slice(0, 1), "RUBY")), ...(await posterCards(ids.slice(1, 2), "DIAMOND")), ...(await posterCards(ids.slice(2, 3), "RAINBOW"))];
+    poster = <RarePackPoster price={gbp(sku?.priceMinor ?? 1999)} live={live} cards={cards} format={format} />;
   } else if (t === "top") {
     const rows = await weeklyTopCards(5);
     poster = <TopPerformersPoster rows={rows.map((r) => ({ card: r.card, points: r.row.points, name: r.row.name, club: r.row.club }))} gameweek={null} format={format} />;
@@ -50,24 +116,42 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
     const d = await featuredDrop();
     if (d) {
       const [card] = await posterCards([d.card.playerId]);
-      const live = d.liveAt <= new Date();
-      poster = <DropPoster card={card} price={fmtMp(d.priceMinor)} when={live ? "On sale now" : `Drops ${fmtDate(d.liveAt)}`} format={format} />;
+      poster = <DropPoster card={card} price={fmtMp(d.priceMinor)} when={d.liveAt <= new Date() ? "On sale now" : `Drops ${fmtDate(d.liveAt)}`} format={format} />;
     } else note = "No player drops scheduled — schedule one on Player database & drops.";
-  } else if (t === "pulled") {
-    const r = await latestRainbow();
-    if (r) poster = <PulledPoster card={r.card} manager={r.manager} clubName={r.clubName} format={format} />;
-    else note = "No Rainbow has been pulled yet.";
+  } else if (t === "join") {
+    const golds = await clubTopPlayers("ARS", 6);
+    const cards = top ? await posterCards([top.players[0]?.id, golds?.players[0]?.id, top.players[1]?.id].filter(Boolean) as string[]) : [];
+    poster = <JoinPoster cards={cards} format={format} />;
   }
 
-  const { w, h } = FORMATS[format];
-  const filename = `matchx-${t}-${format}${player ? `-${player.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}` : ""}`;
-  if (fullSize) return poster ? <PosterExport filename={filename} width={w} height={h} scale={1}>{poster}</PosterExport> : null;
+  const filename = `matchx-${t}-${format}${player && ["one-of-one", "rarity"].includes(t) ? `-${slug(player.name)}` : t === "wall" || t === "club" ? `-${slug(top?.club.name ?? clubCode)}` : ""}`;
+  if (fullSize) {
+    if (batch) {
+      return (
+        <div className="flex flex-col gap-4">
+          {batch.map((b) => (
+            <div key={b.filename} data-poster={b.filename} style={{ width: w, height: h }}>
+              {b.poster}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return poster ? (
+      <PosterExport filename={filename} width={w} height={h} scale={1}>
+        {poster}
+      </PosterExport>
+    ) : null;
+  }
 
   return (
     <>
-      <AdminTitle title="Social content" intro="Ready-to-post images built from the real card designs. Pick a template, size and club, then download the PNG. Posters only show finishes a player can really come in (Ruby and Diamond are Gold-only; anyone can be a Rainbow)." />
+      <AdminTitle
+        title="Social content"
+        intro="Ready-to-post images built from the real card designs. Pick a template, size and club, then download. Posters only show finishes a player can really come in (Ruby and Diamond on Golds; every player has one Rainbow)."
+      />
       <form className="panel grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4" action="/admin/social">
-        <label className="text-sm">
+        <label className="text-sm sm:col-span-2">
           <span className="label">Template</span>
           <select name="t" defaultValue={t} className="input">
             {TEMPLATES.map(([k, l]) => (
@@ -107,15 +191,38 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
             ))}
           </select>
         </label>
+        <label className="text-sm">
+          <span className="label">Found: which finish</span>
+          <select name="kind" defaultValue={kind ?? ""} className="input">
+            <option value="">Any</option>
+            <option value="RAINBOW">Rainbow</option>
+            <option value="DIAMOND">Diamond</option>
+            <option value="RUBY">Ruby</option>
+          </select>
+        </label>
+        {t === "found" && finds.length > 0 && (
+          <label className="text-sm sm:col-span-2">
+            <span className="label">Found: which pull</span>
+            <select name="find" defaultValue={sp.find ?? finds[0].id} className="input">
+              {finds.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.kind.toLowerCase()} · {f.card.name} · {f.manager} · {fmtDate(f.at, { dateStyle: "medium" })}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <div className="sm:col-span-2 lg:col-span-4">
-          <button className="btn-primary px-6 py-2 text-xs">Show poster</button>
-          <Link href={`/admin/social?t=${t}&f=${format}&club=${clubCode}${playerId ? `&player=${playerId}` : ""}&scale=1`} className="ml-3 text-xs text-muted underline">
+          <button className="btn-primary px-6 py-2 text-xs">Show</button>
+          <Link href={`/admin/social?t=${t}&f=${format}&club=${clubCode}${playerId ? `&player=${playerId}` : ""}${kind ? `&kind=${kind}` : ""}&scale=1`} className="ml-3 text-xs text-muted underline">
             Open full size
           </Link>
         </div>
       </form>
       {note && <p className="rounded-xl border border-warn/40 bg-warn/10 px-4 py-3 text-sm">{note}</p>}
-      {poster ? (
+      {batch ? (
+        <BatchExport items={batch} width={w} height={h} zipName={`matchx-${slug(top?.club.name ?? clubCode)}-rainbows-${format}`} />
+      ) : poster ? (
         <PosterExport filename={filename} width={w} height={h} scale={format === "story" ? 0.32 : 0.45}>
           {poster}
         </PosterExport>

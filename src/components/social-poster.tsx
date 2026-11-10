@@ -1,4 +1,5 @@
 import type { CardView } from "@/lib/view";
+import type { Finish } from "./finish-art";
 import { Gem } from "./finish-art";
 import { PlayerCard } from "./player-card";
 
@@ -149,17 +150,116 @@ export function DropPoster({ card, price, when, format }: { card: CardView; pric
   );
 }
 
-/** A Rainbow has been pulled. */
-export function PulledPoster({ card, manager, clubName, format }: { card: CardView; manager: string; clubName: string | null; format: PosterFormat }) {
+/** A Ruby / Diamond / Rainbow has just come out of a pack. */
+export function FoundPoster({ card, kind, manager, clubName, format }: { card: CardView; kind: Finish; manager: string; clubName: string | null; format: PosterFormat }) {
+  const label = kind === "RAINBOW" ? "Rainbow" : kind === "DIAMOND" ? "Diamond" : "Ruby";
+  const cls = kind === "RAINBOW" ? "rainbow-name" : kind === "DIAMOND" ? "diamond-name" : "ruby-name";
+  const of = kind === "RAINBOW" ? "the only one in the world" : kind === "DIAMOND" ? "one of only 5 ever" : "one of only 10 ever";
+  return (
+    <Frame format={format} bg={kind}>
+      <div className="flex items-center gap-5">
+        <Gem kind={kind} id={`found-${kind}`} size={90} />
+        <Headline className={`${cls} ${format === "square" ? "text-[110px]" : "text-[130px]"}`}>{label} found!</Headline>
+      </div>
+      <p className="mb-8 mt-4 text-center text-[32px] font-semibold text-white/85">
+        <b>{manager}</b>
+        {clubName ? ` (${clubName})` : ""} pulled {card.name} — {of}.
+      </p>
+      <BigCard card={card} width={format === "story" ? 560 : format === "portrait" ? 470 : 380} />
+      <p className="mt-8 text-center text-[30px] font-bold">Who&apos;s next? Every Gold pack could hold one.</p>
+    </Frame>
+  );
+}
+
+/** Kept for older links: a Rainbow has been pulled. */
+export function PulledPoster(props: { card: CardView; manager: string; clubName: string | null; format: PosterFormat }) {
+  return <FoundPoster {...props} kind="RAINBOW" />;
+}
+
+/** Card width that fits n cards on the poster, and how many columns. */
+function wallLayout(n: number, w: number, h: number) {
+  let best = { cols: 1, width: 0 };
+  for (let cols = 2; cols <= 10; cols++) {
+    const rows = Math.ceil(n / cols);
+    const gap = 14;
+    const byW = (w - (cols - 1) * gap) / cols;
+    const byH = (h - (rows - 1) * gap) / rows / 1.4;
+    const width = Math.floor(Math.min(byW, byH));
+    if (width > best.width) best = { cols, width };
+  }
+  return best;
+}
+
+/** Every player at a club as their Rainbow. */
+export function ClubWallPoster({ clubName, cards, format }: { clubName: string; cards: CardView[]; format: PosterFormat }) {
+  const { h } = FORMATS[format];
+  const { cols, width } = wallLayout(cards.length, 960, h - (format === "square" ? 420 : 470));
   return (
     <Frame format={format} bg="RAINBOW">
-      <p className="text-[30px] font-bold uppercase tracking-[0.3em] text-white/70">Hall of Fame</p>
-      <Headline className="mt-2 text-[96px]">{manager}</Headline>
-      <Headline className="rainbow-name mb-8 text-[96px]">pulled it.</Headline>
-      <BigCard card={card} width={format === "story" ? 560 : format === "portrait" ? 470 : 380} />
-      <p className="mt-8 text-center text-[30px] font-semibold text-white/85">
-        The only Rainbow {card.name} in the world{clubName ? ` now plays for ${clubName}` : ""}.
-      </p>
+      <p className="text-[28px] font-bold uppercase tracking-[0.3em] text-white/70">{clubName}</p>
+      <Headline className="rainbow-name mb-6 text-[84px]">{cards.length} one-of-ones</Headline>
+      <div className="grid justify-center gap-[14px]" style={{ gridTemplateColumns: `repeat(${cols}, ${width}px)` }}>
+        {cards.map((c) => (
+          <BigCard key={c.id} card={c} width={width} />
+        ))}
+      </div>
+      <p className="mt-6 text-center text-[26px] font-semibold text-white/80">Every {clubName} player has exactly one Rainbow card. Collect the set.</p>
+    </Frame>
+  );
+}
+
+/** The Rare pack. */
+export function RarePackPoster({ price, live, cards, format }: { price: string; live: boolean; cards: CardView[]; format: PosterFormat }) {
+  return (
+    <Frame format={format} bg="RAINBOW">
+      <p className="text-[30px] font-bold uppercase tracking-[0.3em] text-white/70">{live ? "Out now" : "Coming soon"}</p>
+      <Headline className="rainbow-name text-[130px]">Rare pack</Headline>
+      <p className="mb-10 mt-3 text-center text-[32px] font-semibold text-white/85">3 Golds. One is guaranteed to be a Ruby, a Diamond or a one-of-one Rainbow.</p>
+      <div className="flex items-end justify-center gap-6">
+        {cards.map((c) => (
+          <BigCard key={c.id} card={c} width={format === "square" ? 250 : 290} />
+        ))}
+      </div>
+      <p className="mt-10 font-display text-[72px] font-black">{price}</p>
+    </Frame>
+  );
+}
+
+/** The Rainbow hunt: how many of the one-of-ones have been found. */
+export function RainbowHuntPoster({ found, total, cards, format }: { found: number; total: number; cards: CardView[]; format: PosterFormat }) {
+  return (
+    <Frame format={format} bg="RAINBOW">
+      <p className="text-[30px] font-bold uppercase tracking-[0.3em] text-white/70">The Rainbow hunt</p>
+      <Headline className="mt-2 text-[150px] tabular-nums">{found.toLocaleString("en-GB")}</Headline>
+      <p className="rainbow-name font-display text-[54px] font-black uppercase italic">of {total.toLocaleString("en-GB")} found</p>
+      <div className="mb-8 mt-10 flex items-end justify-center gap-5">
+        {cards.map((c, i) => (
+          <div key={c.id} style={{ transform: `rotate(${(i - 1) * 6}deg)` }}>
+            <BigCard card={c} width={format === "square" ? 230 : 270} />
+          </div>
+        ))}
+      </div>
+      <p className="text-center text-[30px] font-semibold text-white/85">Every player in the game has one Rainbow card. {(total - found).toLocaleString("en-GB")} are still out there.</p>
+    </Frame>
+  );
+}
+
+/** Join free. */
+export function JoinPoster({ cards, format }: { cards: CardView[]; format: PosterFormat }) {
+  return (
+    <Frame format={format} bg="LIME" footer="matchx.app · 18+">
+      <Headline className="text-[120px]">Your club.</Headline>
+      <Headline className="mb-8 text-[120px] text-[#adfc07]">Free.</Headline>
+      <div className="mb-8 flex items-end justify-center gap-5">
+        {cards.map((c) => (
+          <BigCard key={c.id} card={c} width={format === "square" ? 220 : 260} />
+        ))}
+      </div>
+      <ul className="space-y-2 text-center text-[32px] font-semibold text-white/90">
+        <li>12 free players to start</li>
+        <li>2 Premier League Golds on loan</li>
+        <li>Score points from real matches</li>
+      </ul>
     </Frame>
   );
 }

@@ -1,3 +1,4 @@
+import { blockIfPaused } from "../safer-play";
 import { createHash, randomBytes } from "node:crypto";
 import { ClubNameSchema, suggestedCrests } from "@/lib/crest";
 import { z } from "zod";
@@ -86,6 +87,7 @@ export async function authenticate(email: string, password: string) {
   const ok = await verifyPassword(password, user?.passwordHash ?? DUMMY_HASH);
   if (!user || !ok) throw new DomainError("BAD_CREDENTIALS", "Email or password is incorrect.");
   if (user.status === "SUSPENDED") throw new DomainError("SUSPENDED", "This account is suspended. Contact support.");
+  blockIfPaused(user);
   return user;
 }
 
@@ -101,6 +103,8 @@ export async function createSession(userId: string) {
 export async function userForSessionToken(token: string) {
   const session = await db.session.findUnique({ where: { id: hashToken(token) }, include: { user: true } });
   if (!session || session.expiresAt < new Date() || session.user.status !== "ACTIVE") return null;
+  const now = new Date();
+  if ((session.user.timeOutUntil && session.user.timeOutUntil > now) || (session.user.selfExcludedUntil && session.user.selfExcludedUntil > now)) return null;
   return session.user;
 }
 

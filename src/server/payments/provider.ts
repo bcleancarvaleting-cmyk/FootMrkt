@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { stripeProvider } from "./stripe";
 
 /**
  * Payment-provider abstraction (spec §11). No card details are ever handled by COLLECTR.
@@ -6,7 +7,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
  */
 export interface PaymentWebhookEvent {
   providerEventId: string;
-  type: "payment.succeeded" | "payment.failed" | "payment.refunded";
+  type: "payment.succeeded" | "payment.failed" | "payment.refunded" | "payment.ignored";
   providerRef: string;
   amountMinor: number;
   currency: string;
@@ -45,7 +46,14 @@ export const sandboxProvider: PaymentProvider = {
   },
 };
 
-export function paymentProvider(name = "sandbox"): PaymentProvider {
+/** The live provider is chosen by PAYMENTS_PROVIDER ("stripe"); anything else uses the sandbox. */
+export function paymentProvider(name = process.env.PAYMENTS_PROVIDER ?? "sandbox"): PaymentProvider {
   if (name === "sandbox") return sandboxProvider;
+  if (name === "stripe") return stripeProvider;
   throw new Error(`Unknown payment provider ${name}`);
+}
+
+/** The signature header each provider sends with its webhooks. */
+export function signatureHeader(name = process.env.PAYMENTS_PROVIDER ?? "sandbox") {
+  return name === "stripe" ? "stripe-signature" : "x-sandbox-signature";
 }

@@ -15,6 +15,9 @@ import { Header } from "@/components/nav";
 import { StatsTicker } from "@/components/stats-ticker";
 import type { Theme } from "@/components/theme-toggle";
 import { getCurrentUser } from "@/server/auth/session";
+import { spentToday } from "@/server/safer-play";
+import { fmtGbp } from "@/server/wallet";
+import { RealityCheck } from "@/components/reality-check";
 import { db } from "@/server/db";
 import { liveStats } from "@/server/stats";
 import "./globals.css";
@@ -39,7 +42,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     const userId = user.id;
     after(() => onVisit(userId));
   }
-  const unopened = user ? await db.packEntitlement.count({ where: { userId: user.id, status: "UNOPENED" } }) : 0;
+  const [unopened, paidToday] = user
+    ? await Promise.all([db.packEntitlement.count({ where: { userId: user.id, status: "UNOPENED" } }), user.realityCheckMinutes ? spentToday(user.id) : 0])
+    : [0, 0];
   return (
     <html
       lang="en-GB"
@@ -53,6 +58,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <SiteFooter loggedIn={!!user} />
         {user && <BottomNav unopenedPacks={unopened} />}
         {user && <AppTracker />}
+        {user && user.realityCheckMinutes > 0 && <RealityCheck minutes={user.realityCheckMinutes} spentToday={fmtGbp(paidToday)} />}
         {user && (
           <ChatDrawer
             rooms={CHAT_ROOMS.map((r) => ({ id: r.id, name: r.name }))}

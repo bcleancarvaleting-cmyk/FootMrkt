@@ -25,6 +25,7 @@ export const getCurrentUser = cache(async () => {
     emailVerified: !!user.emailVerifiedAt,
     emailVerificationToken: user.emailVerificationToken,
     createdAt: user.createdAt,
+    realityCheckMinutes: user.realityCheckMinutes,
   };
 });
 

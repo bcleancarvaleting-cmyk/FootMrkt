@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ConvertXpForm, DepositForm, LimitForm, WithdrawForm } from "@/components/account-forms";
+import { ConvertXpForm, DepositForm, WithdrawForm } from "@/components/account-forms";
 import { GateNotice } from "@/components/page-header";
 import { requireUser } from "@/server/auth/session";
 import { db } from "@/server/db";
@@ -117,10 +117,10 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       <section id="limits" className="panel p-5">
         <h2 className="mb-1 text-2xl">Responsible play</h2>
         <p className="mb-4 text-sm text-muted">
-          Set a monthly cap on how much you can add. Lowering it works straight away; raising it takes 24 hours. Need a break? Email support to pause or close your account. Free help:{" "}
+          Spend limits, breaks, self-exclusion, reality checks and your full spend history are all in{" "}
+          <Link href="/account/safer-play" className="text-lime underline">Safer play</Link>. Free help:{" "}
           <a href="https://www.begambleaware.org" target="_blank" rel="noreferrer" className="text-lime underline">BeGambleAware</a> · National Gambling Helpline 0808 8020 133.
         </p>
-        <LimitForm currentMinor={u.depositLimitMonthlyMinor} />
       </section>
 
       <section>

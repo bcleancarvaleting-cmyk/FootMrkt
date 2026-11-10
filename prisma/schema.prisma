@@ -71,6 +71,13 @@ model User {
   fundsRiskAcceptedAt      DateTime? // accepted the "values go up and down" warning before adding funds
   kycStatus                KycStatus  @default(NONE)
   depositLimitMonthlyMinor Int? // self-set responsible-play limit (MP hundredths = pence)
+  limitDailyMinor          Int? // card spend limit per day (pence)
+  limitWeeklyMinor         Int? // card spend limit per 7 days (pence)
+  pendingLimits            Json? // raised/removed limits waiting out the 24h cooling-off: { daily, weekly, monthly }
+  pendingLimitsAt          DateTime? // when the pending limits take effect
+  timeOutUntil             DateTime? // short break chosen by the player
+  selfExcludedUntil        DateTime? // self-exclusion (6 months+)
+  realityCheckMinutes      Int        @default(60) // 0 = off
   // Founding member number (1, 2, 3…) for everyone who joined during the free trial. Kept forever.
   foundingNumber           Int?       @unique
   // Who invited this manager (refer a friend). The referrer gets a free pack once they play.

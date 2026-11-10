@@ -333,9 +333,16 @@ describe("card payments", () => {
     await expect(handlePaymentWebhook(JSON.stringify({ providerEventId: "x" }), "deadbeef")).rejects.toThrow(/signature/);
   });
 
+  it("refuses card pack purchases without an 18+ date of birth", async () => {
+    enableLegalGates();
+    const { userId } = await makeUser();
+    await expect(startPackPurchase(userId, "football-silver", "click-x")).rejects.toThrow(/18 or over/);
+  });
+
   it("paid pack purchase grants exactly one pack, even if the webhook is delivered twice", async () => {
     enableLegalGates();
     const { userId } = await makeUser();
+    await db.user.update({ where: { id: userId }, data: { dateOfBirth: new Date("1990-01-01") } });
     const { orderId } = await startPackPurchase(userId, "football-silver", "click-1");
     expect((await startPackPurchase(userId, "football-silver", "click-1")).orderId).toBe(orderId);
     await pay(orderId, "e1");

@@ -63,23 +63,6 @@ export async function updateProfileAction(_: ActionResult | null, form: FormData
   return res;
 }
 
-export async function setDepositLimitAction(_: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const user = await requireUser();
-  const res = await attempt(async () => {
-    const raw = String(form.get("limit") ?? "").trim();
-    const minor = raw === "" ? null : Math.round(Number(raw) * 100);
-    if (minor !== null && (!Number.isFinite(minor) || minor < 500 || minor > 500_000)) throw new DomainError("LIMIT", "Set a limit between £5 and £5,000, or leave it blank for none.");
-    const current = await db.user.findUniqueOrThrow({ where: { id: user.id } });
-    // Responsible play: lowering applies now; raising or removing waits 24 hours (applied by support for now).
-    if (current.depositLimitMonthlyMinor !== null && (minor === null || minor > current.depositLimitMonthlyMinor)) {
-      throw new DomainError("COOLING_OFF", "To raise or remove a limit, contact support — increases take effect after a 24-hour cooling-off period.");
-    }
-    await db.user.update({ where: { id: user.id }, data: { depositLimitMonthlyMinor: minor } });
-  }, "Deposit limit saved");
-  revalidatePath("/account", "layout");
-  return res;
-}
-
 export async function depositAction(_: ActionResult | null, form: FormData): Promise<ActionResult> {
   const user = await requireUser();
   const res = await attempt(() =>

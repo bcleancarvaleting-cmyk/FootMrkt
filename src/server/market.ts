@@ -4,7 +4,8 @@ import { DomainError, isUniqueViolation } from "./errors";
 import { requireFlag } from "./flags";
 import { grantPack, latestSku } from "./packs";
 import { type PaymentProvider, paymentProvider } from "./payments/provider";
-import { fulfilDeposit } from "./wallet";
+import { assertCanSpend } from "./safer-play";
+import { fulfilDeposit, isAdult } from "./wallet";
 
 /**
  * Card payments: paid packs (£ by card) and adding funds. P2P transfers and auctions are MX-only
@@ -36,6 +37,9 @@ export async function startPackPurchase(userId: string, skuCode: string, clientK
   await requireFlag("PAID_PACKS");
   const sku = await latestSku(skuCode);
   if (sku.kind !== "REGULAR" || sku.priceMinor <= 0) throw new DomainError("NOT_FOR_SALE", "This pack isn't for sale.");
+  const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
+  if (!isAdult(user.dateOfBirth)) throw new DomainError("AGE", "Add your date of birth in My Account → Profile. You must be 18 or over to buy packs.");
+  await assertCanSpend(userId, sku.priceMinor);
   return createOrder(
     { userId, kind: "PACK_PURCHASE", refId: sku.id, amountMinor: sku.priceMinor, idempotencyKey: `pack:${userId}:${clientKey}` },
     provider,
@@ -55,6 +59,7 @@ export async function handlePaymentWebhook(rawBody: string, signature: string | 
       skipDuplicates: true,
     });
     if (!inserted.count) return { status: "duplicate" as const };
+    if (event.type === "payment.ignored") return { status: "ignored" as const };
     const [order] = await tx.$queryRaw<Array<{ id: string }>>`
       SELECT id FROM "Order" WHERE provider = ${provider.name} AND "providerRef" = ${event.providerRef} FOR UPDATE`;
     if (!order) return { status: "unknown_order" as const };

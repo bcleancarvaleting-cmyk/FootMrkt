@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
-import { convertXpAction, depositAction, setDepositLimitAction, updateProfileAction, withdrawAction } from "@/app/actions/account";
+import { convertXpAction, depositAction, updateProfileAction, withdrawAction } from "@/app/actions/account";
 import { ResultText } from "./action-button";
 
 export function DepositForm({ enabled, initial = 20 }: { enabled: boolean; initial?: number }) {
@@ -59,20 +59,6 @@ export function WithdrawForm({ enabled, maxMinor }: { enabled: boolean; maxMinor
         {pending ? "Requesting…" : "Request withdrawal"}
       </button>
       {state && <ResultText result={state} />}
-    </form>
-  );
-}
-
-export function LimitForm({ currentMinor }: { currentMinor: number | null }) {
-  const [state, action, pending] = useActionState(setDepositLimitAction, null);
-  return (
-    <form action={action} className="flex flex-wrap items-end gap-2">
-      <div className="min-w-0 flex-1">
-        <label className="label" htmlFor="limit">Monthly deposit limit (£)</label>
-        <input id="limit" name="limit" type="number" min="5" max="5000" step="1" defaultValue={currentMinor ? currentMinor / 100 : ""} placeholder="No limit" className="input" />
-      </div>
-      <button className="btn-ghost" disabled={pending}>Save limit</button>
-      {state && <span className="w-full"><ResultText result={state} /></span>}
     </form>
   );
 }

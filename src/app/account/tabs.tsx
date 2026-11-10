@@ -10,6 +10,7 @@ const TABS = [
   { href: "/account/achievements", label: "Achievements" },
   { href: "/account/watchlist", label: "Watchlist" },
   { href: "/account/wallet", label: "Wallet" },
+  { href: "/account/safer-play", label: "Safer play" },
   { href: "/account/profile", label: "Profile" },
   { href: "/account/legal", label: "Legal" },
 ];

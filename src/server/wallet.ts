@@ -6,6 +6,7 @@ import { DomainError } from "./errors";
 import { requireFlag } from "./flags";
 import { grantPack, latestSku } from "./packs";
 import { paymentProvider } from "./payments/provider";
+import { assertCanSpend } from "./safer-play";
 
 /**
  * Wallet. Amounts are stored in hundredths (1 MX ≈ £1, so hundredths of an MX = pence).
@@ -163,15 +164,7 @@ export async function startDeposit(userId: string, input: z.input<typeof Deposit
   const data = DepositSchema.parse(input);
   const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
   if (!isAdult(user.dateOfBirth)) throw new DomainError("AGE", "Add your date of birth in My Account → Profile. You must be 18 or over to add funds.");
-  if (user.depositLimitMonthlyMinor) {
-    const since = new Date();
-    since.setUTCDate(1);
-    since.setUTCHours(0, 0, 0, 0);
-    const month = await db.order.aggregate({ where: { userId, kind: "DEPOSIT", status: "PAID", createdAt: { gte: since } }, _sum: { amountMinor: true } });
-    if ((month._sum.amountMinor ?? 0) + data.amountMinor > user.depositLimitMonthlyMinor) {
-      throw new DomainError("LIMIT", `This would go over your monthly limit of ${fmtGbp(user.depositLimitMonthlyMinor)}.`);
-    }
-  }
+  await assertCanSpend(userId, data.amountMinor);
   await db.user.update({ where: { id: userId }, data: { termsVersion: TERMS_VERSION, termsAcceptedAt: new Date(), fundsRiskAcceptedAt: new Date() } });
   const idempotencyKey = `deposit:${userId}:${clientKey}`;
   const existing = await db.order.findUnique({ where: { idempotencyKey } });

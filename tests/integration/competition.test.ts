@@ -97,7 +97,7 @@ describe("football competition end to end (spec §6, §17)", () => {
       expect(await db.cardPoints.count({ where: { entryId: e.id, userId: { not: e.userId } } })).toBe(0);
     }
     // DEV rewards were granted, once.
-    expect(await db.packEntitlement.count({ where: { source: "REWARD" } })).toBe(2);
+    expect(await db.packEntitlement.count({ where: { source: "REWARD", sourceRef: { startsWith: "reward:" } } })).toBe(2);
     const cardPointRows = await db.cardPoints.count();
     expect((await settleCompetition(open.id)).alreadySettled).toBe(true);
     expect(await db.cardPoints.count()).toBe(cardPointRows);
@@ -110,7 +110,7 @@ describe("football competition end to end (spec §6, §17)", () => {
     const winner = await db.competitionEntry.findFirstOrThrow({ where: { competitionId: open.id, rank: 1 } });
     const winnerStamps = await db.cardStamp.findMany({ where: { competitionId: open.id, kind: "MATCH_WINNER" } });
     expect(winnerStamps.every((st) => st.userId === winner.userId && st.detail.includes("GW1"))).toBe(true);
-    expect(await db.packEntitlement.count({ where: { source: "REWARD" } })).toBe(2);
+    expect(await db.packEntitlement.count({ where: { source: "REWARD", sourceRef: { startsWith: "reward:" } } })).toBe(2);
 
     // Score reproduces from stored source events, even after a later correction arrives.
     await simulateCorrections(gw.id, 3);

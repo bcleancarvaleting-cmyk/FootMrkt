@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { EMPTY_STAT_LINE } from "@/domain/football/scoring";
-import { stampsFor } from "@/server/stamps";
+import { stampsFor } from "@/domain/football/stamps";
 
 const line = (patch: Partial<typeof EMPTY_STAT_LINE>) => ({ ...EMPTY_STAT_LINE, minutes: 90, ...patch });
 const base = { position: "ATT", points: 6, captain: false, won: false };

@@ -49,7 +49,7 @@ export function SquadBuilder({
   formations: Formation[];
   allowedCategories: string[];
   cards: BuilderCard[];
-  initial: { formation: string; starters: Array<{ cardId: string; position: Pos }>; bench: string[]; captain?: string | null } | null;
+  initial: { formation: string; starters: Array<{ cardId: string; position: Pos }>; bench: string[]; captain?: string | null; viceCaptain?: string | null } | null;
   hasEntry: boolean;
   /** Free draft: the cards are players (id = player id), priced at their MX value, within a budget. */
   draft?: { budgetMx: number; maxPerClub?: number };
@@ -66,7 +66,17 @@ export function SquadBuilder({
     return a;
   });
   const [selected, setSelected] = useState<SlotKey | null>(null);
-  const [captain, setCaptain] = useState<string | null>(initial?.captain ?? null);
+  const [captain, setCaptainRaw] = useState<string | null>(initial?.captain ?? null);
+  const [vice, setViceRaw] = useState<string | null>(initial?.viceCaptain ?? null);
+  // One player can't hold both armbands: picking one clears the other.
+  const setCaptain = (id: string | null) => {
+    setCaptainRaw(id);
+    if (id && id === vice) setViceRaw(null);
+  };
+  const setVice = (id: string | null) => {
+    setViceRaw(id);
+    if (id && id === captain) setCaptainRaw(null);
+  };
   const [pending, start] = useTransition();
   const [result, setResult] = useState<ActionResult<unknown> | null>(null);
 
@@ -175,11 +185,12 @@ export function SquadBuilder({
     const starters = slots.filter((s) => assign[s.key]).map((s) => ({ cardId: assign[s.key], position: s.pos }));
     const bench = benchSlots.map((k) => assign[k]).filter(Boolean);
     const cap = captain && starters.some((s) => s.cardId === captain) ? captain : undefined;
+    const vc = vice && vice !== cap && starters.some((s) => s.cardId === vice) ? vice : undefined;
     start(async () =>
       setResult(
         draft
-          ? await submitDraftEntryAction(competitionId, { formation: formationId, starters: starters.map((x) => ({ playerId: x.cardId, position: x.position })), bench, captain: cap })
-          : await submitEntryAction(competitionId, { formation: formationId, starters, bench, captain: cap }),
+          ? await submitDraftEntryAction(competitionId, { formation: formationId, starters: starters.map((x) => ({ playerId: x.cardId, position: x.position })), bench, captain: cap, viceCaptain: vc })
+          : await submitEntryAction(competitionId, { formation: formationId, starters, bench, captain: cap, viceCaptain: vc }),
       ),
     );
   }
@@ -252,6 +263,20 @@ export function SquadBuilder({
                           C
                         </button>
                       )}
+                      {assign[s.key] && (
+                        <button
+                          type="button"
+                          onClick={() => setVice(vice === assign[s.key] ? null : assign[s.key])}
+                          aria-pressed={vice === assign[s.key]}
+                          aria-label={vice === assign[s.key] ? "Remove vice-captain" : "Make vice-captain"}
+                          title="Vice-captain: doubles instead if your captain doesn't play"
+                          className={`absolute -bottom-2 -left-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border text-[11px] font-extrabold ${
+                            vice === assign[s.key] ? "border-white bg-white text-black" : "border-white/30 bg-black/60 text-white/70 hover:text-white"
+                          }`}
+                        >
+                          V
+                        </button>
+                      )}
                     </div>
                   ))}
               </div>
@@ -266,6 +291,13 @@ export function SquadBuilder({
             </>
           ) : (
             <>Tap <b className="text-fg">C</b> on a starter to make them captain: their points count double, up or down.</>
+          )}{" "}
+          {vice && byId.get(vice) ? (
+            <>
+              Vice-captain: <b className="text-fg">{byId.get(vice)!.name}</b> — takes the double if your captain doesn&apos;t play.
+            </>
+          ) : (
+            <>Tap <b className="text-fg">V</b> to pick a vice-captain, who doubles if your captain doesn&apos;t play.</>
           )}
         </p>
 

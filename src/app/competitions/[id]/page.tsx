@@ -105,7 +105,7 @@ async function Builder({
 }: {
   userId: string;
   competition: { id: string; gameweekId: string; rosterRules: string; format: "OPEN" | "BRONZE_ONLY" | "SILVER_ONLY" | "GOLD_ONLY"; requirements: unknown };
-  entry: { id: string; formation: string; selections: Array<{ cardId: string | null; slot: string; position: string; order: number; isCaptain: boolean }> } | null;
+  entry: { id: string; formation: string; selections: Array<{ cardId: string | null; slot: string; position: string; order: number; isCaptain: boolean; isViceCaptain: boolean }> } | null;
 }) {
   const rules = getRosterRules(competition.rosterRules);
   const cards = await cardViews({ ownerId: userId, supplyState: "HELD" }, [{ template: { player: { position: "asc" } } }]);
@@ -142,6 +142,7 @@ async function Builder({
         starters: entry.selections.filter((s) => s.slot === "STARTER" && s.cardId).sort((a, b) => a.order - b.order).map((s) => ({ cardId: s.cardId!, position: s.position as Pos })),
         bench: entry.selections.filter((s) => s.slot === "BENCH" && s.cardId).sort((a, b) => a.order - b.order).map((s) => s.cardId!),
         captain: entry.selections.find((s) => s.isCaptain)?.cardId ?? null,
+        viceCaptain: entry.selections.find((s) => s.isViceCaptain)?.cardId ?? null,
       }
     : null;
   return (
@@ -162,7 +163,7 @@ async function DraftBuilder({
   entry,
 }: {
   competition: { id: string; gameweekId: string; rosterRules: string; requirements: unknown };
-  entry: { formation: string; selections: Array<{ playerId: string; slot: string; position: string; order: number; isCaptain: boolean }> } | null;
+  entry: { formation: string; selections: Array<{ playerId: string; slot: string; position: string; order: number; isCaptain: boolean; isViceCaptain: boolean }> } | null;
 }) {
   const req = (competition.requirements ?? {}) as Requirements;
   const rules = getRosterRules(competition.rosterRules);
@@ -193,6 +194,7 @@ async function DraftBuilder({
         starters: entry.selections.filter((s) => s.slot === "STARTER").sort((a, b) => a.order - b.order).map((s) => ({ cardId: s.playerId, position: s.position as Pos })),
         bench: entry.selections.filter((s) => s.slot === "BENCH").sort((a, b) => a.order - b.order).map((s) => s.playerId),
         captain: entry.selections.find((s) => s.isCaptain)?.playerId ?? null,
+        viceCaptain: entry.selections.find((s) => s.isViceCaptain)?.playerId ?? null,
       }
     : null;
   return (
@@ -260,7 +262,8 @@ async function Result({ entryId, settled }: { entryId: string; settled: boolean 
                     {s.subbedOnFor && <span className="ml-2 text-[11px] text-mint">↑ auto-sub on</span>}
                     {s.appearance === "PENDING" && <span className="ml-2 text-[11px] text-faint">yet to play</span>}
                   </span>
-                  <span className={`font-bold ${s.counted ? "text-lime" : "text-faint"}`}>{s.captain && <span className="mr-1 rounded bg-accent px-1 text-[10px] text-accent-ink">C ×2</span>}{s.points}</span>
+                  <span className={`font-bold ${s.counted ? "text-lime" : "text-faint"}`}>{s.captain && <span className="mr-1 rounded bg-accent px-1 text-[10px] text-accent-ink">C ×2</span>}
+                    {s.viceCaptain && <span className="mr-1 rounded bg-white px-1 text-[10px] text-black">VC ×2</span>}{s.points}</span>
                 </summary>
                 <ul className="mt-2 space-y-0.5 pl-12 text-xs text-muted">
                   {s.items.map((i) => (

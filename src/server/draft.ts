@@ -20,6 +20,7 @@ export const DraftSchema = z.object({
   starters: z.array(z.object({ playerId: z.string().uuid(), position: z.enum(POSITIONS) })).max(11),
   bench: z.array(z.string().uuid()).max(11),
   captain: z.string().uuid().optional(),
+  viceCaptain: z.string().uuid().optional(),
 });
 
 /** Every player who can be drafted for a match, with today's MX value (their current tier's card). */
@@ -66,6 +67,9 @@ export async function submitDraftEntry(userId: string, competitionId: string, in
       if (over.length) issues.push({ code: "UNKNOWN_CARD", message: `Max ${req.maxPerClub} players from one club (${over.map(([c]) => c).join(", ")})` });
     }
     if (sub.captain && !sub.starters.some((s) => s.playerId === sub.captain)) issues.push({ code: "UNKNOWN_CARD", message: "Your captain must be one of your starting seven" });
+    if (sub.viceCaptain && (!sub.starters.some((s) => s.playerId === sub.viceCaptain) || sub.viceCaptain === sub.captain)) {
+      issues.push({ code: "UNKNOWN_CARD", message: "Your vice-captain must be a different player in your starting seven" });
+    }
     if (issues.length) throw new SquadInvalidError(issues);
 
     const existing = await tx.competitionEntry.findUnique({ where: { competitionId_userId: { competitionId, userId } } });
@@ -75,7 +79,7 @@ export async function submitDraftEntry(userId: string, competitionId: string, in
     await tx.competitionSelection.deleteMany({ where: { entryId: entry.id } });
     await tx.competitionSelection.createMany({
       data: [
-        ...sub.starters.map((s, i) => ({ entryId: entry.id, cardId: null, playerId: s.playerId, slot: "STARTER" as const, position: s.position, order: i + 1, isCaptain: s.playerId === sub.captain })),
+        ...sub.starters.map((s, i) => ({ entryId: entry.id, cardId: null, playerId: s.playerId, slot: "STARTER" as const, position: s.position, order: i + 1, isCaptain: s.playerId === sub.captain, isViceCaptain: !!sub.viceCaptain && s.playerId === sub.viceCaptain })),
         ...sub.bench.map((id, i) => ({ entryId: entry.id, cardId: null, playerId: id, slot: "BENCH" as const, position: cards.get(id)!.playerPosition, order: i + 1 })),
       ],
     });

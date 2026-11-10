@@ -191,6 +191,8 @@ export interface ScoringSelection {
   order: number;
   /** Captain: points count double, positive or negative, if they play. */
   captain?: boolean;
+  /** Vice-captain: takes the double instead if the captain doesn't play. */
+  viceCaptain?: boolean;
 }
 
 export interface PlayerGameweekData {
@@ -208,6 +210,8 @@ export interface SelectionResult {
   counted: boolean;
   points: number;
   captain?: boolean;
+  /** The vice-captain doubled because the captain didn't play. */
+  viceCaptain?: boolean;
   items: ScoreItem[];
   subbedOffFor?: string; // cardId of replacement
   subbedOnFor?: string; // cardId of starter replaced
@@ -260,6 +264,8 @@ export function scoreSquad(
     }
   }
 
+  // The vice-captain only steps up once the captain is confirmed as not playing.
+  const captainOut = starters.some((s) => s.captain && get(s.playerId).appearance === "DID_NOT_PLAY");
   const results: SelectionResult[] = selections.map((s) => {
     const d = get(s.playerId);
     const base = scorePlayer(
@@ -268,7 +274,8 @@ export function scoreSquad(
       d.lines.map((l) => l.line),
     );
     const captainCounts = !!s.captain && s.slot === "STARTER" && d.appearance === "PLAYED";
-    const points = captainCounts ? base.points * 2 : base.points;
+    const viceCounts = !s.captain && !!s.viceCaptain && captainOut && s.slot === "STARTER" && d.appearance === "PLAYED";
+    const points = captainCounts || viceCounts ? base.points * 2 : base.points;
     const items = base.items;
     return {
       cardId: s.cardId,
@@ -280,6 +287,7 @@ export function scoreSquad(
       counted: active.has(s.cardId) && d.appearance !== "DID_NOT_PLAY",
       points,
       captain: captainCounts || undefined,
+      viceCaptain: viceCounts || undefined,
       items,
       subbedOffFor: subbedOff.get(s.cardId),
       subbedOnFor: subbedOn.get(s.cardId),

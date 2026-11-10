@@ -15,9 +15,30 @@ const standalone = () => window.matchMedia("(display-mode: standalone)").matches
 const report = (body: object) => fetch("/api/app", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).catch(() => {});
 
 /** Invisible: registers the service worker and reports installs / notification permission (signed-in pages). */
+/** Subscribe this device to push (once permission is granted and the server has push keys). */
+export async function subscribePush() {
+  try {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window) || Notification.permission !== "granted") return false;
+    const { key } = (await (await fetch("/api/push")).json()) as { key: string | null };
+    if (!key) return false;
+    const reg = await navigator.serviceWorker.ready;
+    const existing = await reg.pushManager.getSubscription();
+    const sub =
+      existing ??
+      (await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: Uint8Array.from(atob(key.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(key.length / 4) * 4, "=")), (c) => c.charCodeAt(0)),
+      }));
+    await fetch("/api/push", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(sub.toJSON()) });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function AppTracker() {
   useEffect(() => {
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").then(() => subscribePush()).catch(() => {});
     if (standalone()) report({ installed: platform() });
     if ("Notification" in window) report({ notifications: Notification.permission === "granted" });
   }, []);
@@ -53,6 +74,7 @@ export function TakeItOnTheGo({ compact = false }: { compact?: boolean }) {
     const p = await Notification.requestPermission();
     setNotif(p);
     report({ notifications: p === "granted" });
+    if (p === "granted") await subscribePush();
   }
 
   return (

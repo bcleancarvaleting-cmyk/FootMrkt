@@ -59,6 +59,8 @@ export const SquadSubmissionSchema = z.object({
   bench: z.array(z.string().uuid()).max(11),
   /** Card id of the captain (must be a starter): double points, up or down. */
   captain: z.string().uuid().optional(),
+  /** Card id of the vice-captain (a different starter): doubles instead if the captain doesn't play. */
+  viceCaptain: z.string().uuid().optional(),
 });
 
 export class SquadInvalidError extends DomainError {
@@ -125,6 +127,9 @@ export async function submitEntry(userId: string, competitionId: string, input: 
     if (submission.captain && !submission.starters.some((s) => s.cardId === submission.captain)) {
       issues.push({ code: "UNKNOWN_CARD", message: "Your captain must be one of your starting seven", cardId: submission.captain });
     }
+    if (submission.viceCaptain && (!submission.starters.some((s) => s.cardId === submission.viceCaptain) || submission.viceCaptain === submission.captain)) {
+      issues.push({ code: "UNKNOWN_CARD", message: "Your vice-captain must be a different player in your starting seven", cardId: submission.viceCaptain });
+    }
     if (issues.length) throw new SquadInvalidError(issues);
     // Loan players only play in the first gameweeks the manager enters.
     await assertLoansUsable(tx, userId, comp.gameweekId, rows.filter((r) => r.edition === "LOAN").map((r) => r.id));
@@ -158,6 +163,7 @@ export async function submitEntry(userId: string, competitionId: string, input: 
           position: s.position,
           order: i + 1,
           isCaptain: s.cardId === submission.captain,
+          isViceCaptain: !!submission.viceCaptain && s.cardId === submission.viceCaptain,
         })),
         ...submission.bench.map((cardId, i) => ({
           entryId: entry.id,

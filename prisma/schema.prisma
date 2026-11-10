@@ -904,6 +904,8 @@ model CompetitionSelection {
   order     Int // starters: pitch order; bench: 1..4 = Sub 1..Sub 4
   // Captain: this player's points count double (up or down). One per entry, starters only.
   isCaptain Boolean          @default(false)
+  // Vice-captain: doubles instead if the captain doesn't play. One per entry, starters only.
+  isViceCaptain Boolean      @default(false)
 
   @@unique([entryId, cardId])
   @@unique([entryId, slot, order])
@@ -1336,4 +1338,17 @@ model OwnedSetClaim {
 
   @@unique([userId, code])
   @@index([code])
+}
+
+// Web push: one row per browser/phone a manager allowed notifications on.
+model PushSubscription {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  lastOkAt  DateTime?
+
+  @@index([userId])
 }

@@ -144,3 +144,27 @@ describe("captain", () => {
     expect(a1(redPlain)).toBeLessThan(0);
   });
 });
+
+describe("vice-captain", () => {
+  it("doubles only when the captain doesn't play — not while the captain is still to play", async () => {
+    const { scoreSquad, getScoringRules } = await import("@/domain/football/scoring");
+    const { getRosterRules } = await import("@/domain/football/rules");
+    const roster = getRosterRules("football-roster-v3");
+    const scoring = getScoringRules("football-scoring-v2-draft");
+    const sel = (id: string, position: "GK" | "DEF" | "MID" | "ATT", order: number, extra: { captain?: boolean; viceCaptain?: boolean } = {}) => ({ cardId: id, playerId: id, position, slot: "STARTER" as const, order, ...extra });
+    const squad = [sel("gk", "GK", 1), sel("d1", "DEF", 2), sel("d2", "DEF", 3), sel("m1", "MID", 4), sel("m2", "MID", 5, { viceCaptain: true }), sel("a1", "ATT", 6, { captain: true }), sel("a2", "ATT", 7)];
+    const played = (o: Record<string, unknown> = {}) => ({ appearance: "PLAYED" as const, lines: [{ statId: Math.random().toString(), line: { minutes: 90, goals: 0, assists: 0, goalsConceded: 0, saves: 0, yellowCards: 0, redCards: 0, ownGoals: 0, penaltiesMissed: 0, penaltySaves: 0, tackles: 0, ...o } }] });
+    const base = new Map<string, unknown>(squad.map((s) => [s.playerId, played()]));
+    base.set("m2", played({ goals: 1 }));
+    const m2 = (r: ReturnType<typeof scoreSquad>) => r.selections.find((x) => x.cardId === "m2")!;
+
+    const captainPlayed = scoreSquad(scoring, roster, squad, base as never);
+    const captainOut = scoreSquad(scoring, roster, squad, new Map([...base, ["a1", { appearance: "DID_NOT_PLAY", lines: [] }]]) as never);
+    const captainPending = scoreSquad(scoring, roster, squad, new Map([...base, ["a1", { appearance: "PENDING", lines: [] }]]) as never);
+
+    expect(m2(captainPlayed).viceCaptain).toBeUndefined();
+    expect(m2(captainOut).viceCaptain).toBe(true);
+    expect(m2(captainOut).points).toBe(m2(captainPlayed).points * 2);
+    expect(m2(captainPending).points).toBe(m2(captainPlayed).points);
+  });
+});

@@ -62,7 +62,7 @@ export async function scoreEntry(tx: Tx | typeof db, entryId: string): Promise<S
   return scoreSquad(
     getScoringRules(entry.competition.scoringRules),
     getRosterRules(entry.competition.rosterRules),
-    entry.selections.map((s) => ({ cardId: selectionKey(s), playerId: s.playerId, position: s.position, slot: s.slot, order: s.order, captain: s.isCaptain || undefined })),
+    entry.selections.map((s) => ({ cardId: selectionKey(s), playerId: s.playerId, position: s.position, slot: s.slot, order: s.order, captain: s.isCaptain || undefined, viceCaptain: s.isViceCaptain || undefined })),
     data,
   );
 }

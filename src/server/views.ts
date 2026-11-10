@@ -6,7 +6,7 @@ import { valueKey, valueTrends } from "./valuation";
 
 export const CARD_INCLUDE = {
   template: { include: { player: { include: { club: { include: { league: true } } } } } },
-  diamond: { select: { serial: true } },
+  finish: { select: { kind: true, serial: true } },
 } satisfies Prisma.CardInstanceInclude;
 
 export type CardWithTemplate = Prisma.CardInstanceGetPayload<{ include: typeof CARD_INCLUDE }>;

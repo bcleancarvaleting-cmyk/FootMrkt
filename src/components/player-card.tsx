@@ -1,5 +1,5 @@
 import type { CardView } from "@/lib/view";
-import { DiamondFacets, DiamondGem, DiamondSparkles } from "./diamond-art";
+import { FinishPill, Gem, GemFacets, GemSparkles } from "./finish-art";
 import { mpLabel } from "@/lib/view";
 import { ClubBadge } from "./club-badge";
 import { KitShirt } from "./kit-shirt";
@@ -23,6 +23,12 @@ const TIER = {
     text: "text-[#fff3c4]",
     label: "Gold",
   },
+  RUBY: {
+    frame: "",
+    ring: "ring-[#ff2d55]/60",
+    text: "text-[#ffe3ea]",
+    label: "Ruby",
+  },
   DIAMOND: {
     frame: "",
     ring: "ring-[#8fe3ff]/60",
@@ -42,17 +48,18 @@ export function tierStyle(c: CardView["category"]) {
  * in place it shows the player's shirt in club colours with their squad number.
  */
 export function PlayerCard({ card, size = "md", className = "" }: { card: CardView; size?: "sm" | "md" | "lg"; className?: string }) {
-  // Diamond is a finish on a Gold: same card in every way, it just looks the part.
-  const diamond = card.diamond !== null && card.diamond !== undefined;
-  const t = diamond ? TIER.DIAMOND : TIER[card.category];
+  // Ruby and Diamond are finishes on a Gold: same card in every way, it just looks the part.
+  const finish = card.finish ?? null;
+  const gem = finish !== null;
+  const t = finish ? TIER[finish.kind] : TIER[card.category];
   const w = size === "sm" ? "w-32" : size === "lg" ? "w-60" : "w-44";
   const small = size === "sm";
-  const tier = diamond ? "diamond" : card.category.toLowerCase();
+  const tier = finish ? finish.kind.toLowerCase() : card.category.toLowerCase();
   return (
     <div
-      className={`card-premium theme-dark relative ${w} aspect-[5/7] ${card.loan?.ended ? "loan-ended" : ""} select-none overflow-hidden rounded-[18px] ${diamond ? "p-[6px]" : "p-[3px]"} foil-${tier} ${
-        diamond
-          ? "is-gold diamond-halo"
+      className={`card-premium theme-dark relative ${w} aspect-[5/7] ${card.loan?.ended ? "loan-ended" : ""} select-none overflow-hidden rounded-[18px] ${gem ? "p-[6px]" : "p-[3px]"} foil-${tier} ${
+        finish
+          ? `is-gold ${finish.kind === "DIAMOND" ? "diamond-halo" : "ruby-halo"}`
           : card.category === "GOLD" && !card.loan?.ended
             ? "is-gold shadow-[0_10px_40px_-12px_rgba(242,207,99,0.7)]"
             : "shadow-[0_10px_30px_-16px_rgba(0,0,0,0.8)]"
@@ -60,9 +67,9 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
     >
       <span className="sheen" aria-hidden="true" />
       <div className={`face-${tier} relative flex h-full flex-col overflow-hidden rounded-[15px]`}>
-        {diamond && <DiamondFacets />}
-        {card.category === "GOLD" && <span className={`holo ${diamond ? "!opacity-60" : ""}`} aria-hidden="true" />}
-        {diamond && <DiamondSparkles />}
+        {finish && <GemFacets kind={finish.kind} />}
+        {card.category === "GOLD" && <span className={`holo ${gem ? "!opacity-60" : ""}`} aria-hidden="true" />}
+        {finish && <GemSparkles kind={finish.kind} />}
         {/* Position · club · tier */}
         <div className="flex items-center justify-between px-2.5 pt-2.5">
           <span className={`rounded-md bg-ink-950/75 px-1.5 py-0.5 font-black tracking-wider ${small ? "text-[10px]" : "text-xs"} ${t.text}`}>
@@ -77,10 +84,10 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
             size={small ? 16 : size === "lg" ? 26 : 20}
             title={card.clubName ?? undefined}
           />
-          {diamond ? (
+          {finish ? (
             <span className="flex items-center gap-1">
-              <DiamondGem id={`tier-${card.id}`} size={small ? 14 : 18} />
-              {!small && <span className="diamond-name text-[9px] font-black uppercase tracking-[0.18em]">Diamond</span>}
+              <Gem kind={finish.kind} id={`tier-${card.id}`} size={small ? 14 : 18} />
+              {!small && <span className={`${finish.kind === "DIAMOND" ? "diamond-name" : "ruby-name"} text-[9px] font-black uppercase tracking-[0.18em]`}>{t.label}</span>}
             </span>
           ) : (
             <span className={`text-[9px] font-bold uppercase tracking-[0.18em] ${t.text}`}>{t.label}</span>
@@ -88,17 +95,10 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
         </div>
 
         {/* Player image */}
-        <div className={`relative mx-2.5 mt-1.5 flex flex-1 items-end justify-center overflow-hidden rounded-xl ${diamond ? "bg-gradient-to-b from-white/15 to-transparent" : "bg-gradient-to-b from-white/5 to-transparent"}`}>
+        <div className={`relative mx-2.5 mt-1.5 flex flex-1 items-end justify-center overflow-hidden rounded-xl ${gem ? "bg-gradient-to-b from-white/15 to-transparent" : "bg-gradient-to-b from-white/5 to-transparent"}`}>
           <PlayerImage card={card} />
           <div className="pointer-events-none absolute left-1 top-1 flex flex-col items-start gap-1">
-            {diamond && (
-              <Badge tone="diamond">
-                <span className="flex items-center gap-1">
-                  <DiamondGem id={`badge-${card.id}`} size={11} />
-                  {card.diamond} of 5
-                </span>
-              </Badge>
-            )}
+            {finish && <FinishPill finish={finish} id={`badge-${card.id}`} size="xs" />}
             {card.lock === "COMPETITION" && <Badge tone="lime">In squad</Badge>}
             {card.lock === "LISTED" && <Badge tone="warn">Listed</Badge>}
             {card.loan && (card.loan.ended ? <Badge tone="warn">Loan ended</Badge> : <Badge tone="muted">On loan</Badge>)}
@@ -112,7 +112,7 @@ export function PlayerCard({ card, size = "md", className = "" }: { card: CardVi
 
         {/* Name */}
         <div className="px-2.5 pt-1.5 text-center">
-          <div className={`truncate font-display font-bold uppercase leading-tight tracking-wide ${small ? "text-sm" : "text-[17px]"} ${diamond ? "diamond-name" : ""}`}>{card.name}</div>
+          <div className={`truncate font-display font-bold uppercase leading-tight tracking-wide ${small ? "text-sm" : "text-[17px]"} ${finish ? (finish.kind === "DIAMOND" ? "diamond-name" : "ruby-name") : ""}`}>{card.name}</div>
           <div className="truncate text-[10px] text-muted">{card.clubName ?? "Free agent"}</div>
         </div>
 
@@ -179,15 +179,8 @@ export function Trend({ pct, className = "" }: { pct: number | null; className?:
   );
 }
 
-function Badge({ children, tone }: { children: React.ReactNode; tone: "muted" | "lime" | "warn" | "diamond" }) {
-  const cls =
-    tone === "lime"
-      ? "bg-lime text-ink-950"
-      : tone === "warn"
-        ? "bg-warn text-ink-950"
-        : tone === "diamond"
-          ? "bg-gradient-to-r from-[#8fe3ff] via-white to-[#c9b6ff] text-ink-950"
-          : "bg-ink-950/80 text-muted border border-ink-600";
+function Badge({ children, tone }: { children: React.ReactNode; tone: "muted" | "lime" | "warn" }) {
+  const cls = tone === "lime" ? "bg-lime text-ink-950" : tone === "warn" ? "bg-warn text-ink-950" : "bg-ink-950/80 text-muted border border-ink-600";
   return <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${cls}`}>{children}</span>;
 }
 

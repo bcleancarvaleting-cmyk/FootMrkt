@@ -18,8 +18,12 @@ export default async function SignedPage({ params }: { params: Promise<{ id: str
   return (
     <div className="flex flex-col items-center gap-6 py-6 text-center">
       <p className="eyebrow text-lime">Signed</p>
-      <h1 className="text-5xl leading-none">{card.diamond ? `◆ Diamond ${card.diamond} of 5!` : "Welcome to your club"}</h1>
-      {card.diamond && <p className="text-sm text-[#8fe3ff]">Your signing came out as a Diamond — one of only five that will ever exist.</p>}
+      <h1 className="text-5xl leading-none">{card.finish ? `${card.finish.kind === "DIAMOND" ? "Diamond" : "Ruby"} ${card.finish.serial} of ${card.finish.of}!` : "Welcome to your club"}</h1>
+      {card.finish && (
+        <p className={`text-sm ${card.finish.kind === "DIAMOND" ? "text-[#8fe3ff]" : "text-[#ff8fa6]"}`}>
+          Your signing came out as a {card.finish.kind === "DIAMOND" ? "Diamond" : "Ruby"}: one of only {card.finish.of === 5 ? "five" : "ten"} that will ever exist.
+        </p>
+      )}
       <div className="reveal">
         <PlayerCard card={card} size="lg" />
       </div>

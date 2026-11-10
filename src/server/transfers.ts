@@ -1,6 +1,6 @@
 import { type CardCategory, Prisma } from "@/generated/prisma/client";
 import { cryptoRandom } from "@/domain/random";
-import { diamondOdds, rollDiamond } from "./diamonds";
+import { finishOdds, rollFinish } from "./finishes";
 import { z } from "zod";
 import { audit } from "./audit";
 import { lockOwnedCard } from "./cards";
@@ -139,10 +139,10 @@ async function settleHouseSale(tx: Tx, listing: { id: string; cardId: string }, 
     SELECT ci."supplyState", ci.packable, t.category::text AS category, t."playerId"
     FROM "CardInstance" ci JOIN "CardTemplate" t ON t.id = ci."templateId" WHERE ci.id = ${listing.cardId}::uuid FOR UPDATE OF ci`;
   if (!card || card.supplyState !== "RESERVED") throw new DomainError("NOT_AVAILABLE", "This card is no longer available.");
-  // A Gold signed from a player drop can come out Diamond, just like one from a pack.
+  // A Gold signed from a player drop can come out Ruby or Diamond, just like one from a pack.
   if (!card.packable && card.category === "GOLD") {
-    const serial = await rollDiamond(tx, cryptoRandom, await diamondOdds(), { playerId: card.playerId, cardId: listing.cardId });
-    if (serial) await audit(tx, { actorId: buyerId, action: "diamond.drop", entityType: "CardInstance", entityId: listing.cardId, after: { serial, listingId: listing.id } });
+    const finish = await rollFinish(tx, cryptoRandom, await finishOdds(), { playerId: card.playerId, cardId: listing.cardId });
+    if (finish) await audit(tx, { actorId: buyerId, action: "finish.drop", entityType: "CardInstance", entityId: listing.cardId, after: { ...finish, listingId: listing.id } });
   }
   const now = new Date();
   await tx.marketListing.update({ where: { id: listing.id }, data: { status: "SOLD", buyerId, soldPriceMinor: priceMinor, soldAt: now } });

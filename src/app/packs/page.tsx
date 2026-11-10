@@ -21,7 +21,8 @@ const meta = (code: string) => FOOTBALL_PACKS.find((p) => p.code === code);
 export default async function PacksPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
   const user = await requireUser();
   const { welcome } = await searchParams;
-  const diamondOneIn = await getSetting("diamondOneIn");
+  const [diamondOneIn, rubyOneIn] = await Promise.all([getSetting("diamondOneIn"), getSetting("rubyOneIn")]);
+  const pct = (n: number) => (100 / n).toLocaleString("en-GB", { maximumSignificantDigits: 2 });
   const [flags, unopened, skus, history, bal, drop, gifts] = await Promise.all([
     allFlags(),
     db.packEntitlement.findMany({ where: { userId: user.id, status: "UNOPENED" }, include: { packSku: true }, orderBy: { createdAt: "asc" } }),
@@ -114,7 +115,8 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
             <h2 className="mt-1 text-4xl leading-none sm:text-5xl">Packs</h2>
             <p className="mt-2 text-sm text-muted">
               Every pack is 100% random: rolled by a secure random generator when you open it, against the published odds. Nobody picks or builds them, and every draw is logged.
-              Any Gold could come out as a <b className="text-[#8fe3ff]">◆ Diamond</b>: only 5 of each Gold player will ever exist.
+              Any Gold could come out as a <b className="text-[#ff8fa6]">Ruby</b> (only 10 of each Gold player will ever exist) or a{" "}
+              <b className="text-[#8fe3ff]">Diamond</b> (only 5).
             </p>
           </div>
           <Link href="/account/wallet" className="rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 text-xs text-muted hover:border-ink-600">
@@ -169,7 +171,8 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
                                 {slot.upgrades.map((u) => ` · ${(u.chanceBp / 100).toFixed(u.chanceBp % 100 ? 1 : 0)}% chance each of ${u.category.toLowerCase()}`).join("")}
                               </li>
                             ))}
-                            <li className="text-[#8fe3ff]">◆ Every Gold has a 1 in {diamondOneIn.toLocaleString("en-GB")} ({(100 / diamondOneIn).toLocaleString("en-GB", { maximumSignificantDigits: 2 })}%) chance of being a Diamond (looks special, plays the same; only 5 per player, ever).</li>
+                            <li className="text-[#ff8fa6]">Every Gold has a 1 in {rubyOneIn.toLocaleString("en-GB")} ({pct(rubyOneIn)}%) chance of being a Ruby (only 10 per player, ever).</li>
+                            <li className="text-[#8fe3ff]">Every Gold has a 1 in {diamondOneIn.toLocaleString("en-GB")} ({pct(diamondOneIn)}%) chance of being a Diamond (only 5 per player, ever). Rubies and Diamonds look special and play exactly like the Gold.</li>
                             <li className="pt-1 text-faint">Every slot is rolled independently by a secure random generator at the moment you open the pack, then a player is drawn at random from all eligible cards. Nobody at MATCHX picks or builds packs. Pack version v{s.version}.</li>
                           </ul>
                         </details>

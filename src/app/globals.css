@@ -275,13 +275,6 @@ h2 {
 .tier-DIAMOND {
   border-left: 4px solid #9be8ff;
 }
-.diamond-star {
-  pointer-events: none;
-  position: absolute;
-  z-index: 4;
-  filter: drop-shadow(0 0 4px #ffffff) drop-shadow(0 0 8px #9be8ff);
-  opacity: 0.9;
-}
 @media (prefers-reduced-motion: no-preference) {
   .foil-diamond {
     animation:
@@ -293,9 +286,6 @@ h2 {
   }
   .diamond-name {
     animation: diamond-name 3.5s linear infinite;
-  }
-  .diamond-star {
-    animation: diamond-twinkle 2.2s ease-in-out infinite;
   }
 }
 @keyframes gem-turn {
@@ -343,6 +333,120 @@ h2 {
   50% {
     transform: scale(1.15) rotate(45deg);
     opacity: 1;
+  }
+}
+
+/* Ruby finish (cosmetic, max 10 per Gold player): rich red fire round a glittering edge. */
+.foil-ruby {
+  background:
+    radial-gradient(circle at 30% 30%, #fff 0 1.2px, transparent 1.9px) 0 0 / 7px 7px,
+    radial-gradient(circle at 70% 60%, rgb(255 210 220 / 0.9) 0 1px, transparent 1.7px) 3px 2px / 9px 9px,
+    conic-gradient(
+      from var(--gem-angle),
+      #ff2d55,
+      #ffd0da 8%,
+      #b3002d 16%,
+      #ff6f8e 26%,
+      #ffffff 32%,
+      #c8102e 42%,
+      #ff9fb2 52%,
+      #7a0018 62%,
+      #ff3d63 72%,
+      #ffe3ea 80%,
+      #a8001f 90%,
+      #ff2d55
+    );
+}
+.face-ruby {
+  background:
+    radial-gradient(90% 55% at 50% 40%, rgb(255 170 190 / 0.45), transparent 70%),
+    linear-gradient(180deg, #7a0f24 0%, #4a0716 50%, #200208 100%);
+}
+.ruby-halo {
+  box-shadow:
+    0 0 0 1px rgb(255 220 228 / 0.9),
+    0 0 26px 2px rgb(255 45 85 / 0.7),
+    0 0 60px 8px rgb(200 16 46 / 0.4);
+}
+.ruby-name {
+  background: linear-gradient(100deg, #ffffff 0%, #ffc2cf 30%, #ffffff 50%, #ff9fb2 70%, #ffffff 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 3px rgb(40 0 8 / 0.8));
+}
+.tier-RUBY {
+  border-left: 4px solid #ff2d55;
+}
+.gem-pill-diamond {
+  background: linear-gradient(90deg, #9be8ff, #ffffff, #d6a8ff);
+  color: #07080a;
+}
+.gem-pill-ruby {
+  background: linear-gradient(90deg, #ff2d55, #ffd0da, #c8102e);
+  color: #2a0008;
+}
+.gem-star {
+  pointer-events: none;
+  position: absolute;
+  z-index: 4;
+  opacity: 0.9;
+}
+.gem-star-diamond {
+  filter: drop-shadow(0 0 4px #ffffff) drop-shadow(0 0 8px #9be8ff);
+}
+.gem-star-ruby {
+  filter: drop-shadow(0 0 4px #ffffff) drop-shadow(0 0 8px #ff2d55);
+}
+/* Shimmer: a bright band of light that sweeps across Ruby and Diamond cards. */
+.gem-shimmer {
+  pointer-events: none;
+  position: absolute;
+  inset: -20%;
+  z-index: 5;
+  background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / 0.08) 44%, rgb(255 255 255 / 0.55) 50%, rgb(255 255 255 / 0.08) 56%, transparent 62%);
+  transform: translateX(-70%);
+  mix-blend-mode: screen;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .foil-ruby {
+    animation:
+      gem-turn 5s linear infinite,
+      diamond-glitter 1.4s steps(4) infinite;
+  }
+  .ruby-halo {
+    animation: ruby-halo 2.8s ease-in-out infinite;
+  }
+  .ruby-name {
+    animation: diamond-name 3.5s linear infinite;
+  }
+  .gem-star {
+    animation: diamond-twinkle 2.2s ease-in-out infinite;
+  }
+  .gem-shimmer {
+    animation: gem-shimmer 3.2s ease-in-out infinite;
+  }
+  .gem-pill {
+    background-size: 200% 100%;
+    animation: diamond-name 3s linear infinite;
+  }
+}
+@keyframes gem-shimmer {
+  0% {
+    transform: translateX(-70%);
+  }
+  55%,
+  100% {
+    transform: translateX(70%);
+  }
+}
+@keyframes ruby-halo {
+  50% {
+    box-shadow:
+      0 0 0 1px rgb(255 230 236 / 1),
+      0 0 38px 6px rgb(255 45 85 / 0.9),
+      0 0 80px 14px rgb(200 16 46 / 0.55);
   }
 }
 

@@ -113,5 +113,5 @@ export async function playerProfile(playerId: string) {
     return { stat: s, line, points: scorePlayer(rules, player.position, [line]) };
   });
   const values = await latestValues(player.templates.map((t) => ({ playerId, category: t.category })));
-  return { player, matches, values, issued: await issuedCounts(player.templates.map((t) => t.id)), diamonds: await db.diamondCard.count({ where: { playerId } }) };
+  return { player, matches, values, issued: await issuedCounts(player.templates.map((t) => t.id)), diamonds: await db.cardFinish.count({ where: { playerId, kind: "DIAMOND" } }), rubies: await db.cardFinish.count({ where: { playerId, kind: "RUBY" } }) };
 }

@@ -40,5 +40,12 @@ export function tierForValue(valueGbp: number, t = VALUE_TIERS): Category {
 export const MAX_SUPPLY: Record<Category, number> = { GOLD: 500, SILVER: 1500, BRONZE: 3000 };
 /** The most valuable Gold players are "elite": rarer still. Set at launch by migration. */
 export const ELITE_GOLD = { count: 30, maxSupply: 250 };
-/** Diamond finish: at most this many per Gold player, ever. */
-export const DIAMONDS_PER_PLAYER = 5;
+/**
+ * Special finishes on Gold cards — cosmetic only (they play, score and trade as the Gold).
+ * At most this many of each, per Gold player, ever. Rarest first.
+ */
+export const FINISHES = {
+  DIAMOND: { label: "Diamond", perPlayer: 5 },
+  RUBY: { label: "Ruby", perPlayer: 10 },
+} as const;
+export type FinishKind = keyof typeof FINISHES;

@@ -1,7 +1,6 @@
 import { Prisma, type CardCategory, type EntitlementSource } from "@/generated/prisma/client";
 import { CARD_INCLUDE } from "./views";
-import { rollDiamond } from "./diamonds";
-import { getSetting } from "./settings";
+import { finishOdds, rollFinish } from "./finishes";
 import { type PlannedSlot, honoursGuarantees, planPack } from "@/domain/packs/compose";
 import { type PackConfig, type SlotFilters, parsePackConfig } from "@/domain/packs/config";
 import { AuditedRandom, type RandomSource, cryptoRandom } from "@/domain/random";
@@ -67,8 +66,8 @@ interface DrawAudit {
   pick: number;
   playerId: string;
   cardId: string;
-  /** Diamond serial (1–5) if this Gold came out as a Diamond. */
-  diamond?: number | null;
+  /** Special finish if this Gold came out as a Ruby or Diamond. */
+  finish?: { kind: "RUBY" | "DIAMOND"; serial: number } | null;
 }
 
 export interface OpenPackResult {
@@ -82,7 +81,7 @@ export async function openPack(
   entitlementId: string,
   rng: RandomSource = cryptoRandom,
 ): Promise<OpenPackResult> {
-  const [tradeableNow, diamondOneIn] = await Promise.all([cardsTradeableNow(), getSetting("diamondOneIn")]);
+  const [tradeableNow, odds] = await Promise.all([cardsTradeableNow(), finishOdds()]);
   return withTx(async (tx) => {
     // Atomically consume the entitlement. Only one transaction can win this update.
     const pickSku = await tx.packEntitlement.findUnique({ where: { id: entitlementId }, select: { packSku: { select: { code: true } } } });
@@ -136,11 +135,11 @@ export async function openPack(
       throw new Error("Pack guarantee violated — aborting opening");
     }
 
-    // Diamond finish: every Gold has a 1-in-N chance (same audited RNG), while that player has
-    // Diamonds left. Purely cosmetic — the card is otherwise the same Gold.
+    // Special finishes: every Gold is rolled for a Diamond, then a Ruby (same audited RNG), while
+    // that player has some left. Purely cosmetic — the card is otherwise the same Gold.
     for (const d of draws) {
       if (d.issued !== "GOLD") continue;
-      d.diamond = await rollDiamond(tx, audited.withPurpose("diamond"), diamondOneIn, d);
+      d.finish = await rollFinish(tx, audited.withPurpose("finish"), odds, d);
     }
 
     const opening = await tx.packOpening.create({

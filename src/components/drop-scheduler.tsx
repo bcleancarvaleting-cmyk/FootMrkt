@@ -18,8 +18,9 @@ export type DbRow = {
   inPacks: number;
   pct: number | null;
   onDrop: boolean;
-  /** Diamonds found so far (max 5, Gold players only). */
+  /** Diamonds (max 5) and Rubies (max 10) found so far — Gold players only. */
   diamonds: number;
+  rubies: number;
   /** MATCHX points scored in the selected window (null = didn't play). */
   points: number | null;
   /** League code this player is the top performer in, if any. */
@@ -84,7 +85,7 @@ export function DropScheduler({ rows, tops, pointsLabel }: { rows: DbRow[]; tops
                 </span>
                 <span className="block text-xs text-faint">
                   {r.held}/{r.maxSupply ?? "∞"} out · {r.pct ?? 0}% · {r.inPacks} in packs
-                  {r.tier === "GOLD" ? ` · ◆ ${r.diamonds}/5` : ""}
+                  {r.tier === "GOLD" ? ` · Ruby ${r.rubies}/10 · Diamond ${r.diamonds}/5` : ""}
                 </span>
               </span>
               <span className="shrink-0 text-right">
@@ -123,7 +124,11 @@ export function DropScheduler({ rows, tops, pointsLabel }: { rows: DbRow[]; tops
                   {r.club ?? "—"} <span className="text-xs text-faint">{r.league}</span>
                 </td>
                 <td data-label="Tier" className={`px-3 py-2 text-xs font-extrabold ${r.tier === "GOLD" ? "text-gold" : r.tier === "SILVER" ? "text-silver" : "text-bronze"}`}>{r.tier}
-                  {r.tier === "GOLD" && <span className="block text-[10px] font-bold text-[#8fe3ff]">◆ {r.diamonds}/5</span>}
+                  {r.tier === "GOLD" && (
+                    <span className="block text-[10px] font-bold">
+                      <span className="text-[#ff8fa6]">R {r.rubies}/10</span> · <span className="text-[#8fe3ff]">D {r.diamonds}/5</span>
+                    </span>
+                  )}
                 </td>
                 <td data-label="Points" className="px-3 py-2 font-bold tabular-nums" title={pointsLabel}>{r.points ?? "—"}</td>
                 <td data-label="Total available" className="px-3 py-2 tabular-nums">{r.maxSupply ?? "∞"}</td>

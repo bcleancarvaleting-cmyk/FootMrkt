@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { DiamondGem } from "./diamond-art";
+import { FinishPill } from "./finish-art";
 import type { CardView } from "@/lib/view";
 import { ClubBadge } from "./club-badge";
 import { KitShirt } from "./kit-shirt";
@@ -21,11 +21,8 @@ export function CardRow({ card, href, children, sub }: { card: CardView; href?: 
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
           <span className="truncate font-display text-lg font-bold uppercase leading-tight tracking-wide">{card.name}</span>
-          {card.diamond ? (
-            <span className="flex items-center gap-1 rounded bg-gradient-to-r from-[#9be8ff] via-white to-[#d6a8ff] px-1.5 text-[10px] font-extrabold uppercase tracking-[0.12em] text-ink-950">
-              <DiamondGem id={`row-${card.id}`} size={12} />
-              Diamond {card.diamond}/5
-            </span>
+          {card.finish ? (
+            <FinishPill finish={card.finish} id={`row-${card.id}`} />
           ) : (
             <span className={`hidden text-[10px] font-extrabold uppercase tracking-[0.16em] sm:inline ${TIER_TEXT[card.category]}`}>{card.category}</span>
           )}
@@ -39,7 +36,7 @@ export function CardRow({ card, href, children, sub }: { card: CardView; href?: 
     </>
   );
   return (
-    <li className={`row-item tier-${card.diamond ? "DIAMOND" : card.category} gap-3 sm:gap-4 ${card.loan?.ended ? "loan-ended" : ""}`}>
+    <li className={`row-item tier-${card.finish?.kind ?? card.category} gap-3 sm:gap-4 ${card.loan?.ended ? "loan-ended" : ""}`}>
       <span className="w-9 shrink-0 text-center text-[11px] font-extrabold tracking-[0.12em] text-muted">{card.position}</span>
       {href ? (
         <Link href={href} className="flex min-w-0 flex-1 items-center gap-3 hover:opacity-90">

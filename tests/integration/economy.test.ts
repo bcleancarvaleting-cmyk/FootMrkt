@@ -267,17 +267,22 @@ describe("prize guardrails", () => {
 });
 
 describe("XP", () => {
-  it("XP converts to earned MX at 100 XP = 1 MX; the remainder stays", async () => {
+  it("XP converts to earned MX at the admin rate (default 500 XP = 1 MX); admins can change it", async () => {
     const { creditXp, convertXp } = await import("@/server/wallet");
+    const { setSetting } = await import("@/server/settings");
+    const admin = await makeUser("admxp");
     const { userId } = await makeUser("xp1");
-    await withTx((tx) => creditXp(tx, { userId, xp: 250, refId: "xp-a" }));
-    await withTx((tx) => creditXp(tx, { userId, xp: 250, refId: "xp-a" })); // idempotent
-    await expect(convertXp(userId, 50)).rejects.toMatchObject({ code: "MIN" });
-    await expect(convertXp(userId, 300)).rejects.toMatchObject({ code: "INSUFFICIENT_XP" });
-    const r = await convertXp(userId, 250);
-    expect(r).toEqual({ xpUsed: 250, mxMinor: 250 });
-    expect(await balancesFor(userId)).toMatchObject({ xp: 0, earned: 250, bought: 0 });
+    await withTx((tx) => creditXp(tx, { userId, xp: 1250, refId: "xp-a" }));
+    await withTx((tx) => creditXp(tx, { userId, xp: 1250, refId: "xp-a" })); // idempotent
+    await expect(convertXp(userId, 400)).rejects.toMatchObject({ code: "MIN" });
+    await expect(convertXp(userId, 1500)).rejects.toMatchObject({ code: "INSUFFICIENT_XP" });
+    expect(await convertXp(userId, 1000)).toEqual({ xpUsed: 1000, mxMinor: 200 });
+    expect(await balancesFor(userId)).toMatchObject({ xp: 250, earned: 200, bought: 0 });
+    await setSetting(admin.userId, "xpPerMx", 250);
+    expect(await convertXp(userId, 250)).toEqual({ xpUsed: 250, mxMinor: 100 });
+    await expect(setSetting(admin.userId, "xpPerMx", 1)).rejects.toMatchObject({ code: "RANGE" });
   });
+
 });
 
 describe("starter period, Gold pick and referrals", () => {

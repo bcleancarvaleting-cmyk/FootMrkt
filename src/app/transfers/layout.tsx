@@ -1,6 +1,7 @@
 import { requireUser } from "@/server/auth/session";
 import { db } from "@/server/db";
 import { isEnabled } from "@/server/flags";
+import { TransferTicker } from "@/components/transfer-ticker";
 import { TransfersTabs } from "./tabs";
 
 export default async function TransfersLayout({ children }: { children: React.ReactNode }) {
@@ -13,6 +14,7 @@ export default async function TransfersLayout({ children }: { children: React.Re
   return (
     <div>
       <TransfersTabs auctions={auctionsOn ? auctions : 0} soon={!auctionsOn} offers={offers} />
+      <TransferTicker />
       {children}
     </div>
   );

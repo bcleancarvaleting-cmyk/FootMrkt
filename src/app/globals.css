@@ -332,3 +332,27 @@ h2 {
     animation: none;
   }
 }
+
+/* Recent-transfers ticker: two copies of the list slide left forever; pauses on hover. */
+.ticker-track {
+  animation: ticker 60s linear infinite;
+}
+.ticker-mask:hover .ticker-track {
+  animation-play-state: paused;
+}
+.ticker-mask {
+  mask-image: linear-gradient(90deg, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+}
+@keyframes ticker {
+  to {
+    transform: translateX(-50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track {
+    animation: none;
+  }
+  .ticker-mask {
+    overflow-x: auto;
+  }
+}

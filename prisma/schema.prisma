@@ -178,6 +178,7 @@ model Club {
   // Licensed crest asset URL. Null until crest rights are confirmed (spec §10) — a generated badge is shown instead.
   crestUrl        String?
   sourceRef       String? // where the club record came from, e.g. "wikipedia:Arsenal F.C."
+  providerRefs    Json    @default("{}") // { "<provider>": "<external team id>" }
 
   players      Player[]
   supporters   User[]    @relation("Supporters")

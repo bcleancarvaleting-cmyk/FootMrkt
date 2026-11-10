@@ -54,7 +54,6 @@ export async function createGameweek(args: {
 }) {
   await requireSimulator();
   const sport = await footballSport();
-  const devRewards = await isEnabled("DEV_TOOLS");
   const leagues = await db.league.findMany({ where: { sportId: sport.id }, include: { clubs: true } });
   const key = `${args.season}-gw${args.number}`;
   const fixtures = simulateFixtures(
@@ -63,10 +62,32 @@ export async function createGameweek(args: {
     args.firstKickoffAt,
     seedFrom(key),
   );
+  const clubByCode = new Map(leagues.flatMap((l) => l.clubs).map((c) => [c.code, c]));
+  return insertGameweek({
+    ...args,
+    provider: SIMULATED_PROVIDER_NAME,
+    fixtures: fixtures.map((f) => ({ providerFixtureId: f.providerFixtureId, homeClubId: clubByCode.get(f.homeClubRef)!.id, awayClubId: clubByCode.get(f.awayClubRef)!.id, kickoffAt: f.kickoffAt })),
+  });
+}
+
+/** Create a gameweek with its fixtures and the standard competitions (shared by simulated and live data). */
+export async function insertGameweek(args: {
+  season: string;
+  number: number;
+  opensAt: Date;
+  actorId: string | null;
+  provider: string;
+  fixtures: Array<{ providerFixtureId: string; homeClubId: string; awayClubId: string; kickoffAt: Date }>;
+}) {
+  if (!args.fixtures.length) throw new DomainError("NO_FIXTURES", "No fixtures found for that gameweek.");
+  const sport = await footballSport();
+  const devRewards = await isEnabled("DEV_TOOLS");
+  const key = `${args.season}-gw${args.number}`;
+  const fixtures = args.fixtures;
   // Product decision: the squad deadline is 10 minutes before the gameweek's first kick-off.
   const firstKickoff = new Date(Math.min(...fixtures.map((f) => f.kickoffAt.getTime())));
+  const lastKickoff = new Date(Math.max(...fixtures.map((f) => f.kickoffAt.getTime())));
   const locksAt = new Date(firstKickoff.getTime() - DEADLINE_MINUTES * 60_000);
-  const clubByCode = new Map(leagues.flatMap((l) => l.clubs).map((c) => [c.code, c]));
 
   return db.$transaction(async (tx) => {
     const gw = await tx.gameweek.create({
@@ -75,19 +96,12 @@ export async function createGameweek(args: {
         season: args.season,
         number: args.number,
         startsAt: firstKickoff,
-        endsAt: new Date(firstKickoff.getTime() + 3 * 24 * 3600_000),
+        endsAt: new Date(Math.max(firstKickoff.getTime() + 3 * 24 * 3600_000, lastKickoff.getTime() + 3 * 3600_000)),
         status: args.opensAt <= new Date() ? "OPEN" : "UPCOMING",
       },
     });
     await tx.fixture.createMany({
-      data: fixtures.map((f) => ({
-        gameweekId: gw.id,
-        provider: SIMULATED_PROVIDER_NAME,
-        providerFixtureId: f.providerFixtureId,
-        homeClubId: clubByCode.get(f.homeClubRef)!.id,
-        awayClubId: clubByCode.get(f.awayClubRef)!.id,
-        kickoffAt: f.kickoffAt,
-      })),
+      data: fixtures.map((f) => ({ gameweekId: gw.id, provider: args.provider, ...f })),
     });
     for (const t of FOOTBALL_COMPETITION_TEMPLATES) {
       await tx.competition.create({
@@ -107,7 +121,7 @@ export async function createGameweek(args: {
         },
       });
     }
-    await audit(tx, { actorId: args.actorId, action: "gameweek.create", entityType: "Gameweek", entityId: gw.id, after: { key, fixtures: fixtures.length } });
+    await audit(tx, { actorId: args.actorId, action: "gameweek.create", entityType: "Gameweek", entityId: gw.id, after: { key, provider: args.provider, fixtures: fixtures.length } });
     return gw;
   });
 }
@@ -216,6 +230,9 @@ export async function runScheduledJobs() {
   const [{ announceLiveDrops }, { resolvePredictions }] = await Promise.all([import("./watchlist"), import("./predictions")]);
   await announceLiveDrops();
   await resolvePredictions();
+  // Live football data (only when API_FOOTBALL_KEY is set).
+  const { syncLiveData } = await import("./live-data");
+  await syncLiveData().catch((e) => console.error("live data sync failed", e));
   await db.gameweek.updateMany({ where: { status: "UPCOMING", competitions: { some: { status: "OPEN" } } }, data: { status: "OPEN" } });
   await db.gameweek.updateMany({
     where: { status: "OPEN", competitions: { every: { status: { notIn: ["UPCOMING", "OPEN"] } } } },

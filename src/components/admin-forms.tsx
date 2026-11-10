@@ -223,3 +223,7 @@ export function TextSettingForm({ settingKey, label, help, value, options }: { s
     </form>
   );
 }
+
+/** Generic admin form + input, for pages that bring their own server action. */
+export const AdminForm = Form;
+export const AdminInput = I;

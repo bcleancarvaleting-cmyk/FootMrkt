@@ -10,6 +10,7 @@ export const ADMIN_MENU: Array<{ group: string; items: Array<{ href: string; lab
     group: "Game",
     items: [
       { href: "/admin/matches", label: "Matches & gameweeks" },
+      { href: "/admin/live-data", label: "Live match data" },
       { href: "/admin/prizes", label: "Prize fund" },
       { href: "/admin/challenges", label: "Challenges & binders" },
     ],

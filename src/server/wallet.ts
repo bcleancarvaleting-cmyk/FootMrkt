@@ -133,6 +133,7 @@ export async function release(tx: Tx, args: { userId: string; refId: string; kin
 
 /** Buy a pack with MX (bonus first, then cash). Idempotent on clientKey. */
 export async function buyPackWithCredit(userId: string, skuCode: string, clientKey: string) {
+  await requireFlag("PACK_SHOP");
   return withTx(async (tx) => {
     await lockWallet(tx, userId);
     const refId = `packbuy:${userId}:${clientKey}`;

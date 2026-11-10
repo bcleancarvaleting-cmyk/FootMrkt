@@ -41,6 +41,7 @@ function enableLegalGates() {
   process.env.FLAG_MARKET = "true";
   process.env.FLAG_PAID_PACKS = "true";
   process.env.FLAG_AUCTIONS = "true";
+  process.env.FLAG_PACK_SHOP = "true";
 }
 
 async function pay(orderId: string, eventId = `evt-${orderId}`) {
@@ -60,6 +61,7 @@ const fund = (userId: string, minor: number, ref = "seed") => withTx((tx) => cre
 
 describe("legal gate (spec §9.3, §17)", () => {
   it("transfers and paid packs are unavailable while the gate is closed, even if an env flag says on", async () => {
+    process.env.FLAG_PACK_SHOP = "true";
     process.env.FLAG_MARKET = "true";
     process.env.FLAG_PAID_PACKS = "true";
     const { userId } = await makeUser();

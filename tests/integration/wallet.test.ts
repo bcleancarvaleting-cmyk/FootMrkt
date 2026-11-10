@@ -7,6 +7,7 @@ import { buildWorld, makeUser, resetDb } from "./fixtures";
 
 let sportId: string;
 beforeEach(async () => {
+  process.env.FLAG_PACK_SHOP = "true";
   await resetDb();
   sportId = (await buildWorld()).id;
 });
@@ -57,5 +58,14 @@ describe("MX credit (set rewards)", () => {
     await expect(db.walletEntry.updateMany({ where: { userId }, data: { amountMinor: 999999 } })).rejects.toThrow();
     await expect(db.walletEntry.deleteMany({ where: { userId } })).rejects.toThrow();
     expect(await balanceMinor(userId)).toBe(100);
+  });
+});
+
+describe("pack shop switch", () => {
+  it("buying packs with MX is blocked while the pack shop is coming soon", async () => {
+    process.env.FLAG_PACK_SHOP = "false";
+    const { userId } = await makeUser();
+    await expect(buyPackWithCredit(userId, "football-bronze", "k")).rejects.toMatchObject({ code: "FEATURE_DISABLED" });
+    process.env.FLAG_PACK_SHOP = "true";
   });
 });

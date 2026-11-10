@@ -32,6 +32,7 @@ async function createOrder(
 }
 
 export async function startPackPurchase(userId: string, skuCode: string, clientKey: string, provider = paymentProvider()) {
+  await requireFlag("PACK_SHOP");
   await requireFlag("PAID_PACKS");
   const sku = await latestSku(skuCode);
   if (sku.kind !== "REGULAR" || sku.priceMinor <= 0) throw new DomainError("NOT_FOR_SALE", "This pack isn't for sale.");

@@ -60,8 +60,18 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
       {!tradeableNow && (
         <GateNotice>Cards you get before paid packs launch are yours to keep and play, but they can&apos;t be resold.</GateNotice>
       )}
-      {!open && <GateNotice>Trading isn&apos;t switched on yet — it opens once our UK legal and payment checks are complete. You can browse in the meantime.</GateNotice>}
+      {!open && (
+        <div className="mb-6 rounded-2xl border border-accent/40 bg-ink-900 px-6 py-10 text-center">
+          <span className="rounded-md bg-accent px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-accent-ink">Coming soon</span>
+          <p className="mt-4 font-display text-3xl font-bold uppercase italic">The Transfer Market</p>
+          <p className="mx-auto mt-2 max-w-md text-sm text-muted">
+            Buy players from MATCHX and other managers with earned MX, make offers, and sell to build a better squad. Opening soon — keep earning XP in the meantime.
+          </p>
+        </div>
+      )}
 
+      {open && (
+        <>
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <form action="/transfers" className="flex min-w-0 flex-1 basis-60 gap-2">
           {tier && <input type="hidden" name="tier" value={tier} />}
@@ -158,6 +168,8 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
             );
           })}
         </ul>
+      )}
+        </>
       )}
       <p className="mt-6 text-xs text-faint">
         Card values go up and down and past prices don&apos;t predict future ones. MX can&apos;t be withdrawn — it&apos;s for buying cards and packs and entering matches.

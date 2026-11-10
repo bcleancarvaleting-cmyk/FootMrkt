@@ -40,6 +40,12 @@ export const FLAG_DEFINITIONS = {
     legalGate: false,
     description: "Beta: shows a Beta tag and 'Coming soon' for paid packs, adding funds and auctions until each is switched on.",
   },
+  PACK_SHOP: {
+    env: "FLAG_PACK_SHOP",
+    default: false,
+    legalGate: false,
+    description: "Pack shop: buy packs with MX (and by card once Paid packs is cleared). Shown as 'Coming soon' while off; free packs still arrive.",
+  },
   AUCTIONS: {
     env: "FLAG_AUCTIONS",
     default: false,

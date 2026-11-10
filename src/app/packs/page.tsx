@@ -108,7 +108,12 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
             Balance <b className="ml-1 text-fg tabular-nums">{fmtMp(bal.total)}</b>
           </Link>
         </div>
-        {!flags.PAID_PACKS && (
+        {!flags.PACK_SHOP ? (
+          <p className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-accent/40 bg-accent/5 px-4 py-3 text-sm">
+            <span className="rounded-md bg-accent px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-accent-ink">Coming soon</span>
+            <span>The pack shop opens soon. Until then your free packs arrive automatically — check above for what&apos;s next.</span>
+          </p>
+        ) : !flags.PAID_PACKS && (
           <p className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-accent/40 bg-accent/5 px-4 py-3 text-sm">
             <span className="rounded-md bg-accent px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-accent-ink">Coming soon</span>
             <span>
@@ -155,8 +160,16 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
                           </ul>
                         </details>
                         <div className="mt-auto grid grid-cols-2 gap-2 pt-5">
-                          <BuyPackButton skuCode={s.code} price={gbp(s.priceMinor)} enabled={flags.PAID_PACKS} gold={s.code.includes("gold")} />
-                          <CreditPackButton skuCode={s.code} price={fmtMp(s.priceMinor)} affordable={bal.total >= s.priceMinor} />
+                          {flags.PACK_SHOP ? (
+                            <>
+                              <BuyPackButton skuCode={s.code} price={gbp(s.priceMinor)} enabled={flags.PAID_PACKS} gold={s.code.includes("gold")} />
+                              <CreditPackButton skuCode={s.code} price={fmtMp(s.priceMinor)} affordable={bal.total >= s.priceMinor} />
+                            </>
+                          ) : (
+                            <span className="col-span-2 rounded-xl border border-accent/40 bg-accent/5 py-3 text-center text-[11px] font-extrabold uppercase tracking-[0.14em] text-lime">
+                              Coming soon · {gbp(s.priceMinor)}
+                            </span>
+                          )}
                           {flags.DEV_TOOLS && <DevPackButton skuCode={s.code} />}
                         </div>
                       </div>

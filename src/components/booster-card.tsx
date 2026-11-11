@@ -45,10 +45,31 @@ export function BoosterFace({ kind, expires, usedOn }: { kind: BoosterKind; expi
 export function BoosterPackSealed({ packId, expires }: { packId: string; expires: string }) {
   const [kind, setKind] = useState<BoosterKind | null>(null);
   const [landed, setLanded] = useState(false);
+  const [closed, setClosed] = useState(false);
   const [err, setErr] = useState<ActionResult<unknown> | null>(null);
   const [pending, start] = useTransition();
-  if (kind && landed) return <div className="animate-pop h-full"><BoosterFace kind={kind} expires={expires} /></div>;
-  if (kind) return <BoosterReel kind={kind} onDone={() => setLanded(true)} />;
+  if (kind && closed) return <BoosterFace kind={kind} expires={expires} />;
+  if (kind)
+    return (
+      // Full screen, centred: the reel spins across the whole width, then the booster pops up.
+      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/85 px-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Weekly booster">
+        <div className="w-full max-w-xl space-y-5 text-center">
+          {landed ? (
+            <>
+              <p className="font-display text-3xl font-black uppercase italic">{BOOSTERS[kind].name}!</p>
+              <div className="animate-pop mx-auto max-w-xs">
+                <BoosterFace kind={kind} expires={expires} />
+              </div>
+              <button type="button" className="btn-ghost px-6" onClick={() => setClosed(true)}>
+                Close
+              </button>
+            </>
+          ) : (
+            <BoosterReel kind={kind} onDone={() => setLanded(true)} />
+          )}
+        </div>
+      </div>
+    );
   return (
     <div className="flex h-full flex-col items-center justify-center gap-3 rounded-2xl border border-accent/60 bg-[radial-gradient(80%_60%_at_50%_30%,rgba(173,252,7,.18),transparent_70%)] p-5 text-center">
       <span className="text-5xl" aria-hidden="true">
@@ -97,13 +118,13 @@ function BoosterReel({ kind, onDone }: { kind: BoosterKind; onDone: () => void }
     };
   }, [onDone]);
   return (
-    <div className="flex h-full flex-col justify-center gap-3 rounded-2xl border border-ink-700 p-4 text-center">
-      <p className="font-display text-xl font-black uppercase italic">Spinning…</p>
+    <div className="flex flex-col justify-center gap-4 text-center">
+      <p className="font-display text-3xl font-black uppercase italic">Spinning…</p>
       <div ref={box} className="relative overflow-hidden rounded-xl border border-ink-700 bg-ink-900 py-3" aria-hidden="true">
         <div className="reel-strip" style={{ transform: `translateX(-${x}px)`, transition: x ? "transform 3.4s cubic-bezier(.12,.75,.12,1)" : "none" }}>
           {strip.map((k, i) => (
-            <div key={i} className="mx-1.5 grid h-24 w-[92px] shrink-0 place-items-center content-center gap-1 rounded-xl border-[3px] bg-ink-950" style={{ borderColor: BOOSTERS[k].color }}>
-              <span className="text-3xl">{BOOSTERS[k].icon}</span>
+            <div key={i} className="mx-1.5 grid h-28 w-[92px] shrink-0 place-items-center content-center gap-1 rounded-xl border-[3px] bg-ink-950" style={{ borderColor: BOOSTERS[k].color }}>
+              <span className="text-4xl">{BOOSTERS[k].icon}</span>
               <b className="font-display text-xs font-black uppercase">{BOOSTERS[k].name}</b>
             </div>
           ))}

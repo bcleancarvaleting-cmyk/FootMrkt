@@ -67,7 +67,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
       {welcome && (
         <div className="rounded-2xl border border-accent/40 bg-accent/10 p-5">
           <p className="eyebrow text-lime">Welcome to MATCHX</p>
-          <p className="mt-1 text-lg font-bold">Your free Starter Pack is waiting — open it to sign your first 11 players.</p>
+          <p className="mt-1 text-lg font-bold">Your free starter packs are waiting — open them to sign your first 49 players.</p>
         </div>
       )}
 

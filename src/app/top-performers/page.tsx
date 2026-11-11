@@ -7,7 +7,7 @@ import { type PerformanceWindow, type PerformerRow, WINDOW_LABEL, performanceTab
 
 export const metadata = { title: "Top performers" };
 
-type SP = { w?: string; league?: string; pos?: string };
+type SP = { w?: string; league?: string; pos?: string; q?: string };
 const LEAGUES = [
   ["EPL", "Premier League"],
   ["CHA", "Championship"],
@@ -47,6 +47,10 @@ export default async function TopPerformersPage({ searchParams }: { searchParams
   const pos = POSITIONS.find((p) => p === sp.pos) as Position | undefined;
   const [rows, gws] = await Promise.all([performanceTable({ window, league, position: pos }), windowGameweeks(window)]);
   const all = league || pos ? await performanceTable({ window }) : rows;
+  // Search by player or club name (accents ignored: "odegaard" finds Ødegaard).
+  const fold = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ø/gi, "o").toLowerCase();
+  const q = (sp.q ?? "").trim().slice(0, 40);
+  const found = q ? rows.filter((r) => fold(`${r.name} ${r.club ?? ""}`).includes(fold(q))) : rows;
   const leaders = LEAGUES.map(([code, name]) => ({ code, name, top: all.find((r) => r.league === code) })).filter((l) => l.top);
   const qs = (patch: Partial<SP>) => {
     const p = new URLSearchParams();
@@ -62,6 +66,15 @@ export default async function TopPerformersPage({ searchParams }: { searchParams
         title="Top performers"
         intro="Players ranked by the points they've scored in MATCHX from their real matches: goals, assists, clean sheets, saves and the rest, before any captain bonus. Pick them for your squad and they score for you."
       />
+
+      <form action="/top-performers" className="flex max-w-md gap-2" role="search">
+        {sp.w && <input type="hidden" name="w" value={sp.w} />}
+        {league && <input type="hidden" name="league" value={league} />}
+        {pos && <input type="hidden" name="pos" value={pos} />}
+        <label htmlFor="tp-q" className="sr-only">Search for a player</label>
+        <input id="tp-q" name="q" type="search" defaultValue={q} placeholder="Search for a player or club" className="input flex-1" />
+        <button className="btn-primary px-4">Search</button>
+      </form>
 
       <nav className="flex flex-wrap items-center gap-2" aria-label="Filters">
         {(["last", "5", "season"] as const).map((w) => (
@@ -124,11 +137,15 @@ export default async function TopPerformersPage({ searchParams }: { searchParams
           Rankings{league ? ` · ${LEAGUES.find(([c]) => c === league)![1]}` : ""}
           {pos ? ` · ${pos}` : ""}
         </h2>
-        {rows.length === 0 ? (
-          <EmptyState title="No points yet">Rankings appear once the first matches of the season have been scored.</EmptyState>
+        {found.length === 0 ? (
+          q && rows.length ? (
+            <EmptyState title={`No player matches “${q}”`}>Check the spelling, or clear the search to see everyone.</EmptyState>
+          ) : (
+            <EmptyState title="No points yet">Rankings appear once the first matches of the season have been scored.</EmptyState>
+          )
         ) : (
           <ol className="space-y-2">
-            {rows.slice(0, 50).map((r, i) => (
+            {found.slice(0, q ? 100 : 50).map((r, i) => (
               <li key={r.playerId} className={`row-item tier-${r.tier ?? "BRONZE"} gap-3 sm:gap-4`}>
                 <span className={`w-7 shrink-0 text-center font-display text-xl font-black tabular-nums ${i < 3 ? "text-lime" : "text-muted"}`}>{i + 1}</span>
                 <Link href={`/players/${r.playerId}`} className="flex min-w-0 flex-1 items-center gap-3 hover:opacity-90">

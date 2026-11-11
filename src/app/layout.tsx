@@ -5,7 +5,7 @@ import { Barlow_Condensed, Geist, Geist_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import { BottomNav } from "@/components/bottom-nav";
 import { ChatDrawer } from "@/components/chat-drawer";
-import { AppTracker } from "@/components/app-install";
+import { AppTracker, NotifyPrompt } from "@/components/app-install";
 import { Logo } from "@/components/nav";
 import { CHAT_ROOMS, CHAT_RULES } from "@/config/chat";
 import { canModerate } from "@/server/moderation";
@@ -59,6 +59,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <SiteFooter loggedIn={!!user} credit={await dataCredit()} />
         {user && <BottomNav unopenedPacks={unopened} />}
         {user && <AppTracker />}
+        {user && <NotifyPrompt />}
         {user && user.realityCheckMinutes > 0 && <RealityCheck minutes={user.realityCheckMinutes} spentToday={fmtGbp(paidToday)} />}
         {user && (
           <ChatDrawer

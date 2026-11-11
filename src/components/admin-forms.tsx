@@ -9,7 +9,7 @@ function Form({ action, children, submit }: { action: (s: ActionResult | null, f
   const [state, run, pending] = useActionState(action, null);
   return (
     <form action={run} className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{children}</div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">{children}</div>
       <div className="flex items-center gap-3">
         <button className="btn-primary px-4 py-2 text-xs" disabled={pending}>{pending ? "Saving…" : submit}</button>
         {state && <ResultText result={state} />}
@@ -20,9 +20,9 @@ function Form({ action, children, submit }: { action: (s: ActionResult | null, f
 
 function I({ name, label, ...rest }: { name: string; label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <div>
+    <div className="min-w-0">
       <label className="label" htmlFor={`f-${name}`}>{label}</label>
-      <input id={`f-${name}`} name={name} className="input" {...rest} />
+      <input id={`f-${name}`} name={name} className="input min-w-0 max-w-full" {...rest} />
     </div>
   );
 }
@@ -117,7 +117,7 @@ type Opt = { value: string; label: string };
 /** A labelled drop-down. */
 function S({ name, label, options, defaultValue }: { name: string; label: string; options: Opt[]; defaultValue?: string }) {
   return (
-    <div>
+    <div className="min-w-0">
       <label className="label" htmlFor={`f-${name}`}>{label}</label>
       <select id={`f-${name}`} name={name} className="input" defaultValue={defaultValue ?? ""}>
         {options.map((o) => (
@@ -144,7 +144,7 @@ function FixturePicker({ fixtures }: { fixtures: FixtureOpt[] }) {
       return n;
     });
   return (
-    <fieldset className="sm:col-span-2 lg:col-span-4">
+    <fieldset className="min-w-0 sm:col-span-2 lg:col-span-4">
       <legend className="label">Fixtures this match covers (optional — none ticked = every fixture that gameweek)</legend>
       <p className="mb-2 text-xs text-faint">Only players from clubs in the ticked fixtures can be picked, and squads lock 10 minutes before the first of them kicks off. Tick one for a head to head, a whole league for an international-break week, or a few for a midweek match.</p>
       <div className="max-h-72 space-y-3 overflow-y-auto rounded-xl border border-ink-700 p-3">

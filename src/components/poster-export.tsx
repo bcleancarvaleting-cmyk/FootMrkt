@@ -109,13 +109,15 @@ export function PosterExport({ children, filename, width, height, scale }: { chi
   }
 
   return (
-    <div className="flex flex-col items-start gap-3">
+    <div className="flex max-w-full flex-col items-start gap-3">
+      <div className="max-w-full overflow-x-auto">
       <div className="overflow-hidden rounded-xl border border-ink-700" style={{ width: width * scale, height: height * scale }}>
         <div style={{ transform: `scale(${scale})`, transformOrigin: "top left", width, height }}>
           <div ref={ref} data-poster style={{ width, height }}>
             {children}
           </div>
         </div>
+      </div>
       </div>
       {scale < 1 && (
         <div className="flex flex-wrap gap-2">

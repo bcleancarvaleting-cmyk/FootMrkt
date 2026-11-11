@@ -66,7 +66,7 @@ export default async function MyClubPage({ searchParams }: { searchParams: Promi
           </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link href={`/clubs/${encodeURIComponent(user.displayName)}`} className="btn-ghost px-4 py-2 text-xs">Public page</Link>
           <Link href="/account/club/crest" className="btn-ghost px-4 py-2 text-xs">{user.crest ? "Edit crest" : "Create crest"}</Link>
           <Link href="/account/challenges" className="btn-ghost px-4 py-2 text-xs">Challenges</Link>
@@ -100,7 +100,7 @@ export default async function MyClubPage({ searchParams }: { searchParams: Promi
 
       {groups.length === 0 ? (
         <EmptyState title={Object.values(filters).some(Boolean) ? "No matches" : "No players yet"} action={<Link href="/packs" className="btn-primary">Go to Packs</Link>}>
-          {Object.values(filters).some(Boolean) ? "No cards match those filters." : "Open your free Starter Pack to sign your first 11 players."}
+          {Object.values(filters).some(Boolean) ? "No cards match those filters." : "Open your free starter packs to sign your first 49 players."}
         </EmptyState>
       ) : (
         <div className="space-y-6">

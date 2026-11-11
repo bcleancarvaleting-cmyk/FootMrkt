@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 type Platform = "ios" | "android" | "desktop";
@@ -133,6 +134,77 @@ export function TakeItOnTheGo({ compact = false }: { compact?: boolean }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** In the installed app there's no browser back button, so show one (on every page but home). */
+export function AppBackButton() {
+  const router = useRouter();
+  const path = usePathname();
+  const [app, setApp] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setApp(standalone()), 0);
+    return () => clearTimeout(t);
+  }, []);
+  if (!app || path === "/") return null;
+  return (
+    <button type="button" onClick={() => (history.length > 1 ? router.back() : router.push("/"))} aria-label="Back" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-ink-700 bg-ink-900 text-lg">
+      ‹
+    </button>
+  );
+}
+
+const ASK_KEY = "matchx-notify-asked";
+/**
+ * "Keep up to date with your club" — Accept | Decline. Shown once to signed-in managers whose phone
+ * can take notifications (iPhone only from the installed app); Decline asks again in two weeks.
+ */
+export function NotifyPrompt() {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        if (!("Notification" in window) || !("serviceWorker" in navigator) || Notification.permission !== "default") return;
+        if (platform() === "ios" && !standalone()) return; // iPhone can only notify the installed app
+        const asked = Number(localStorage.getItem(ASK_KEY) ?? 0);
+        if (Date.now() - asked > 14 * 86_400_000) setShow(true);
+      } catch {
+        /* storage blocked: don't nag */
+      }
+    }, 2500);
+    return () => clearTimeout(t);
+  }, []);
+  if (!show) return null;
+  const remember = () => {
+    try {
+      localStorage.setItem(ASK_KEY, String(Date.now()));
+    } catch {
+      /* ignore */
+    }
+    setShow(false);
+  };
+  return (
+    <div className="fixed inset-x-3 z-[65] mx-auto max-w-md rounded-2xl border border-accent/50 bg-ink-900 p-4 shadow-2xl" style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }} role="dialog" aria-label="Notifications">
+      <p className="font-display text-xl font-extrabold uppercase italic">Keep up to date with your club</p>
+      <p className="mt-1 text-sm text-muted">Deadline reminders, results, auctions you&apos;ve won or lost, new players and free packs — straight to your phone.</p>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <button type="button" className="btn-ghost" onClick={remember}>
+          Decline
+        </button>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={async () => {
+            const p = await Notification.requestPermission();
+            report({ notifications: p === "granted" });
+            if (p === "granted") await subscribePush();
+            remember();
+          }}
+        >
+          Accept
+        </button>
+      </div>
     </div>
   );
 }

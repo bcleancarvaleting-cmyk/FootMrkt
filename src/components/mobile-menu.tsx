@@ -10,39 +10,51 @@ import { type Theme, ThemeToggle } from "./theme-toggle";
 
 type Section = { title: string; links: Array<[label: string, href: string]> };
 
-const PLAY: Section = {
-  title: "Play",
-  links: [
-    ["Home", "/"],
-    ["Matches", "/matches"],
-    ["Top performers", "/top-performers"],
-    ["Hall of Fame", "/hall-of-fame"],
-    ["Packs", "/packs"],
-    ["Player drops", "/transfers/drops"],
-    ["Transfer list", "/transfers"],
-    ["My transfers", "/transfers/mine"],
-    ["Manager chat", "/chat"],
-  ],
-};
-const ACCOUNT: Section = {
-  title: "My account",
-  links: [
-    ["Notifications", "/notifications"],
-    ["Overview & invite friends", "/account"],
-    ["Achievements & level", "/account/achievements"],
-    ["Watchlist", "/account/watchlist"],
-    ["Mini-leagues", "/leagues"],
-    ["Head-to-head", "/h2h"],
-    ["My Club", "/account/club"],
-    ["Challenges", "/account/challenges"],
-    ["Wallet & XP", "/account/wallet"],
-    ["Safer play", "/account/safer-play"],
-    ["Profile", "/account/profile"],
-    ["Security", "/account/security"],
-    ["Report a problem", "/support"],
-    ["Legal", "/account/legal"],
-  ],
-};
+const MEMBER: Section[] = [
+  {
+    title: "Play",
+    links: [
+      ["Home", "/"],
+      ["Matches", "/matches"],
+      ["Top performers", "/top-performers"],
+      ["Mini-leagues", "/leagues"],
+      ["Head-to-head", "/h2h"],
+      ["Hall of Fame", "/hall-of-fame"],
+    ],
+  },
+  {
+    title: "Cards & transfers",
+    links: [
+      ["Packs", "/packs"],
+      ["Transfer list", "/transfers"],
+      ["Auctions", "/transfers/auctions"],
+      ["MATCHX buy now", "/transfers/drops"],
+      ["My transfers", "/transfers/mine"],
+      ["Watchlist", "/account/watchlist"],
+      ["Challenges", "/account/challenges"],
+    ],
+  },
+  {
+    title: "Me",
+    links: [
+      ["Overview & invite friends", "/account"],
+      ["Achievements & level", "/account/achievements"],
+      ["Wallet & XP", "/account/wallet"],
+      ["Notifications", "/notifications"],
+      ["Manager chat", "/chat"],
+    ],
+  },
+  {
+    title: "Settings & help",
+    links: [
+      ["Profile", "/account/profile"],
+      ["Security", "/account/security"],
+      ["Safer play", "/account/safer-play"],
+      ["Report a problem", "/support"],
+      ["Legal", "/account/legal"],
+    ],
+  },
+];
 const GUEST: Section = {
   title: "MATCHX",
   links: [
@@ -87,8 +99,7 @@ export function MobileMenu({ user, theme, unread = 0 }: { user: { name: string; 
 
   const sections: Section[] = user
     ? [
-        PLAY,
-        ACCOUNT,
+        ...MEMBER,
         ...(user.isMod && !user.isAdmin ? [{ title: "Moderation", links: [["Chat moderation", "/moderation"]] } as Section] : []),
         ...(user.isAdmin ? ADMIN_MENU.map((g) => ({ title: `Admin · ${g.group}`, links: g.items.map((i) => [i.label, i.href] as [string, string]) })) : []),
         ...(user.isAdmin ? [{ title: "Admin · Community", links: [["Chat moderation", "/moderation"]] } as Section] : []),
@@ -127,27 +138,38 @@ export function MobileMenu({ user, theme, unread = 0 }: { user: { name: string; 
                 Join free — get 49 players
               </Link>
             )}
-            {sections.map((s) => (
-              <div key={s.title} className="py-3">
-                <p className="eyebrow mb-1">{s.title}</p>
-                <ul className="divide-y divide-ink-800">
-                  {s.links.map(([label, href]) => (
-                    <li key={href + label}>
-                      <Link
-                        href={href}
-                        aria-current={on(href) ? "page" : undefined}
-                        className={`flex items-center justify-between py-3 text-base font-semibold ${on(href) ? "text-lime" : "text-fg"}`}
-                      >
-                        {label}
-                        <span className="text-faint" aria-hidden="true">
-                          ›
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+            {user && (
+              <div className="grid grid-cols-2 gap-2 py-3">
+                <Link href="/account/club" className="btn-primary py-3">
+                  My Club
+                </Link>
+                <Link href="/account/wallet" className="btn-gold py-3">
+                  Add Funds
+                </Link>
               </div>
-            ))}
+            )}
+            {sections.map((s) => {
+              const here = s.links.some(([, href]) => on(href));
+              return (
+                <details key={s.title} open={here || (!user ? true : s.title === "Play")} className="group border-b border-ink-800">
+                  <summary className="flex cursor-pointer list-none items-center justify-between py-3 text-sm font-extrabold uppercase tracking-[0.14em] text-muted [&::-webkit-details-marker]:hidden">
+                    {s.title}
+                    <span className="text-faint transition group-open:rotate-90" aria-hidden="true">
+                      ›
+                    </span>
+                  </summary>
+                  <ul className="pb-2">
+                    {s.links.map(([label, href]) => (
+                      <li key={href + label}>
+                        <Link href={href} aria-current={on(href) ? "page" : undefined} className={`block rounded-lg px-2 py-2 text-[15px] font-semibold ${on(href) ? "bg-accent/10 text-lime" : "text-fg"}`}>
+                          {label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              );
+            })}
             {user && (
               <form action={logoutAction} className="pt-4">
                 <button className="btn-ghost w-full py-3">Log out</button>

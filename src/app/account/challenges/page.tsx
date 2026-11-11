@@ -93,7 +93,7 @@ export default async function ChallengesPage({ searchParams }: { searchParams: P
         </p>
         <ul className="grid gap-2 md:grid-cols-2">
           {keepShown.map((x) => (
-            <li key={x.code} className={`row-item flex-col items-stretch gap-2 ${x.complete && !x.claimed ? "border-l-4 border-l-accent" : ""}`}>
+            <li key={x.code} className={`row-item min-w-0 flex-col items-stretch gap-2 overflow-hidden ${x.complete && !x.claimed ? "border-l-4 border-l-accent" : ""}`}>
               <div className="flex items-center gap-3">
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-semibold">{x.name}</span>
@@ -142,7 +142,7 @@ export default async function ChallengesPage({ searchParams }: { searchParams: P
             {shown.map(({ set, requirements, complete }) => {
               const have = requirements.filter((r) => r.satisfied).length;
               return (
-                <li key={set.id} className={`row-item flex-col items-stretch gap-2 ${complete ? "border-l-4 border-l-accent" : ""}`}>
+                <li key={set.id} className={`row-item min-w-0 flex-col items-stretch gap-2 overflow-hidden ${complete ? "border-l-4 border-l-accent" : ""}`}>
                   <div className="flex items-center gap-4">
                     <span className="min-w-0 flex-1">
                       <span className="block font-semibold">{set.name}</span>

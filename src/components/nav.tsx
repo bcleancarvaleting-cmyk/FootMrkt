@@ -1,5 +1,4 @@
 import Image from "next/image";
-import { AppBackButton } from "./app-install";
 import { unreadCount } from "@/server/notifications";
 import Link from "next/link";
 import { getCurrentUser } from "@/server/auth/session";
@@ -38,7 +37,6 @@ export async function Header({ theme, unopenedPacks }: { theme: Theme; unopenedP
       style={{ top: "env(safe-area-inset-top, 0px)" }}
     >
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:gap-8 sm:px-6">
-        <AppBackButton />
         <Link href="/" aria-label="MATCHX home" className="flex shrink-0 items-center gap-2">
           <Logo />
           {beta && <span className="hidden rounded-md border border-accent/60 px-1.5 py-0.5 sm:inline text-[10px] font-extrabold uppercase tracking-[0.16em] text-lime">Beta</span>}

@@ -5,7 +5,7 @@ import { Barlow_Condensed, Geist, Geist_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import { BottomNav } from "@/components/bottom-nav";
 import { ChatDrawer } from "@/components/chat-drawer";
-import { AppTracker, NotifyPrompt } from "@/components/app-install";
+import { AppBackButton, AppTracker, NotifyPrompt } from "@/components/app-install";
 import { Logo } from "@/components/nav";
 import { CHAT_ROOMS, CHAT_RULES } from "@/config/chat";
 import { canModerate } from "@/server/moderation";
@@ -58,6 +58,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <main className={`mx-auto w-full max-w-6xl flex-1 px-4 pt-6 sm:px-6 ${user ? "pb-32 md:pb-16" : "pb-16"}`}>{children}</main>
         <SiteFooter loggedIn={!!user} credit={await dataCredit()} />
         {user && <BottomNav unopenedPacks={unopened} />}
+        <AppBackButton />
         {user && <AppTracker />}
         {user && <NotifyPrompt />}
         {user && user.realityCheckMinutes > 0 && <RealityCheck minutes={user.realityCheckMinutes} spentToday={fmtGbp(paidToday)} />}

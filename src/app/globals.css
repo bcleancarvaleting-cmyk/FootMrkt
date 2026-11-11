@@ -811,3 +811,10 @@ h2 {
     display: none;
   }
 }
+
+/* The floating Back button sits above the phone's bottom bar, and low on the left on desktop. */
+@media (min-width: 768px) {
+  :root {
+    --back-offset: 24px;
+  }
+}

@@ -139,18 +139,52 @@ export function TakeItOnTheGo({ compact = false }: { compact?: boolean }) {
 }
 
 /** In the installed app there's no browser back button, so show one (on every page but home). */
+/**
+ * Back, on every page but Home: a floating round button (above the bottom bar on phones, bottom-left
+ * on desktop). Goes back a step; if there's nothing to go back to on MATCHX (opened from a link or
+ * a notification), it goes up to the parent page instead, e.g. /cards/123 → /account/club.
+ */
+const PARENT: Array<[RegExp, string]> = [
+  [/^\/cards\//, "/account/club"],
+  [/^\/competitions\/[^/]+\/team\//, "/matches"],
+  [/^\/competitions\//, "/matches"],
+  [/^\/players\//, "/top-performers"],
+  [/^\/admin\/./, "/admin"],
+];
+function parentOf(path: string) {
+  for (const [re, to] of PARENT) if (re.test(path)) return to;
+  const up = path.replace(/\/[^/]+\/?$/, "");
+  return up || "/";
+}
+
+// Pages visited in this tab (the button lives in the layout, so it sees every navigation).
+const trail: string[] = [];
+
 export function AppBackButton() {
   const router = useRouter();
   const path = usePathname();
-  const [app, setApp] = useState(false);
   useEffect(() => {
-    const t = setTimeout(() => setApp(standalone()), 0);
-    return () => clearTimeout(t);
-  }, []);
-  if (!app || path === "/") return null;
+    if (trail[trail.length - 1] === path) return;
+    if (trail[trail.length - 2] === path) trail.pop(); // went back
+    else trail.push(path);
+  }, [path]);
+  if (path === "/" || path === "/login" || path === "/register") return null;
+  const back = () => {
+    if (trail.length > 1) router.back();
+    else router.push(parentOf(path));
+  };
   return (
-    <button type="button" onClick={() => (history.length > 1 ? router.back() : router.push("/"))} aria-label="Back" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-ink-700 bg-ink-900 text-lg">
-      ‹
+    <button
+      type="button"
+      onClick={back}
+      aria-label="Go back"
+      className="fixed left-3 z-40 flex h-11 w-11 items-center justify-center gap-1 rounded-full border border-ink-600 bg-ink-900/90 text-sm font-bold text-fg shadow-[0_8px_24px_-8px_rgba(0,0,0,0.7)] backdrop-blur-md transition hover:border-fg/50 md:left-6 md:w-auto md:pl-2.5 md:pr-3.5"
+      style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + var(--back-offset, 88px))" }}
+    >
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M15 5l-7 7 7 7" />
+      </svg>
+      <span className="hidden md:inline">Back</span>
     </button>
   );
 }

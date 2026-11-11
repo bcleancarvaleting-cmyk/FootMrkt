@@ -31,6 +31,7 @@ const MEMBER: Section[] = [
       ["Auctions", "/transfers/auctions"],
       ["MATCHX buy now", "/transfers/drops"],
       ["Basket", "/transfers/basket"],
+      ["Market movers", "/transfers/movers"],
       ["My transfers", "/transfers/mine"],
       ["Watchlist", "/account/watchlist"],
       ["Challenges", "/account/challenges"],

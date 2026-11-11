@@ -1,4 +1,4 @@
-import { confirmOrderWithProvider } from "@/server/market";
+import { confirmOrderWithProvider, myCardPayments } from "@/server/market";
 import Link from "next/link";
 import { cardPaymentsReady } from "@/server/payments/config";
 import { ConvertXpForm, DepositForm, WithdrawForm } from "@/components/account-forms";
@@ -38,7 +38,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const { bundle, paid } = await searchParams;
   // Back from Stripe: make sure the top-up is credited even if the webhook is slow.
   if (paid && /^[0-9a-f-]{36}$/.test(paid)) await confirmOrderWithProvider(user.id, paid).catch(() => null);
-  const inBasket = await basketCount(user.id);
+  const [inBasket, payments] = await Promise.all([basketCount(user.id), myCardPayments(user.id)]);
   const cardReady = (await cardPaymentsReady()).ready;
   const XP_PER_MX = await xpPerMx();
   const [u, bal, ledger, withdrawals, depositsOn, withdrawalsOn] = await Promise.all([
@@ -125,6 +125,39 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
             </ul>
           )}
         </div>
+      </section>
+
+      <section id="payments" className="panel scroll-mt-24 p-5">
+        <h2 className="mb-1 text-2xl">Card payments</h2>
+        <p className="mb-3 text-sm text-muted">Every payment you&apos;ve made by card, with Stripe&apos;s receipt.</p>
+        {payments.length === 0 ? (
+          <p className="text-sm text-faint">No card payments yet.</p>
+        ) : (
+          <ul className="divide-y divide-ink-700 text-sm">
+            {payments.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+                <span className="min-w-0">
+                  <span className="block font-semibold">{p.item}</span>
+                  <span className="block text-xs text-faint">
+                    {fmtDate(p.at)} · ref {p.id.slice(0, 8)}
+                    {p.test ? " · test payment" : ""}
+                  </span>
+                </span>
+                <span className="flex items-center gap-3">
+                  <span className="font-bold tabular-nums">£{(p.amountMinor / 100).toFixed(2)}</span>
+                  <span className={`text-[10px] font-extrabold uppercase tracking-[0.14em] ${p.status === "PAID" ? "text-mint" : p.status === "PENDING" ? "text-warn" : "text-danger"}`}>
+                    {p.status === "PAID" ? "Paid" : p.status === "PENDING" ? "Pending" : p.status === "REFUNDED" ? "Refunded" : "Not paid"}
+                  </span>
+                  {p.receipt && (
+                    <a href={`/api/receipt/${p.id}`} target="_blank" rel="noreferrer" className="btn-ghost px-3 py-1.5 text-[11px]">
+                      Receipt
+                    </a>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section id="limits" className="panel p-5">

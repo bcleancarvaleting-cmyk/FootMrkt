@@ -83,3 +83,13 @@ export async function stripeSessionStatus(sessionId: string) {
   const s = await stripe<Session & { status?: string }>(`/checkout/sessions/${sessionId}`);
   return { paid: s.payment_status === "paid", expired: s.status === "expired", amountMinor: s.amount_total, currency: String(s.currency ?? "").toUpperCase() };
 }
+
+/** Stripe's own receipt page for a paid checkout (for the wallet's payment history). */
+export async function stripeReceiptUrl(sessionId: string): Promise<string | null> {
+  if (!/^cs_[A-Za-z0-9_]+$/.test(sessionId)) return null;
+  const s = await stripe<{ payment_intent: string | { latest_charge?: string | { receipt_url?: string } | null } | null }>(`/checkout/sessions/${sessionId}?expand[]=payment_intent.latest_charge`);
+  const pi = s.payment_intent;
+  if (!pi || typeof pi === "string") return null;
+  const charge = pi.latest_charge;
+  return charge && typeof charge !== "string" ? (charge.receipt_url ?? null) : null;
+}

@@ -197,3 +197,16 @@ export async function recentCardOrders() {
   ]);
   return { orders, lastWebhook: (hook?.value as { ok: boolean; at: string; error?: string; result?: string; hadSignature?: boolean } | undefined) ?? null };
 }
+
+/** A manager's card payments, newest first, with what each bought (wallet → Payments). */
+export async function myCardPayments(userId: string) {
+  const orders = await db.order.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 30 });
+  const skuIds = orders.filter((o) => o.kind === "PACK_PURCHASE").map((o) => o.refId);
+  const skus = new Map((await db.packSku.findMany({ where: { id: { in: skuIds } }, select: { id: true, name: true } })).map((s) => [s.id, s.name]));
+  const { bundleFor } = await import("@/config/bundles");
+  return orders.map((o) => {
+    const b = /^bundle:([a-z]+):(\d+)$/.exec(o.refId);
+    const item = o.kind === "PACK_PURCHASE" ? `${skus.get(o.refId) ?? "Pack"} pack` : o.kind === "DEPOSIT" ? (b ? `${bundleFor(b[1])?.name ?? "MX"} bundle · ${Number(b[2]) / 100} MX` : "MX top-up") : "Order";
+    return { id: o.id, item, amountMinor: o.amountMinor, status: o.status, at: o.createdAt, test: o.provider !== "stripe", receipt: o.provider === "stripe" && o.status === "PAID" };
+  });
+}

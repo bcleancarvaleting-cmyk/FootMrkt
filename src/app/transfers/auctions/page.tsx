@@ -46,6 +46,7 @@ export default async function AuctionsPage() {
                     <>Starting bid <b>{(a.minNextMinor / 100).toFixed(2)} MX</b> · no bids yet</>
                   )}
                 </p>
+                {!a.reserveMet && <p className="text-xs font-semibold text-warn">Minimum price not reached yet</p>}
                 <p className="text-xs text-faint">
                   Ends in <Countdown to={a.endsAt.toISOString()} className="font-bold text-fg" /> · {a.bids} bid{a.bids === 1 ? "" : "s"}
                 </p>

@@ -318,6 +318,17 @@ describe("house auctions", () => {
     expect(await db.cardInstance.findUniqueOrThrow({ where: { id: card2 } })).toMatchObject({ ownerId: seller.userId, lock: "NONE", supplyState: "HELD" });
     expect((await db.auction.findUniqueOrThrow({ where: { id: au2.id } })).status).toBe("UNSOLD");
 
+    // A minimum price that bidding doesn't reach: no sale, the bidder gets their MX back.
+    await expect(createManagerAuction(seller.userId, { cardId: await tradeableCard(seller.userId), startPriceMinor: 200, reserveMinor: 100, hours: 3 })).rejects.toThrow(/below the starting bid/);
+    const cardR = await tradeableCard(seller.userId);
+    const auR = await createManagerAuction(seller.userId, { cardId: cardR, startPriceMinor: 100, reserveMinor: 400, buyNowMinor: 600, hours: 3 });
+    const before = (await balancesFor(a.userId)).earned;
+    await placeBid(a.userId, auR.id, 300);
+    await settleAuctions(new Date(Date.now() + 4 * 3_600_000));
+    expect((await db.auction.findUniqueOrThrow({ where: { id: auR.id } })).status).toBe("UNSOLD");
+    expect(await db.cardInstance.findUniqueOrThrow({ where: { id: cardR } })).toMatchObject({ ownerId: seller.userId, lock: "NONE" });
+    expect((await balancesFor(a.userId)).earned).toBe(before);
+
     // Won at the end: highest bid takes it.
     const card3 = await tradeableCard(seller.userId);
     const au3 = await createManagerAuction(seller.userId, { cardId: card3, startPriceMinor: 100, hours: 24 });

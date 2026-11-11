@@ -83,10 +83,18 @@ export function AuctionListForm({ cardId, enabled, maxMinor = 10_000, suggestedM
   return (
     <form action={action} className="space-y-3">
       <input type="hidden" name="cardId" value={cardId} />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <p className="rounded-xl border border-warn/40 bg-warn/10 px-3 py-2 text-xs">
+        <b>Auctions are a risk.</b> Your player sells to the highest bid when the time runs out, and that may be less than you hoped or less than
+        they&apos;re worth. Set a <b>minimum price</b> and they won&apos;t sell below it: if bidding doesn&apos;t reach it, they come back to you.
+      </p>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div>
           <label className="label" htmlFor="a-start">Starting bid (MX)</label>
           <input id="a-start" className="input tabular-nums" name="start" type="number" min="0.10" max={maxMinor / 100} step="0.01" defaultValue={mp(Math.max(10, Math.round(suggestedMinor * 0.6)))} required />
+        </div>
+        <div>
+          <label className="label" htmlFor="a-reserve">Minimum you&apos;ll accept (MX, optional)</label>
+          <input id="a-reserve" className="input tabular-nums" name="reserve" type="number" min="0.10" max={maxMinor / 100} step="0.01" placeholder="No minimum" />
         </div>
         <div>
           <label className="label" htmlFor="a-buynow">Buy it now (MX, optional)</label>
@@ -101,7 +109,10 @@ export function AuctionListForm({ cardId, enabled, maxMinor = 10_000, suggestedM
           </select>
         </div>
       </div>
-      <p className="text-xs text-muted">The highest bid when the time runs out wins, or anyone can take it straight away at your buy-it-now price. You&apos;re paid in bonus MX, minus the 5% fee. You can cancel until the first bid.</p>
+      <p className="text-xs text-muted">
+        The highest bid at or above your minimum wins when the time runs out, or anyone can take the player straight away at your buy-it-now price. Bidders see whether
+        your minimum has been reached, not the amount. You&apos;re paid in bonus MX, minus the 5% fee. You can cancel until the first bid.
+      </p>
       <button className="btn-gold" disabled={pending || !enabled}>
         {pending ? "Starting…" : "Start auction"}
       </button>

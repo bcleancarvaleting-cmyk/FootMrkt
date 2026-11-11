@@ -103,11 +103,13 @@ export async function createAuctionListingAction(_: ActionResult | null, form: F
   const user = await requireUser();
   const cardId = String(form.get("cardId"));
   const buyNowRaw = String(form.get("buyNow") ?? "").trim();
+  const reserveRaw = String(form.get("reserve") ?? "").trim();
   const res = await attempt(async () => {
     await createManagerAuction(user.id, {
       cardId,
       startPriceMinor: mpToMinor(form.get("start")),
       buyNowMinor: buyNowRaw ? mpToMinor(buyNowRaw) : undefined,
+      reserveMinor: reserveRaw ? mpToMinor(reserveRaw) : undefined,
       hours: Number(form.get("hours")) as 3 | 12 | 24,
     });
   }, "Auction started — it's on Transfers → Auctions");

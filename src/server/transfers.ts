@@ -478,9 +478,13 @@ export const ManagerAuctionSchema = z
     cardId: z.string().uuid(),
     startPriceMinor: price,
     buyNowMinor: price.optional(),
+    /** The lowest the seller will accept: below it the player doesn't sell and goes back to them. */
+    reserveMinor: price.optional(),
     hours: z.union([z.literal(3), z.literal(12), z.literal(24)]),
   })
-  .refine((d) => d.buyNowMinor === undefined || d.buyNowMinor > d.startPriceMinor, { message: "The buy-it-now price must be higher than the starting price." });
+  .refine((d) => d.buyNowMinor === undefined || d.buyNowMinor > d.startPriceMinor, { message: "The buy-it-now price must be higher than the starting price." })
+  .refine((d) => d.reserveMinor === undefined || d.reserveMinor >= d.startPriceMinor, { message: "The minimum price can't be below the starting bid." })
+  .refine((d) => d.reserveMinor === undefined || d.buyNowMinor === undefined || d.reserveMinor <= d.buyNowMinor, { message: "The minimum price can't be above the buy-it-now price." });
 
 /** A manager puts one of their own tradeable cards up for auction. */
 export async function createManagerAuction(userId: string, input: z.input<typeof ManagerAuctionSchema>) {
@@ -497,7 +501,7 @@ export async function createManagerAuction(userId: string, input: z.input<typeof
     if ((d.buyNowMinor ?? d.startPriceMinor) > cap) throw new DomainError("PRICE_CAP", `The maximum price for this card is ${(cap / 100).toLocaleString("en-GB")} MX.`);
     const now = new Date();
     const a = await tx.auction.create({
-      data: { cardId: d.cardId, sellerId: userId, startPriceMinor: d.startPriceMinor, buyNowMinor: d.buyNowMinor, startsAt: now, endsAt: new Date(now.getTime() + d.hours * 3_600_000), status: "LIVE" },
+      data: { cardId: d.cardId, sellerId: userId, startPriceMinor: d.startPriceMinor, buyNowMinor: d.buyNowMinor, reserveMinor: d.reserveMinor, startsAt: now, endsAt: new Date(now.getTime() + d.hours * 3_600_000), status: "LIVE" },
     });
     await tx.cardInstance.update({ where: { id: d.cardId }, data: { lock: "LISTED", lockRef: a.id } });
     return a;

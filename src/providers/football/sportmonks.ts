@@ -42,7 +42,8 @@ export interface SmScore {
 export interface SmDetail {
   type_id?: number;
   type?: SmType | null;
-  data?: { value?: number | string | null; total?: number | null } | null;
+  /** Most stats: { value }. PENALTIES: { total, won, scored, committed, saved, missed }. */
+  data?: { value?: number | string | null; total?: number | null; won?: number | null; scored?: number | null; committed?: number | null; saved?: number | null; missed?: number | null } | null;
 }
 export interface SmLineup {
   player_id: number;
@@ -62,6 +63,8 @@ export interface SmEvent {
   related_player_id?: number | null;
   minute?: number | null;
   extra_minute?: number | null;
+  /** Cards only: true when the referee rescinded it (it doesn't count). */
+  rescinded?: boolean | null;
 }
 export interface SmFixture {
   id: number;
@@ -109,11 +112,14 @@ export async function smGetOne<T>(path: string, params: Record<string, string | 
 const norm = (s: string | null | undefined) => (s ?? "").toUpperCase().replace(/[^A-Z]/g, "");
 const typeName = (t: SmType | null | undefined) => norm(t?.developer_name ?? t?.code ?? t?.name);
 
-/** A per-player match detail, looked up by any of its known names. */
+/** A per-player match detail, looked up by any of its known names (optionally one field of it). */
 function detail(l: SmLineup, ...names: string[]) {
+  return detailField(l, null, ...names);
+}
+function detailField(l: SmLineup, field: "saved" | "missed" | null, ...names: string[]) {
   const want = names.map(norm);
   const d = (l.details ?? []).find((x) => want.includes(typeName(x.type)));
-  const v = d?.data?.value ?? d?.data?.total ?? 0;
+  const v = field ? d?.data?.[field] : (d?.data?.value ?? d?.data?.total ?? 0);
   const n = typeof v === "number" ? v : Number(v);
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
@@ -158,10 +164,12 @@ export function toSharedFixture(f: SmFixture): AfFixture {
   const events: AfEvent[] = [];
   for (const e of raw) {
     const t = typeName(e.type);
+    if (e.rescinded === true) continue; // an overturned card
     const time = { elapsed: e.minute ?? 0, extra: e.extra_minute ?? null };
     const team = { id: e.participant_id ?? teamOf.get(e.player_id ?? -1) ?? 0 };
     if (t === "SUBSTITUTION") {
-      // Which of the two came on? The one not already on the pitch.
+      // Sportmonks: player_id comes ON, related_player_id goes OFF. Double-checked against who is
+      // already on the pitch, in case a feed ever has them the other way round.
       let off = e.related_player_id ?? null;
       let on = e.player_id ?? null;
       if (on !== null && onPitch.has(on) && (off === null || !onPitch.has(off))) [off, on] = [on, off];
@@ -192,7 +200,8 @@ export function toSharedFixture(f: SmFixture): AfFixture {
             goals: { total: detail(l, "GOALS", "GOALS_SCORED"), assists: detail(l, "ASSISTS"), saves: detail(l, "SAVES"), conceded: detail(l, "GOALS_CONCEDED") },
             tackles: { total: detail(l, "TACKLES") },
             cards: { yellow: detail(l, "YELLOWCARDS", "YELLOW_CARDS"), red: detail(l, "REDCARDS", "RED_CARDS") + detail(l, "YELLOWREDCARDS", "YELLOWRED_CARDS") },
-            penalty: { saved: detail(l, "PENALTIES_SAVED", "SAVED_PENALTIES", "PENALTY_SAVE"), missed: detail(l, "PENALTIES_MISSES", "PENALTIES_MISSED", "MISSED_PENALTIES") },
+            // PENALTIES (type 47) is one breakdown: { total, won, scored, committed, saved, missed }.
+            penalty: { saved: detailField(l, "saved", "PENALTIES"), missed: detailField(l, "missed", "PENALTIES") },
           },
         ],
       }));

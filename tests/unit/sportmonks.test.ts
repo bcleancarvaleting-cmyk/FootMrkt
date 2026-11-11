@@ -22,7 +22,7 @@ function fixture(subOrder: "in-first" | "out-first"): SmFixture {
       { participant_id: 2, description: "CURRENT", score: { goals: 1, participant: "away" } },
     ],
     lineups: [
-      { player_id: 11, team_id: 1, type: t("LINEUP"), details: [d("MINUTES_PLAYED", 90), d("SAVES", 3), d("ASSISTS", 1)] },
+      { player_id: 11, team_id: 1, type: t("LINEUP"), details: [d("MINUTES_PLAYED", 90), d("SAVES", 3), d("ASSISTS", 1), { type: t("PENALTIES"), data: { total: 0, won: 0, scored: 0, committed: 0, saved: 1, missed: 0 } }] },
       { player_id: 12, team_id: 1, type: t("LINEUP"), details: [d("MINUTES_PLAYED", 60), d("GOALS", 1), d("TACKLES", 4)] },
       { player_id: 13, team_id: 1, type: t("BENCH"), details: [d("MINUTES_PLAYED", 30)] },
       { player_id: 21, team_id: 2, type: t("LINEUP"), details: [d("MINUTES_PLAYED", 50), d("REDCARDS", 1)] },
@@ -32,6 +32,7 @@ function fixture(subOrder: "in-first" | "out-first"): SmFixture {
       { type: t("GOAL"), participant_id: 1, player_id: 12, related_player_id: 11, minute: 10 },
       { type: t("OWNGOAL"), participant_id: 1, player_id: 22, minute: 30 },
       { type: t("REDCARD"), participant_id: 2, player_id: 21, minute: 50 },
+      { type: t("YELLOWCARD"), participant_id: 1, player_id: 11, minute: 52, rescinded: true },
       subOrder === "in-first"
         ? { type: t("SUBSTITUTION"), participant_id: 1, player_id: 13, related_player_id: 12, minute: 60 }
         : { type: t("SUBSTITUTION"), participant_id: 1, player_id: 12, related_player_id: 13, minute: 60 },
@@ -46,7 +47,7 @@ describe("Sportmonks adapter", () => {
       const msgs = messagesForFixture(toSharedFixture(fixture(order)));
       const line = (id: number) => msgs.find((m) => m.playerRef === String(id))!.payload as Record<string, number>;
       expect(msgs[0]).toMatchObject({ kind: "FIXTURE_RESULT", payload: { status: "FINISHED", home: 2, away: 1 } });
-      expect(line(11)).toMatchObject({ minutes: 90, saves: 3, assists: 1, goalsConceded: 1 });
+      expect(line(11)).toMatchObject({ minutes: 90, saves: 3, assists: 1, goalsConceded: 1, penaltySaves: 1 });
       expect(line(12)).toMatchObject({ minutes: 60, goals: 1, tackles: 4, goalsConceded: 0 });
       expect(line(13)).toMatchObject({ minutes: 30, goalsConceded: 1 });
       expect(line(21)).toMatchObject({ redCards: 1, goalsConceded: 2 });

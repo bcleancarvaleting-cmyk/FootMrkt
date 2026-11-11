@@ -71,8 +71,8 @@ const apiFootballSource: LiveSource = {
 const seasonIds = new Map<number, number>();
 export async function sportmonksSeasonId(leagueId: number) {
   if (seasonIds.has(leagueId)) return seasonIds.get(leagueId)!;
-  const league = await smGetOne<{ currentseason?: { id: number }; currentSeason?: { id: number } }>(`/leagues/${leagueId}`, { include: "currentSeason" });
-  const id = league?.currentseason?.id ?? league?.currentSeason?.id;
+  const league = await smGetOne<{ currentseason?: { id: number }; currentSeason?: { id: number }; current_season?: { id: number } }>(`/leagues/${leagueId}`, { include: "currentSeason" });
+  const id = league?.currentseason?.id ?? league?.currentSeason?.id ?? league?.current_season?.id;
   if (!id) throw new DomainError("NO_SEASON", `Sportmonks has no current season for league ${leagueId}.`);
   seasonIds.set(leagueId, id);
   return id;

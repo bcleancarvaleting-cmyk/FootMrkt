@@ -30,6 +30,8 @@ Legal-gated switches can't be turned on from admin until `LEGAL_GATES_CLEARED` l
 | Stripe | `PAYMENTS_PROVIDER=stripe`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`; webhook → `/api/webhooks/payments` |
 | Email sending | see `.env.example` |
 | Error alerts | `ERROR_WEBHOOK_URL` (Slack/Discord/any webhook) |
+| Push notifications | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (make them once with `npx web-push generate-vapid-keys`), `VAPID_SUBJECT` |
+| 5-minute job | `CRON_SECRET`, then call `/api/cron` every 5 minutes |
 | Domain | `APP_URL` |
 
 ## Before opening to the public

@@ -121,6 +121,16 @@ export const guideBySlug = (slug: string) => GUIDES.find((g) => g.slug === slug)
 
 /** What's new on MATCHX (newest first). Shown at the top of Guides. */
 export const WHATS_NEW: Array<{ date: string; title: string; body: string; href?: string }> = [
+  { date: "2026-11-12", title: "Team of the Week", body: "After every gameweek the 7 best performers get a ★ TOTW badge on their cards for 7 days.", href: "/top-performers#totw" },
+  { date: "2026-11-12", title: "Card upgrades", body: "New challenges: trade 5 Bronze up for a Choice of Silver, or 5 Silver for a Choice of Gold.", href: "/account/challenges" },
+  { date: "2026-11-12", title: "Value alerts", body: "Players on your watchlist now alert you when their value rises or falls 10% or more.", href: "/account/watchlist" },
+  { date: "2026-11-12", title: "Market movers", body: "See the week's biggest risers and fallers, the most traded players and record sales.", href: "/transfers/movers" },
+  { date: "2026-11-12", title: "Counter-offers", body: "Got an offer that's too low? Counter it once with your price — the buyer can accept or walk away.", href: "/transfers/mine" },
+  { date: "2026-11-12", title: "Share your pull", body: "Pulled a Gold or a special? Share it as an image or video straight from the pack reveal." },
+  { date: "2026-11-12", title: "Club pages", body: "Every club now has its own page with its full squad of cards — share yours with fellow fans.", href: "/teams" },
+  { date: "2026-11-12", title: "Friday digest", body: "A Friday email with your players in action this weekend, your club's value and the deadline. Turn it off in Profile.", href: "/account/profile" },
+  { date: "2026-11-12", title: "Top recruiters", body: "Invite the most friends in a month to win a Choice of Gold.", href: "/account" },
+  { date: "2026-11-12", title: "Receipts", body: "Every card payment is listed in your Wallet with Stripe's receipt.", href: "/account/wallet#payments" },
   { date: "2026-11-11", title: "Transfer news", body: "When one of your players moves club in real life, you'll see the move, the reported fee and your card at its new club.", href: "/account/club" },
   { date: "2026-11-11", title: "Your portfolio", body: "My Club now shows your squad's total value, its trend and who's playing this week.", href: "/account/club" },
   { date: "2026-11-11", title: "Basket & MX bundles", body: "Add MATCHX drops to a basket and pay for them all at once. Top up with bundles — bigger ones include bonus MX.", href: "/transfers/basket" },

@@ -56,9 +56,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       className={`${geistSans.variable} ${geistMono.variable} ${display.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
+        <a href="#main" className="skip-link">Skip to content</a>
         <StatsTicker initial={stats} />
         <Header theme={theme} unopenedPacks={unopened} />
-        <main className={`mx-auto w-full max-w-6xl flex-1 px-4 pt-6 sm:px-6 ${user ? "pb-32 md:pb-16" : "pb-16"}`}>{children}</main>
+        <main id="main" tabIndex={-1} className={`mx-auto outline-none w-full max-w-6xl flex-1 px-4 pt-6 sm:px-6 ${user ? "pb-32 md:pb-16" : "pb-16"}`}>{children}</main>
         <SiteFooter loggedIn={!!user} credit={await dataCredit()} />
         {user && <BottomNav unopenedPacks={unopened} />}
         <AppBackButton />

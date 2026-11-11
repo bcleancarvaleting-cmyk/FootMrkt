@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 export const ADMIN_MENU: Array<{ group: string; items: Array<{ href: string; label: string }> }> = [
-  { group: "Overview", items: [{ href: "/admin", label: "Dashboard" }, { href: "/admin/users", label: "Users" }, { href: "/admin/app", label: "App & notifications" }] },
+  { group: "Overview", items: [{ href: "/admin", label: "Dashboard" }, { href: "/admin/money", label: "Money" }, { href: "/admin/users", label: "Users" }, { href: "/admin/app", label: "App & notifications" }] },
   {
     group: "Game",
     items: [

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { sandboxPayAction } from "@/app/actions/admin";
 import { ActionButton } from "@/components/action-button";
@@ -20,14 +21,21 @@ export default async function SandboxCheckout({ params }: { params: Promise<{ id
       <p className="eyebrow">Sandbox payment provider</p>
       <h1 className="text-2xl font-black">{gbp(order.amountMinor)}</h1>
       <p className="text-sm text-muted">
-        {order.kind === "PACK_PURCHASE" ? "Pack purchase" : "Transfer Market purchase"} · order {order.id.slice(0, 8)} · {order.status.toLowerCase()}
+        {order.kind === "PACK_PURCHASE" ? "Pack purchase" : order.kind === "DEPOSIT" ? "Wallet top-up" : "Transfer Market purchase"} · order {order.id.slice(0, 8)} · {order.status.toLowerCase()}
       </p>
       {order.status === "PENDING" ? (
         <ActionButton action={sandboxPayAction.bind(null, order.id)} className="btn-primary px-8 py-3">
           Simulate successful payment
         </ActionButton>
       ) : (
-        <p className="text-mint">This order is {order.status.toLowerCase()}.</p>
+        <>
+          <p className="text-mint">This order is {order.status.toLowerCase()}.</p>
+          {order.status === "PAID" && (
+            <Link href={order.kind === "DEPOSIT" ? "/account/wallet" : "/packs"} className="btn-primary inline-flex px-8 py-3">
+              {order.kind === "DEPOSIT" ? "Back to my wallet" : "Open my pack"}
+            </Link>
+          )}
+        </>
       )}
       <p className="text-xs text-faint">No real money moves. This simulates the provider&apos;s signed webhook.</p>
     </div>

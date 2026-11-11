@@ -1,4 +1,4 @@
-<title>COLLECTR Play</title>
+<title>MATCHX Play</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -185,7 +185,7 @@ main { padding-top: 22px; padding-bottom: calc(150px + env(safe-area-inset-botto
 
 <div class="ticker" aria-label="Live stats"><div class="wrap" id="ticker"></div></div>
 <header class="top"><div class="wrap">
-  <button class="logo" data-go="home" aria-label="COLLECTR home">Collect<em>r</em></button>
+  <button class="logo" data-go="home" aria-label="MATCHX home">Collect<em>r</em></button>
   <span class="spacer"></span>
   <button class="toggle" id="theme" role="switch" aria-label="Light or dark mode">
     <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
@@ -217,7 +217,7 @@ const PACKS = {
 const SCORING = { app: 2, sixty: 2, goal: 10, assist: 6, cs: 5, psave: 8, saves3: 2, tackles3: 1, yellow: -3, red: -10, og: -5, pmiss: -5, conceded2: -1 };
 const ROOMS = [["dugout", "The Dugout"], ["matchday", "Matchday"], ["pulls", "Pack Pulls"], ["tactics", "Tactics Board"]];
 const RIVALS = ["TerraceTalk", "GoldenBoot22", "WrexhamWizard", "PackHunter", "NorthBankNat", "SixYardSam", "Hollywood11", "ValleyBoy", "KopEnd", "BlueMoon88"];
-const KEY = "collectr-play-v1";
+const KEY = "matchx-play-v1";
 
 // ───────── state ─────────
 let S = load() || fresh();
@@ -238,7 +238,7 @@ const mp = (minor) => (minor / 100).toFixed(2) + " MP";
 const fmt = (n) => n.toLocaleString("en-GB");
 function seedChat() {
   const t = Date.now() - 40 * 60000;
-  const lines = [["TerraceTalk", "Deadline's Saturday lunchtime — who's going 3-1-2 this week?"], ["Mod · COLLECTR", "Welcome to The Dugout! Be kind, no links — report anything dodgy and a moderator will check it."], ["GoldenBoot22", "Just pulled a Gold from a Gold pack 🔥"],
+  const lines = [["TerraceTalk", "Deadline's Saturday lunchtime — who's going 3-1-2 this week?"], ["Mod · MATCHX", "Welcome to The Dugout! Be kind, no links — report anything dodgy and a moderator will check it."], ["GoldenBoot22", "Just pulled a Gold from a Gold pack 🔥"],
     ["WrexhamWizard", "Sets are the move. 10 MP straight into another pack"], ["PackHunter", "Bench order matters — my Sub 2 came on and got 11 pts last week"],
     ["TerraceTalk", "Keepers only replace keepers, so always have a GK on the bench"]];
   return { dugout: lines.map((l, i) => ({ who: l[0], body: l[1], t: t + i * 240000 })), matchday: [], pulls: [], tactics: [] };
@@ -500,7 +500,7 @@ function vPacks() {
       <button class="btn btn-primary" data-open="${pk.id}">Open</button></div>`).join("")}</div>` : `<p class="muted">No unopened packs. Buy one below with MP credit, or win one by playing a gameweek.</p>`}
     <div class="row" style="justify-content:space-between"><div><p class="eyebrow">Pack shop</p><h2 class="h-l">Football packs</h2></div><span class="credit">◆ ${mp(S.credit)}</span></div>
     <div style="display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">${["bronze", "silver", "gold"].map((k) => `<div class="panel" style="padding:16px;display:grid;gap:10px">
-      <div class="packart ${PACKS[k].art}"><span class="sheen"></span>${k === "gold" ? '<span class="holo"></span>' : ""}<span class="brand">Collectr</span><b>${k}</b></div>
+      <div class="packart ${PACKS[k].art}"><span class="sheen"></span>${k === "gold" ? '<span class="holo"></span>' : ""}<span class="brand">MatchX</span><b>${k}</b></div>
       <div class="row" style="justify-content:space-between"><b style="font:800 24px/1 var(--display);text-transform:uppercase">${PACKS[k].name}</b><b style="font:800 24px/1 var(--display)">£${(PACKS[k].price / 100).toFixed(2)}</b></div>
       <p class="muted" style="font-size:13px">${PACKS[k].blurb}</p>
       <button class="btn ${k === "gold" ? "btn-gold" : "btn-primary"}" data-buy="${k}" ${S.credit < PACKS[k].price ? "disabled" : ""}>Use ${mp(PACKS[k].price)} credit</button></div>`).join("")}</div>
@@ -589,7 +589,7 @@ function vMe() {
     <h2 class="h-m">Credit history</h2><div class="panel" style="padding:8px">${[...S.ledger].reverse().map((e) => `<div class="res"><span style="flex:1">${esc(e.d)}</span><b class="${e.a > 0 ? "mint" : "muted"}">${e.a > 0 ? "+" : ""}${mp(e.a)}</b></div>`).join("")}</div>
     <h2 class="h-m">Gameweeks</h2><div class="panel" style="padding:8px">${S.history.length ? [...S.history].reverse().map((h) => `<div class="res"><span style="flex:1">Gameweek ${h.n}</span><b>${h.total} pts · #${h.rank}</b></div>`).join("") : '<p class="muted" style="padding:10px">Play a gameweek from Games.</p>'}</div>
     <div id="reset"><button class="btn btn-ghost" data-reset>Start over</button></div>
-    <p class="note">Playable prototype of COLLECTR Football. Real 2026-27 squads (Wikipedia, CC BY-SA); everything else is simulated and saved only in this browser. MP is an indicative valuation, not cash.</p></div>`;
+    <p class="note">Playable prototype of MATCHX Football. Real 2026-27 squads (Wikipedia, CC BY-SA); everything else is simulated and saved only in this browser. MP is an indicative valuation, not cash.</p></div>`;
 }
 
 // ───────── events ─────────

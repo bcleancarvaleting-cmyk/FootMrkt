@@ -1,4 +1,4 @@
-# COLLECTR — Football
+# MATCHX — Football
 
 **Collect. Trade. Compete.** A football collectibles game that combines three things in one game mode:
 
@@ -8,7 +8,7 @@
 | **Manager-style squad management** | Each gameweek pick a 7-a-side squad (1 GK, 2 DEF, 2 MID, 2 ATT) plus an ordered 4-player bench, choose a formation, decide which competition each card plays in, scout form and fixtures. |
 | **Real-life stats** | Points come only from real match events (goals, assists, clean sheets, saves, tackles, cards…), scored provisionally and then settled. No FIFA-style ratings anywhere. |
 
-This repository implements the football world of the *COLLECTR Master Development Specification v1* (darts is out of scope for now, but the data model keeps `Sport` as a first-class entity so it can slot in later).
+This repository implements the football world of the *MATCHX Master Development Specification v1* (darts is out of scope for now, but the data model keeps `Sport` as a first-class entity so it can slot in later).
 
 ## Quick start
 
@@ -22,7 +22,7 @@ npm run db:seed                 # real 2026-27 leagues/squads, first supply rele
 npm run dev                     # http://localhost:3000
 ```
 
-Seeded admin: `admin@collectr.dev` / `collectr-admin` (override with `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`). Any email in `ADMIN_EMAILS` becomes an admin on registration.
+Seeded admin: `admin@matchx.dev` / `matchx-admin` (override with `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`). Any email in `ADMIN_EMAILS` becomes an admin on registration.
 
 ### Play the loop locally
 
@@ -55,7 +55,7 @@ Refresh squads from Wikipedia with `npm run data:import` (writes `prisma/data/fo
 
 ```bash
 npm run test:unit          # pure domain: packs, squads, scoring, auto-subs, MP, simulator
-npm run test:integration   # against Postgres DB "collectr_test" (TEST_DATABASE_URL); refuses any DB not ending in _test
+npm run test:integration   # against Postgres DB "matchx_test" (TEST_DATABASE_URL); refuses any DB not ending in _test
 npm run typecheck && npm run lint && npm run build
 ```
 

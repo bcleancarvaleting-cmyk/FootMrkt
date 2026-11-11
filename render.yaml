@@ -20,7 +20,7 @@ services:
           name: matchx-test-db
           property: connectionString
       - key: SEED_ADMIN_PASSWORD
-        sync: false # you choose it when creating the blueprint; log in as admin@collectr.dev
+        sync: false # you choose it when creating the blueprint; log in as admin@matchx.dev
       - key: SESSION_SECRET
         generateValue: true
       - key: IP_HASH_SALT

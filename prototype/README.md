@@ -1,6 +1,6 @@
-# COLLECTR Play — clickable prototype
+# MATCHX Play — clickable prototype
 
-`collectr-play.html` is a single, self-contained page for trying ideas quickly. Open it in any browser — no server, database or install needed.
+`matchx-play.html` is a single, self-contained page for trying ideas quickly. Open it in any browser — no server, database or install needed.
 
 - Real 2026-27 players (a 340-player sample from `prisma/data/football-2026-27.json`).
 - Home-kit shirts and lookalike club badges, weekly free pack.

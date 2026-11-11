@@ -31,7 +31,7 @@ export const EMAILS = {
       title: `Welcome to MATCHX, ${d.name}`,
       paragraphs: [
         `Your club is ready. Open your ${b("four free league Starter Packs")} — a full squad for the Premier League, Championship, League One and League Two — make your three league picks and choose your two Premier League Gold loans.`,
-        `More free packs land over your first four weeks: a Squad Boost on day 3, a Gold on day 6, a Mixed Pack on day 9 and your choice of Gold on day 12.`,
+        `Then a free booster pack lands every Tuesday: put it on one player to boost their points.`,
         ...(d.verifyUrl ? [`Please confirm your email address so we can reach you about prizes.`] : []),
       ],
       cta: d.verifyUrl ? { label: "Confirm my email", href: d.verifyUrl } : { label: "Open my Starter Packs", href: `${APP_URL}/packs` },

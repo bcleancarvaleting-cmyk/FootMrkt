@@ -5,7 +5,7 @@ import { requireUser } from "@/server/auth/session";
 import { db } from "@/server/db";
 import { emailUser } from "@/server/email/send";
 import { fmtMp } from "@/server/wallet";
-import { buyNow, buyNowAuction, cancelListing, createListing, createManagerAuction, makeOffer, placeBid, respondToOffer, withdrawOffer } from "@/server/transfers";
+import { buyNow, buyNowAuction, createListing, createManagerAuction, makeOffer, placeBid, respondToOffer, withdrawOffer } from "@/server/transfers";
 import { type ActionResult, attempt } from "./result";
 
 const mpToMinor = (v: FormDataEntryValue | null) => Math.round(Number(v) * 100);
@@ -22,13 +22,6 @@ export async function createListingAction(_: ActionResult | null, form: FormData
   const res = await attempt(async () => {
     await createListing(user.id, { cardId, askingPriceMinor: mpToMinor(form.get("price")), days: Number(form.get("days") ?? 7), confirmHigh: form.get("confirmHigh") === "on" });
   }, "Listed on Transfers");
-  refresh(cardId);
-  return res;
-}
-
-export async function cancelListingAction(listingId: string, cardId: string): Promise<ActionResult> {
-  const user = await requireUser();
-  const res = await attempt(() => cancelListing(user.id, listingId), "Listing cancelled");
   refresh(cardId);
   return res;
 }

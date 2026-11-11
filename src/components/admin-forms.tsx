@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { setSettingAction, setTextSettingAction, addWelcomeGiftAction, competitionRulesAction, createAuctionAction, createMatchAction, createChallengeAction, pinnedListingsAction, scheduleDropAction, stockHouseAction } from "@/app/actions/economy";
 import type { ActionResult } from "@/app/actions/result";
 import { ResultText } from "./action-button";
@@ -132,11 +132,53 @@ const PER_CLUB: Opt[] = [{ value: "", label: "No limit" }, ...[1, 2, 3, 4].map((
 const PACK: Opt[] = [{ value: "", label: "None" }, { value: "BRONZE", label: "Bronze Pack" }, { value: "SILVER", label: "Silver Pack" }, { value: "GOLD", label: "Gold Pack" }];
 
 /** Admin: add an extra match to an open gameweek, set up with drop-downs. */
-export function CreateMatchForm({ gameweeks, leagues, fixtures }: { gameweeks: Opt[]; leagues: Opt[]; fixtures: Opt[] }) {
+type FixtureOpt = { value: string; label: string; league: string };
+/** Tick the real fixtures a match covers, grouped by league, with a tick-all per league. */
+function FixturePicker({ fixtures }: { fixtures: FixtureOpt[] }) {
+  const [on, setOn] = useState<Set<string>>(new Set());
+  const leagues = [...new Set(fixtures.map((f) => f.league))];
+  const toggle = (ids: string[], value: boolean) =>
+    setOn((s) => {
+      const n = new Set(s);
+      ids.forEach((id) => (value ? n.add(id) : n.delete(id)));
+      return n;
+    });
+  return (
+    <fieldset className="sm:col-span-2 lg:col-span-4">
+      <legend className="label">Fixtures this match covers (optional — none ticked = every fixture that gameweek)</legend>
+      <p className="mb-2 text-xs text-faint">Only players from clubs in the ticked fixtures can be picked, and squads lock 10 minutes before the first of them kicks off. Tick one for a head to head, a whole league for an international-break week, or a few for a midweek match.</p>
+      <div className="max-h-72 space-y-3 overflow-y-auto rounded-xl border border-ink-700 p-3">
+        {leagues.map((lg) => {
+          const ids = fixtures.filter((f) => f.league === lg).map((f) => f.value);
+          const all = ids.every((id) => on.has(id));
+          return (
+            <div key={lg}>
+              <label className="mb-1 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-muted">
+                <input type="checkbox" className="accent-lime" checked={all} onChange={(e) => toggle(ids, e.target.checked)} /> {lg} — all {ids.length}
+              </label>
+              <div className="grid gap-1 pl-5 sm:grid-cols-2">
+                {fixtures
+                  .filter((f) => f.league === lg)
+                  .map((f) => (
+                    <label key={f.value} className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" name="fixtureIds" value={f.value} className="accent-lime" checked={on.has(f.value)} onChange={(e) => toggle([f.value], e.target.checked)} />
+                      <span className="min-w-0 truncate">{f.label}</span>
+                    </label>
+                  ))}
+              </div>
+            </div>
+          );
+        })}
+        {!fixtures.length && <p className="text-sm text-faint">No upcoming fixtures in an open gameweek.</p>}
+      </div>
+    </fieldset>
+  );
+}
+
+export function CreateMatchForm({ gameweeks, leagues, fixtures }: { gameweeks: Opt[]; leagues: Opt[]; fixtures: FixtureOpt[] }) {
   return (
     <Form action={createMatchAction} submit="Create match">
-      <S name="fixtureId" label="Head to head (optional)" options={[{ value: "", label: "No — a normal match" }, ...fixtures]} />
-      <I name="name" label="Match name (blank = the fixture)" placeholder="Chelsea v Man Utd" />
+      <I name="name" label="Match title" placeholder="League Two Cup" required minLength={3} maxLength={40} />
       <S name="gameweekId" label="Gameweek" options={gameweeks} defaultValue={gameweeks[0]?.value} />
       <S name="kind" label="Type" options={[{ value: "CARDS", label: "Managers use their own cards" }, { value: "DRAFT", label: "Free draft (no cards needed)" }]} />
       <S name="league" label="League" options={[{ value: "", label: "All leagues" }, ...leagues]} />
@@ -150,6 +192,7 @@ export function CreateMatchForm({ gameweeks, leagues, fixtures }: { gameweeks: O
       <S name="top3Pack" label={"Top 3's pack"} options={PACK} />
       <S name="everyonePack" label="Everyone else's pack" options={PACK} />
       <I name="prizes" label="£ prizes (optional, e.g. 1=10, 2=5)" placeholder="1=10" />
+      <FixturePicker fixtures={fixtures} />
     </Form>
   );
 }

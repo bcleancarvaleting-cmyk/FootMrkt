@@ -19,7 +19,7 @@ export const RequirementsSchema = z
   .object({
     leagues: z.array(z.string()).min(1).optional(),
     /** Only these clubs' players (club codes), e.g. ["CHE","MUN"] for a Chelsea v Man Utd match. */
-    clubs: z.array(z.string()).min(1).max(6).optional(),
+    clubs: z.array(z.string()).min(1).max(100).optional(),
     maxPerClub: z.number().int().min(1).max(11).optional(),
     /** Max total MX value of the starting seven. */
     maxSquadValueMp: z.number().int().min(1).optional(),
@@ -321,6 +321,8 @@ export const NewMatchSchema = z.object({
   name: z.string().trim().max(40).optional(),
   /** A head-to-head match on one real fixture: only the two clubs' players can be picked. */
   fixtureId: z.string().uuid().optional(),
+  /** The real fixtures this match covers (e.g. only League Two, or a few midweek games): only those clubs' players count. */
+  fixtureIds: z.array(z.string().uuid()).max(200).optional(),
   kind: z.enum(["CARDS", "DRAFT"]).default("CARDS"),
   league: z.string().max(10).optional(),
   tier: z.enum(["BRONZE", "SILVER", "GOLD"]).optional(),
@@ -338,10 +340,13 @@ export const NewMatchSchema = z.object({
 /** Admin → Matches: add an extra match to a gameweek that hasn't locked yet (e.g. a League One Cup). */
 export async function createMatch(adminId: string, input: z.input<typeof NewMatchSchema>) {
   const m = NewMatchSchema.parse(input);
-  const fixture = m.fixtureId ? await db.fixture.findUnique({ where: { id: m.fixtureId }, include: { homeClub: true, awayClub: true } }) : null;
-  if (m.fixtureId && !fixture) throw new DomainError("FIXTURE", "Unknown fixture.");
+  const ids = [...new Set([...(m.fixtureIds ?? []), ...(m.fixtureId ? [m.fixtureId] : [])])];
+  const picked = ids.length ? await db.fixture.findMany({ where: { id: { in: ids } }, include: { homeClub: true, awayClub: true } }) : [];
+  if (picked.length !== ids.length) throw new DomainError("FIXTURE", "Unknown fixture.");
+  if (new Set(picked.map((f) => f.gameweekId)).size > 1) throw new DomainError("FIXTURE", "Pick fixtures from one gameweek.");
+  const fixture = picked.length ? picked[0] : null;
   if (fixture) m.gameweekId = fixture.gameweekId;
-  const name = m.name || (fixture ? `${fixture.homeClub.shortName} v ${fixture.awayClub.shortName}` : "");
+  const name = m.name || (picked.length === 1 ? `${fixture!.homeClub.shortName} v ${fixture!.awayClub.shortName}` : "");
   if (name.length < 3) throw new DomainError("NAME", "Give the match a name.");
   const gw = await db.gameweek.findUnique({ where: { id: m.gameweekId }, include: { competitions: { select: { locksAt: true, entryOpensAt: true, code: true, rosterRules: true, scoringRules: true } } } });
   if (!gw || !["UPCOMING", "OPEN"].includes(gw.status)) throw new DomainError("LOCKED", "Pick a gameweek that's still open for entries.");
@@ -349,11 +354,11 @@ export async function createMatch(adminId: string, input: z.input<typeof NewMatc
   if (m.kind === "DRAFT" && m.tier) throw new DomainError("RULES", "Free draft matches use any players, so there's no card tier.");
   const requirements = RequirementsSchema.parse({
     leagues: m.league && !fixture ? [m.league] : undefined,
-    clubs: fixture ? [fixture.homeClub.code, fixture.awayClub.code] : undefined,
+    clubs: picked.length ? [...new Set(picked.flatMap((f) => [f.homeClub.code, f.awayClub.code]))] : undefined,
     freeCardsOnly: m.kind === "CARDS" && m.freeCardsOnly ? true : undefined,
     foundersOnly: m.foundersOnly || undefined,
     // Two clubs have to fill 11 places, so a per-club cap below 6 can't be met.
-    maxPerClub: fixture && m.maxPerClub && m.maxPerClub < 6 ? undefined : m.maxPerClub,
+    maxPerClub: picked.length === 1 && m.maxPerClub && m.maxPerClub < 6 ? undefined : m.maxPerClub,
     draftBudgetMx: m.kind === "DRAFT" ? (m.draftBudgetMx ?? 70) : undefined,
   });
   const cash = m.prizes?.trim() ? parsePrizes(m.prizes) : [];
@@ -366,7 +371,11 @@ export async function createMatch(adminId: string, input: z.input<typeof NewMatc
   ];
   // Same deadline and rules as the gameweek's other matches.
   const ref = gw.competitions[0];
-  const locksAt = ref?.locksAt ?? new Date(gw.startsAt.getTime() - 10 * 60_000);
+  // With fixtures picked, squads lock 10 minutes before the first of them kicks off (so a midweek
+  // match can still be entered after the weekend games have started).
+  const firstKick = picked.length ? Math.min(...picked.map((f) => f.kickoffAt.getTime())) : null;
+  const locksAt = firstKick ? new Date(firstKick - 10 * 60_000) : (ref?.locksAt ?? new Date(gw.startsAt.getTime() - 10 * 60_000));
+  if (locksAt <= new Date()) throw new DomainError("LOCKED", "Those fixtures have already kicked off (or are about to).");
   const opensAt = ref?.entryOpensAt ?? new Date();
   const key = ref?.code.split("-").slice(0, -1).join("-") || `gw-${gw.season}-${gw.number}`;
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "match";

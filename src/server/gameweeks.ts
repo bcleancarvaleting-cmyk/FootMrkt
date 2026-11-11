@@ -104,7 +104,7 @@ export async function insertGameweek(args: {
     await tx.fixture.createMany({
       data: fixtures.map((f) => ({ gameweekId: gw.id, provider: args.provider, ...f })),
     });
-    for (const t of FOOTBALL_COMPETITION_TEMPLATES) {
+    for (const t of autoTemplates()) {
       await tx.competition.create({
         data: {
           sportId: sport.id,
@@ -263,7 +263,7 @@ export async function ensureStandardMatches() {
     const ref = gw.competitions[0];
     if (!ref) continue;
     const key = `${gw.season}-gw${gw.number}`;
-    for (const t of FOOTBALL_COMPETITION_TEMPLATES) {
+    for (const t of autoTemplates()) {
       const code = `${key}-${t.key}`;
       if (gw.competitions.some((c) => c.code === code)) continue;
       await db.competition.createMany({
@@ -298,4 +298,12 @@ async function prizePools() {
   const out: Record<string, Array<{ rankFrom: number; rankTo: number; cashMinor: number }>> = {};
   for (const t of FOOTBALL_COMPETITION_TEMPLATES) if (t.prizePool) out[t.key] = parsePrizes(await getText(t.prizePool));
   return out;
+}
+
+/**
+ * Matches are set up by the admin, one by one (product decision 11 Nov 2026): no gameweek gets any
+ * automatically. AUTO_MATCHES=true brings back the old standard set (the test suite uses it).
+ */
+function autoTemplates() {
+  return process.env.AUTO_MATCHES === "true" ? FOOTBALL_COMPETITION_TEMPLATES : [];
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { cancelListingAction, respondToOfferAction, withdrawOfferAction } from "@/app/actions/transfers";
+import { respondToOfferAction, withdrawOfferAction } from "@/app/actions/transfers";
 import { ActionButton } from "@/components/action-button";
 import { CardRow, RowStat } from "@/components/card-row";
 import { EmptyState, PageHeader } from "@/components/page-header";
@@ -36,9 +36,6 @@ export default async function MyTransfersPage() {
                     {fmtMp(l.priceMinor)}
                     <span className="block text-[10px] font-normal text-faint">you get {fmtMp(l.priceMinor - feeFor(l.priceMinor))}</span>
                   </RowStat>
-                  <ActionButton action={cancelListingAction.bind(null, l.id, l.card.id)} className="btn-ghost px-3 py-2 text-[11px]" disabled={!open}>
-                    Remove
-                  </ActionButton>
                 </CardRow>
                 {l.offerList.map((o) => (
                   <div key={o.id} className="ml-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ink-700 bg-ink-850 px-4 py-2 text-sm">

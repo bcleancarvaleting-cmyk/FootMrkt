@@ -137,7 +137,7 @@ export async function createMatchAction(_: ActionResult | null, f: FormData): Pr
     const c = await createMatch(admin.id, {
       gameweekId: str(f, "gameweekId"),
       name: opt("name"),
-      fixtureId: opt("fixtureId"),
+      fixtureIds: f.getAll("fixtureIds").map(String).filter(Boolean),
       kind: (opt("kind") ?? "CARDS") as "CARDS" | "DRAFT",
       league: opt("league"),
       tier: opt("tier") as "BRONZE" | "SILVER" | "GOLD" | undefined,

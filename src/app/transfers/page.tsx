@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { cancelListingAction } from "@/app/actions/transfers";
 import { BuyButton } from "@/components/buy-button";
 import { ActionButton } from "@/components/action-button";
 import { CardRow, RowStat, Sparkline } from "@/components/card-row";
@@ -141,9 +140,6 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
                   {mine ? (
                     <>
                       <span className="text-right text-[10px] text-faint">{r.offers ? `${r.offers} offer${r.offers > 1 ? "s" : ""}` : "Your listing"}</span>
-                      <ActionButton action={cancelListingAction.bind(null, r.id, r.card.id)} className="btn-ghost px-3 py-2 text-[11px]" disabled={!open}>
-                        Remove
-                      </ActionButton>
                     </>
                   ) : (
                     <>

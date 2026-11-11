@@ -234,13 +234,11 @@ export async function buyNow(buyerId: string, listingId: string) {
   return result;
 }
 
+/** Listings are final (product decision 11 Nov 2026): they stay up until sold or expired. */
 export async function cancelListing(userId: string, listingId: string) {
-  await requireFlag("MARKET");
-  return withTx(async (tx) => {
-    const l = await lockListing(tx, listingId);
-    if (!l || l.house || l.sellerId !== userId || l.status !== "ACTIVE") throw new DomainError("NOT_FOUND", "Listing not found or no longer active.");
-    await closeListing(tx, l, "CANCELLED");
-  });
+  void userId;
+  void listingId;
+  throw new DomainError("FINAL", "Listings can't be cancelled: it stays on Transfers until it sells or the listing ends.");
 }
 
 export async function expireListings(now = new Date()) {

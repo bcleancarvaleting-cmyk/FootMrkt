@@ -7,7 +7,6 @@ import { FINISH_STYLE, FinishPill } from "@/components/finish-art";
 import { discardLoanAction } from "@/app/actions/account";
 import { notFound } from "next/navigation";
 import { toggleFavouriteAction, toggleShowcaseAction } from "@/app/actions/game";
-import { cancelListingAction } from "@/app/actions/transfers";
 import { ActionButton } from "@/components/action-button";
 import { AuctionListForm, ListingForm } from "@/components/listing-form";
 import { listingGuidance } from "@/server/transfers-view";
@@ -246,9 +245,6 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
                 <span>
                   Listed at <b>{(listing.askingPriceMinor / 100).toFixed(2)} MX</b> until {fmtDate(listing.expiresAt)}
                 </span>
-                <ActionButton action={cancelListingAction.bind(null, listing.id, id)} className="btn-danger">
-                  Cancel listing
-                </ActionButton>
               </div>
             ) : auction ? (
               <div className="flex flex-wrap items-center justify-between gap-3">

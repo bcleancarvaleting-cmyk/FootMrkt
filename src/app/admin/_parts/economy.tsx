@@ -54,7 +54,7 @@ export async function EconomySections({ only }: { only: string[] }) {
         }),
       ])
     : [[], [], []];
-  const fixtureOpts = fixtureRows.map((f) => ({ value: f.id, label: `GW${f.gameweek.number} · ${f.homeClub.name} v ${f.awayClub.name} (${f.homeClub.league.name}, ${fmtDate(f.kickoffAt)})` }));
+  const fixtureOpts = fixtureRows.map((f) => ({ value: f.id, league: `GW${f.gameweek.number} · ${f.homeClub.league.name}`, label: `${f.homeClub.name} v ${f.awayClub.name} · ${fmtDate(f.kickoffAt)}` }));
   const leagueOpts = leagueRows.map((l) => ({ value: l.code, label: l.name }));
   const gwOpts = openGws.map((g) => ({ value: g.id, label: `GW${g.number} · ${g.season}` }));
   const freerolls = comps.filter((c) => ((c.requirements ?? {}) as Requirements).freeCardsOnly && c.entryFeeMinor === 0);
@@ -196,7 +196,7 @@ export async function EconomySections({ only }: { only: string[] }) {
         <div className="space-y-5">
           <div className="rounded-xl border border-accent/40 p-4">
             <h3 className="mb-1 font-bold">Create a match</h3>
-            <p className="mb-3 text-xs text-muted">Adds an extra match to a gameweek that&apos;s still open, with the same deadline as the others. Pick the league and rules from the drop-downs. For a head to head (e.g. Chelsea v Man Utd), pick the fixture: only those two clubs&apos; players can be chosen. Free draft works best there, as few managers own 11 cards from two clubs.</p>
+            <p className="mb-3 text-xs text-muted">Adds an extra match to a gameweek that&apos;s still open, with the same deadline as the others. Only the matches you create here run — none are made automatically. Type a title, set the rules and prizes, and tick the fixtures it covers. For a head to head (e.g. Chelsea v Man Utd) tick one fixture; free draft works best there, as few managers own 11 cards from two clubs.</p>
             {gwOpts.length ? <CreateMatchForm gameweeks={gwOpts} leagues={leagueOpts} fixtures={fixtureOpts} /> : <p className="text-sm text-faint">No gameweek is open for entries right now.</p>}
           </div>
           {comps.map((c) => (

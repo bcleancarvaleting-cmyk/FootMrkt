@@ -93,8 +93,9 @@ describe("P2P transfers in MX", () => {
     expect(listing.currency).toBe("MX");
     expect((await db.cardInstance.findUniqueOrThrow({ where: { id: card } })).lock).toBe("LISTED");
     await expect(createListing(userId, { cardId: card, askingPriceMinor: 600 })).rejects.toMatchObject({ code: "CARD_BUSY" });
-    await cancelListing(userId, listing.id);
-    expect((await db.cardInstance.findUniqueOrThrow({ where: { id: card } })).lock).toBe("NONE");
+    // Listings are final: they stay up until sold or expired.
+    await expect(cancelListing(userId, listing.id)).rejects.toMatchObject({ code: "FINAL" });
+    expect((await db.cardInstance.findUniqueOrThrow({ where: { id: card } })).lock).toBe("LISTED");
   });
 
   it("buy now moves the card, pays the seller minus 5%, and a card can't be sold twice", async () => {

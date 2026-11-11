@@ -68,6 +68,8 @@ model User {
   country                  String?
   phone                    String?
   marketingOptIn           Boolean    @default(false)
+  // Friday digest email (your players this weekend, drops, portfolio). One-click unsubscribe.
+  weeklyDigest             Boolean    @default(true)
   termsVersion             String?
   termsAcceptedAt          DateTime?
   fundsRiskAcceptedAt      DateTime? // accepted the "values go up and down" warning before adding funds

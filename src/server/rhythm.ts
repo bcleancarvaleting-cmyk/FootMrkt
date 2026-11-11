@@ -5,13 +5,14 @@ import { notify } from "./notifications";
  * The weekly rhythm, run by the 5-minute job. Every message is sent once (dedupe keys), to the
  * phone too if push is on:
  *  - 24 hours before the deadline: managers who've played recently but haven't entered yet.
- *  - 1 hour before: managers who have entered — check your captain.
+ *  - 1 hour before: managers who have entered — check your captain; managers who played in the
+ *    last fortnight but haven't entered this week — last call.
  *  - Results: once a gameweek settles, each entrant gets their best score and rank.
  */
 const HOUR = 3600_000;
 
 export async function weeklyRhythm(now = new Date()) {
-  const out = { reminded24h: 0, reminded1h: 0, results: 0 };
+  const out = { reminded24h: 0, reminded1h: 0, remindedMissing: 0, results: 0 };
   const open = await db.gameweek.findMany({ where: { status: { in: ["OPEN", "UPCOMING"] } }, include: { competitions: { where: { status: "OPEN" }, select: { id: true, locksAt: true } } } });
   for (const gw of open) {
     if (!gw.competitions.length) continue;
@@ -31,6 +32,16 @@ export async function weeklyRhythm(now = new Date()) {
       for (const userId of entered) {
         await notify(userId, { kind: "DEADLINE", title: `GW${gw.number} locks in under an hour`, body: "Last chance to change your squad and captain.", href: "/matches", dedupeKey: `gw:${gw.id}:1h:${userId}` });
         out.reminded1h++;
+      }
+      // Managers who played in the last fortnight but haven't entered this week: one last nudge.
+      const lapsing = await db.competitionEntry.findMany({
+        where: { createdAt: { gte: new Date(now.getTime() - 14 * 24 * HOUR) }, user: { status: "ACTIVE" } },
+        distinct: ["userId"],
+        select: { userId: true },
+      });
+      for (const { userId } of lapsing.filter((x) => !entered.has(x.userId))) {
+        await notify(userId, { kind: "DEADLINE", title: `GW${gw.number} locks in under an hour`, body: "You haven't picked a team this week — the Freeroll is free and takes a minute.", href: "/matches", dedupeKey: `gw:${gw.id}:1h-missing:${userId}` });
+        out.remindedMissing++;
       }
     }
   }

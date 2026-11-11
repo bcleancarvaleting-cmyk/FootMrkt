@@ -30,6 +30,20 @@ describe("weekly rhythm", () => {
     expect(await db.notification.count({ where: { userId: a.userId, kind: "DEADLINE" } })).toBe(1);
     expect(await db.notification.count({ where: { userId: b.userId } })).toBe(0);
   });
+
+  it("an hour before, nudges managers who played recently but haven't entered this week", async () => {
+    const now = Date.now();
+    const old = await createGameweek({ season: "T", number: 0, opensAt: new Date(now - 9 * 86_400_000), firstKickoffAt: new Date(now - 8 * 86_400_000), actorId: null });
+    await db.gameweek.update({ where: { id: old.id }, data: { status: "SETTLED" } });
+    await db.competition.updateMany({ where: { gameweekId: old.id }, data: { status: "SETTLED" } });
+    const comp = await db.competition.findFirstOrThrow({ where: { gameweekId: old.id } });
+    await openGameweek(0.5);
+    const a = await makeUser();
+    await db.competitionEntry.create({ data: { competitionId: comp.id, userId: a.userId, formation: "1-2-2-2", status: "ACTIVE", createdAt: new Date(now - 8 * 86_400_000) } });
+    const r = await weeklyRhythm();
+    expect(r.remindedMissing).toBe(1);
+    expect(await db.notification.count({ where: { userId: a.userId, kind: "DEADLINE" } })).toBe(1);
+  });
 });
 
 describe("head-to-head", () => {

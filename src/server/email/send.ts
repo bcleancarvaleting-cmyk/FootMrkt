@@ -14,6 +14,7 @@ export async function sendEmail<T extends EmailTemplate>(
   to: { userId?: string; email: string },
   data: Parameters<(typeof EMAILS)[T]>[0],
   dedupeKey?: string,
+  headers?: Record<string, string>,
 ) {
   try {
     const { subject, html, text } = (EMAILS[template] as (d: typeof data) => { subject: string; html: string; text: string })(data);
@@ -27,7 +28,7 @@ export async function sendEmail<T extends EmailTemplate>(
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-      body: JSON.stringify({ from: process.env.EMAIL_FROM || (await emailFrom()), to: [to.email], subject, html, text }),
+      body: JSON.stringify({ from: process.env.EMAIL_FROM || (await emailFrom()), to: [to.email], subject, html, text, ...(headers ? { headers } : {}) }),
     });
     await db.emailLog.update({ where: { id: log.id }, data: res.ok ? { status: "SENT", sentAt: new Date() } : { status: "FAILED", error: `${res.status} ${(await res.text()).slice(0, 300)}` } });
     return res.ok ? ("SENT" as const) : ("FAILED" as const);

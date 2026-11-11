@@ -35,6 +35,7 @@ const ProfileSchema = z.object({
   country: opt(60),
   phone: opt(20).refine((v) => v === null || /^[+\d][\d\s]{6,18}$/.test(v), "Enter a valid phone number"),
   marketingOptIn: z.boolean(),
+  weeklyDigest: z.boolean(),
 });
 
 export async function updateProfileAction(_: ActionResult | null, form: FormData): Promise<ActionResult> {
@@ -50,6 +51,7 @@ export async function updateProfileAction(_: ActionResult | null, form: FormData
       country: String(form.get("country") ?? ""),
       phone: String(form.get("phone") ?? ""),
       marketingOptIn: form.get("marketingOptIn") === "on",
+      weeklyDigest: form.get("weeklyDigest") === "on",
     });
     const current = await db.user.findUniqueOrThrow({ where: { id: user.id } });
     // Once identity is verified for withdrawals, name and date of birth can only change via support.

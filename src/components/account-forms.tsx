@@ -90,6 +90,7 @@ type Profile = {
   country: string | null;
   phone: string | null;
   marketingOptIn: boolean;
+  weeklyDigest: boolean;
 };
 
 function F({ name, label, type = "text", value, auto, disabled }: { name: keyof Profile; label: string; type?: string; value: string | null; auto?: string; disabled?: boolean }) {
@@ -133,6 +134,10 @@ export function ProfileForm({ p, email, displayName, locked }: { p: Profile; ema
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" name="marketingOptIn" defaultChecked={p.marketingOptIn} className="mt-1 accent-lime" />
         <span>Send me news about free pack drops, auctions and new challenges. You can unsubscribe at any time.</span>
+      </label>
+      <label className="flex items-start gap-2 text-sm">
+        <input type="checkbox" name="weeklyDigest" defaultChecked={p.weeklyDigest} className="mt-1 accent-lime" />
+        <span>Send me the Friday digest: which of my players are playing this weekend, my club&apos;s value, the deadline and today&apos;s drops.</span>
       </label>
       {locked && <p className="text-xs text-faint">Your name and date of birth are verified. Contact support to change them.</p>}
       <div className="flex items-center gap-3">

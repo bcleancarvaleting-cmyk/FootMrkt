@@ -9,7 +9,7 @@ export const APP_URL = (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL |
 type Rendered = { subject: string; html: string; text: string };
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
-function layout(o: { preheader: string; title: string; paragraphs: string[]; cta?: { label: string; href: string }; footnote?: string }): Rendered {
+function layout(o: { preheader: string; title: string; paragraphs: string[]; cta?: { label: string; href: string }; footnote?: string; unsubscribe?: string }): Rendered {
   const html = `<!doctype html><html><body style="margin:0;background:#060708;font-family:Helvetica,Arial,sans-serif;color:#f4f5f2">
 <span style="display:none;max-height:0;overflow:hidden">${esc(o.preheader)}</span>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#060708;padding:24px 12px"><tr><td align="center">
@@ -18,9 +18,9 @@ function layout(o: { preheader: string; title: string; paragraphs: string[]; cta
 <tr><td style="padding:8px 24px 0;font-size:24px;font-weight:800;line-height:1.2">${esc(o.title)}</td></tr>
 ${o.paragraphs.map((p) => `<tr><td style="padding:12px 24px 0;font-size:15px;line-height:1.55;color:#c9cdc6">${p}</td></tr>`).join("")}
 ${o.cta ? `<tr><td style="padding:22px 24px 4px"><a href="${o.cta.href}" style="display:inline-block;background:#adfc07;color:#0a0d02;text-decoration:none;font-weight:800;font-size:14px;letter-spacing:.06em;text-transform:uppercase;padding:13px 22px;border-radius:12px">${esc(o.cta.label)}</a></td></tr>` : ""}
-<tr><td style="padding:22px 24px 24px;font-size:12px;line-height:1.5;color:#6c726a">${o.footnote ? `${esc(o.footnote)}<br>` : ""}You're getting this because you have a MATCHX account. MX is an in-game currency and can't be withdrawn. 18+.</td></tr>
+<tr><td style="padding:22px 24px 24px;font-size:12px;line-height:1.5;color:#6c726a">${o.footnote ? `${esc(o.footnote)}<br>` : ""}You're getting this because you have a MATCHX account. MX is an in-game currency and can't be withdrawn. 18+.${o.unsubscribe ? `<br><a href="${o.unsubscribe}" style="color:#9aa096">Unsubscribe from this email</a>` : ""}</td></tr>
 </table></td></tr></table></body></html>`;
-  const text = [o.title, "", ...o.paragraphs.map((p) => p.replace(/<[^>]+>/g, "")), "", o.cta ? `${o.cta.label}: ${o.cta.href}` : "", "", "— MATCHX"].join("\n");
+  const text = [o.title, "", ...o.paragraphs.map((p) => p.replace(/<[^>]+>/g, "")), "", o.cta ? `${o.cta.label}: ${o.cta.href}` : "", "", "— MATCHX", o.unsubscribe ? `Unsubscribe: ${o.unsubscribe}` : ""].join("\n");
   return { subject: o.title, html, text };
 }
 
@@ -131,6 +131,36 @@ export const EMAILS = {
       title: `🚨 ${esc(d.title)}`,
       paragraphs: [`${b(d.source === "BROWSER" ? "In a player's browser" : "On the server")} · page ${esc(d.path)}`, esc(d.message), "You'll only be emailed again if it comes back after you mark it fixed."],
       cta: { label: "Open Admin → Errors", href: `${APP_URL}/admin/errors` },
+    }),
+  weeklyDigest: (d: {
+    name: string;
+    players: { name: string; vs: string; when: string }[];
+    playing: number;
+    value: number;
+    changePct: number | null;
+    deadline: string | null;
+    openMatches: number;
+    entered: number;
+    drops: number;
+    unsubscribeUrl: string;
+  }) =>
+    layout({
+      preheader: d.playing ? `${d.playing} of your players are in action this weekend.` : "Your MATCHX weekend.",
+      title: d.playing ? `${d.playing} of your players play this weekend` : "Your MATCHX weekend",
+      paragraphs: [
+        `Hi ${esc(d.name)} — here's your weekend.`,
+        ...(d.players.length
+          ? [d.players.map((p) => `${b(p.name)} <span style="color:#9aa096">${esc(p.vs)} · ${esc(p.when)}</span>`).join("<br>") + (d.playing > d.players.length ? `<br><span style="color:#9aa096">+${d.playing - d.players.length} more</span>` : "")]
+          : []),
+        `Club value: ${b(`${d.value.toFixed(2)} MX`)}${d.changePct !== null ? ` <span style="color:${d.changePct > 0 ? "#5ee6a8" : d.changePct < 0 ? "#ff6b6b" : "#9aa096"}">${d.changePct > 0 ? "▲" : d.changePct < 0 ? "▼" : "–"} ${Math.abs(d.changePct)}%</span>` : ""}`,
+        ...(d.deadline
+          ? [d.entered ? `You're in ${b(`${d.entered} of ${d.openMatches}`)} open matches. Deadline ${b(d.deadline)}.` : `${b(`${d.openMatches} matches`)} are open — the Freeroll is free. Deadline ${b(d.deadline)}.`]
+          : []),
+        ...(d.drops ? [`${b(`${d.drops} player drop${d.drops === 1 ? "" : "s"}`)} on the Transfer list today.`] : []),
+      ],
+      cta: d.deadline && d.entered < d.openMatches ? { label: "Pick my seven", href: `${APP_URL}/matches` } : { label: "Open MATCHX", href: `${APP_URL}/account/club` },
+      footnote: "Sent on Fridays. Turn it off in Profile or with the link below.",
+      unsubscribe: d.unsubscribeUrl,
     }),
   test: (d: { name: string }) =>
     layout({

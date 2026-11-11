@@ -27,6 +27,7 @@ export default async function ProfilePage() {
           country: u.country,
           phone: u.phone,
           marketingOptIn: u.marketingOptIn,
+          weeklyDigest: u.weeklyDigest,
         }}
       />
     </div>

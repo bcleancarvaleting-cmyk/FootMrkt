@@ -70,6 +70,8 @@ export async function depositAction(_: ActionResult | null, form: FormData): Pro
       user.id,
       { bundle: String(form.get("bundle") ?? ""), acceptTerms: form.get("acceptTerms") === "on", acceptRisk: form.get("acceptRisk") === "on" } as never,
       String(form.get("clientKey")),
+      undefined,
+      String(form.get("returnTo") ?? "") || undefined,
     ),
   );
   if (!res.ok) return res;

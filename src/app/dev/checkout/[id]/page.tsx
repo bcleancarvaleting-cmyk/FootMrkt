@@ -10,7 +10,9 @@ import { gbp } from "@/lib/view";
 export const metadata = { title: "Sandbox checkout" };
 
 /** DEV ONLY: stands in for a hosted payment page. No card details are ever entered here. */
-export default async function SandboxCheckout({ params }: { params: Promise<{ id: string }> }) {
+export default async function SandboxCheckout({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ next?: string }> }) {
+  const { next: nextRaw } = await searchParams;
+  const next = nextRaw && nextRaw.startsWith("/") && !nextRaw.startsWith("//") ? nextRaw : null;
   const user = await requireUser();
   if (!(await isEnabled("DEV_TOOLS"))) notFound();
   const { id } = await params;
@@ -32,8 +34,8 @@ export default async function SandboxCheckout({ params }: { params: Promise<{ id
         <>
           <p className="text-mint">This order is {order.status.toLowerCase()}.</p>
           {order.status === "PAID" && (
-            <Link href={order.kind === "DEPOSIT" ? (basket ? "/transfers/basket" : "/account/wallet") : "/packs"} className="btn-primary inline-flex px-8 py-3">
-              {order.kind === "DEPOSIT" ? (basket ? "Back to my basket" : "Back to my wallet") : "Open my pack"}
+            <Link href={order.kind === "DEPOSIT" ? (next ?? (basket ? "/transfers/basket" : "/account/wallet")) : "/packs"} className="btn-primary inline-flex px-8 py-3">
+              {order.kind === "DEPOSIT" ? (next?.startsWith("/competitions") ? "Back to the match" : next?.startsWith("/transfers/basket") || (!next && basket) ? "Back to my basket" : "Back to my wallet") : "Open my pack"}
             </Link>
           )}
         </>

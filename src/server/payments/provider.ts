@@ -15,7 +15,8 @@ export interface PaymentWebhookEvent {
 
 export interface PaymentProvider {
   readonly name: string;
-  createCheckout(order: { id: string; amountMinor: number; currency: string }): Promise<{ providerRef: string; checkoutUrl: string }>;
+  /** returnPath: where to send the player after paying (a path on this site, e.g. back to a match). */
+  createCheckout(order: { id: string; amountMinor: number; currency: string; returnPath?: string }): Promise<{ providerRef: string; checkoutUrl: string }>;
   /** Verify signature and parse. Throws on an invalid signature. */
   verifyWebhook(rawBody: string, signature: string | null): PaymentWebhookEvent;
   refund(providerRef: string, amountMinor: number): Promise<void>;
@@ -33,7 +34,7 @@ export function signSandbox(rawBody: string): string {
 export const sandboxProvider: PaymentProvider = {
   name: "sandbox",
   async createCheckout(order) {
-    return { providerRef: `sbx_${order.id}`, checkoutUrl: `/dev/checkout/${order.id}` };
+    return { providerRef: `sbx_${order.id}`, checkoutUrl: `/dev/checkout/${order.id}${order.returnPath ? `?next=${encodeURIComponent(order.returnPath)}` : ""}` };
   },
   verifyWebhook(rawBody, signature) {
     const expected = Buffer.from(signSandbox(rawBody), "hex");

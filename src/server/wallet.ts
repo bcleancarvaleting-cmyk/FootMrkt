@@ -182,7 +182,8 @@ export const DepositSchema = z.object({
 });
 
 /** Start a card top-up: buy an MX bundle. Credited as MX when the payment provider confirms (verified webhook). */
-export async function startDeposit(userId: string, input: z.input<typeof DepositSchema>, clientKey: string, provider = paymentProvider()) {
+export async function startDeposit(userId: string, input: z.input<typeof DepositSchema>, clientKey: string, provider = paymentProvider(), returnPath?: string) {
+  const back = returnPath && /^\/[A-Za-z0-9/_\-?=&.]*$/.test(returnPath) && !returnPath.startsWith("//") ? returnPath : undefined;
   await requireFlag("DEPOSITS");
   const data = DepositSchema.parse(input);
   const bundle = bundleFor(data.bundle)!;
@@ -193,7 +194,7 @@ export async function startDeposit(userId: string, input: z.input<typeof Deposit
   const idempotencyKey = `deposit:${userId}:${clientKey}`;
   const existing = await db.order.findUnique({ where: { idempotencyKey } });
   const order = existing ?? (await db.order.create({ data: { userId, kind: "DEPOSIT", refId: `bundle:${bundle.code}:${bundle.mxMinor}`, amountMinor: bundle.priceMinor, provider: provider.name, idempotencyKey } }));
-  const checkout = await provider.createCheckout({ id: order.id, amountMinor: order.amountMinor, currency: order.currency });
+  const checkout = await provider.createCheckout({ id: order.id, amountMinor: order.amountMinor, currency: order.currency, returnPath: back });
   if (!order.providerRef) await db.order.update({ where: { id: order.id }, data: { providerRef: checkout.providerRef } });
   return { orderId: order.id, checkoutUrl: checkout.checkoutUrl };
 }

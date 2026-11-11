@@ -76,7 +76,7 @@ export default async function BasketPage({ searchParams }: { searchParams: Promi
                     You&apos;re <b>{fmtMp(v.shortMinor)}</b> short. Top up below, then come back and pay for all.
                   </p>
                 </div>
-                <DepositForm enabled={depositsOn} initial={v.bundle?.code} />
+                <DepositForm enabled={depositsOn} initial={v.bundle?.code} returnTo="/transfers/basket" />
                 <p className="text-center text-xs text-faint">
                   Or earn MX free: swap XP in your <Link href="/account/wallet#xp" className="underline">wallet</Link>, or sell a player.
                 </p>

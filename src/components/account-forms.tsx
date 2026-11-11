@@ -7,7 +7,7 @@ import { cashOutMxAction, convertXpAction, depositAction, updateProfileAction, w
 import { ResultText } from "./action-button";
 
 /** Buy an MX bundle by card (wallet, and the basket when MX is short). */
-export function DepositForm({ enabled, initial = "squad" }: { enabled: boolean; initial?: string }) {
+export function DepositForm({ enabled, initial = "squad", returnTo }: { enabled: boolean; initial?: string; returnTo?: string }) {
   const [state, action, pending] = useActionState(depositAction, null);
   const [key] = useState(() => crypto.randomUUID());
   const [pick, setPick] = useState(MX_BUNDLES.some((b) => b.code === initial) ? initial : "squad");
@@ -16,6 +16,7 @@ export function DepositForm({ enabled, initial = "squad" }: { enabled: boolean; 
     <form action={action} className="space-y-4">
       <input type="hidden" name="clientKey" value={key} />
       <input type="hidden" name="bundle" value={pick} />
+      {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="MX bundles">
         {MX_BUNDLES.map((b) => {
           const on = pick === b.code;

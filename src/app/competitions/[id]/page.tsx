@@ -2,7 +2,10 @@ import Link from "next/link";
 import { ManagerBadge } from "@/components/club-crest";
 import { FoundingBadge } from "@/components/founding-badge";
 import { type Requirements, requirementsSummary } from "@/server/competitions";
-import { fmtMp } from "@/server/wallet";
+import { balancesFor, fmtMp } from "@/server/wallet";
+import { isEnabled } from "@/server/flags";
+import { DepositForm } from "@/components/account-forms";
+import { bundleForShortfall } from "@/config/bundles";
 import { notFound } from "next/navigation";
 import { type BuilderCard, SquadBuilder } from "@/components/squad-builder";
 import { FORMATIONS, categoriesForFormat, getRosterRules } from "@/domain/football/rules";
@@ -59,6 +62,8 @@ export default async function CompetitionPage({ params }: { params: Promise<{ id
         </div>
         )}
       </div>
+
+      {open && comp.entryFeeMinor > 0 && !entry && <EntryFee userId={user.id} competitionId={comp.id} feeMinor={comp.entryFeeMinor} />}
 
       {open ? (
         ((comp.requirements ?? {}) as Requirements).draftBudgetMx ? (
@@ -339,6 +344,50 @@ async function Result({ entryId, settled }: { entryId: string; settled: boolean 
           {!settled && " Provisional — stat corrections may still change these numbers."}
         </p>
       </aside>
+    </section>
+  );
+}
+
+/**
+ * Paid matches: the entry fee is paid in MX when the squad is submitted. If the manager hasn't got
+ * enough, show what's short and the MX bundles, then bring them straight back here after paying.
+ */
+async function EntryFee({ userId, competitionId, feeMinor }: { userId: string; competitionId: string; feeMinor: number }) {
+  const [bal, paidEntry, depositsOn] = await Promise.all([balancesFor(userId), isEnabled("PAID_ENTRY"), isEnabled("DEPOSITS")]);
+  const short = Math.max(0, feeMinor - bal.total);
+  if (!paidEntry) {
+    return <p className="rounded-xl border border-ink-600 bg-ink-900 px-4 py-3 text-sm text-muted">This match has a {fmtMp(feeMinor)} entry fee. Paid entry opens soon — you can pick your squad, but entries aren&apos;t taken yet.</p>;
+  }
+  return (
+    <section className={`rounded-2xl border p-5 ${short ? "border-accent/60 bg-accent/5" : "border-mint/50 bg-ink-900"}`}>
+      <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
+        <span>
+          <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-faint">Entry fee</span>
+          <span className="font-display text-2xl font-black tabular-nums">{fmtMp(feeMinor)}</span>
+        </span>
+        <span>
+          <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-faint">Your MX</span>
+          <span className={`font-display text-2xl font-black tabular-nums ${short ? "text-danger" : "text-mint"}`}>{fmtMp(bal.total)}</span>
+        </span>
+        <span className="min-w-0 basis-full text-sm text-muted sm:basis-0 sm:flex-1">
+          {short ? (
+            <>
+              You need <b className="text-fg">{fmtMp(short)}</b> more MX to enter. Top up below — you&apos;ll come straight back here to pick your squad.
+            </>
+          ) : (
+            "✓ You have enough MX. The fee is taken when you submit your squad, and refunded if you withdraw before the deadline."
+          )}
+        </span>
+      </div>
+      {short > 0 && (
+        <div className="mt-4 border-t border-ink-700 pt-4">
+          <p className="mb-3 font-display text-2xl font-black uppercase italic">You need MX</p>
+          <DepositForm enabled={depositsOn} initial={bundleForShortfall(short).code} returnTo={`/competitions/${competitionId}`} />
+          <p className="mt-2 text-center text-xs text-faint">
+            Or earn MX free: swap XP in your <Link href="/account/wallet#xp" className="underline">wallet</Link>, or sell a player.
+          </p>
+        </div>
+      )}
     </section>
   );
 }

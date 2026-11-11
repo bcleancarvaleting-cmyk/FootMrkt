@@ -57,11 +57,14 @@ export async function answerQuestion(userId: string, questionId: string, guess: 
 /** Today's question with the manager's answer and the last few results. */
 export async function predictionPanel(userId: string) {
   const q = await todaysQuestion();
-  const [mine, recent] = await Promise.all([
+  const [mine, recent, votes] = await Promise.all([
     q ? db.predictionAnswer.findUnique({ where: { questionId_userId: { questionId: q.id, userId } } }) : null,
     db.predictionAnswer.findMany({ where: { userId, correct: { not: null } }, orderBy: { createdAt: "desc" }, take: 5, include: { question: true } }),
+    q ? db.predictionAnswer.groupBy({ by: ["guess"], where: { questionId: q.id }, _count: { _all: true } }) : [],
   ]);
-  return { question: q, mine, recent };
+  // How everyone has voted so far, for the Yes/No bar.
+  const tally = { yes: votes.find((v) => v.guess === true)?._count._all ?? 0, no: votes.find((v) => v.guess === false)?._count._all ?? 0 };
+  return { question: q, mine, recent, tally };
 }
 
 /** Settle any questions whose match has finished: right answers earn XP. Safe to run repeatedly. */

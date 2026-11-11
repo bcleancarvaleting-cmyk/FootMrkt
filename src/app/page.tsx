@@ -6,7 +6,6 @@ import { managerLevel } from "@/server/progression";
 import { CardRow } from "@/components/card-row";
 import { Countdown, CountdownBlocks } from "@/components/countdown";
 import { PlayerCard } from "@/components/player-card";
-import { StadiumScene } from "@/components/stadium";
 import { ClubBadge } from "@/components/club-badge";
 import { KitShirt } from "@/components/kit-shirt";
 import { MatchCard } from "@/components/match-card";
@@ -369,7 +368,7 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
             <>
               <p className="mt-1 font-semibold">{prediction.question.question}</p>
               <p className="mb-2 text-[11px] text-faint">Locks {fmtDate(prediction.question.locksAt)}</p>
-              <PredictionButtons questionId={prediction.question.id} initial={prediction.mine?.guess ?? null} locked={prediction.question.locksAt <= new Date()} />
+              <PredictionButtons questionId={prediction.question.id} initial={prediction.mine?.guess ?? null} locked={prediction.question.locksAt <= new Date()} tally={prediction.tally} />
             </>
           ) : (
             <p className="mt-1 text-sm text-muted">No matches coming up — the next question appears with the next fixtures.</p>
@@ -474,7 +473,12 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
   );
 }
 
-/** The hero photo set in Admin → Settings, or the built-in floodlit stadium with its arch. */
+/**
+ * Hero photo: the one set in Admin → Settings, else Wembley's arch at night (Martin Pettitt,
+ * CC BY 2.0 — credited on the photo and in Legal → credits).
+ */
+const WEMBLEY = { src: "/hero/wembley-night.webp", fallback: "/hero/wembley-night.jpg", credit: "Photo: Martin Pettitt, CC BY 2.0", href: "https://commons.wikimedia.org/wiki/File:WembleyStadiumNight.jpg" };
+
 function HeroBackground({ image }: { image: string }) {
   return (
     <>
@@ -482,10 +486,19 @@ function HeroBackground({ image }: { image: string }) {
         // eslint-disable-next-line @next/next/no-img-element
         <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
       ) : (
-        <StadiumScene arch className="absolute inset-0 h-full w-full" />
+        <picture>
+          <source srcSet={WEMBLEY.src} type="image/webp" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={WEMBLEY.fallback} alt="Wembley Stadium's arch lit up at night" className="absolute inset-0 h-full w-full object-cover object-[50%_30%]" fetchPriority="high" />
+        </picture>
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-[#060708] via-[#060708]/35 to-transparent" aria-hidden="true" />
       <div className="absolute inset-0 hidden bg-gradient-to-r from-[#060708]/75 via-[#060708]/10 to-transparent sm:block" aria-hidden="true" />
+      {!image && (
+        <a href={WEMBLEY.href} target="_blank" rel="noreferrer" className="absolute right-3 top-3 z-10 rounded bg-black/40 px-1.5 py-0.5 text-[9px] text-white/55 hover:text-white">
+          {WEMBLEY.credit}
+        </a>
+      )}
     </>
   );
 }

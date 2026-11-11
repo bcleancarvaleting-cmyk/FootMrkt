@@ -115,11 +115,12 @@ export const LEGAL_DOCS: LegalDoc[] = [
 /** The Data & licensing page's first sections depend on whether Sportmonks supplies the data yet. */
 export function withDataSource(doc: LegalDoc, sportmonks: boolean): LegalDoc {
   if (doc.slug !== "data") return doc;
+  const photo: [string, string[]] = ["Photography", ["Homepage photo of Wembley Stadium at night by Martin Pettitt, licensed CC BY 2.0 (creativecommons.org/licenses/by/2.0), via Wikimedia Commons. Cropped and darkened for the page."]];
   const source: Array<[string, string[]]> = sportmonks
     ? [["Football data", ["Squads, fixtures, results and player statistics are supplied by Sportmonks (sportmonks.com). Club crests and shirts are generic lookalikes, not official marks."]]]
     : [
         ["Development build", ["Squads come from Wikipedia (CC BY-SA). Match data is simulated during testing. Club crests and shirts are generic lookalikes, not official marks."]],
         ["Launch", ["Before launch, squads and player statistics will be supplied by our licensed data provider, Sportmonks."]],
       ];
-  return { ...doc, sections: [...source, ...doc.sections] };
+  return { ...doc, sections: [...source, photo, ...doc.sections] };
 }

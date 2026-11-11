@@ -60,15 +60,34 @@ export async function pointsForOwners(cards: Array<{ id: string; ownerId: string
   return out;
 }
 
+/** The last 20 valuations for each player+tier (oldest first), for row graphs. */
+async function valueHistory(keys: Array<{ playerId: string; category: string }>) {
+  const out = new Map<string, number[]>();
+  if (!keys.length) return out;
+  const ids = [...new Set(keys.map((k) => k.playerId))];
+  const rows = await db.$queryRaw<Array<{ playerId: string; category: string; valueMp: number }>>`
+    SELECT "playerId", category, "valueMp" FROM (
+      SELECT "playerId", category, "valueMp", "computedAt",
+             row_number() OVER (PARTITION BY "playerId", category ORDER BY "computedAt" DESC) AS rn
+      FROM "MPValuation" WHERE "playerId" = ANY(${ids}::uuid[])
+    ) t WHERE rn <= 20 ORDER BY "computedAt" ASC`;
+  for (const r of rows) {
+    const k = valueKey(r.playerId, r.category as never);
+    out.set(k, [...(out.get(k) ?? []), r.valueMp]);
+  }
+  return out;
+}
+
 /** Turn DB cards into view models with value, trend, acquisition and points won for the owner. */
 export async function enrichCards(cards: CardWithTemplate[]): Promise<CardView[]> {
-  const [trends, acquired, points, loans, issued, stamps] = await Promise.all([
+  const [trends, acquired, points, loans, issued, stamps, history] = await Promise.all([
     valueTrends(cards.map((c) => ({ playerId: c.template.playerId, category: c.template.category }))),
     acquisitionLabels(cards.filter((c) => c.ownerId).map((c) => c.id)),
     pointsForOwners(cards),
     loansLeft(cards),
     issuedCounts([...new Set(cards.map((c) => c.templateId))]),
     stampCounts(cards.map((c) => c.id)),
+    valueHistory(cards.map((c) => ({ playerId: c.template.playerId, category: c.template.category }))),
   ]);
   return cards.map((c) => {
     const t = trends.get(valueKey(c.template.playerId, c.template.category));
@@ -81,6 +100,7 @@ export async function enrichCards(cards: CardWithTemplate[]): Promise<CardView[]
       loan: loans.get(c.id),
       issued: issued.get(c.templateId),
       stamps: stamps.get(c.id) ?? 0,
+      history: (history.get(valueKey(c.template.playerId, c.template.category)) ?? []).map((v) => Math.round(v * (c.finish ? FINISH_VALUE[c.finish.kind] : 1) * 100) / 100),
     });
   });
 }

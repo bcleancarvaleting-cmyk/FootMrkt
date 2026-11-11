@@ -1,3 +1,4 @@
+import { FINISHES } from "@/config/tiers";
 import { type Kit, toKit } from "./kit";
 
 export type Category = "BRONZE" | "SILVER" | "GOLD";
@@ -15,7 +16,7 @@ export interface CardView {
   edition: "STANDARD" | "STARTER" | "LOAN";
   /** Loan players only: gameweeks left of the loan (counted by gameweeks the manager enters). */
   loan: { left: number; total: number; ended: boolean } | null;
-  /** Special finish on a Gold — cosmetic only; null for normal cards. "Ruby 3 of 10", "Diamond 2 of 5". */
+  /** Special finish on a Gold — cosmetic only; null for normal cards. "Ruby 3 of 20", "Diamond 2 of 10". */
   finish: { kind: "RUBY" | "DIAMOND" | "RAINBOW"; serial: number; of: number } | null;
   /** Copies of this design issued so far (null when not looked up). */
   issued: number | null;
@@ -36,6 +37,8 @@ export interface CardView {
   valueMp: number | null;
   /** % change vs the previous valuation (null = no history yet). */
   trendPct: number | null;
+  /** Recent value history (MX, oldest first, finish multiplier applied) for a small graph. */
+  history?: number[];
   /** How the current owner got it: "Starter", "Packed", "Paid £4.50", … */
   acquired: string | null;
   /** Points this card has won for its current owner in settled competitions (null = not owned). */
@@ -98,6 +101,7 @@ export function toCardView(
     loan?: { left: number; ended: boolean };
     issued?: number;
     stamps?: number;
+    history?: number[];
   } = {},
 ): CardView {
   const p = c.template.player;
@@ -113,10 +117,11 @@ export function toCardView(
     edition: c.template.edition as CardView["edition"],
     loan,
     finish: c.finish
-      ? { kind: c.finish.kind as "RUBY" | "DIAMOND" | "RAINBOW", serial: c.finish.serial, of: c.finish.kind === "RAINBOW" ? 1 : c.finish.kind === "DIAMOND" ? 5 : 10 }
+      ? { kind: c.finish.kind as "RUBY" | "DIAMOND" | "RAINBOW", serial: c.finish.serial, of: FINISHES[c.finish.kind as "RUBY" | "DIAMOND" | "RAINBOW"].perPlayer }
       : null,
     issued: extra.issued ?? null,
     stamps: extra.stamps ?? 0,
+    history: extra.history,
     clubCode: p.club?.code ?? null,
     clubShort: p.club?.shortName ?? null,
     clubName: p.club?.name ?? null,

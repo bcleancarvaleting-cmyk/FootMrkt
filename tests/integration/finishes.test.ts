@@ -41,19 +41,19 @@ describe("Ruby and Diamond finishes (cosmetic only)", () => {
     expect(finishes).toHaveLength(golds.length);
     expect(finishes.every((f) => f.kind === "DIAMOND" && f.serial === 1)).toBe(true);
     const views = await cardViews({ id: { in: golds.map((g) => g.cardId) } });
-    expect(views.every((v) => v.category === "GOLD" && v.finish?.kind === "DIAMOND" && v.finish.of === 5)).toBe(true);
+    expect(views.every((v) => v.category === "GOLD" && v.finish?.kind === "DIAMOND" && v.finish.of === 10)).toBe(true);
     const opening = await db.packOpening.findUniqueOrThrow({ where: { id: res.openingId } });
     const audit = opening.rngAudit as { draws: Array<{ purpose: string }> };
     expect(audit.draws.filter((d) => d.purpose === "finish").length).toBeGreaterThanOrEqual(golds.length);
     expect((await supplyReport()).reconciled).toBe(true);
   });
 
-  it("a Gold can come out Ruby (red), 1 of 10 per player", async () => {
+  it("a Gold can come out Ruby (red), 1 of 20 per player", async () => {
     const u = await makeUser("ruby");
     const res = await goldPack(u.userId, "r1", lucky(4, [RUBY_ONE_IN]));
     const golds = res.cards.filter((c) => c.category === "GOLD");
     const views = await cardViews({ id: { in: golds.map((g) => g.cardId) } });
-    expect(views.every((v) => v.finish?.kind === "RUBY" && v.finish.serial === 1 && v.finish.of === 10)).toBe(true);
+    expect(views.every((v) => v.finish?.kind === "RUBY" && v.finish.serial === 1 && v.finish.of === 20)).toBe(true);
   });
 
   it("never more than 20 Rubies or 10 Diamonds of any player, however lucky the draws", async () => {

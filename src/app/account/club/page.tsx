@@ -115,6 +115,7 @@ export default async function MyClubPage({ searchParams }: { searchParams: Promi
                     key={c.id}
                     card={c}
                     href={`/cards/${c.id}`}
+                    showValue
                     sub={c.duplicateCount > 1 ? <span className="rounded bg-ink-700 px-1.5 text-[10px] font-bold text-fg">×{c.duplicateCount}</span> : undefined}
                   >
                     <RowStat label="Points for you" className="hidden w-24 sm:block">
@@ -123,7 +124,7 @@ export default async function MyClubPage({ searchParams }: { searchParams: Promi
                     <RowStat label="Acquired" className="hidden w-24 lg:block">
                       <span className="text-sm font-semibold">{c.acquired ?? "—"}</span>
                     </RowStat>
-                    <span className="w-24 shrink-0 text-right">
+                    <span className="shrink-0 text-right sm:w-24">
                       {c.loan?.ended && c.lock === "NONE" ? (
                         <ActionButton action={discardLoanAction.bind(null, c.id)} className="btn-ghost border-danger px-3 py-1.5 text-[11px] text-danger" confirm={`Discard ${c.name}? Their loan has ended and they go back to their club.`}>
                           Discard loan player

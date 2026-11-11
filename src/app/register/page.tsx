@@ -15,10 +15,10 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
       <div className="space-y-4">
         <p className="eyebrow">One account · every world</p>
         <h1 className="text-4xl font-black leading-tight">
-          Your club starts with <span className="text-lime">12 free players.</span>
+          Your club starts with <span className="text-lime">14 free players.</span>
         </h1>
         <p className="text-muted">
-          Every new manager gets a free 12-player Starter Pack, enough to enter this week&apos;s matches straight away, then more
+          Every new manager gets a free 14-player Starter Pack, enough to enter this week&apos;s matches straight away, then more
           free packs every few days for the first four weeks.
         </p>
         <ul className="space-y-2 text-sm text-muted">

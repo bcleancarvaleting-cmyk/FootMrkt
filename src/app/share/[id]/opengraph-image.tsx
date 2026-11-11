@@ -44,7 +44,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
             </div>
           ))}
         </div>
-        <div style={{ display: "flex", marginTop: "auto", fontSize: 24, color: "#adfc07", fontWeight: 700 }}>Play free at MATCHX · 12 players when you join</div>
+        <div style={{ display: "flex", marginTop: "auto", fontSize: 24, color: "#adfc07", fontWeight: 700 }}>Play free at MATCHX · 14 players when you join</div>
       </div>
     ),
     { ...size },

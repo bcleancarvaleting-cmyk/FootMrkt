@@ -11,11 +11,11 @@ describe("pack configs", () => {
     for (const p of FOOTBALL_PACKS) expect(() => parsePackConfig(p.config)).not.toThrow();
   });
 
-  it("regular packs have six cards, starter has twelve", () => {
+  it("regular packs have six cards, starter has fourteen", () => {
     expect(cardCount(pack("football-bronze"))).toBe(6);
     expect(cardCount(pack("football-silver"))).toBe(6);
     expect(cardCount(pack("football-gold"))).toBe(6);
-    expect(cardCount(pack("football-starter"))).toBe(12);
+    expect(cardCount(pack("football-starter"))).toBe(14);
   });
 
   it("advertises the guaranteed floor", () => {

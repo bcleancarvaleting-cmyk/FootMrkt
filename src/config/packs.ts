@@ -30,12 +30,13 @@ export const WEEKLY_PACK_CODE = "football-weekly";
 export const FOOTBALL_PACKS: PackSkuSeed[] = [
   {
     code: STARTER_PACK_CODE,
-    // v2 (10 Nov 2026): 12 players — a starting seven, four subs and one extra.
-    version: 2,
+    // v3 (11 Nov 2026): 14 players — a starting seven, four subs and three extras for more choice.
+    // (The two Premier League Golds on loan are a separate pick, unchanged.)
+    version: 3,
     name: "Starter Pack",
     kind: "STARTER",
     priceMinor: 0,
-    blurb: "12 players — a starting seven, four subs and one extra. Free when you join. Untradeable.",
+    blurb: "14 players — a starting seven, four subs and three extras. Free when you join. Untradeable.",
     config: {
       mode: "MINT",
       nonTradeable: true,
@@ -52,7 +53,7 @@ export const FOOTBALL_PACKS: PackSkuSeed[] = [
         { label: "Sub MID", count: 1, base: "BRONZE", filters: { positions: ["MID"] }, upgrades: [{ category: "SILVER", chanceBp: 3000 }] },
         { label: "Sub ATT", count: 1, base: "BRONZE", filters: { positions: ["ATT"] }, upgrades: [{ category: "SILVER", chanceBp: 3000 }] },
         { label: "Sub GK", count: 1, base: "BRONZE", filters: { positions: ["GK"] }, upgrades: [] },
-        { label: "Extra", count: 1, base: "BRONZE", upgrades: [{ category: "SILVER", chanceBp: 3000 }] },
+        { label: "Extra", count: 3, base: "BRONZE", upgrades: [{ category: "SILVER", chanceBp: 3000 }] },
       ],
     },
   },

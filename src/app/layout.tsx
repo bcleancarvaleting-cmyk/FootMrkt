@@ -15,6 +15,7 @@ import { Header } from "@/components/nav";
 import { StatsTicker } from "@/components/stats-ticker";
 import type { Theme } from "@/components/theme-toggle";
 import { getCurrentUser } from "@/server/auth/session";
+import { dataCredit } from "@/config/data-credit";
 import { spentToday } from "@/server/safer-play";
 import { fmtGbp } from "@/server/wallet";
 import { RealityCheck } from "@/components/reality-check";
@@ -83,8 +84,7 @@ function SiteFooter({ loggedIn }: { loggedIn: boolean }) {
         <div className="space-y-3">
           <Logo height={20} />
           <p className="max-w-xs text-xs leading-relaxed text-faint">
-            Player values go up and down. MX is an in-game valuation, not an investment. 18+ only. Development build: squads from
-            Wikipedia (CC BY-SA), match data simulated.
+            Player values go up and down. MX is an in-game valuation, not an investment. 18+ only. {dataCredit()}
           </p>
         </div>
         {cols.map(([h, links]) => (

@@ -306,7 +306,7 @@ export function JoinPoster({ cards, format }: { cards: CardView[]; format: Poste
         ))}
       </div>
       <ul className="space-y-2 text-center text-[32px] font-semibold text-white/90">
-        <li>12 free players to start</li>
+        <li>14 free players to start</li>
         <li>2 Premier League Golds on loan</li>
         <li>Score points from real matches</li>
       </ul>

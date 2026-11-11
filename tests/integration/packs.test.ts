@@ -15,21 +15,21 @@ const grant = (userId: string, skuCode: string, ref: string) =>
   withTx((tx) => grantPack(tx, { userId, skuCode, source: "DEV", sourceRef: ref }));
 
 describe("starter pack (spec §5.2, §17)", () => {
-  it("registration grants exactly one free starter pack (plus the starter loan pick) that issues 12 locked, untradeable cards", async () => {
+  it("registration grants exactly one free starter pack (plus the starter loan pick) that issues 14 locked, untradeable cards", async () => {
     const { userId, starterEntitlementId } = await makeUser();
     const ents = await db.packEntitlement.findMany({ where: { userId }, include: { packSku: true } });
     expect(ents.map((e) => e.packSku.code).sort()).toEqual(["football-loan-pick", "football-starter"]);
     expect(ents.every((e) => e.source === "STARTER")).toBe(true);
 
     const res = await openPack(userId, starterEntitlementId);
-    expect(res.cards).toHaveLength(12);
+    expect(res.cards).toHaveLength(14);
     const cards = await db.cardInstance.findMany({
       where: { id: { in: res.cards.map((c) => c.cardId) } },
       include: { template: { include: { player: { include: { club: { include: { league: true } } } } } } },
     });
     expect(cards.every((c) => c.ownerId === userId && c.supplyState === "HELD" && c.tradeStatus === "NON_TRADEABLE")).toBe(true);
     expect(cards.every((c) => c.template.edition === "STARTER")).toBe(true);
-    expect(new Set(cards.map((c) => c.template.playerId)).size).toBe(12);
+    expect(new Set(cards.map((c) => c.template.playerId)).size).toBe(14);
 
     const pos = (p: string) => cards.filter((c) => c.template.player.position === p).length;
     expect(pos("GK")).toBeGreaterThanOrEqual(1);
@@ -40,7 +40,7 @@ describe("starter pack (spec §5.2, §17)", () => {
     expect(cards.every((c) => c.template.category !== "GOLD")).toBe(true);
 
     const opening = await db.packOpening.findUniqueOrThrow({ where: { id: res.openingId } });
-    expect(opening.configSnapshot).toMatchObject({ code: "football-starter", version: 2 });
+    expect(opening.configSnapshot).toMatchObject({ code: "football-starter", version: 3 });
     expect((opening.rngAudit as { source: string }).source).toBe("node:crypto");
   });
 
@@ -52,7 +52,7 @@ describe("starter pack (spec §5.2, §17)", () => {
     const again = await openPack(userId, starterEntitlementId);
     expect(again.alreadyOpened).toBe(true);
     expect(await db.packOpening.count({ where: { userId } })).toBe(1);
-    expect(await db.cardInstance.count({ where: { ownerId: userId } })).toBe(12);
+    expect(await db.cardInstance.count({ where: { ownerId: userId } })).toBe(14);
   });
 
   it("another user cannot open my pack", async () => {

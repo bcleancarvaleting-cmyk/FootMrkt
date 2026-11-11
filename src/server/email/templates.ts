@@ -27,10 +27,10 @@ const b = (s: string) => `<b style="color:#f4f5f2">${esc(s)}</b>`;
 export const EMAILS = {
   welcome: (d: { name: string; verifyUrl?: string }) =>
     layout({
-      preheader: "Your 12 free players are waiting.",
+      preheader: "Your 14 free players are waiting.",
       title: `Welcome to MATCHX, ${d.name}`,
       paragraphs: [
-        `Your club is ready. Open your free ${b("12-player Starter Pack")}, pick your seven and enter this gameweek's free matches.`,
+        `Your club is ready. Open your free ${b("14-player Starter Pack")}, pick your seven and enter this gameweek's free matches.`,
         `More free packs land over your first four weeks: a Squad Boost on day 3, a Gold on day 6, a Mixed Pack on day 9 and your choice of Gold on day 12.`,
         ...(d.verifyUrl ? [`Please confirm your email address so we can reach you about prizes.`] : []),
       ],

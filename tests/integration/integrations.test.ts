@@ -115,3 +115,32 @@ describe("Rebuild from Sportmonks", () => {
     expect(await db.notification.count({ where: { userId: owner.id, title: { contains: "has moved" } } })).toBe(1);
   });
 });
+
+describe("Payments switch (Admin → Integrations)", () => {
+  it("off blocks every card checkout; Live needs both Stripe keys; keys are stored encrypted", async () => {
+    const { loadPayments, setPaymentsMode, cardPaymentsReady } = await import("@/server/payments/config");
+    const { startDeposit } = await import("@/server/wallet");
+    process.env.LEGAL_GATES_CLEARED = "DEPOSITS";
+    process.env.FLAG_DEPOSITS = "true";
+    const { makeUser } = await import("./fixtures");
+    const u = await makeUser("payer1");
+    await db.user.update({ where: { id: u.userId }, data: { dateOfBirth: new Date("1990-01-01") } });
+
+    await setPaymentsMode("off", null);
+    expect((await cardPaymentsReady()).ready).toBe(false);
+    await expect(startDeposit(u.userId, { bundle: "squad", acceptTerms: true, acceptRisk: true }, "k-off")).rejects.toMatchObject({ code: "PAYMENTS_OFF" });
+
+    await expect(setPaymentsMode("stripe", null)).rejects.toMatchObject({ code: "STRIPE_KEYS" });
+    await saveSecret("stripe.secret", "sk_test_abcdefghijklmnop1234", null);
+    await saveSecret("stripe.webhook", "whsec_abcdefghijklmnop1234", null);
+    await setPaymentsMode("stripe", null);
+    const c = await loadPayments(true);
+    expect(c).toMatchObject({ mode: "stripe", stripeKey: "sk_test_abcdefghijklmnop1234", webhookSecret: "whsec_abcdefghijklmnop1234" });
+    const row = await db.appSetting.findUniqueOrThrow({ where: { key: "secret.stripe.secret" } });
+    expect(JSON.stringify(row.value)).not.toContain("abcdefghijklmnop");
+
+    await setPaymentsMode("test", null);
+    expect((await cardPaymentsReady()).ready).toBe(true); // test checkout (Dev tools on in tests)
+    await expect(startDeposit(u.userId, { bundle: "squad", acceptTerms: true, acceptRisk: true }, "k-test")).resolves.toMatchObject({ checkoutUrl: expect.stringContaining("/dev/checkout/") });
+  });
+});

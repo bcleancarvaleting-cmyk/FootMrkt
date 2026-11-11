@@ -20,6 +20,7 @@ const SAMPLES: { [K in EmailTemplate]: Parameters<(typeof EMAILS)[K]>[0] } = {
   withdrawal: { name: "DemoManager", amount: "£12.50", paid: true },
   passwordReset: { name: "DemoManager", url: "https://matchx.app/reset-password?token=example" },
   supportReceived: { name: "DemoManager", ref: "A1B2C3" },
+  test: { name: "DemoManager" },
 };
 
 export default async function EmailsAdmin({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {

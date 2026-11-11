@@ -61,3 +61,74 @@ export async function rebuildFromSportmonksAction(): Promise<ActionResult> {
   refresh();
   return res;
 }
+
+// ───────────── Payments & email ─────────────
+
+const SECRET_RULES: Record<string, { label: string; ok: (v: string) => boolean; hint: string }> = {
+  "stripe.secret": { label: "Stripe secret key", ok: (v) => /^(sk|rk)_(test|live)_[A-Za-z0-9]{10,}$/.test(v), hint: "It starts sk_live_ (or sk_test_ for a test account), from Stripe → Developers → API keys." },
+  "stripe.webhook": { label: "Stripe webhook signing secret", ok: (v) => /^whsec_[A-Za-z0-9]{10,}$/.test(v), hint: "It starts whsec_, from Stripe → Developers → Webhooks → your endpoint → Signing secret." },
+  "stripe.publishable": { label: "Stripe publishable key", ok: (v) => /^pk_(test|live)_[A-Za-z0-9]{10,}$/.test(v), hint: "It starts pk_live_ (or pk_test_), from Stripe → Developers → API keys." },
+  resend: { label: "Resend API key", ok: (v) => /^re_[A-Za-z0-9_]{10,}$/.test(v), hint: "It starts re_, from resend.com → API Keys." },
+};
+
+export async function saveIntegrationSecretAction(name: string, _: ActionResult | null, f: FormData): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const rule = SECRET_RULES[name];
+  if (!rule) return { ok: false, error: "Unknown key." };
+  const value = String(f.get("value") ?? "").trim();
+  if (!rule.ok(value)) return { ok: false, error: `That doesn't look like a ${rule.label}. ${rule.hint}` };
+  if (name === "stripe.secret") {
+    const res = await fetch("https://api.stripe.com/v1/balance", { headers: { Authorization: `Bearer ${value}` } }).catch(() => null);
+    if (res && res.status === 401) return { ok: false, error: "Stripe didn't accept that key — copy it again from Stripe → Developers → API keys." };
+  }
+  await saveSecret(name, value, admin.id);
+  const { loadPayments } = await import("@/server/payments/config");
+  await loadPayments(true);
+  refresh();
+  return { ok: true, data: undefined, message: `${rule.label} saved (stored encrypted).` };
+}
+
+export async function removeIntegrationSecretAction(name: string): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  if (!SECRET_RULES[name]) return { ok: false, error: "Unknown key." };
+  const { loadPayments, paymentsConfig, setPaymentsMode } = await import("@/server/payments/config");
+  const res = await attempt(async () => {
+    await deleteSecret(name, admin.id);
+    await loadPayments(true);
+    // Never leave live payments on without the keys they need.
+    if (name.startsWith("stripe.") && paymentsConfig().mode === "stripe" && !paymentsConfig().fromEnv) await setPaymentsMode("off", admin.id);
+  }, "Removed");
+  refresh();
+  return res;
+}
+
+export async function setPaymentsModeAction(mode: "off" | "test" | "stripe"): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const { setPaymentsMode } = await import("@/server/payments/config");
+  const res = await attempt(() => setPaymentsMode(mode, admin.id), mode === "off" ? "Card payments switched off" : mode === "test" ? "Test payments on (no real money)" : "Live card payments switched on");
+  revalidatePath("/", "layout");
+  return res;
+}
+
+export async function saveEmailFromAction(_: ActionResult | null, f: FormData): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const from = String(f.get("from") ?? "").trim();
+  if (!/^[^<>]{1,60}<[^@\s<>]+@[^@\s<>]+\.[a-z]{2,}>$/i.test(from) && !/^[^@\s<>]+@[^@\s<>]+\.[a-z]{2,}$/i.test(from)) {
+    return { ok: false, error: 'Use an address on your verified domain, e.g. MATCHX <hello@playmatchx.com>' };
+  }
+  await db.appSetting.upsert({ where: { key: "email.from" }, create: { key: "email.from", value: from, updatedBy: admin.id }, update: { value: from, updatedBy: admin.id } });
+  refresh();
+  return { ok: true, data: undefined, message: "Sender saved." };
+}
+
+export async function sendTestEmailAction(): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const { sendEmail } = await import("@/server/email/send");
+  const status = await sendEmail("test", { userId: admin.id, email: admin.email }, { name: admin.displayName });
+  refresh();
+  return status === "SENT"
+    ? { ok: true, data: undefined, message: `Sent to ${admin.email} — check your inbox (and spam).` }
+    : status === "LOGGED"
+      ? { ok: false, error: "No email key saved, so it was only logged (see Admin → Emails)." }
+      : { ok: false, error: "Resend refused it — see the error in Admin → Emails. Usually the sender's domain isn't verified in Resend yet." };
+}

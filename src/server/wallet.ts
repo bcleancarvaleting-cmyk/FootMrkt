@@ -6,7 +6,7 @@ import { type Tx, db, withTx } from "./db";
 import { DomainError } from "./errors";
 import { requireFlag } from "./flags";
 import { grantPack, latestSku } from "./packs";
-import { paymentProvider } from "./payments/provider";
+import { type PaymentProvider, paymentProvider } from "./payments/provider";
 import { assertCanSpend } from "./safer-play";
 
 /**
@@ -182,9 +182,12 @@ export const DepositSchema = z.object({
 });
 
 /** Start a card top-up: buy an MX bundle. Credited as MX when the payment provider confirms (verified webhook). */
-export async function startDeposit(userId: string, input: z.input<typeof DepositSchema>, clientKey: string, provider = paymentProvider(), returnPath?: string) {
+export async function startDeposit(userId: string, input: z.input<typeof DepositSchema>, clientKey: string, given?: PaymentProvider, returnPath?: string) {
   const back = returnPath && /^\/[A-Za-z0-9/_\-?=&.]*$/.test(returnPath) && !returnPath.startsWith("//") ? returnPath : undefined;
   await requireFlag("DEPOSITS");
+  const { requireCardPayments } = await import("./payments/config");
+  await requireCardPayments();
+  const provider = given ?? paymentProvider();
   const data = DepositSchema.parse(input);
   const bundle = bundleFor(data.bundle)!;
   const user = await db.user.findUniqueOrThrow({ where: { id: userId } });

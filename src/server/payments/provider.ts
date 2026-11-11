@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { paymentsConfig } from "./config";
 import { stripeProvider } from "./stripe";
 
 /**
@@ -47,14 +48,14 @@ export const sandboxProvider: PaymentProvider = {
   },
 };
 
-/** The live provider is chosen by PAYMENTS_PROVIDER ("stripe"); anything else uses the sandbox. */
-export function paymentProvider(name = process.env.PAYMENTS_PROVIDER ?? "sandbox"): PaymentProvider {
+/** The provider for the payments switch (Admin → Integrations): "stripe" for live, else the sandbox. */
+export function paymentProvider(name = paymentsConfig().mode === "stripe" ? "stripe" : "sandbox"): PaymentProvider {
   if (name === "sandbox") return sandboxProvider;
   if (name === "stripe") return stripeProvider;
   throw new Error(`Unknown payment provider ${name}`);
 }
 
 /** The signature header each provider sends with its webhooks. */
-export function signatureHeader(name = process.env.PAYMENTS_PROVIDER ?? "sandbox") {
+export function signatureHeader(name = paymentsConfig().mode === "stripe" ? "stripe" : "sandbox") {
   return name === "stripe" ? "stripe-signature" : "x-sandbox-signature";
 }

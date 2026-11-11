@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cardPaymentsReady } from "@/server/payments/config";
 import { ConvertXpForm, DepositForm, WithdrawForm } from "@/components/account-forms";
 import { GateNotice } from "@/components/page-header";
 import { basketCount } from "@/server/basket";
@@ -35,6 +36,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
   const user = await requireUser();
   const { bundle, paid } = await searchParams;
   const inBasket = await basketCount(user.id);
+  const cardReady = (await cardPaymentsReady()).ready;
   const XP_PER_MX = await xpPerMx();
   const [u, bal, ledger, withdrawals, depositsOn, withdrawalsOn] = await Promise.all([
     db.user.findUniqueOrThrow({ where: { id: user.id } }),
@@ -94,8 +96,8 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
           )}
           <h2 className="mb-1 text-2xl">Add funds</h2>
           <p className="mb-4 text-sm text-muted">Buy MX by card — the bigger bundles come with bonus MX. Packs cost the same in £ or MX; use MX for player drops too.</p>
-          {!depositsOn && <GateNotice>Coming soon. Adding funds by card opens after the beta, once our payment provider is live.</GateNotice>}
-          <DepositForm enabled={depositsOn} initial={bundle} />
+          {(!depositsOn || !cardReady) && <GateNotice>Coming soon. Adding funds by card opens after the beta, once our payment provider is live.</GateNotice>}
+          <DepositForm enabled={depositsOn && cardReady} initial={bundle} />
         </div>
         <div id="withdraw" className="panel scroll-mt-24 p-5">
           <h2 className="mb-1 text-2xl">Withdraw winnings</h2>

@@ -3,6 +3,7 @@ import { db, withTx } from "./db";
 import { DomainError, isUniqueViolation } from "./errors";
 import { requireFlag } from "./flags";
 import { grantPack, latestSku } from "./packs";
+import { loadPayments, requireCardPayments } from "./payments/config";
 import { type PaymentProvider, paymentProvider } from "./payments/provider";
 import { assertCanSpend } from "./safer-play";
 import { fulfilDeposit, isAdult } from "./wallet";
@@ -32,9 +33,11 @@ async function createOrder(
   }
 }
 
-export async function startPackPurchase(userId: string, skuCode: string, clientKey: string, provider = paymentProvider()) {
+export async function startPackPurchase(userId: string, skuCode: string, clientKey: string, given?: PaymentProvider) {
   await requireFlag("PACK_SHOP");
   await requireFlag("PAID_PACKS");
+  await requireCardPayments();
+  const provider = given ?? paymentProvider();
   const sku = await latestSku(skuCode);
   if (sku.kind !== "REGULAR" || sku.priceMinor <= 0) throw new DomainError("NOT_FOR_SALE", "This pack isn't for sale.");
   const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
@@ -51,7 +54,9 @@ export async function startPackPurchase(userId: string, skuCode: string, clientK
  * once; fulfilment (pack grant / ownership transfer) is in the same transaction as the order
  * status change, so a replayed webhook can never duplicate an order, pack or transfer.
  */
-export async function handlePaymentWebhook(rawBody: string, signature: string | null, provider = paymentProvider()) {
+export async function handlePaymentWebhook(rawBody: string, signature: string | null, given?: PaymentProvider) {
+  await loadPayments();
+  const provider = given ?? paymentProvider();
   const event = provider.verifyWebhook(rawBody, signature);
   const result = await withTx(async (tx) => {
     const inserted = await tx.paymentEvent.createMany({

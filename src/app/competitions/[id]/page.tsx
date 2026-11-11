@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cardPaymentsReady } from "@/server/payments/config";
 import { ManagerBadge } from "@/components/club-crest";
 import { FoundingBadge } from "@/components/founding-badge";
 import { type Requirements, requirementsSummary } from "@/server/competitions";
@@ -353,7 +354,7 @@ async function Result({ entryId, settled }: { entryId: string; settled: boolean 
  * enough, show what's short and the MX bundles, then bring them straight back here after paying.
  */
 async function EntryFee({ userId, competitionId, feeMinor }: { userId: string; competitionId: string; feeMinor: number }) {
-  const [bal, paidEntry, depositsOn] = await Promise.all([balancesFor(userId), isEnabled("PAID_ENTRY"), isEnabled("DEPOSITS")]);
+  const [bal, paidEntry, depositsOn, pay] = await Promise.all([balancesFor(userId), isEnabled("PAID_ENTRY"), isEnabled("DEPOSITS"), cardPaymentsReady()]);
   const short = Math.max(0, feeMinor - bal.total);
   if (!paidEntry) {
     return <p className="rounded-xl border border-ink-600 bg-ink-900 px-4 py-3 text-sm text-muted">This match has a {fmtMp(feeMinor)} entry fee. Paid entry opens soon — you can pick your squad, but entries aren&apos;t taken yet.</p>;
@@ -382,7 +383,7 @@ async function EntryFee({ userId, competitionId, feeMinor }: { userId: string; c
       {short > 0 && (
         <div className="mt-4 border-t border-ink-700 pt-4">
           <p className="mb-3 font-display text-2xl font-black uppercase italic">You need MX</p>
-          <DepositForm enabled={depositsOn} initial={bundleForShortfall(short).code} returnTo={`/competitions/${competitionId}`} />
+          <DepositForm enabled={depositsOn && pay.ready} initial={bundleForShortfall(short).code} returnTo={`/competitions/${competitionId}`} />
           <p className="mt-2 text-center text-xs text-faint">
             Or earn MX free: swap XP in your <Link href="/account/wallet#xp" className="underline">wallet</Link>, or sell a player.
           </p>

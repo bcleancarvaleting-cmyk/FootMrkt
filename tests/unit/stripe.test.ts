@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { verifyStripeSignature } from "@/server/payments/stripe";
+import { verifyStripeSignature } from "@/server/payments/stripe-signature";
 
 const secret = "whsec_test";
 const body = JSON.stringify({ id: "evt_1", type: "checkout.session.completed" });

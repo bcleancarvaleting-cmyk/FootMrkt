@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cardPaymentsReady } from "@/server/payments/config";
 import { DepositForm } from "@/components/account-forms";
 import { CheckoutButton, RemoveFromBasketButton } from "@/components/basket-buttons";
 import { CardRow } from "@/components/card-row";
@@ -16,7 +17,7 @@ export default async function BasketPage({ searchParams }: { searchParams: Promi
   const sp = await searchParams;
   const signed = (sp.signed ?? "").split("|").filter(Boolean);
   const missed = (sp.missed ?? "").split("|").filter(Boolean);
-  const [v, depositsOn] = await Promise.all([basketView(user.id), isEnabled("DEPOSITS")]);
+  const [v, depositsOn, pay] = await Promise.all([basketView(user.id), isEnabled("DEPOSITS"), cardPaymentsReady()]);
   return (
     <div className="space-y-6">
       <PageHeader eyebrow="Transfers" title="Basket" intro="Players you've added from MATCHX drops. Pay for them all at once with MX — once paid they're in your club and ready to play. Players aren't held for you: if someone else pays first, they're gone." />
@@ -76,7 +77,7 @@ export default async function BasketPage({ searchParams }: { searchParams: Promi
                     You&apos;re <b>{fmtMp(v.shortMinor)}</b> short. Top up below, then come back and pay for all.
                   </p>
                 </div>
-                <DepositForm enabled={depositsOn} initial={v.bundle?.code} returnTo="/transfers/basket" />
+                <DepositForm enabled={depositsOn && pay.ready} initial={v.bundle?.code} returnTo="/transfers/basket" />
                 <p className="text-center text-xs text-faint">
                   Or earn MX free: swap XP in your <Link href="/account/wallet#xp" className="underline">wallet</Link>, or sell a player.
                 </p>

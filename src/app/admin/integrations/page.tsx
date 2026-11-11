@@ -1,5 +1,11 @@
 import { rebuildFromSportmonksAction, removeSportmonksTokenAction, runSportmonksCheckAction, setSportmonksOnAction } from "@/app/actions/integrations";
+import Link from "next/link";
 import { ActionButton } from "@/components/action-button";
+import { removeIntegrationSecretAction, sendTestEmailAction, setPaymentsModeAction } from "@/app/actions/integrations";
+import { EmailFromForm, SecretForm } from "@/components/integrations-forms";
+import { cardPaymentsReady, loadPayments } from "@/server/payments/config";
+import { allFlags } from "@/server/flags";
+import { APP_URL } from "@/server/email/templates";
 import { SportmonksTokenForm } from "@/components/integrations-forms";
 import { fmtDate } from "@/lib/view";
 import { db } from "@/server/db";
@@ -28,6 +34,24 @@ function Step({ n, title, children, done }: { n: number; title: string; children
 }
 
 export default async function Integrations() {
+  const [pay, payReady, stripeSecret, stripeHook, stripePub, resendKey, emailFromRow] = await Promise.all([
+    loadPayments(true),
+    cardPaymentsReady(),
+    secretInfo("stripe.secret"),
+    secretInfo("stripe.webhook"),
+    secretInfo("stripe.publishable"),
+    secretInfo("resend"),
+    db.appSetting.findUnique({ where: { key: "email.from" } }),
+  ]);
+  const emailFrom = typeof emailFromRow?.value === "string" ? emailFromRow.value : "";
+  const flags = await allFlags();
+  const appUrl = APP_URL;
+  const checklist: Array<[boolean, string, string | null]> = [
+    [payReady.ready, "Payments switch on and keys saved (above)", null],
+    [flags.PAID_PACKS, "Feature flag: Paid packs", "/admin/settings#flags"],
+    [flags.DEPOSITS, "Feature flag: Add funds", "/admin/settings#flags"],
+    [flags.PACK_SHOP, "Feature flag: Pack shop", "/admin/settings#flags"],
+  ];
   const [state, token, lastCheckRow, rebuild, blocker, players] = await Promise.all([
     loadIntegrationState(true),
     secretInfo("sportmonks"),
@@ -42,7 +66,12 @@ export default async function Integrations() {
   const on = state.provider === "sportmonks";
   return (
     <>
-      <AdminTitle title="Integrations" intro="Connect Sportmonks (football data for the 92) straight from here — no server settings needed." />
+      <AdminTitle title="Integrations" intro="Football data (Sportmonks), card payments (Stripe) and email (Resend) — keys are saved here, encrypted, with no server settings needed." />
+      <p className="text-sm text-muted">
+        Site address used in emails and payment pages: <code className="font-mono text-fg">{appUrl}</code>
+        {appUrl.includes("onrender.com") || appUrl.includes("localhost") ? " — once playmatchx.com points at Render, set APP_URL=https://playmatchx.com on the host." : ""}
+      </p>
+      <h2 className="pt-2 text-3xl">Football data</h2>
 
       <Step n={1} title="Sportmonks API token" done={hasToken}>
         {fromEnv ? (
@@ -131,6 +160,123 @@ export default async function Integrations() {
             {on ? "Switch back to development data" : "Switch data to Sportmonks"}
           </ActionButton>
         )}
+      </Step>
+
+      <h2 className="pt-6 text-3xl">Card payments</h2>
+      <Step n={1} title="Stripe keys" done={!!pay.stripeKey && !!pay.webhookSecret}>
+        <p className="text-sm text-muted">
+          In Stripe → Developers → Webhooks, add an endpoint for <code className="break-all font-mono text-xs">{appUrl}/api/webhooks/payments</code> with the events checkout.session.completed,
+          checkout.session.async_payment_succeeded, checkout.session.async_payment_failed and checkout.session.expired. Then save the two keys here. Card details never touch MATCHX — players pay on Stripe&apos;s page.
+        </p>
+        {process.env.STRIPE_SECRET_KEY ? (
+          <p className="text-sm text-mint">Secret key set on the server (STRIPE_SECRET_KEY).</p>
+        ) : (
+          <>
+            {stripeSecret && (
+              <p className="text-sm">
+                <span className="text-mint">Secret key saved</span> · ends in <code className="font-mono">••••{stripeSecret.last4}</code>{" "}
+                <ActionButton action={removeIntegrationSecretAction.bind(null, "stripe.secret")} className="ml-2 text-xs text-danger underline" confirm="Remove the Stripe secret key? Live card payments switch off.">
+                  Remove
+                </ActionButton>
+              </p>
+            )}
+            <SecretForm name="stripe.secret" label="Stripe secret key" placeholder="sk_live_…" has={!!stripeSecret} hint="Use a restricted key if you like (rk_live_…) with write access to Checkout Sessions and Refunds." />
+          </>
+        )}
+        {stripePub ? (
+          <p className="text-sm">
+            <span className="text-mint">Publishable key saved</span> · ends in <code className="font-mono">••••{stripePub.last4}</code>
+          </p>
+        ) : null}
+        {!process.env.STRIPE_PUBLISHABLE_KEY && <SecretForm name="stripe.publishable" label="Stripe publishable key" placeholder="pk_live_…" has={!!stripePub} hint="Optional today (checkout runs on Stripe's own page), kept for Apple Pay / Google Pay later." />}
+        {process.env.STRIPE_WEBHOOK_SECRET ? (
+          <p className="text-sm text-mint">Webhook secret set on the server (STRIPE_WEBHOOK_SECRET).</p>
+        ) : (
+          <>
+            {stripeHook && (
+              <p className="text-sm">
+                <span className="text-mint">Webhook secret saved</span> · ends in <code className="font-mono">••••{stripeHook.last4}</code>{" "}
+                <ActionButton action={removeIntegrationSecretAction.bind(null, "stripe.webhook")} className="ml-2 text-xs text-danger underline" confirm="Remove the webhook secret? Live card payments switch off.">
+                  Remove
+                </ActionButton>
+              </p>
+            )}
+            <SecretForm name="stripe.webhook" label="Webhook signing secret" placeholder="whsec_…" has={!!stripeHook} />
+          </>
+        )}
+      </Step>
+
+      <Step n={2} title="Payments switch" done={payReady.ready}>
+        <p className="text-sm">
+          Now: <b>{pay.mode === "off" ? "Off — every £ button shows “coming soon”" : pay.mode === "test" ? "Test payments (no real money)" : "Live card payments through Stripe"}</b>
+          {pay.fromEnv ? " — set on the server (PAYMENTS_PROVIDER)" : ""}.
+        </p>
+        {!payReady.ready && pay.mode !== "off" && <p className="text-sm text-warn">Not taking payments yet: {payReady.reason}</p>}
+        {!pay.fromEnv && (
+          <div className="flex flex-wrap gap-2">
+            {(
+              [
+                ["off", "Off"],
+                ["test", "Test (no real money)"],
+                ["stripe", "Live (Stripe)"],
+              ] as const
+            ).map(([m, l]) => (
+              <ActionButton
+                key={m}
+                action={setPaymentsModeAction.bind(null, m)}
+                className={`px-4 py-2 text-xs ${pay.mode === m ? "btn-primary" : "btn-ghost"}`}
+                disabled={pay.mode === m || (m === "stripe" && !(pay.stripeKey && pay.webhookSecret))}
+                confirm={m === "stripe" ? "Switch on LIVE card payments? Real money will be taken." : undefined}
+              >
+                {l}
+              </ActionButton>
+            ))}
+          </div>
+        )}
+        <div className="rounded-xl border border-ink-700 bg-ink-900 p-3 text-sm">
+          <p className="mb-1 font-semibold">For the £ buttons to work, all of these must be on:</p>
+          <ul className="space-y-0.5">
+            {checklist.map(([ok, label, href]) => (
+              <li key={label} className={ok ? "text-mint" : "text-muted"}>
+                {ok ? "✓" : "○"} {label}
+                {!ok && href && (
+                  <Link href={href} className="ml-2 text-xs text-lime underline">
+                    open
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-faint">
+            Paid packs and Add funds are legal-gated: they only switch on once LEGAL_GATES_CLEARED on the server includes PAID_PACKS and DEPOSITS — after your lawyer and Stripe have signed off on the business model.
+          </p>
+        </div>
+      </Step>
+
+      <h2 className="pt-6 text-3xl">Email</h2>
+      <Step n={1} title="Resend" done={!!resendKey || !!process.env.RESEND_API_KEY}>
+        <p className="text-sm text-muted">
+          Welcome, password reset, team-sheet, results, sales and prize emails go out through Resend. Without a key they&apos;re only logged (Admin → Emails), so password reset links never arrive.
+        </p>
+        {process.env.RESEND_API_KEY ? (
+          <p className="text-sm text-mint">Key set on the server (RESEND_API_KEY).</p>
+        ) : (
+          <>
+            {resendKey && (
+              <p className="text-sm">
+                <span className="text-mint">Key saved</span> · ends in <code className="font-mono">••••{resendKey.last4}</code>{" "}
+                <ActionButton action={removeIntegrationSecretAction.bind(null, "resend")} className="ml-2 text-xs text-danger underline" confirm="Remove the Resend key? Emails will only be logged.">
+                  Remove
+                </ActionButton>
+              </p>
+            )}
+            <SecretForm name="resend" label="Resend API key" placeholder="re_…" has={!!resendKey} />
+          </>
+        )}
+        {process.env.EMAIL_FROM ? <p className="text-sm text-mint">Sender set on the server (EMAIL_FROM): {process.env.EMAIL_FROM}</p> : <EmailFromForm value={emailFrom} />}
+        <ActionButton action={sendTestEmailAction} className="btn-ghost px-4 py-2 text-xs">
+          Send me a test email
+        </ActionButton>
       </Step>
     </>
   );

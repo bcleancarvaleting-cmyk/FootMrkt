@@ -2,7 +2,9 @@
  * Transactional email templates. Plain, mobile-friendly HTML (inline styles, one column) with a
  * text version. Every email links back to MATCHX; none is marketing.
  */
-export const APP_URL = (process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+// The site's public address, for links in emails and payment pages. Set APP_URL (e.g.
+// https://playmatchx.com) once the domain points at the host; until then the host's own address.
+export const APP_URL = (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.RENDER_EXTERNAL_URL || "http://localhost:3000").replace(/\/$/, "");
 
 type Rendered = { subject: string; html: string; text: string };
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
@@ -122,6 +124,12 @@ export const EMAILS = {
       preheader: "We've got your message.",
       title: "We've got your message",
       paragraphs: [`Thanks ${esc(d.name)} — your message (ref ${b(d.ref)}) is with the MATCHX team. We'll reply to this email address, usually within a day.`],
+    }),
+  test: (d: { name: string }) =>
+    layout({
+      preheader: "Your MATCHX emails are working.",
+      title: "Emails are working ✓",
+      paragraphs: [`Hi ${esc(d.name)} — this is a test from Admin → Integrations. Welcome, password reset, team-sheet, results and prize emails will now reach your managers.`],
     }),
 } as const;
 

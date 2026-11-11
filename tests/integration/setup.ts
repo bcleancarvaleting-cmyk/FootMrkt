@@ -8,3 +8,4 @@ process.env.FLAG_DEV_TOOLS = "true";
 // The tests still exercise the old automatic set of matches per gameweek; the live site doesn't create any.
 process.env.AUTO_MATCHES = "true";
 process.env.FLAG_SIMULATED_DATA = "true";
+process.env.PAYMENTS_PROVIDER = "sandbox";

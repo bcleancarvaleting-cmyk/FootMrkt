@@ -1,5 +1,8 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
 import { APP_URL } from "../email/templates";
+import { loadPayments, paymentsConfig } from "./config";
+import { verifyStripeSignature } from "./stripe-signature";
+
+export { verifyStripeSignature };
 import type { PaymentProvider, PaymentWebhookEvent } from "./provider";
 
 /**
@@ -13,11 +16,10 @@ import type { PaymentProvider, PaymentWebhookEvent } from "./provider";
  * Refund through MATCHX admin (not the Stripe dashboard) so the order is updated too.
  */
 const API = "https://api.stripe.com/v1";
-const TOLERANCE_S = 300;
 
 async function stripe<T>(path: string, form?: Record<string, string>): Promise<T> {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) throw new Error("STRIPE_SECRET_KEY is not set");
+  const key = (await loadPayments()).stripeKey;
+  if (!key) throw new Error("The Stripe secret key isn't set (Admin → Integrations)");
   const res = await fetch(`${API}${path}`, {
     method: form ? "POST" : "GET",
     headers: { Authorization: `Bearer ${key}`, ...(form ? { "Content-Type": "application/x-www-form-urlencoded" } : {}) },
@@ -28,20 +30,6 @@ async function stripe<T>(path: string, form?: Record<string, string>): Promise<T
   return body;
 }
 
-/** Verify a Stripe-Signature header ("t=…,v1=…") against the raw body. */
-export function verifyStripeSignature(rawBody: string, header: string | null, secret: string, nowS = Math.floor(Date.now() / 1000)) {
-  const parts = Object.fromEntries((header ?? "").split(",").map((p) => p.split("=") as [string, string]));
-  const t = Number(parts.t);
-  const sigs = (header ?? "").split(",").filter((p) => p.startsWith("v1=")).map((p) => p.slice(3));
-  if (!t || !sigs.length) throw new Error("Invalid webhook signature");
-  if (Math.abs(nowS - t) > TOLERANCE_S) throw new Error("Invalid webhook signature (too old)");
-  const expected = createHmac("sha256", secret).update(`${t}.${rawBody}`).digest();
-  const ok = sigs.some((s) => {
-    const given = Buffer.from(s, "hex");
-    return given.length === expected.length && timingSafeEqual(given, expected);
-  });
-  if (!ok) throw new Error("Invalid webhook signature");
-}
 
 type Session = { id: string; amount_total: number; currency: string; payment_status: string; payment_intent: string | null };
 
@@ -63,8 +51,8 @@ export const stripeProvider: PaymentProvider = {
     return { providerRef: s.id, checkoutUrl: s.url };
   },
   verifyWebhook(rawBody, signature) {
-    const secret = process.env.STRIPE_WEBHOOK_SECRET;
-    if (!secret) throw new Error("Invalid webhook signature (STRIPE_WEBHOOK_SECRET not set)");
+    const secret = paymentsConfig().webhookSecret;
+    if (!secret) throw new Error("Invalid webhook signature (webhook signing secret not set in Admin → Integrations)");
     verifyStripeSignature(rawBody, signature, secret);
     const evt = JSON.parse(rawBody) as { id: string; type: string; data: { object: Session } };
     const s = evt.data.object;

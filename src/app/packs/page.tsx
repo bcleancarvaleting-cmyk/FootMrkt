@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cardPaymentsReady } from "@/server/payments/config";
 import { FINISHES, FINISH_VALUE } from "@/config/tiers";
 import { BoosterFace, BoosterPackSealed } from "@/components/booster-card";
 import { myBoosters } from "@/server/boosters";
@@ -25,6 +26,7 @@ const meta = (code: string) => FOOTBALL_PACKS.find((p) => p.code === code);
 export default async function PacksPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
   const user = await requireUser();
   const { welcome } = await searchParams;
+  const cardReady = (await cardPaymentsReady()).ready;
   const [diamondOneIn, rubyOneIn, rainbowOneIn, xpRate] = await Promise.all([getSetting("diamondOneIn"), getSetting("rubyOneIn"), getSetting("rainbowOneIn"), getSetting("xpPerMx")]);
   const pct = (n: number) => (100 / n).toLocaleString("en-GB", { maximumSignificantDigits: 2 });
   const [flags, unopened, skus, history, bal, drop, gifts, boosters] = await Promise.all([
@@ -230,7 +232,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
                               <XpPackButton skuCode={s.code} xp={xpPriceFor(s.priceMinor, xpRate)} affordable={bal.xp >= xpPriceFor(s.priceMinor, xpRate)} />
                               <CreditPackButton skuCode={s.code} price={fmtMp(s.priceMinor)} affordable={bal.total >= s.priceMinor} />
                               <div className="col-span-2 grid">
-                                <BuyPackButton skuCode={s.code} price={gbp(s.priceMinor)} enabled={flags.PAID_PACKS} />
+                                <BuyPackButton skuCode={s.code} price={gbp(s.priceMinor)} enabled={flags.PAID_PACKS && cardReady} />
                               </div>
                             </>
                           ) : (

@@ -22,7 +22,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
       [
         "MX (MATCHX credits)",
         [
-          "MX is the in-game balance. £1 buys 1 MX when you add funds. You can also earn MX from challenges, sets, promotions and selling cards.",
+          "MX is the in-game balance. You buy MX by card in bundles (bigger bundles include bonus MX — the MX you get is shown before you pay). You can also earn MX from challenges, sets, promotions and selling cards.",
           "MX is only for buying packs and cards, bidding in auctions and entering matches. It can't be withdrawn, refunded, exchanged for cash or transferred to another account.",
           "MX is not a deposit account, e-money or an investment and earns no interest.",
         ],

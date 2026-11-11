@@ -21,6 +21,7 @@ const MEMBER: Section[] = [
       ["Mini-leagues", "/leagues"],
       ["Head-to-head", "/h2h"],
       ["Hall of Fame", "/hall-of-fame"],
+      ["Clubs", "/teams"],
     ],
   },
   {

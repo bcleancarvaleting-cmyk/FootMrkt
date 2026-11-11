@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { forgotPasswordAction, loginAction, registerAction, resetPasswordAction, verifyLoginCodeAction } from "@/app/actions/auth";
 
-export function RegisterForm({ referrer, clubs }: { referrer?: string; clubs: Array<{ league: string; clubs: Array<{ code: string; name: string }> }> }) {
+export function RegisterForm({ referrer, clubs, club }: { referrer?: string; club?: string; clubs: Array<{ league: string; clubs: Array<{ code: string; name: string }> }> }) {
   const [state, action, pending] = useActionState(registerAction, null);
   return (
     <form action={action} className="space-y-4">
@@ -27,7 +27,7 @@ export function RegisterForm({ referrer, clubs }: { referrer?: string; clubs: Ar
         <label className="label" htmlFor="favouriteClub">
           Who do you support?
         </label>
-        <select className="input" id="favouriteClub" name="favouriteClub" required defaultValue="">
+        <select className="input" id="favouriteClub" name="favouriteClub" required defaultValue={club ?? ""}>
           <option value="" disabled>
             Choose your club
           </option>

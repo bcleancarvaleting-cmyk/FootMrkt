@@ -352,3 +352,24 @@ export function JoinPoster({ cards, format }: { cards: CardView[]; format: Poste
     </Frame>
   );
 }
+
+/** A club advert: "Support {club}? Collect every player." In the club's colours. */
+export function ClubAdPoster({ clubName, code, colour, count, cards, format }: { clubName: string; code: string; colour: string; count: number; cards: CardView[]; format: PosterFormat }) {
+  const w = format === "story" ? 300 : format === "portrait" ? 270 : 230;
+  const bg = `radial-gradient(70% 55% at 50% 30%, ${colour}99, transparent 72%), radial-gradient(60% 45% at 50% 100%, rgba(173,252,7,.18), transparent 70%), #07080a`;
+  return (
+    <Frame format={format} bg={bg} footer={`playmatchx.com/teams/${code.toLowerCase()} · Free to play · 18+`}>
+      <p className="text-[30px] font-bold uppercase tracking-[0.3em] text-white/80">{clubName} fans</p>
+      <Headline className={`mt-2 ${format === "square" ? "text-[92px]" : "text-[112px]"}`}>Collect every</Headline>
+      <Headline className={`mb-10 text-[#adfc07] ${format === "square" ? "text-[92px]" : "text-[112px]"}`}>{clubName} player.</Headline>
+      <div className="flex items-end justify-center gap-5">
+        {cards.slice(0, 3).map((c) => (
+          <BigCard key={c.id} card={c} width={w} />
+        ))}
+      </div>
+      <p className="mt-10 text-center text-[32px] font-semibold text-white/90">
+        {count} {clubName} cards · score points from their real matches · start with 49 free players
+      </p>
+    </Frame>
+  );
+}

@@ -5,8 +5,8 @@ import { db } from "@/server/db";
 
 export const metadata = { title: "Create account" };
 
-export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ ref?: string }> }) {
-  const { ref } = await searchParams;
+export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ ref?: string; club?: string }> }) {
+  const { ref, club } = await searchParams;
   if (await getCurrentUser()) redirect("/");
   const leagues = await db.league.findMany({ orderBy: { tier: "asc" }, include: { clubs: { orderBy: { name: "asc" }, select: { code: true, name: true } } } });
   const clubs = leagues.map((l) => ({ league: l.name, clubs: l.clubs }));
@@ -30,7 +30,7 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
         </ul>
       </div>
       <div className="panel p-6">
-        <RegisterForm referrer={ref?.slice(0, 24)} clubs={clubs} />
+        <RegisterForm referrer={ref?.slice(0, 24)} clubs={clubs} club={clubs.some((l) => l.clubs.some((c) => c.code === club)) ? club : undefined} />
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { ActionButton } from "@/components/action-button";
 import { BatchExport } from "@/components/batch-export";
 import { PosterExport } from "@/components/poster-export";
 import {
+  ClubAdPoster,
   ClubPoster,
   ClubWallPoster,
   DropPoster,
@@ -51,6 +52,8 @@ const TEMPLATES = [
   ["wall", "Club Rainbow wall — the whole squad on one image"],
   ["league", "League stars — best player at every club, mixed finishes"],
   ["club", "Club's one-of-ones — top 3 Rainbows"],
+  ["clubad", "Club advert — 'Collect every {club} player' (links to its club page)"],
+  ["clubads", "Club adverts for every club in a league (download all)"],
   ["rarity", "How rare do you go? — every finish"],
   ["found", "Found! — a real Ruby / Diamond / Rainbow pull"],
   ["hunt", "The Rainbow hunt — how many found"],
@@ -105,6 +108,20 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
       if (ls.golds === 0) note = `${ls.league.name} has no Gold players yet. Rubies and Diamonds only come on Golds, so every card here is shown as its Rainbow.`;
       else if (ls.golds < ls.cards.length) note = `${ls.golds} of these ${ls.cards.length} players are Gold, so only they are shown as Ruby or Diamond. The rest are shown as their Rainbow.`;
     }
+  } else if (t === "clubad" || t === "clubads") {
+    const { teamPage } = await import("@/server/team-page");
+    const codes = t === "clubad" ? [clubCode] : clubs.filter((c) => c.league.name === leagues.find((l) => l.code === leagueCode)?.name).map((c) => c.code);
+    const made = [];
+    for (const code of codes) {
+      const tp = await teamPage(code);
+      if (!tp || !tp.cards.length) continue;
+      const golds = tp.cards.filter((c) => c.category === "GOLD");
+      const el = <ClubAdPoster clubName={tp.club.name} code={tp.club.code} colour={tp.club.primaryColour} count={tp.cards.length} cards={(golds.length >= 3 ? golds : tp.cards).slice(0, 3)} format={format} />;
+      made.push({ filename: `matchx-${slug(tp.club.name)}-advert-${format}`, poster: el });
+    }
+    if (t === "clubad") poster = made[0]?.poster ?? null;
+    else batch = made;
+    note = `Each advert links to playmatchx.com/teams/<club> — that club's public page with its full squad and a 'Join free as a fan' button that preselects the club.`;
   } else if (t === "club" && top) {
     const cards = await posterCards(top.players.slice(0, 3).map((p) => p.id), "RAINBOW");
     poster = <ClubPoster clubName={top.club.name} cards={cards} format={format} />;
@@ -155,7 +172,7 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
     poster = <JoinPoster cards={cards} format={format} />;
   }
 
-  const filename = `matchx-${t}-${format}${player && ["one-of-one", "rarity"].includes(t) ? `-${slug(player.name)}` : t === "wall" || t === "club" ? `-${slug(top?.club.name ?? clubCode)}` : t === "league" ? `-${slug(leagues.find((l) => l.code === leagueCode)?.name ?? leagueCode)}-${seed}` : ""}`;
+  const filename = `matchx-${t}-${format}${player && ["one-of-one", "rarity"].includes(t) ? `-${slug(player.name)}` : t === "wall" || t === "club" || t === "clubad" ? `-${slug(top?.club.name ?? clubCode)}` : t === "league" ? `-${slug(leagues.find((l) => l.code === leagueCode)?.name ?? leagueCode)}-${seed}` : ""}`;
   if (fullSize) {
     if (batch) {
       return (
@@ -292,7 +309,7 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
       </form>
       {note && <p className="rounded-xl border border-warn/40 bg-warn/10 px-4 py-3 text-sm">{note}</p>}
       {batch ? (
-        <BatchExport items={batch} width={w} height={h} zipName={`matchx-${slug(top?.club.name ?? clubCode)}-rainbows-${format}`} />
+        <BatchExport items={batch} width={w} height={h} zipName={t === "clubads" ? `matchx-${slug(leagues.find((l) => l.code === leagueCode)?.name ?? leagueCode)}-club-adverts-${format}` : `matchx-${slug(top?.club.name ?? clubCode)}-rainbows-${format}`} />
       ) : poster ? (
         <PosterExport filename={filename} width={w} height={h} scale={format === "story" ? 0.32 : 0.45}>
           {poster}

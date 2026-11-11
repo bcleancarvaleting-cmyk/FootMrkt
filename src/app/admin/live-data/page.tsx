@@ -6,6 +6,7 @@ import { API_FOOTBALL_NAME } from "@/providers/football/api-football";
 import { db } from "@/server/db";
 import { isEnabled } from "@/server/flags";
 import { liveCoverage, unlinkedPlayers } from "@/server/live-data";
+import { currentSeason, nextGameweekNumber } from "@/server/season";
 import { AdminTitle } from "../_parts/title";
 
 export const metadata = { title: "Admin · Live match data" };
@@ -19,10 +20,10 @@ export default async function LiveDataAdmin() {
       orderBy: [{ season: "asc" }, { number: "asc" }],
       include: { _count: { select: { fixtures: true } }, fixtures: { where: { finalisedAt: { not: null } }, select: { id: true } } },
     }),
-    db.gameweek.findFirst({ orderBy: [{ season: "desc" }, { number: "desc" }] }),
+    currentSeason().then(async (season) => ({ season, number: (await nextGameweekNumber(season)) - 1 })),
     unlinkedPlayers(40),
   ]);
-  const season = last?.season ?? "2026-27";
+  const season = last.season;
   const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);
 
   return (
@@ -88,7 +89,7 @@ export default async function LiveDataAdmin() {
         <p className="text-sm text-muted">Every league fixture between the two dates becomes part of the gameweek. Squads lock 10 minutes before the first kick-off.</p>
         <AdminForm action={createLiveGameweekAction} submit="Create gameweek">
           <AdminInput name="season" label="Season" defaultValue={season} required />
-          <AdminInput name="number" label="Gameweek number" type="number" defaultValue={(last?.number ?? 0) + 1} required />
+          <AdminInput name="number" label="Gameweek number" type="number" defaultValue={last.number + 1} required />
           <AdminInput name="from" label="First day" type="date" required />
           <AdminInput name="to" label="Last day" type="date" required />
         </AdminForm>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { seasonArchives } from "@/server/season";
 import { ClubCrest } from "@/components/club-crest";
 import { Gem } from "@/components/finish-art";
 import { EmptyState, PageHeader } from "@/components/page-header";
@@ -22,7 +23,7 @@ function HolderLine({ holder, id }: { holder: Holder; id: string }) {
 }
 
 export default async function HallOfFamePage() {
-  const { rainbows, diamonds, counts } = await hallOfFame();
+  const [{ rainbows, diamonds, counts }, seasons] = await Promise.all([hallOfFame(), seasonArchives()]);
   const n = (v: number) => v.toLocaleString("en-GB");
   return (
     <div className="space-y-10">
@@ -78,6 +79,33 @@ export default async function HallOfFamePage() {
                 <HolderLine holder={d.holder} id={`d-${d.card.id}`} />
               </li>
             ))}
+          </ul>
+        </section>
+      )}
+
+      {seasons.length > 0 && (
+        <section>
+          <h2 className="mb-4 text-3xl">Past seasons</h2>
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {seasons.map((s) => {
+              const top = (s.standings as Array<{ displayName: string; clubName: string | null; points: number; wins: number }>).slice(0, 3);
+              return (
+                <li key={s.season} className="panel p-4">
+                  <p className="eyebrow">Season {s.season}</p>
+                  <p className="mt-1 font-display text-2xl font-black uppercase italic">🏆 {s.champion ?? "—"}</p>
+                  <ol className="mt-2 space-y-0.5 text-sm text-muted">
+                    {top.map((t, i) => (
+                      <li key={t.displayName} className="flex justify-between">
+                        <span>
+                          {i + 1}. <Link href={`/clubs/${encodeURIComponent(t.displayName)}`} className="hover:underline">{t.displayName}</Link>
+                        </span>
+                        <span className="tabular-nums">{t.points} pts</span>
+                      </li>
+                    ))}
+                  </ol>
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}

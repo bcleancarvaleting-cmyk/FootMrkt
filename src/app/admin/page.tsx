@@ -1,12 +1,26 @@
 import Link from "next/link";
 import { AdminChart } from "@/components/admin-chart";
-import { dashboard } from "@/server/analytics";
+import { dashboard, gameHealth } from "@/server/analytics";
 import { AdminTitle } from "./_parts/title";
 
 export const metadata = { title: "Admin" };
 
 export default async function Dashboard() {
-  const d = await dashboard();
+  const [d, h] = await Promise.all([dashboard(), gameHealth()]);
+  const pct = (x: number | null) => (x === null ? "—" : `${Math.round(x * 100)}%`);
+  const health: Array<[string, string, string, string]> = [
+    ["Packs opened", h.packs.toLocaleString("en-GB"), "last 7 days", "/admin/packs"],
+    ["Transfers", h.trades.toLocaleString("en-GB"), `${(h.tradeVolumeMinor / 100).toLocaleString("en-GB", { maximumFractionDigits: 0 })} MX traded · 7 days`, "/admin/transfers"],
+    [h.gameweek ? `GW${h.gameweek} entries` : "Entries", h.entries.toLocaleString("en-GB"), `${h.draftEntries} in Free Draft`, "/admin/matches"],
+    ["Rainbows found", `${h.rainbows}`, `of ${h.players.toLocaleString("en-GB")}`, "/hall-of-fame"],
+    ["Referrals that play", pct(h.referralPlayRate), `${h.referred} referred sign-ups`, "/admin/users"],
+    ["Week-2 retention", pct(h.week2Retention), `of ${h.cohort} who joined 8–14 days ago`, "/admin/users"],
+  ];
+  const attention: Array<[string, number, string]> = [
+    ["Support messages", h.attention.support, "/admin/support"],
+    ["Trades to review", h.attention.flags, "/admin/trade-review"],
+    ["Pulls to post", h.attention.pulls, "/admin/social"],
+  ];
   const k = d.kpis;
   const tiles: Array<[string, string, string, string]> = [
     ["Managers", k.users.toLocaleString("en-GB"), `+${k.newToday} today · +${k.newWeek} this week`, "/admin/users"],
@@ -28,6 +42,23 @@ export default async function Dashboard() {
             <p className="text-xs text-faint">{sub}</p>
           </Link>
         ))}
+      </section>
+      <section className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-ink-700 bg-ink-700 sm:grid-cols-3 lg:grid-cols-6">
+        {health.map(([label, value, sub, href]) => (
+          <Link key={label} href={href} className="bg-ink-900 p-4 transition hover:bg-ink-850">
+            <p className="eyebrow">{label}</p>
+            <p className="mt-1 font-display text-2xl font-extrabold italic tabular-nums">{value}</p>
+            <p className="text-xs text-faint">{sub}</p>
+          </Link>
+        ))}
+      </section>
+      <section className="flex flex-wrap gap-2">
+        {attention.map(([label, n, href]) => (
+          <Link key={label} href={href} className={`rounded-full border px-4 py-2 text-sm font-semibold ${n > 0 ? "border-warn/60 bg-warn/10 text-fg" : "border-ink-700 text-faint"}`}>
+            {label}: <b className="tabular-nums">{n}</b>
+          </Link>
+        ))}
+        <span className="rounded-full border border-ink-700 px-4 py-2 text-sm text-faint">Phones with push on: {h.push}</span>
       </section>
       <div className="grid gap-4 xl:grid-cols-2">
         <AdminChart title="Revenue per week (£)" points={d.revenue} format={(v) => `£${v.toLocaleString("en-GB", { maximumFractionDigits: 0 })}`} />

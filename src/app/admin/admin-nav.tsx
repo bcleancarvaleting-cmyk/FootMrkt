@@ -11,6 +11,7 @@ export const ADMIN_MENU: Array<{ group: string; items: Array<{ href: string; lab
     items: [
       { href: "/admin/matches", label: "Matches & gameweeks" },
       { href: "/admin/live-data", label: "Live match data" },
+      { href: "/admin/season", label: "Season rollover" },
       { href: "/admin/prizes", label: "Prize fund" },
       { href: "/admin/challenges", label: "Challenges & binders" },
     ],

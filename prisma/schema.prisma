@@ -1373,3 +1373,12 @@ model H2HChallenge {
   @@index([opponentId])
   @@index([status, gameweekId])
 }
+
+// Final standings of a finished season, frozen when the next season starts (shown in the Hall of Fame).
+model SeasonArchive {
+  id        String   @id @default(uuid()) @db.Uuid
+  season    String   @unique
+  standings Json // [{ userId, displayName, clubName, points, wins, gameweeks }] top 50 by total points
+  champion  String? // display name of the top manager
+  createdAt DateTime @default(now())
+}

@@ -21,6 +21,7 @@ import { grantAllDueWelcomePacks } from "@/server/welcome";
 import { signSandbox } from "@/server/payments/provider";
 import { executeDueReleases, executeRelease, updateRelease } from "@/server/supply";
 import { revalueAll } from "@/server/valuation";
+import { currentSeason, nextGameweekNumber } from "@/server/season";
 import { type ActionResult, attempt } from "./result";
 
 function done() {
@@ -30,12 +31,11 @@ function done() {
 export async function createNextGameweekAction(): Promise<ActionResult> {
   const admin = await requireAdmin();
   const res = await attempt(async () => {
-    const sport = await footballSport();
-    const last = await db.gameweek.findFirst({ where: { sportId: sport.id }, orderBy: [{ season: "desc" }, { number: "desc" }] });
+    const season = await currentSeason();
     const now = new Date();
     await createGameweek({
-      season: last?.season ?? "2026-27",
-      number: (last?.number ?? 0) + 1,
+      season,
+      number: await nextGameweekNumber(season),
       opensAt: now,
       firstKickoffAt: new Date(now.getTime() + 3 * 24 * 3600_000),
       actorId: admin.id,

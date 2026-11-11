@@ -58,3 +58,48 @@ export async function dashboard(now = new Date()) {
     support,
   };
 }
+
+/**
+ * Game health for the admin dashboard: is the loop working? Packs opened, trading, match entries,
+ * the Rainbow hunt, referrals that turn into players, week-2 retention, and what needs a human.
+ */
+export async function gameHealth(now = new Date()) {
+  const day = 86_400_000;
+  const week = new Date(now.getTime() - 7 * day);
+  const { db } = await import("./db");
+  const gw = await db.gameweek.findFirst({ where: { status: { not: "SETTLED" } }, orderBy: [{ season: "asc" }, { number: "asc" }], select: { id: true, number: true } });
+  const [packs, trades, entries, draftEntries, rainbows, players, referred, referredPlayed, cohort, cohortBack, support, flags, pulls, push] = await Promise.all([
+    db.packOpening.count({ where: { createdAt: { gte: week } } }),
+    db.marketListing.aggregate({ where: { status: "SOLD", house: false, soldAt: { gte: week } }, _count: { _all: true }, _sum: { soldPriceMinor: true } }),
+    gw ? db.competitionEntry.count({ where: { competition: { gameweekId: gw.id } } }) : 0,
+    gw
+      ? db.$queryRaw<Array<{ n: bigint }>>`SELECT count(*) AS n FROM "CompetitionEntry" e JOIN "Competition" c ON c.id = e."competitionId" WHERE c."gameweekId" = ${gw.id}::uuid AND c.requirements ? 'draftBudgetMx'`.then((r) => Number(r[0]?.n ?? 0))
+      : 0,
+    db.cardFinish.count({ where: { kind: "RAINBOW" } }),
+    db.player.count({ where: { active: true } }),
+    db.user.count({ where: { referredById: { not: null } } }),
+    db.user.count({ where: { referredById: { not: null }, entries: { some: {} } } }),
+    db.user.count({ where: { createdAt: { gte: new Date(now.getTime() - 14 * day), lt: week } } }),
+    db.user.count({ where: { createdAt: { gte: new Date(now.getTime() - 14 * day), lt: week }, lastSeenAt: { gte: week } } }),
+    db.supportTicket.count({ where: { status: "OPEN" } }),
+    db.tradeFlag.count({ where: { status: "OPEN" } }),
+    db.cardFinish.count({ where: { socialStatus: null } }),
+    db.pushSubscription.count(),
+  ]);
+  return {
+    gameweek: gw?.number ?? null,
+    packs,
+    trades: trades._count._all,
+    tradeVolumeMinor: trades._sum.soldPriceMinor ?? 0,
+    entries,
+    draftEntries,
+    rainbows,
+    players,
+    referred,
+    referralPlayRate: referred ? referredPlayed / referred : null,
+    week2Retention: cohort ? cohortBack / cohort : null,
+    cohort,
+    attention: { support, flags, pulls },
+    push,
+  };
+}

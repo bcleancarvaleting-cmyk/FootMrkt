@@ -16,6 +16,8 @@ export const SlotFiltersSchema = z
     positions: z.array(PositionSchema).min(1).optional(),
     /** Only players at clubs in these league countries, e.g. ["ENG"] for England packs. */
     countries: z.array(z.string().min(2).max(3)).min(1).optional(),
+    /** Only players at clubs in leagues of these tiers (1 = Premier League … 4 = League Two). */
+    leagueTiers: z.array(z.number().int().min(1).max(10)).min(1).optional(),
   })
   .strict();
 export type SlotFilters = z.infer<typeof SlotFiltersSchema>;

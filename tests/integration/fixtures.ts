@@ -11,10 +11,10 @@ export async function resetDb() {
   await db.$executeRawUnsafe(`TRUNCATE ${tables.map((t) => `"${t.tablename}"`).join(", ")} CASCADE`);
 }
 
-const SQUAD: Array<[Position, number]> = [["GK", 2], ["DEF", 5], ["MID", 5], ["ATT", 4]];
+const SQUAD: Array<[Position, number]> = [["GK", 2], ["DEF", 5], ["MID", 5], ["ATT", 5]];
 
 /**
- * Small deterministic world: 2 leagues × 2 clubs × 16 players. In each club, players cycle
+ * Small deterministic world: 2 leagues × 2 clubs × 17 players. In each club, players cycle
  * through BRONZE / SILVER / GOLD so every position has every category.
  */
 export async function buildWorld(opts: { perTemplate?: Record<CardCategory, number> } = {}) {

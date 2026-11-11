@@ -124,7 +124,7 @@ export function MobileMenu({ user, theme, unread = 0 }: { user: { name: string; 
           <nav className="flex-1 overflow-y-auto px-4 pb-10 pt-2" aria-label="All pages" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 2.5rem)" }}>
             {!user && (
               <Link href="/register" className="btn-primary my-3 w-full py-3">
-                Join free — get 14 players
+                Join free — get 49 players
               </Link>
             )}
             {sections.map((s) => (

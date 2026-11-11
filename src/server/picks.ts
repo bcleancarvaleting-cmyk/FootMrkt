@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import type { CardCategory } from "@/generated/prisma/client";
-import { BRONZE_PICK_CODE, GOLD_PICK_CODE, LOAN_PICK_CODE, SILVER_PICK_CODE } from "@/config/packs";
+import { BRONZE_PICK_CODE, GOLD_PICK_CODE, LEAGUE_PICK_CODES, LOAN_PICK_CODE, SILVER_PICK_CODE } from "@/config/packs";
 import { LOAN_GAMEWEEKS } from "./loans";
 import { ensureTemplate, mintInstances } from "./cards";
 import { db, withTx } from "./db";
@@ -25,6 +25,10 @@ export interface PickConfig {
   topFlight?: boolean;
   /** Loan length in gameweeks; omitted for permanent cards. */
   loanGameweeks?: number;
+  /** Only players from leagues of this tier (1 = Premier League … 4 = League Two). */
+  leagueTier?: number;
+  /** Only the league's N most valuable players of the tier (by market value). */
+  mostValuable?: number;
 }
 
 export const PICKS: Record<string, PickConfig> = {
@@ -32,6 +36,11 @@ export const PICKS: Record<string, PickConfig> = {
   [SILVER_PICK_CODE]: { category: "SILVER", options: 3, keep: 1 },
   [BRONZE_PICK_CODE]: { category: "BRONZE", options: 3, keep: 1 },
   [LOAN_PICK_CODE]: { category: "GOLD", options: 6, keep: 2, topFlight: true, loanGameweeks: LOAN_GAMEWEEKS },
+  // Sign-up league picks (11 Nov 2026): 1 of 4 from the league's 40 most valuable players.
+  // League One and League Two only have Bronze players; the Championship pick is Silver.
+  [LEAGUE_PICK_CODES.LG2]: { category: "BRONZE", options: 4, keep: 1, leagueTier: 4, mostValuable: 40 },
+  [LEAGUE_PICK_CODES.LG1]: { category: "BRONZE", options: 4, keep: 1, leagueTier: 3, mostValuable: 40 },
+  [LEAGUE_PICK_CODES.CHA]: { category: "SILVER", options: 4, keep: 1, leagueTier: 2, mostValuable: 40 },
 };
 
 export const isPick = (skuCode: string) => skuCode in PICKS;
@@ -67,10 +76,12 @@ export async function pickOptions(userId: string, entitlementId: string) {
     where: {
       active: true,
       templates: { some: { category: pick.category, edition: "STANDARD", active: true } },
-      club: pick.topFlight ? { league: { isTopFlight: true } } : undefined,
+      club: pick.topFlight ? { league: { isTopFlight: true } } : pick.leagueTier ? { league: { tier: pick.leagueTier, country: "ENG" } } : undefined,
     },
     select: { id: true },
-    orderBy: { id: "asc" },
+    // Most valuable first when the pick is limited to the top N (ties by id, so the list is stable).
+    orderBy: pick.mostValuable ? [{ marketValueGbp: { sort: "desc", nulls: "last" } }, { id: "asc" }] : { id: "asc" },
+    take: pick.mostValuable,
   });
   if (players.length < pick.options) throw new DomainError("NO_PLAYERS", "Not enough players to pick from right now.");
   const next = pickStream(ent.id);

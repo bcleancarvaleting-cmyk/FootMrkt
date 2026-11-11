@@ -62,7 +62,7 @@ export function RegisterForm({ referrer, clubs }: { referrer?: string; clubs: Ar
       </label>
       {state && !state.ok && <p className="text-sm text-danger">{state.error}</p>}
       <button className="btn-primary w-full py-3" disabled={pending}>
-        {pending ? "Creating your club…" : "Create account & claim free Starter Pack"}
+        {pending ? "Creating your club…" : "Create account & claim 49 free players"}
       </button>
       <p className="text-center text-sm text-muted">
         Already managing?{" "}

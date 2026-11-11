@@ -4,7 +4,7 @@ import { finishOdds, guaranteedFinish, rollFinish, rollsFinishes } from "./finis
 import { type PlannedSlot, honoursGuarantees, planPack } from "@/domain/packs/compose";
 import { type PackConfig, type SlotFilters, parsePackConfig } from "@/domain/packs/config";
 import { AuditedRandom, type RandomSource, cryptoRandom } from "@/domain/random";
-import { LOAN_PICK_CODE, PICK_CODES, STARTER_PACK_CODE } from "@/config/packs";
+import { LOAN_PICK_CODE, PICK_CODES, SIGNUP_PACK_CODES, STARTER_PACK_CODE } from "@/config/packs";
 import { ensureTemplate, mintInstances } from "./cards";
 import { type Tx, db, withTx } from "./db";
 import { DomainError } from "./errors";
@@ -39,8 +39,29 @@ export async function grantPack(
   return tx.packEntitlement.findUniqueOrThrow({ where: { sourceRef: args.sourceRef } });
 }
 
+/** Publish a catalogue pack on first use, so sign-up never fails on a database that predates it. */
+async function ensurePublished(tx: Tx, code: string) {
+  const { FOOTBALL_PACKS } = await import("@/config/packs");
+  const p = FOOTBALL_PACKS.find((x) => x.code === code)!;
+  if (await tx.packSku.findFirst({ where: { code, version: { gte: p.version } } })) return;
+  const sport = await tx.sport.findUniqueOrThrow({ where: { code: "football" } });
+  await tx.packSku.createMany({ data: [{ sportId: sport.id, code: p.code, version: p.version, name: p.name, kind: p.kind, priceMinor: p.priceMinor, config: p.config as never }], skipDuplicates: true });
+}
+
+/**
+ * The sign-up offer: four league starter packs (7 + 4 each) and three league picks, all free,
+ * untradeable and kept. Returns the Premier League starter, which is opened first.
+ */
 export async function grantStarterPack(tx: Tx, userId: string) {
-  return grantPack(tx, { userId, skuCode: STARTER_PACK_CODE, source: "STARTER", sourceRef: `starter:${userId}` });
+  let first: Awaited<ReturnType<typeof grantPack>> | null = null;
+  for (const code of SIGNUP_PACK_CODES) {
+    await ensurePublished(tx, code);
+    // The Premier League starter keeps its original reference, so existing managers aren't re-granted it.
+    const ref = code === STARTER_PACK_CODE ? `starter:${userId}` : `signup:${code}:${userId}`;
+    const e = await grantPack(tx, { userId, skuCode: code, source: "STARTER", sourceRef: ref });
+    first ??= e;
+  }
+  return first!;
 }
 
 /** Part of the Starter Pack: choose 2 top-flight Gold players on loan for the first 4 gameweeks entered. */
@@ -195,6 +216,7 @@ function filterSql(filters: SlotFilters, exclude: Set<string>) {
   if (filters.topFlightOnly) parts.push(Prisma.sql`AND l."isTopFlight" = true`);
   if (filters.positions?.length) parts.push(Prisma.sql`AND p.position::text = ANY(${filters.positions}::text[])`);
   if (filters.countries?.length) parts.push(Prisma.sql`AND l.country = ANY(${filters.countries}::text[])`);
+  if (filters.leagueTiers?.length) parts.push(Prisma.sql`AND l.tier = ANY(${filters.leagueTiers}::int[])`);
   if (exclude.size) parts.push(Prisma.sql`AND NOT (p.id = ANY(${[...exclude]}::uuid[]))`);
   return parts.length ? Prisma.join(parts, " ") : Prisma.empty;
 }

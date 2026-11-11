@@ -30,11 +30,11 @@ export const EMAILS = {
       preheader: "Your 14 free players are waiting.",
       title: `Welcome to MATCHX, ${d.name}`,
       paragraphs: [
-        `Your club is ready. Open your free ${b("14-player Starter Pack")}, pick your seven and enter this gameweek's free matches.`,
+        `Your club is ready. Open your ${b("four free league Starter Packs")} — a full squad for the Premier League, Championship, League One and League Two — make your three league picks and choose your two Premier League Gold loans.`,
         `More free packs land over your first four weeks: a Squad Boost on day 3, a Gold on day 6, a Mixed Pack on day 9 and your choice of Gold on day 12.`,
         ...(d.verifyUrl ? [`Please confirm your email address so we can reach you about prizes.`] : []),
       ],
-      cta: d.verifyUrl ? { label: "Confirm my email", href: d.verifyUrl } : { label: "Open my Starter Pack", href: `${APP_URL}/packs` },
+      cta: d.verifyUrl ? { label: "Confirm my email", href: d.verifyUrl } : { label: "Open my Starter Packs", href: `${APP_URL}/packs` },
     }),
   teamSheet: (d: { name: string; match: string; captain?: string | null; deadline: Date; edit: boolean }) =>
     layout({

@@ -11,11 +11,11 @@ describe("pack configs", () => {
     for (const p of FOOTBALL_PACKS) expect(() => parsePackConfig(p.config)).not.toThrow();
   });
 
-  it("regular packs have six cards, starter has fourteen", () => {
+  it("regular packs have six cards; each of the four league starters has 7 + 4", () => {
     expect(cardCount(pack("football-bronze"))).toBe(6);
     expect(cardCount(pack("football-silver"))).toBe(6);
     expect(cardCount(pack("football-gold"))).toBe(6);
-    expect(cardCount(pack("football-starter"))).toBe(14);
+    for (const code of ["football-starter", "football-starter-cha", "football-starter-lg1", "football-starter-lg2"]) expect(cardCount(pack(code))).toBe(11);
   });
 
   it("advertises the guaranteed floor", () => {
@@ -55,19 +55,22 @@ describe("planPack", () => {
     expect(silvers / n).toBeLessThan(0.3);
   });
 
-  it("starter pack always has exactly one top-flight Bronze slot and full positional coverage", () => {
-    const cfg = pack("football-starter");
-    for (let seed = 0; seed < 500; seed++) {
-      const plan = planPack(cfg, seededRandom(seed));
-      const tf = plan.filter((s) => s.filters.topFlightOnly);
-      expect(tf).toHaveLength(1);
-      expect(tf[0].category).toBe("BRONZE");
-      const positions = plan.flatMap((s) => s.filters.positions ?? []);
-      expect(positions.filter((p) => p === "GK").length).toBeGreaterThanOrEqual(1);
-      expect(positions.filter((p) => p === "DEF").length).toBeGreaterThanOrEqual(2);
-      expect(positions.filter((p) => p === "MID").length).toBeGreaterThanOrEqual(2);
-      expect(positions.filter((p) => p === "ATT").length).toBeGreaterThanOrEqual(2);
+  it("each league starter is one league only, with a full squad and bench (2 keepers)", () => {
+    const tiers: Record<string, number> = { "football-starter": 1, "football-starter-cha": 2, "football-starter-lg1": 3, "football-starter-lg2": 4 };
+    for (const [code, tier] of Object.entries(tiers)) {
+      const cfg = pack(code);
+      for (let seed = 0; seed < 200; seed++) {
+        const plan = planPack(cfg, seededRandom(seed));
+        expect(plan.every((s) => s.filters.leagueTiers?.length === 1 && s.filters.leagueTiers[0] === tier)).toBe(true);
+        const positions = plan.flatMap((s) => s.filters.positions ?? []);
+        expect(positions.filter((p) => p === "GK")).toHaveLength(2);
+        expect(positions.filter((p) => p === "DEF")).toHaveLength(3);
+        expect(positions.filter((p) => p === "MID")).toHaveLength(3);
+        expect(positions.filter((p) => p === "ATT")).toHaveLength(3);
+      }
     }
+    // The Premier League has (almost) no Bronze players, so its starter is all Silver.
+    expect(planPack(pack("football-starter"), seededRandom(1)).every((s) => s.category === "SILVER")).toBe(true);
   });
 
   it("gold packs: always ≥2 Golds, sometimes 3 or 4, never more; the rest Bronze/Silver", () => {

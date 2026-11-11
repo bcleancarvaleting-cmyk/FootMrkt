@@ -144,3 +144,16 @@ export async function acceptTransferNewsAction(id: string): Promise<ActionResult
   revalidatePath("/notifications");
   return { ok: true, data: undefined };
 }
+
+export async function finishTourAction(): Promise<ActionResult> {
+  const user = await requireUser();
+  await db.user.update({ where: { id: user.id }, data: { tourSeenAt: new Date() } });
+  return { ok: true, data: undefined };
+}
+
+export async function restartTourAction(): Promise<ActionResult> {
+  const user = await requireUser();
+  await db.user.update({ where: { id: user.id }, data: { tourSeenAt: null } });
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}

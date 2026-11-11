@@ -56,6 +56,8 @@ model User {
   emailVerifiedAt          DateTime?
   emailVerificationToken   String?    @unique
   lastSeenAt               DateTime?
+  // Welcome tour: set once they finish or skip it (null = show it on their next visit).
+  tourSeenAt               DateTime?
   // Profile & legal (My Account). Withdrawals need a verified adult with full details.
   fullName                 String?
   dateOfBirth              DateTime?

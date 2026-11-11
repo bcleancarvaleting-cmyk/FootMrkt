@@ -7,6 +7,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { ChatDrawer } from "@/components/chat-drawer";
 import { AppBackButton, AppTracker, NotifyPrompt } from "@/components/app-install";
 import { TransferNewsGate } from "@/components/transfer-news-gate";
+import { WelcomeTourGate } from "@/components/welcome-tour-gate";
 import { Logo } from "@/components/nav";
 import { CHAT_ROOMS, CHAT_RULES } from "@/config/chat";
 import { canModerate } from "@/server/moderation";
@@ -63,6 +64,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {user && <AppTracker />}
         {user && <NotifyPrompt />}
         {user && <TransferNewsGate userId={user.id} />}
+        {user && <WelcomeTourGate userId={user.id} name={user.displayName} />}
         {user && user.realityCheckMinutes > 0 && <RealityCheck minutes={user.realityCheckMinutes} spentToday={fmtGbp(paidToday)} />}
         {user && (
           <ChatDrawer
@@ -78,7 +80,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
 function SiteFooter({ loggedIn, credit }: { loggedIn: boolean; credit: string }) {
   const cols: [string, [string, string][]][] = [
-    ["Play", [["Packs", "/packs"], ["Transfers", "/transfers"], ["Matches", "/matches"], ["Top performers", "/top-performers"], ["Hall of Fame", "/hall-of-fame"], ["How it works", "/how-it-works"]]],
+    ["Play", [["Packs", "/packs"], ["Transfers", "/transfers"], ["Matches", "/matches"], ["Top performers", "/top-performers"], ["Hall of Fame", "/hall-of-fame"], ["How it works", "/how-it-works"], ["Guides to MATCHX", "/guides"]]],
     ["Account", [["My Club", "/account/club"], ["Challenges", "/account/challenges"], ["Wallet", "/account/wallet"], ["Profile", "/account/profile"]]],
     ["Legal", [["Terms", "/legal/terms"], ["Privacy", "/legal/privacy"], ["Responsible play", "/legal/responsible-play"], ["Risk warning", "/legal/risk"], ["Pack odds", "/odds"], ["Report a problem", "/support"]]],
   ];

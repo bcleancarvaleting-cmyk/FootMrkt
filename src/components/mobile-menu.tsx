@@ -6,6 +6,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { logoutAction } from "@/app/actions/auth";
 import { ADMIN_MENU } from "@/app/admin/admin-nav";
+import { GUIDES } from "@/config/guides";
 import { type Theme, ThemeToggle } from "./theme-toggle";
 
 type Section = { title: string; links: Array<[label: string, href: string]> };
@@ -55,12 +56,17 @@ const MEMBER: Section[] = [
       ["Legal", "/account/legal"],
     ],
   },
+  {
+    title: "Guides to MATCHX",
+    links: [["All guides & what's new", "/guides"], ...GUIDES.map((g) => [`${g.icon} ${g.title}`, `/guides/${g.slug}`] as [string, string])],
+  },
 ];
 const GUEST: Section = {
   title: "MATCHX",
   links: [
     ["Home", "/"],
     ["How it works", "/how-it-works"],
+    ["Guides to MATCHX", "/guides"],
     ["Top performers", "/top-performers"],
     ["Log in", "/login"],
   ],

@@ -58,9 +58,21 @@ describe("weekly booster packs", () => {
     const open = await db.competition.findFirstOrThrow({ where: { gameweekId: gw.id, code: { endsWith: "-open" } } });
     const freeroll = await db.competition.findFirstOrThrow({ where: { gameweekId: gw.id, code: { endsWith: "-freeroll" } } });
     // Not in a cash-prize match.
-    await expect(submitEntry(a.userId, freeroll.id, { ...squad, boosterId: pack.id })).rejects.toThrow(/cash-prize/);
-    const entry = await submitEntry(a.userId, open.id, { ...squad, boosterId: pack.id });
+    // The manager picks who carries it: a sub for Super Sub, a starter for the rest.
+    const benchOnly = BOOSTERS[kind as keyof typeof BOOSTERS].benchOnly;
+    const right = benchOnly ? squad.bench[0] : squad.starters[0].cardId;
+    const wrong = benchOnly ? squad.starters[0].cardId : squad.bench[0];
+    await expect(submitEntry(a.userId, freeroll.id, { ...squad, boosterId: pack.id, boostedOn: right })).rejects.toThrow(/cash-prize/);
+    await expect(submitEntry(a.userId, open.id, { ...squad, boosterId: pack.id })).rejects.toThrow(/Pick the player/);
+    await expect(submitEntry(a.userId, open.id, { ...squad, boosterId: pack.id, boostedOn: wrong })).rejects.toThrow(/goes on one of your/);
+    const entry = await submitEntry(a.userId, open.id, { ...squad, boosterId: pack.id, boostedOn: right });
     expect((await db.competitionEntry.findUniqueOrThrow({ where: { id: entry.id } })).boosterKind).toBe(kind);
+    const boosted = await db.competitionSelection.findMany({ where: { entryId: entry.id, isBoosted: true } });
+    expect(boosted.map((x) => x.cardId)).toEqual([right]);
+    // Re-saving without a booster takes it off the player.
+    await submitEntry(a.userId, open.id, { ...squad, boosterId: null });
+    expect(await db.competitionSelection.count({ where: { entryId: entry.id, isBoosted: true } })).toBe(0);
+    await submitEntry(a.userId, open.id, { ...squad, boosterId: pack.id, boostedOn: right });
     expect((await myBoosters(a.userId))[0].usedEntryId).toBe(entry.id);
     // Withdrawing gives it back.
     await withdrawEntry(a.userId, open.id);

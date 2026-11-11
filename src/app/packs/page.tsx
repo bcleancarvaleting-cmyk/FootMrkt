@@ -76,7 +76,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
           <h2 id="boosters" className="text-2xl">
             Boosters
           </h2>
-          <span className="text-xs text-faint">A free booster pack lands every Tuesday · one booster per match entry · not in cash-prize matches</span>
+          <span className="text-xs text-faint">A free booster pack lands every Tuesday · put it on one player in a match · not in cash-prize matches</span>
         </div>
         {boosters.length === 0 ? (
           <p className="rounded-2xl border border-ink-700 bg-ink-900 px-4 py-3 text-sm text-muted">Your next free booster pack lands on Tuesday at 9am.</p>

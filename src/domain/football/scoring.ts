@@ -193,6 +193,8 @@ export interface ScoringSelection {
   captain?: boolean;
   /** Vice-captain: takes the double instead if the captain doesn't play. */
   viceCaptain?: boolean;
+  /** The player the manager put this week's booster on. */
+  boosted?: boolean;
 }
 
 export interface PlayerGameweekData {
@@ -212,6 +214,8 @@ export interface SelectionResult {
   captain?: boolean;
   /** The vice-captain doubled because the captain didn't play. */
   viceCaptain?: boolean;
+  /** Carries the entry's booster. */
+  boosted?: boolean;
   items: ScoreItem[];
   subbedOffFor?: string; // cardId of replacement
   subbedOnFor?: string; // cardId of starter replaced
@@ -228,7 +232,7 @@ export interface SquadScore {
   inputHash: string;
 }
 
-/** A weekly booster played on the entry (see src/config/boosters.ts). */
+/** A weekly booster, played on one player of the entry (the selection marked `boosted`; see src/config/boosters.ts). */
 export type Booster = "GOAL_RUSH" | "ASSIST_KING" | "CLEAN_SHEET_PLUS" | "SHIELD" | "BENCH_BOOST" | "TRIPLE_CAPTAIN";
 
 export function scoreSquad(
@@ -279,7 +283,10 @@ export function scoreSquad(
     );
     const captainCounts = !!s.captain && s.slot === "STARTER" && d.appearance === "PLAYED";
     const viceCounts = !s.captain && !!s.viceCaptain && captainOut && s.slot === "STARTER" && d.appearance === "PLAYED";
-    const multiplier = captainCounts || viceCounts ? (booster === "TRIPLE_CAPTAIN" ? 3 : 2) : 1;
+    // Only the player the manager boosted gets the booster's effect.
+    const boost = s.boosted ? booster : null;
+    const tripled = boost === "TRIPLE_CAPTAIN" && d.appearance === "PLAYED";
+    const multiplier = tripled ? 3 : captainCounts || viceCounts ? 2 : 1;
     let points = base.points * multiplier;
     const items = [...base.items];
     // Boosters add their own line to the breakdown, so every point stays explainable.
@@ -290,13 +297,13 @@ export function scoreSquad(
         points += count * each;
       }
     };
-    if (booster === "GOAL_RUSH") bonus("Goal Rush booster", total("Goal"), 5);
-    if (booster === "ASSIST_KING") bonus("Assist King booster", total("Assist"), 3);
-    if (booster === "CLEAN_SHEET_PLUS") {
+    if (boost === "GOAL_RUSH") bonus("Goal Rush booster", total("Goal"), 5);
+    if (boost === "ASSIST_KING") bonus("Assist King booster", total("Assist"), 3);
+    if (boost === "CLEAN_SHEET_PLUS") {
       const cs = base.items.find((i) => i.event === "Clean sheet");
       if (cs) bonus("Clean Sheet+ booster", cs.count, cs.points / cs.count);
     }
-    if (booster === "SHIELD" && points < 0) {
+    if (boost === "SHIELD" && points < 0) {
       items.push({ event: "Shield booster", count: 1, points: -points });
       points = 0;
     }
@@ -307,11 +314,12 @@ export function scoreSquad(
       slot: s.slot,
       order: s.order,
       appearance: d.appearance,
-      // Bench Boost: subs who played count too, even if they weren't needed.
-      counted: (active.has(s.cardId) || (booster === "BENCH_BOOST" && s.slot === "BENCH")) && d.appearance !== "DID_NOT_PLAY",
+      // Super Sub: the boosted sub's points count even if they weren't needed.
+      counted: (active.has(s.cardId) || (boost === "BENCH_BOOST" && s.slot === "BENCH")) && d.appearance !== "DID_NOT_PLAY",
       points,
       captain: captainCounts || undefined,
       viceCaptain: viceCounts || undefined,
+      boosted: (booster && s.boosted) || undefined,
       items,
       subbedOffFor: subbedOff.get(s.cardId),
       subbedOnFor: subbedOn.get(s.cardId),
@@ -361,7 +369,7 @@ function hashInputs(
   booster: Booster | null = null,
 ): string {
   const canonical = {
-    ...(booster ? { booster } : {}),
+    ...(booster ? { booster, boostedOn: selections.find((s) => s.boosted)?.cardId ?? null } : {}),
     scoringId,
     rosterId,
     selections: [...selections]

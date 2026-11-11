@@ -50,12 +50,12 @@ export function SquadBuilder({
   formations: Formation[];
   allowedCategories: string[];
   cards: BuilderCard[];
-  initial: { formation: string; starters: Array<{ cardId: string; position: Pos }>; bench: string[]; captain?: string | null; viceCaptain?: string | null } | null;
+  initial: { formation: string; starters: Array<{ cardId: string; position: Pos }>; bench: string[]; captain?: string | null; viceCaptain?: string | null; boostedOn?: string | null } | null;
   hasEntry: boolean;
   /** Free draft: the cards are players (id = player id), priced at their MX value, within a budget. */
   draft?: { budgetMx: number; maxPerClub?: number };
   /** Weekly boosters this manager can play here; `allowed` is false in cash-prize matches. */
-  boosters?: { allowed: boolean; available: Array<{ id: string; name: string; icon: string; description: string; expires: string }>; current: string | null };
+  boosters?: { allowed: boolean; available: Array<{ id: string; name: string; icon: string; description: string; expires: string; benchOnly: boolean }>; current: string | null };
 }) {
   const byId = useMemo(() => new Map(cards.map((c) => [c.id, c])), [cards]);
   const [formationId, setFormationId] = useState(initial?.formation ?? formations[0].id);
@@ -71,6 +71,8 @@ export function SquadBuilder({
   const [selected, setSelected] = useState<SlotKey | null>(null);
   const [captain, setCaptainRaw] = useState<string | null>(initial?.captain ?? null);
   const [boosterId, setBoosterId] = useState<string | null>(boosters?.current ?? null);
+  const [boostedOn, setBoostedOn] = useState<string | null>(initial?.boostedOn ?? null);
+  const booster = boosters?.available.find((b) => b.id === boosterId) ?? null;
   const [vice, setViceRaw] = useState<string | null>(initial?.viceCaptain ?? null);
   // One player can't hold both armbands: picking one clears the other.
   const setCaptain = (id: string | null) => {
@@ -87,6 +89,9 @@ export function SquadBuilder({
   const slots = slotsFor(formation);
   const benchSlots = [0, 1, 2, 3].map((i) => `B-${i}`);
   const used = new Set(Object.values(assign));
+  // Who can carry the chosen booster: subs for Super Sub, the starting seven for the rest.
+  const boostTargets = booster ? (booster.benchOnly ? benchSlots : slots.map((s) => s.key)).map((k) => assign[k]).filter(Boolean) : [];
+  const boostTarget = boostedOn && boostTargets.includes(boostedOn) ? boostedOn : null;
   const [search, setSearch] = useState("");
   const price = (c: BuilderCard | undefined) => Math.max(1, c?.valueMp ?? 1);
   const spent = draft ? [...used].reduce((n, id) => n + price(byId.get(id)), 0) : 0;
@@ -193,8 +198,8 @@ export function SquadBuilder({
     start(async () =>
       setResult(
         draft
-          ? await submitDraftEntryAction(competitionId, { formation: formationId, starters: starters.map((x) => ({ playerId: x.cardId, position: x.position })), bench, captain: cap, viceCaptain: vc, boosterId })
-          : await submitEntryAction(competitionId, { formation: formationId, starters, bench, captain: cap, viceCaptain: vc, boosterId }),
+          ? await submitDraftEntryAction(competitionId, { formation: formationId, starters: starters.map((x) => ({ playerId: x.cardId, position: x.position })), bench, captain: cap, viceCaptain: vc, boosterId, boostedOn: boosterId ? boostTarget : null })
+          : await submitEntryAction(competitionId, { formation: formationId, starters, bench, captain: cap, viceCaptain: vc, boosterId, boostedOn: boosterId ? boostTarget : null }),
       ),
     );
   }
@@ -281,6 +286,7 @@ export function SquadBuilder({
                           V
                         </button>
                       )}
+                      {booster && boostTarget && assign[s.key] === boostTarget && <BoostBadge icon={booster.icon} name={booster.name} corner="-bottom-2 -right-2" />}
                     </div>
                   ))}
               </div>
@@ -312,7 +318,8 @@ export function SquadBuilder({
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {benchSlots.map((k, i) => (
-              <div key={k} className="flex flex-col items-center gap-1">
+              <div key={k} className="relative flex flex-col items-center gap-1">
+                {booster && boostTarget && assign[k] === boostTarget && <BoostBadge icon={booster.icon} name={booster.name} corner="-left-2 -top-2" />}
                 <PitchSlot
                   label={`Sub ${i + 1}`}
                   card={assign[k] ? byId.get(assign[k]) : undefined}
@@ -361,12 +368,38 @@ export function SquadBuilder({
                 ))}
               </div>
             )}
-            {boosterId && <p className="text-xs text-muted">{boosters.available.find((b) => b.id === boosterId)?.description}</p>}
+            {booster && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted">{booster.description}</p>
+                <p className="text-xs font-semibold">
+                  {booster.icon} Put it on {booster.benchOnly ? "one of your subs" : "one of your starting seven"}:
+                </p>
+                {boostTargets.length === 0 ? (
+                  <p className="text-xs text-faint">Pick your {booster.benchOnly ? "subs" : "starters"} first.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Boosted player">
+                    {boostTargets.map((id) => (
+                      <button
+                        key={id}
+                        type="button"
+                        role="radio"
+                        aria-checked={boostTarget === id}
+                        onClick={() => setBoostedOn(id)}
+                        className={`rounded-full border px-3 py-1 text-xs ${boostTarget === id ? "border-lime bg-accent/10 font-semibold text-fg" : "border-ink-700 text-muted"}`}
+                      >
+                        {byId.get(id)?.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {!boostTarget && boostTargets.length > 0 && <p className="text-xs text-warn">Choose a player to carry your booster.</p>}
+              </div>
+            )}
           </div>
         )}
 
         <div className="flex flex-wrap items-start gap-3">
-          <button className="btn-primary px-6 py-3" onClick={save} disabled={pending || !filled}>
+          <button className="btn-primary px-6 py-3" onClick={save} disabled={pending || !filled || (!!booster && !boostTarget)}>
             {pending ? "Saving…" : hasEntry ? "Update squad" : "Enter squad"}
           </button>
           {hasEntry && (
@@ -484,5 +517,14 @@ function PitchSlot({
         </button>
       )}
     </div>
+  );
+}
+
+/** The booster's icon on the player who carries it. */
+function BoostBadge({ icon, name, corner }: { icon: string; name: string; corner: string }) {
+  return (
+    <span title={`${name} booster`} aria-label={`${name} booster`} className={`absolute ${corner} z-10 flex h-6 w-6 items-center justify-center rounded-full border border-lime bg-black/80 text-[12px]`}>
+      {icon}
+    </span>
   );
 }

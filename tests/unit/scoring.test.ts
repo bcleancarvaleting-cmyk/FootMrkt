@@ -184,31 +184,43 @@ describe("weekly boosters", () => {
     data.set("m1", line({ assists: 1 }));
     data.set("a2", line({ minutes: 30, redCards: 1, goalsConceded: 3 }));
     data.set("s3", line({ goals: 1 }));
-    const run = (b: Parameters<typeof scoreSquad>[4]) => scoreSquad(scoring, roster, squad, data as never, b);
+    // The booster only affects the one player it's put on.
+    const run = (b: Parameters<typeof scoreSquad>[4], on?: string) => scoreSquad(scoring, roster, squad.map((x) => ({ ...x, boosted: x.cardId === on || undefined })), data as never, b);
     return { run };
   };
 
-  it("each booster adds exactly its bonus, shown as its own line", async () => {
+  it("each booster only changes the player it's put on, shown as its own line", async () => {
     const { run } = await setup();
     const plain = run(null);
     const pts = (r: ReturnType<typeof run>, id: string) => r.selections.find((s) => s.cardId === id)!.points;
-    // Goal Rush: +5 per goal by counted players (captain's 2 goals: +10, not doubled).
-    expect(run("GOAL_RUSH").total - plain.total).toBe(10);
-    expect(run("GOAL_RUSH").selections.find((s) => s.cardId === "a1")!.items.some((i) => i.event === "Goal Rush booster" && i.points === 10)).toBe(true);
-    // Assist King: +3 per assist.
-    expect(run("ASSIST_KING").total - plain.total).toBe(3);
-    // Triple Captain: captain ×3 instead of ×2.
-    expect(pts(run("TRIPLE_CAPTAIN"), "a1")).toBe((pts(plain, "a1") / 2) * 3);
-    // Shield: the sent-off player's minus points count as 0.
+    // Goal Rush on the captain: +5 per goal (2 goals: +10, not doubled).
+    expect(run("GOAL_RUSH", "a1").total - plain.total).toBe(10);
+    expect(run("GOAL_RUSH", "a1").selections.find((s) => s.cardId === "a1")!.items.some((i) => i.event === "Goal Rush booster" && i.points === 10)).toBe(true);
+    expect(run("GOAL_RUSH", "a1").selections.find((s) => s.cardId === "a1")!.boosted).toBe(true);
+    // ...but on a player who didn't score, it does nothing.
+    expect(run("GOAL_RUSH", "d1").total).toBe(plain.total);
+    // Assist King: +3 per assist by the boosted player only.
+    expect(run("ASSIST_KING", "m1").total - plain.total).toBe(3);
+    expect(run("ASSIST_KING", "a1").total).toBe(plain.total);
+    // Triple Up on the captain: ×3 instead of ×2 (not ×6).
+    expect(pts(run("TRIPLE_CAPTAIN", "a1"), "a1")).toBe((pts(plain, "a1") / 2) * 3);
+    // Triple Up on another starter: their points ×3, and the captain still doubles.
+    expect(pts(run("TRIPLE_CAPTAIN", "m1"), "m1")).toBe(pts(plain, "m1") * 3);
+    expect(pts(run("TRIPLE_CAPTAIN", "m1"), "a1")).toBe(pts(plain, "a1"));
+    // Shield: the sent-off player's minus points count as 0 — only if it's on them.
     expect(pts(plain, "a2")).toBeLessThan(0);
-    expect(pts(run("SHIELD"), "a2")).toBe(0);
-    expect(run("SHIELD").total - plain.total).toBe(-pts(plain, "a2"));
-    // Bench Boost: subs who played count too.
-    expect(run("BENCH_BOOST").selections.filter((s) => s.slot === "BENCH").every((s) => s.counted)).toBe(true);
-    expect(run("BENCH_BOOST").total).toBeGreaterThan(plain.total);
-    // Clean Sheet+: keeper and defenders get their clean-sheet points again.
-    const csPlain = plain.selections.filter((s) => s.counted && s.items.some((i) => i.event === "Clean sheet")).reduce((n, s) => n + s.items.find((i) => i.event === "Clean sheet")!.points, 0);
-    expect(run("CLEAN_SHEET_PLUS").total - plain.total).toBe(csPlain);
+    expect(pts(run("SHIELD", "a2"), "a2")).toBe(0);
+    expect(run("SHIELD", "a2").total - plain.total).toBe(-pts(plain, "a2"));
+    expect(run("SHIELD", "m1").total).toBe(plain.total);
+    // Super Sub: only the boosted sub counts as well.
+    const ss = run("BENCH_BOOST", "s3");
+    expect(ss.selections.filter((s) => s.slot === "BENCH" && s.counted).map((s) => s.cardId)).toEqual(["s3"]);
+    expect(ss.total - plain.total).toBe(pts(plain, "s3"));
+    // Clean Sheet+ on a defender: their clean-sheet points again.
+    const cs = plain.selections.find((s) => s.cardId === "d1")!.items.find((i) => i.event === "Clean sheet")!.points;
+    expect(run("CLEAN_SHEET_PLUS", "d1").total - plain.total).toBe(cs);
+    // No player chosen = no effect.
+    expect(run("GOAL_RUSH").total).toBe(plain.total);
   });
 
   it("chances add up to 100", async () => {

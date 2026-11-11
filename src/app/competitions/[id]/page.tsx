@@ -107,7 +107,7 @@ async function Builder({
 }: {
   userId: string;
   competition: { id: string; gameweekId: string; rosterRules: string; format: "OPEN" | "BRONZE_ONLY" | "SILVER_ONLY" | "GOLD_ONLY"; requirements: unknown; rewards: unknown };
-  entry: { id: string; formation: string; selections: Array<{ cardId: string | null; slot: string; position: string; order: number; isCaptain: boolean; isViceCaptain: boolean }> } | null;
+  entry: { id: string; formation: string; selections: Array<{ cardId: string | null; slot: string; position: string; order: number; isCaptain: boolean; isViceCaptain: boolean; isBoosted: boolean }> } | null;
 }) {
   const rules = getRosterRules(competition.rosterRules);
   const cards = await cardViews({ ownerId: userId, supplyState: "HELD" }, [{ template: { player: { position: "asc" } } }]);
@@ -145,6 +145,7 @@ async function Builder({
         bench: entry.selections.filter((s) => s.slot === "BENCH" && s.cardId).sort((a, b) => a.order - b.order).map((s) => s.cardId!),
         captain: entry.selections.find((s) => s.isCaptain)?.cardId ?? null,
         viceCaptain: entry.selections.find((s) => s.isViceCaptain)?.cardId ?? null,
+        boostedOn: entry.selections.find((s) => s.isBoosted)?.cardId ?? null,
       }
     : null;
   return (
@@ -168,7 +169,7 @@ async function DraftBuilder({
 }: {
   userId: string;
   competition: { id: string; gameweekId: string; rosterRules: string; requirements: unknown; rewards: unknown };
-  entry: { id: string; formation: string; selections: Array<{ playerId: string; slot: string; position: string; order: number; isCaptain: boolean; isViceCaptain: boolean }> } | null;
+  entry: { id: string; formation: string; selections: Array<{ playerId: string; slot: string; position: string; order: number; isCaptain: boolean; isViceCaptain: boolean; isBoosted: boolean }> } | null;
 }) {
   const req = (competition.requirements ?? {}) as Requirements;
   const rules = getRosterRules(competition.rosterRules);
@@ -200,6 +201,7 @@ async function DraftBuilder({
         bench: entry.selections.filter((s) => s.slot === "BENCH").sort((a, b) => a.order - b.order).map((s) => s.playerId),
         captain: entry.selections.find((s) => s.isCaptain)?.playerId ?? null,
         viceCaptain: entry.selections.find((s) => s.isViceCaptain)?.playerId ?? null,
+        boostedOn: entry.selections.find((s) => s.isBoosted)?.playerId ?? null,
       }
     : null;
   return (
@@ -228,7 +230,7 @@ async function boosterChoices(userId: string, competition: { rewards: unknown },
   const fmt = (d: Date) => d.toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "Europe/London" });
   return {
     allowed: boostersAllowed(competition),
-    available: mine.map((b) => ({ id: b.id, name: BOOSTERS[b.kind!].name, icon: BOOSTERS[b.kind!].icon, description: BOOSTERS[b.kind!].description, expires: fmt(b.expiresAt) })),
+    available: mine.map((b) => ({ id: b.id, name: BOOSTERS[b.kind!].name, icon: BOOSTERS[b.kind!].icon, description: BOOSTERS[b.kind!].description, benchOnly: BOOSTERS[b.kind!].benchOnly, expires: fmt(b.expiresAt) })),
     current: mine.find((b) => b.usedEntryId === entryId && entryId)?.id ?? null,
   };
 }
@@ -265,7 +267,11 @@ async function Result({ entryId, settled }: { entryId: string; settled: boolean 
         </div>
         {entry.boosterKind && entry.boosterKind in BOOSTERS && (
           <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-lime/40 bg-accent/10 px-3 py-1 text-xs font-semibold">
-            {BOOSTERS[entry.boosterKind as BoosterKind].icon} {BOOSTERS[entry.boosterKind as BoosterKind].name} booster played
+            {BOOSTERS[entry.boosterKind as BoosterKind].icon} {BOOSTERS[entry.boosterKind as BoosterKind].name} booster played{(() => {
+              const on = breakdown.selections.find((x) => x.boosted);
+              const name = on && byId.get(on.cardId)?.name;
+              return name ? ` on ${name}` : "";
+            })()}
           </p>
         )}
         <div className="space-y-1.5">
@@ -284,8 +290,14 @@ async function Result({ entryId, settled }: { entryId: string; settled: boolean 
                     {s.subbedOnFor && <span className="ml-2 text-[11px] text-mint">↑ auto-sub on</span>}
                     {s.appearance === "PENDING" && <span className="ml-2 text-[11px] text-faint">yet to play</span>}
                   </span>
-                  <span className={`font-bold ${s.counted ? "text-lime" : "text-faint"}`}>{s.captain && <span className="mr-1 rounded bg-accent px-1 text-[10px] text-accent-ink">C ×{entry.boosterKind === "TRIPLE_CAPTAIN" ? 3 : 2}</span>}
-                    {s.viceCaptain && <span className="mr-1 rounded bg-white px-1 text-[10px] text-black">VC ×{entry.boosterKind === "TRIPLE_CAPTAIN" ? 3 : 2}</span>}{s.points}</span>
+                  <span className={`font-bold ${s.counted ? "text-lime" : "text-faint"}`}>{s.captain && <span className="mr-1 rounded bg-accent px-1 text-[10px] text-accent-ink">C ×{s.boosted && entry.boosterKind === "TRIPLE_CAPTAIN" ? 3 : 2}</span>}
+                    {s.viceCaptain && <span className="mr-1 rounded bg-white px-1 text-[10px] text-black">VC ×{s.boosted && entry.boosterKind === "TRIPLE_CAPTAIN" ? 3 : 2}</span>}
+                    {s.boosted && entry.boosterKind && entry.boosterKind in BOOSTERS && (
+                      <span className="mr-1" title={`${BOOSTERS[entry.boosterKind as BoosterKind].name} booster`}>
+                        {BOOSTERS[entry.boosterKind as BoosterKind].icon}
+                      </span>
+                    )}
+                    {s.points}</span>
                 </summary>
                 <ul className="mt-2 space-y-0.5 pl-12 text-xs text-muted">
                   {s.items.map((i) => (

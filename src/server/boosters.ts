@@ -97,9 +97,15 @@ export function boostersAllowed(comp: { rewards: unknown }) {
  * Inside an entry save: play the chosen booster on this entry (or none). A booster already on the
  * entry is released if it's changed. A booster can only be on one entry.
  */
-export async function attachBooster(tx: Tx, userId: string, entryId: string, comp: { rewards: unknown }, boosterId: string | null | undefined) {
+/**
+ * Put a booster on one player of a saved entry (or take it off). `boostedOn` is the card id, or
+ * the player id in a free draft. Super Sub must go on a sub; the others on anyone in the squad.
+ * Runs after the entry's selections have been written, in the same transaction.
+ */
+export async function attachBooster(tx: Tx, userId: string, entryId: string, comp: { rewards: unknown }, boosterId: string | null | undefined, boostedOn?: string | null) {
   const current = await tx.boosterPack.findUnique({ where: { usedEntryId: entryId } });
   if (current && current.id !== boosterId) await tx.boosterPack.update({ where: { id: current.id }, data: { usedEntryId: null, usedAt: null } });
+  await tx.competitionSelection.updateMany({ where: { entryId, isBoosted: true }, data: { isBoosted: false } });
   if (!boosterId) {
     await tx.competitionEntry.update({ where: { id: entryId }, data: { boosterKind: null } });
     return null;
@@ -109,9 +115,16 @@ export async function attachBooster(tx: Tx, userId: string, entryId: string, com
   if (!b || !b.kind) throw new DomainError("NO_BOOSTER", "Open your booster pack first.");
   if (b.expiresAt <= new Date()) throw new DomainError("EXPIRED", "That booster has expired.");
   if (b.usedEntryId && b.usedEntryId !== entryId) throw new DomainError("BOOSTER_USED", "That booster is already on another match entry.");
+  const kind = b.kind as BoosterKind;
+  if (!boostedOn) throw new DomainError("NO_PLAYER", `Pick the player to put ${BOOSTERS[kind].name} on.`);
+  const target = await tx.competitionSelection.findFirst({ where: { entryId, OR: [{ cardId: boostedOn }, { cardId: null, playerId: boostedOn }] } });
+  if (!target) throw new DomainError("NO_PLAYER", "Your booster must go on a player in this squad.");
+  if (BOOSTERS[kind].benchOnly && target.slot !== "BENCH") throw new DomainError("BENCH_ONLY", `${BOOSTERS[kind].name} goes on one of your subs.`);
+  if (!BOOSTERS[kind].benchOnly && target.slot !== "STARTER") throw new DomainError("STARTERS_ONLY", `${BOOSTERS[kind].name} goes on one of your starting seven.`);
+  await tx.competitionSelection.update({ where: { id: target.id }, data: { isBoosted: true } });
   await tx.boosterPack.update({ where: { id: b.id }, data: { usedEntryId: entryId, usedAt: new Date() } });
-  await tx.competitionEntry.update({ where: { id: entryId }, data: { boosterKind: b.kind } });
-  return b.kind as BoosterKind;
+  await tx.competitionEntry.update({ where: { id: entryId }, data: { boosterKind: kind } });
+  return kind;
 }
 
 /** Withdrawing an entry gives its booster back. */

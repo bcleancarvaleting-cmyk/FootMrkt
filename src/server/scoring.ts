@@ -63,7 +63,7 @@ export async function scoreEntry(tx: Tx | typeof db, entryId: string): Promise<S
   return scoreSquad(
     getScoringRules(entry.competition.scoringRules),
     getRosterRules(entry.competition.rosterRules),
-    entry.selections.map((s) => ({ cardId: selectionKey(s), playerId: s.playerId, position: s.position, slot: s.slot, order: s.order, captain: s.isCaptain || undefined, viceCaptain: s.isViceCaptain || undefined })),
+    entry.selections.map((s) => ({ cardId: selectionKey(s), playerId: s.playerId, position: s.position, slot: s.slot, order: s.order, captain: s.isCaptain || undefined, viceCaptain: s.isViceCaptain || undefined, boosted: s.isBoosted || undefined })),
     data,
     (entry.boosterKind as Booster | null) ?? null,
   );
@@ -240,7 +240,7 @@ export async function reproduceCalculation(calculationId: string) {
   const recomputed = scoreSquad(
     getScoringRules(calc.ruleVersion),
     getRosterRules(breakdown.rosterRules),
-    calc.entry.selections.map((s) => ({ cardId: selectionKey(s), playerId: s.playerId, position: s.position, slot: s.slot, order: s.order, captain: s.isCaptain || undefined, viceCaptain: s.isViceCaptain || undefined })),
+    calc.entry.selections.map((s) => ({ cardId: selectionKey(s), playerId: s.playerId, position: s.position, slot: s.slot, order: s.order, captain: s.isCaptain || undefined, viceCaptain: s.isViceCaptain || undefined, boosted: s.isBoosted || undefined })),
     data,
     (calc.entry.boosterKind as Booster | null) ?? null,
   );

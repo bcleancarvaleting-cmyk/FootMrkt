@@ -64,6 +64,8 @@ export const SquadSubmissionSchema = z.object({
   viceCaptain: z.string().uuid().optional(),
   /** A weekly booster to play on this entry (null/absent = none). */
   boosterId: z.string().uuid().nullable().optional(),
+  /** Card id of the player carrying the booster. */
+  boostedOn: z.string().uuid().nullable().optional(),
 });
 
 export class SquadInvalidError extends DomainError {
@@ -178,7 +180,7 @@ export async function submitEntry(userId: string, competitionId: string, input: 
         })),
       ],
     });
-    await attachBooster(tx, userId, entry.id, comp, submission.boosterId);
+    await attachBooster(tx, userId, entry.id, comp, submission.boosterId, submission.boostedOn);
     return entry;
   });
 }

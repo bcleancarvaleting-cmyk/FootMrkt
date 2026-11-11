@@ -23,6 +23,8 @@ export const DraftSchema = z.object({
   captain: z.string().uuid().optional(),
   viceCaptain: z.string().uuid().optional(),
   boosterId: z.string().uuid().nullable().optional(),
+  /** Player id carrying the booster. */
+  boostedOn: z.string().uuid().nullable().optional(),
 });
 
 /** Every player who can be drafted for a match, with today's MX value (their current tier's card). */
@@ -85,7 +87,7 @@ export async function submitDraftEntry(userId: string, competitionId: string, in
         ...sub.bench.map((id, i) => ({ entryId: entry.id, cardId: null, playerId: id, slot: "BENCH" as const, position: cards.get(id)!.playerPosition, order: i + 1 })),
       ],
     });
-    await attachBooster(tx, userId, entry.id, comp, sub.boosterId);
+    await attachBooster(tx, userId, entry.id, comp, sub.boosterId, sub.boostedOn);
     return entry;
   });
 }

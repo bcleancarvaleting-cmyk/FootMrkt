@@ -909,6 +909,8 @@ model CompetitionSelection {
   isCaptain Boolean          @default(false)
   // Vice-captain: doubles instead if the captain doesn't play. One per entry, starters only.
   isViceCaptain Boolean      @default(false)
+  // Carries the entry's weekly booster (one per entry, chosen by the manager).
+  isBoosted     Boolean      @default(false)
 
   @@unique([entryId, cardId])
   @@unique([entryId, slot, order])

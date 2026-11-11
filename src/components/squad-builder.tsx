@@ -34,6 +34,8 @@ function slotsFor(f: Formation): Array<{ key: SlotKey; pos: Pos }> {
   ];
 }
 
+const POS_WORD: Record<Pos, string> = { GK: "a goalkeeper", DEF: "a defender", MID: "a midfielder", ATT: "an attacker" };
+
 const avg = (xs: number[]) => (xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : null);
 
 export function SquadBuilder({
@@ -440,9 +442,26 @@ export function SquadBuilder({
         </div>
       </div>
 
-      <aside className="panel flex max-h-[760px] flex-col overflow-hidden">
+      {/* Phones: tapping a slot opens the eligible players in a sheet over the page; tapping one
+          places them and moves on to the next empty slot. Larger screens keep the list beside the pitch. */}
+      {selected && <button type="button" aria-label="Close player list" className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm lg:hidden" onClick={() => setSelected(null)} />}
+      <aside
+        className={`panel flex max-h-[760px] flex-col overflow-hidden ${
+          selected
+            ? "max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-[61] max-lg:max-h-[78vh] max-lg:rounded-b-none max-lg:pb-[env(safe-area-inset-bottom)]"
+            : "max-lg:hidden"
+        }`}
+        aria-label="Players"
+      >
         <div className="border-b border-ink-700 p-3">
-          <div className="text-sm font-bold">{selected ? (selectedPos ? `Choose a ${selectedPos}` : `Choose ${selected.replace("B-", "Sub ")}`) : draft ? "Players" : "Your players"}</div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm font-bold">{selected ? (selectedPos ? `Choose ${POS_WORD[selectedPos]}` : `Choose Sub ${Number(selected.replace("B-", "")) + 1}`) : draft ? "Players" : "Your players"}</div>
+            {selected && (
+              <button type="button" className="btn-ghost px-3 py-1 text-xs lg:hidden" onClick={() => setSelected(null)}>
+                Done
+              </button>
+            )}
+          </div>
           <div className="text-[11px] text-faint">{selected ? "Tap a player to place them" : "Tap a pitch or bench slot, then pick a player"}</div>
           {draft && (
             <div className="mt-2">

@@ -49,6 +49,7 @@ export default async function CompetitionPage({ params }: { params: Promise<{ id
             {open ? `locks ${relativeTime(comp.locksAt)} (${fmtDate(comp.locksAt)})` : comp.status.toLowerCase()}
           </p>
         </div>
+        {user.role === "ADMIN" && (
         <div className="flex flex-wrap gap-2 text-xs">
           <span className="chip">Roster: {rules.id}</span>
           <span className={`chip ${scoring.status === "DRAFT" ? "border-warn/50 text-warn" : ""}`}>
@@ -56,6 +57,7 @@ export default async function CompetitionPage({ params }: { params: Promise<{ id
             {scoring.status === "DRAFT" && " (draft)"}
           </span>
         </div>
+        )}
       </div>
 
       {open ? (

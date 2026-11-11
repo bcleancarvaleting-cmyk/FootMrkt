@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { CashOutForm, ConvertXpForm, DepositForm, WithdrawForm } from "@/components/account-forms";
+import { ConvertXpForm, DepositForm, WithdrawForm } from "@/components/account-forms";
 import { GateNotice } from "@/components/page-header";
 import { basketCount } from "@/server/basket";
 import { requireUser } from "@/server/auth/session";
 import { db } from "@/server/db";
 import { isEnabled } from "@/server/flags";
-import { CASHOUT_FEE_PCT, CASHOUT_HOLD_DAYS, MIN_CASHOUT_MINOR, balancesFor, cashableMx, fmtGbp, fmtMp, profileGaps, walletHistory, xpPerMx } from "@/server/wallet";
+import { balancesFor, fmtGbp, fmtMp, profileGaps, walletHistory, xpPerMx } from "@/server/wallet";
 import { fmtDate } from "@/lib/view";
 
 export const metadata = { title: "Wallet" };
@@ -34,7 +34,7 @@ const W_TONE: Record<string, string> = { REQUESTED: "text-warn", PAID: "text-min
 export default async function WalletPage({ searchParams }: { searchParams: Promise<{ bundle?: string; paid?: string }> }) {
   const user = await requireUser();
   const { bundle, paid } = await searchParams;
-  const [inBasket, cashable] = await Promise.all([basketCount(user.id), cashableMx(user.id)]);
+  const inBasket = await basketCount(user.id);
   const XP_PER_MX = await xpPerMx();
   const [u, bal, ledger, withdrawals, depositsOn, withdrawalsOn] = await Promise.all([
     db.user.findUniqueOrThrow({ where: { id: user.id } }),
@@ -100,7 +100,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
         <div id="withdraw" className="panel scroll-mt-24 p-5">
           <h2 className="mb-1 text-2xl">Withdraw winnings</h2>
           <p className="mb-4 text-sm text-muted">
-            Cash out £ you&apos;ve won in matches — minimum £10. You can withdraw up to <b className="text-fg">{fmtGbp(bal.withdrawable)}</b>.
+            Cash out £ you&apos;ve won in matches — minimum £10. You can withdraw up to <b className="text-fg">{fmtGbp(bal.withdrawable)}</b>. MX can&apos;t be withdrawn — it&apos;s for building your club.
           </p>
           {!withdrawalsOn && <GateNotice>Coming soon. Your winnings are safe here; withdrawals open once identity checks and payouts are set up.</GateNotice>}
           {gaps.length > 0 && (
@@ -109,19 +109,11 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
             </p>
           )}
           <WithdrawForm enabled={withdrawalsOn && gaps.length === 0} maxMinor={bal.withdrawable} />
-          <div className="mt-6 border-t border-ink-700 pt-5">
-            <h3 className="mb-1 text-xl">Cash out bought MX</h3>
-            <p className="mb-3 text-sm text-muted">
-              Turn MX you&apos;ve bought back into £, less a {CASHOUT_FEE_PCT}% fee. You can cash out <b className="text-fg">{fmtMp(cashable)}</b> now. MX you bought in the last {CASHOUT_HOLD_DAYS} days,
-              bonus MX, and MX from XP, challenges and sales stay in the game.
-            </p>
-            <CashOutForm enabled={withdrawalsOn && gaps.length === 0} cashableMinor={cashable} feePct={CASHOUT_FEE_PCT} minMinor={MIN_CASHOUT_MINOR} />
-          </div>
           {withdrawals.length > 0 && (
             <ul className="mt-4 divide-y divide-ink-700 text-sm">
               {withdrawals.map((w) => (
                 <li key={w.id} className="flex justify-between py-2">
-                  <span>{fmtGbp(w.amountMinor)} <span className="text-faint">· {w.source === "MX" ? "MX cash-out · " : ""}{fmtDate(w.createdAt)}</span></span>
+                  <span>{fmtGbp(w.amountMinor)} <span className="text-faint">· {fmtDate(w.createdAt)}</span></span>
                   <span className={`text-xs font-bold uppercase tracking-wider ${W_TONE[w.status]}`}>{w.status.toLowerCase()}</span>
                 </li>
               ))}

@@ -229,7 +229,7 @@ export async function EconomySections({ only }: { only: string[] }) {
       )}
 
       {show("withdrawals") && (
-      <Section title="Withdrawals" intro="Prize winnings, and cash-outs of bought MX (bought MX only, 7+ days old, 10% fee already taken — the amount shown is what to pay). Check identity and bank details with the payout provider, then mark paid. Rejecting returns the winnings or MX.">
+      <Section title="Withdrawals" intro="Managers can only withdraw £ winnings from match prizes — never MX. Check identity and bank details with the payout provider, then mark paid. Rejecting returns the winnings.">
         <ul className="divide-y divide-ink-700 text-sm">
           {withdrawals.map((w) => (
             <li key={w.id} className="flex flex-wrap items-center justify-between gap-3 py-2">

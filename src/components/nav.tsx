@@ -4,7 +4,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/server/auth/session";
 import { isEnabled } from "@/server/flags";
 import { db } from "@/server/db";
-import { balancesFor, cashableMx, fmtMp } from "@/server/wallet";
+import { balancesFor, fmtMp } from "@/server/wallet";
 import { canModerate } from "@/server/moderation";
 import { TopNav } from "./bottom-nav";
 import { MobileMenu } from "./mobile-menu";
@@ -30,7 +30,6 @@ export async function Header({ theme, unopenedPacks }: { theme: Theme; unopenedP
     user ? unreadCount(user.id) : 0,
     user ? db.basketItem.count({ where: { userId: user.id } }) : 0,
   ]);
-  const cashable = user ? await cashableMx(user.id) : 0;
   return (
     <header
       className="sticky z-30 border-b border-ink-800 bg-ink-950/90 backdrop-blur-xl"
@@ -101,7 +100,7 @@ export async function Header({ theme, unopenedPacks }: { theme: Theme; unopenedP
             theme={theme}
             unread={unread}
             user={user ? { name: user.displayName, isAdmin: user.role === "ADMIN", isMod: canModerate(user.role) } : null}
-            wallet={bal ? { mx: fmtMp(bal.total), earned: fmtMp(bal.earned), cashable: fmtMp(cashable), gbp: `£${(bal.withdrawable / 100).toFixed(2)}`, xp: bal.xp.toLocaleString("en-GB"), basket } : null}
+            wallet={bal ? { mx: fmtMp(bal.total), earned: fmtMp(bal.earned), gbp: `£${(bal.withdrawable / 100).toFixed(2)}`, xp: bal.xp.toLocaleString("en-GB"), basket } : null}
           />
         </div>
       </div>

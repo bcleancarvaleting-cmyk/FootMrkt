@@ -127,3 +127,13 @@ export function FinishPill({ finish, id, size = "sm", className = "" }: { finish
     </span>
   );
 }
+
+/** The terrace chant for a one-of-one: "There's only one <name>, walking along, singing a song…" */
+export function RainbowChant({ name, full = false, className = "" }: { name: string; full?: boolean; className?: string }) {
+  return (
+    <p className={`rainbow-name font-display font-bold uppercase italic leading-tight ${className}`}>
+      There&apos;s only one {name}
+      {full && <span className="block normal-case text-white/70 [-webkit-text-fill-color:currentColor]">…walking along, singing a song…</span>}
+    </p>
+  );
+}

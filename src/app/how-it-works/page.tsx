@@ -89,8 +89,8 @@ export default function HowItWorks() {
         </p>
         <p>
           Each card shows an indicative value in MX, MATCHX&apos;s in-game points currency. It
-          reflects supply, recent form, league level and eligible completed sales. <b>MX is not cash</b> and a card&apos;s value is not a promise of what it could sell for.
-          Only MX you&apos;ve bought can be cashed back to £ (after 7 days, less a 10% fee).
+          reflects supply, recent form, league level and eligible completed sales. <b>MX is not cash</b>, cannot be withdrawn or redeemed,
+          and is not a promise of what a card could sell for.
         </p>
       </Section>
     </div>

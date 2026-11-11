@@ -11,6 +11,7 @@ import { ActionButton } from "@/components/action-button";
 import { AuctionListForm, ListingForm } from "@/components/listing-form";
 import { listingGuidance } from "@/server/transfers-view";
 import { PlayerCard } from "@/components/player-card";
+import { RainbowChant } from "@/components/finish-art";
 import { ValueChart } from "@/components/value-chart";
 import { enrichCards } from "@/server/views";
 import { getCurrentUser } from "@/server/auth/session";
@@ -69,6 +70,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
     <div className="grid gap-8 md:grid-cols-[auto_1fr]">
       <div className="flex flex-col items-center gap-3">
         <PlayerCard card={view} size="lg" />
+        {view.finish?.kind === "RAINBOW" && <RainbowChant name={view.name} full className="max-w-[260px] text-center text-lg" />}
         {isOwner && view.loan?.ended && view.lock === "NONE" && (
           <ActionButton action={discardLoanAction.bind(null, id)} className="btn-primary bg-danger text-white" confirm={`Discard ${view.name}? Their loan has ended and they go back to their club.`}>
             Discard loan player

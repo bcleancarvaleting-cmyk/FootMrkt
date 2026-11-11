@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { ClubCrest } from "@/components/club-crest";
-import { CardRow, RowStat } from "@/components/card-row";
+import { CardRow, RowStat, Sparkline } from "@/components/card-row";
 import { discardLoanAction } from "@/app/actions/account";
 import { ActionButton } from "@/components/action-button";
 import { EndedLoansBanner } from "@/components/loan-banner";
 import { EmptyState } from "@/components/page-header";
 import { requireUser } from "@/server/auth/session";
-import { type BinderFilters, binder, binderTotals } from "@/server/binder";
-import { POSITION_LABEL, type Pos } from "@/lib/view";
+import { type BinderFilters, binder, binderTotals, portfolio } from "@/server/binder";
+import { POSITION_LABEL, type Pos, fmtDate } from "@/lib/view";
 
 export const metadata = { title: "My Club" };
 
@@ -30,7 +30,7 @@ export default async function MyClubPage({ searchParams }: { searchParams: Promi
     status: (["available", "listed", "competition", "nontradeable"] as const).find((s) => s === sp.status),
     duplicates: sp.dupes === "1",
   };
-  const [cards, totals] = await Promise.all([binder(user.id, filters), binderTotals(user.id)]);
+  const [cards, totals, pf] = await Promise.all([binder(user.id, filters), binderTotals(user.id), portfolio(user.id)]);
   const groups = POS.map((p) => ({
     pos: p,
     cards: cards
@@ -62,7 +62,13 @@ export default async function MyClubPage({ searchParams }: { searchParams: Promi
           <h1 className="mt-1 text-4xl leading-none sm:text-5xl">{user.clubName ?? "My Club"}</h1>
           <p className="mt-2 text-sm text-muted">
             {totals.total} cards · <span className="text-gold">{totals.byCategory.GOLD} Gold</span> · <span className="text-silver">{totals.byCategory.SILVER} Silver</span> ·{" "}
-            <span className="text-bronze">{totals.byCategory.BRONZE} Bronze</span> · squad value <b className="text-fg">{squadValue} MX</b>
+            <span className="text-bronze">{totals.byCategory.BRONZE} Bronze</span>
+            {(filters.category || filters.q || filters.status || filters.duplicates) && (
+              <>
+                {" "}
+                · showing <b className="text-fg">{squadValue.toFixed(2)} MX</b>
+              </>
+            )}
           </p>
           </div>
         </div>
@@ -73,6 +79,31 @@ export default async function MyClubPage({ searchParams }: { searchParams: Promi
           <Link href="/packs" className="btn-primary px-4 py-2 text-xs">Open packs</Link>
         </div>
       </div>
+
+      <section className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="relative col-span-2 overflow-hidden rounded-2xl border border-accent/40 bg-ink-900 p-5">
+          <div className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full bg-accent/10 blur-3xl" aria-hidden="true" />
+          <p className="eyebrow text-lime">Portfolio value</p>
+          <div className="mt-1 flex flex-wrap items-end gap-x-4 gap-y-1">
+            <span className="font-display text-5xl font-black tabular-nums leading-none">{pf.value.toFixed(2)} MX</span>
+            {pf.changePct !== null && (
+              <span className={`mb-1 text-sm font-bold tabular-nums ${pf.changePct > 0 ? "text-mint" : pf.changePct < 0 ? "text-danger" : "text-faint"}`}>
+                {pf.changePct > 0 ? "▲" : pf.changePct < 0 ? "▼" : "–"} {Math.abs(pf.changePct)}%
+              </span>
+            )}
+          </div>
+          <p className="mt-1 text-sm text-muted">
+            ≈ <b className="text-fg">£{pf.value.toFixed(2)}</b> at today&apos;s prices <span className="text-faint">· 1 MX ≈ £1 to buy · MX can&apos;t be withdrawn</span>
+          </p>
+          <div className="mt-3">{pf.series.length > 1 ? <Sparkline points={pf.series} width={280} height={44} /> : <span className="text-xs text-faint">The graph fills in as the market revalues your players.</span>}</div>
+        </div>
+        <Tile label="Playing in the next 7 days" value={`${pf.playingSoon} player${pf.playingSoon === 1 ? "" : "s"}`} sub={pf.firstKick ? `First kick-off ${fmtDate(pf.firstKick, { weekday: "short", hour: "2-digit", minute: "2-digit" })}` : "No fixtures this week"} href="/matches" tone="text-lime" />
+        <Tile label="Most valuable" value={pf.top ? `${pf.top.valueMp ?? 0} MX` : "—"} sub={pf.top ? `${pf.top.name}${pf.top.finish ? ` · ${pf.top.finish.toLowerCase()}` : ""}` : "Open a pack to start"} href={pf.top ? `/cards/${pf.top.id}` : "/packs"} tone="text-gold" />
+        <Tile label="Points for you" value={`${pf.points.toLocaleString("en-GB")} pts`} sub="Scored by your players in matches" href="/account/achievements" />
+        <Tile label="Specials" value={`${pf.finishes.RAINBOW + pf.finishes.DIAMOND + pf.finishes.RUBY}`} sub={`Rainbow ${pf.finishes.RAINBOW} · Diamond ${pf.finishes.DIAMOND} · Ruby ${pf.finishes.RUBY}`} href="/account/club" tone="rainbow-name" />
+        <Tile label="In your squads" value={`${pf.inSquads} card${pf.inSquads === 1 ? "" : "s"}`} sub={pf.listed ? `${pf.listed} listed on Transfers` : "None listed"} href="/transfers/mine" />
+        <Tile label="Build your club" value="Sell · buy · upgrade" sub="Sell players to fund better ones" href="/transfers" tone="text-lime" />
+      </section>
 
       <div className="mb-5 flex flex-wrap items-center gap-2">
         <form action="/account/club" className="min-w-0 flex-1 basis-56">
@@ -147,5 +178,15 @@ export default async function MyClubPage({ searchParams }: { searchParams: Promi
         </div>
       )}
     </div>
+  );
+}
+
+function Tile({ label, value, sub, href, tone = "" }: { label: string; value: string; sub: string; href: string; tone?: string }) {
+  return (
+    <Link href={href} className="min-w-0 rounded-2xl border border-ink-700 bg-ink-900 p-4 transition hover:border-ink-600 hover:bg-ink-850">
+      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-faint">{label}</p>
+      <p className={`mt-1 truncate font-display text-2xl font-black uppercase italic leading-none ${tone}`}>{value}</p>
+      <p className="mt-1 truncate text-xs text-muted">{sub}</p>
+    </Link>
   );
 }

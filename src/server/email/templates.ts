@@ -16,7 +16,7 @@ function layout(o: { preheader: string; title: string; paragraphs: string[]; cta
 <tr><td style="padding:8px 24px 0;font-size:24px;font-weight:800;line-height:1.2">${esc(o.title)}</td></tr>
 ${o.paragraphs.map((p) => `<tr><td style="padding:12px 24px 0;font-size:15px;line-height:1.55;color:#c9cdc6">${p}</td></tr>`).join("")}
 ${o.cta ? `<tr><td style="padding:22px 24px 4px"><a href="${o.cta.href}" style="display:inline-block;background:#adfc07;color:#0a0d02;text-decoration:none;font-weight:800;font-size:14px;letter-spacing:.06em;text-transform:uppercase;padding:13px 22px;border-radius:12px">${esc(o.cta.label)}</a></td></tr>` : ""}
-<tr><td style="padding:22px 24px 24px;font-size:12px;line-height:1.5;color:#6c726a">${o.footnote ? `${esc(o.footnote)}<br>` : ""}You're getting this because you have a MATCHX account. MX is an in-game currency; only MX bought by card can be cashed out (10% fee). 18+.</td></tr>
+<tr><td style="padding:22px 24px 24px;font-size:12px;line-height:1.5;color:#6c726a">${o.footnote ? `${esc(o.footnote)}<br>` : ""}You're getting this because you have a MATCHX account. MX is an in-game currency and can't be withdrawn. 18+.</td></tr>
 </table></td></tr></table></body></html>`;
   const text = [o.title, "", ...o.paragraphs.map((p) => p.replace(/<[^>]+>/g, "")), "", o.cta ? `${o.cta.label}: ${o.cta.href}` : "", "", "— MATCHX"].join("\n");
   return { subject: o.title, html, text };

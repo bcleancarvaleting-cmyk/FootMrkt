@@ -11,7 +11,7 @@ import { saveClub } from "@/server/club";
 import { discardLoan } from "@/server/loans";
 import { choosePick, isPick } from "@/server/picks";
 import { DomainError } from "@/server/errors";
-import { convertXp, fmtMp, isAdult, requestMxCashOut, requestWithdrawal, startDeposit } from "@/server/wallet";
+import { convertXp, fmtMp, isAdult, requestWithdrawal, startDeposit } from "@/server/wallet";
 import { type ActionResult, attempt } from "./result";
 
 const opt = (max: number) =>
@@ -136,11 +136,3 @@ export async function choosePickAction(entitlementId: string, playerIds: string 
   return res;
 }
 
-export async function cashOutMxAction(_: ActionResult | null, form: FormData): Promise<ActionResult> {
-  const user = await requireUser();
-  const res = await attempt(async () => {
-    await requestMxCashOut(user.id, Math.round(Number(form.get("mx")) * 100));
-  }, "Cash-out requested — we'll check your details and pay the £ to your bank, usually within 3 working days.");
-  revalidatePath("/account", "layout");
-  return res;
-}

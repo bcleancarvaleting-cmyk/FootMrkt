@@ -34,7 +34,7 @@ export const MIN_WITHDRAWAL_MINOR = 1000; // £10 of winnings
 export const MIN_DEPOSIT_MINOR = 1000; // £10
 export const DEPOSIT_PRESETS_GBP = [10, 20, 50, 100] as const;
 export const MAX_DEPOSIT_MINOR = 50000; // £500 per deposit
-export const TERMS_VERSION = "2026-11-11";
+export const TERMS_VERSION = "2026-11-11b";
 
 export async function balancesFor(userId: string, tx: Tx | typeof db = db) {
   const rows = await tx.walletEntry.groupBy({ by: ["bucket"], where: { userId }, _sum: { amountMinor: true } });
@@ -205,58 +205,11 @@ export async function fulfilDeposit(tx: Tx, order: { id: string; userId: string;
   const m = /^bundle:([a-z]+):(\d+)$/.exec(order.refId ?? "");
   const mx = m ? Number(m[2]) : order.amountMinor;
   const name = m ? (bundleFor(m[1])?.name ?? "MX") : null;
-  // What was paid for is bought MX (cashable later); a bundle's bonus is earned MX (game only),
-  // so cash-outs can never pay out more than was paid in.
+  // What was paid for is bought MX; a bundle's bonus is credited as earned (reward) MX.
   const bought = Math.min(mx, order.amountMinor);
   const label = `${name ? `${name} bundle: ` : ""}${fmtMp(mx)} for £${(order.amountMinor / 100).toFixed(2)} by card`;
   await credit(tx, { userId: order.userId, amountMinor: bought, kind: "DEPOSIT", bucket: "CASH", refId: `deposit:${order.id}`, note: label });
   if (mx > bought) await credit(tx, { userId: order.userId, amountMinor: mx - bought, kind: "DEPOSIT", bucket: "BONUS", refId: `deposit:${order.id}:bonus`, note: `${name ?? "Bundle"} bonus MX` });
-}
-
-// ───────────── Cashing out bought MX ─────────────
-
-/**
- * Cash out bought MX (product decision 11 Nov 2026): MX bought by card can be turned back into £,
- * less a 10% fee. Only bought MX (never bonus, XP, challenge or sale MX), only once it's been in
- * the account for 7 days (card-fraud protection), minimum 10 MX, and through the same admin-
- * approved payout as prize withdrawals. Behind the legal-gated Withdrawals switch.
- */
-export const CASHOUT_FEE_PCT = 10;
-export const CASHOUT_HOLD_DAYS = 7;
-export const MIN_CASHOUT_MINOR = 1000;
-
-export const cashoutFee = (mxMinor: number) => Math.ceil((mxMinor * CASHOUT_FEE_PCT) / 100);
-
-/** Bought MX that can be cashed out now: bought MX, less anything bought in the last 7 days. */
-export async function cashableMx(userId: string, tx: Tx | typeof db = db, now = new Date()) {
-  const bal = await balancesFor(userId, tx as Tx);
-  const recent = await tx.walletEntry.aggregate({
-    where: { userId, bucket: "CASH", kind: "DEPOSIT", amountMinor: { gt: 0 }, createdAt: { gt: new Date(now.getTime() - CASHOUT_HOLD_DAYS * 86_400_000) } },
-    _sum: { amountMinor: true },
-  });
-  return Math.max(0, Math.max(0, bal.cash) - (recent._sum.amountMinor ?? 0));
-}
-
-export async function requestMxCashOut(userId: string, mxMinor: number, now = new Date()) {
-  await requireFlag("WITHDRAWALS");
-  if (!Number.isInteger(mxMinor) || mxMinor < MIN_CASHOUT_MINOR) throw new DomainError("MIN", `The minimum cash-out is ${fmtMp(MIN_CASHOUT_MINOR)}.`);
-  return withTx(async (tx) => {
-    await lockWallet(tx, userId);
-    const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
-    const gaps = profileGaps(user);
-    if (gaps.length) throw new DomainError("PROFILE", `Add your ${gaps.join(", ")} in My Account → Profile before cashing out.`);
-    if (!isAdult(user.dateOfBirth)) throw new DomainError("AGE", "You must be 18 or over to cash out.");
-    if (user.status !== "ACTIVE") throw new DomainError("NOT_ALLOWED", "Cash-outs aren't available on this account.");
-    const cashable = await cashableMx(userId, tx, now);
-    if (mxMinor > cashable) {
-      throw new DomainError("NOT_CASHABLE", `You can cash out up to ${fmtMp(cashable)} right now. Only MX you've bought can be cashed out, ${CASHOUT_HOLD_DAYS} days after buying it — bonus MX and MX from XP, challenges and sales stay in the game.`);
-    }
-    const fee = cashoutFee(mxMinor);
-    const w = await tx.withdrawal.create({ data: { userId, amountMinor: mxMinor - fee, feeMinor: fee, source: "MX" } });
-    await tx.walletEntry.create({ data: { userId, kind: "WITHDRAWAL_HOLD", bucket: "CASH", amountMinor: -mxMinor, refId: `withdrawal:${w.id}:c`, note: `Cash-out: ${fmtMp(mxMinor)} → ${fmtGbp(mxMinor - fee)} (10% fee ${fmtGbp(fee)})` } });
-    if (user.kycStatus === "NONE") await tx.user.update({ where: { id: userId }, data: { kycStatus: "PENDING" } });
-    return w;
-  });
 }
 
 // ───────────── Withdrawals ─────────────

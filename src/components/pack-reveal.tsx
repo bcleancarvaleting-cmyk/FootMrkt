@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FINISH_STYLE, FinishPill } from "./finish-art";
+import { FINISH_STYLE, FinishPill, RainbowChant } from "./finish-art";
 import { useEffect, useState } from "react";
 import type { CardView } from "@/lib/view";
 import { PlayerCard } from "./player-card";
@@ -62,6 +62,7 @@ export function PackReveal({ cards }: { cards: CardView[] }) {
           <div className="animate-reveal">
             <PlayerCard card={rainbow} size="lg" />
           </div>
+          <RainbowChant name={rainbow.name} full className="text-2xl" />
           <p className="max-w-sm text-sm text-muted">
             You&apos;ve pulled the <b className="rainbow-name">Rainbow {rainbow.name}</b>. There is only one in the whole game, and it&apos;s yours. It goes in the Hall of Fame.
           </p>

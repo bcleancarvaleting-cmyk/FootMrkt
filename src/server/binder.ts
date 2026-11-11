@@ -115,3 +115,53 @@ export async function playerProfile(playerId: string) {
   const values = await latestValues(player.templates.map((t) => ({ playerId, category: t.category })));
   return { player, matches, values, issued: await issuedCounts(player.templates.map((t) => t.id)), diamonds: await db.cardFinish.count({ where: { playerId, kind: "DIAMOND" } }), rubies: await db.cardFinish.count({ where: { playerId, kind: "RUBY" } }), rainbowFound: (await db.cardFinish.count({ where: { playerId, kind: "RAINBOW" } })) > 0 };
 }
+
+/**
+ * My Club's portfolio panel: what the squad is worth in MX (with its recent movement and a graph),
+ * how many players have a real match in the next 7 days, the most valuable and rarest cards, and
+ * the points they've earned for this manager.
+ */
+export async function portfolio(userId: string, now = new Date()) {
+  const cards = await binder(userId);
+  const value = cards.reduce((s, c) => s + (c.valueMp ?? 0), 0);
+  // Portfolio value over the last valuations: line each card's history up from the most recent.
+  const len = Math.max(0, ...cards.map((c) => c.history?.length ?? 0));
+  const series = Array.from({ length: len }, (_, i) =>
+    Math.round(
+      cards.reduce((s, c) => {
+        const h = c.history ?? [];
+        if (!h.length) return s + (c.valueMp ?? 0);
+        const idx = h.length - len + i;
+        return s + (idx < 0 ? h[0] : h[idx]);
+      }, 0) * 100,
+    ) / 100,
+  );
+  const first = series[0] ?? value;
+  const changePct = series.length > 1 && first ? Math.round(((series[series.length - 1] - first) / first) * 1000) / 10 : null;
+
+  const soon = await db.fixture.findMany({
+    where: { status: "SCHEDULED", kickoffAt: { gt: now, lt: new Date(now.getTime() + 7 * 86_400_000) } },
+    select: { kickoffAt: true, homeClub: { select: { code: true } }, awayClub: { select: { code: true } } },
+  });
+  const nextKick = new Map<string, Date>();
+  for (const f of soon) for (const code of [f.homeClub.code, f.awayClub.code]) if (!nextKick.has(code) || nextKick.get(code)! > f.kickoffAt) nextKick.set(code, f.kickoffAt);
+  const playingIds = new Set(cards.filter((c) => c.clubCode && nextKick.has(c.clubCode)).map((c) => c.playerId));
+  const firstKick = [...nextKick.values()].sort((a, b) => a.getTime() - b.getTime())[0] ?? null;
+
+  const top = [...cards].sort((a, b) => (b.valueMp ?? 0) - (a.valueMp ?? 0))[0] ?? null;
+  const finishes = { RAINBOW: 0, DIAMOND: 0, RUBY: 0 } as Record<"RAINBOW" | "DIAMOND" | "RUBY", number>;
+  for (const c of cards) if (c.finish) finishes[c.finish.kind]++;
+  return {
+    cards: cards.length,
+    value: Math.round(value * 100) / 100,
+    series,
+    changePct,
+    playingSoon: playingIds.size,
+    firstKick,
+    top: top ? { id: top.id, name: top.name, valueMp: top.valueMp, finish: top.finish?.kind ?? null } : null,
+    finishes,
+    points: cards.reduce((s, c) => s + (c.pointsForYou ?? 0), 0),
+    inSquads: cards.filter((c) => c.lock === "COMPETITION").length,
+    listed: cards.filter((c) => c.lock === "LISTED").length,
+  };
+}

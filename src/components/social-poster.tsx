@@ -60,9 +60,8 @@ export function OneOfOnePoster({ card, format }: { card: CardView; format: Poste
   return (
     <Frame format={format} bg="RAINBOW">
       <Headline className={`rainbow-name ${format === "square" ? "text-[96px]" : "text-[120px]"}`}>One of one</Headline>
-      <p className="mb-8 mt-3 text-center text-[30px] font-semibold text-white/85">
-        There is only <b>one</b> Rainbow {card.name} in the world.
-      </p>
+      <p className="rainbow-name mt-3 text-center font-display text-[46px] font-black uppercase italic leading-none">There&apos;s only one {card.name}</p>
+      <p className="mb-8 mt-2 text-center text-[28px] font-semibold italic text-white/80">…walking along, singing a song…</p>
       <BigCard card={card} width={big} />
       <p className="mt-8 text-center text-[30px] font-bold">Could be in your next pack.</p>
     </Frame>

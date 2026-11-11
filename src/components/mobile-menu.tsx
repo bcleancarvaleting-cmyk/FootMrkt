@@ -70,7 +70,7 @@ const GUEST: Section = {
  * Phone menu: a Menu button in the header that opens a full-screen sheet with every section of the
  * site — and, for admins, every admin page — so nothing is only reachable from the desktop header.
  */
-type Wallet = { mx: string; earned: string; cashable: string; gbp: string; xp: string; basket: number };
+type Wallet = { mx: string; earned: string; gbp: string; xp: string; basket: number };
 
 export function MobileMenu({ user, theme, unread = 0, wallet }: { user: { name: string; isAdmin: boolean; isMod: boolean } | null; theme: Theme; unread?: number; wallet?: Wallet | null }) {
   const [open, setOpen] = useState(false);
@@ -146,7 +146,7 @@ export function MobileMenu({ user, theme, unread = 0, wallet }: { user: { name: 
                 <Link href="/account/wallet" className="min-w-0 rounded-xl border border-accent/50 bg-accent/5 px-2 py-2 text-center">
                   <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-muted">MX wallet</span>
                   <span className="block truncate font-display text-lg font-black tabular-nums">{wallet.mx}</span>
-                  <span className="block truncate text-[10px] text-faint">{wallet.cashable} cashable</span>
+                  <span className="block truncate text-[10px] text-faint">{wallet.earned} earned</span>
                 </Link>
                 <Link href="/account/wallet#withdraw" className="min-w-0 rounded-xl border border-gold/50 bg-gold/5 px-2 py-2 text-center">
                   <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-muted">£ wallet</span>

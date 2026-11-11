@@ -1,5 +1,5 @@
 import type { CardView } from "@/lib/view";
-import { FINISH_STYLE, FinishPill, Gem, GemFacets, GemSparkles } from "./finish-art";
+import { FINISH_STYLE, FinishPill, Gem, GemFacets, GemSparkles, RainbowChant } from "./finish-art";
 import { mpLabel } from "@/lib/view";
 import { ClubBadge } from "./club-badge";
 import { KitShirt } from "./kit-shirt";
@@ -131,6 +131,7 @@ export function PlayerCard({ card, size = "md", className = "", showcase = false
         {/* Name */}
         <div className="px-2.5 pt-1.5 text-center">
           <div className={`truncate font-display font-bold uppercase leading-tight tracking-wide ${small ? "text-sm" : "text-[17px]"} ${finish ? FINISH_STYLE[finish.kind].name : ""}`}>{card.name}</div>
+          {finish?.kind === "RAINBOW" && !small && <RainbowChant name={card.name} className="truncate text-[9px] tracking-wide" />}
           <div className="truncate text-[10px] text-muted">{card.clubName ?? "Free agent"}</div>
           {card.leagueName && <div className="truncate text-[8.5px] font-bold uppercase leading-tight tracking-[0.14em] text-faint">{card.leagueName}</div>}
           <CardNumber card={card} />

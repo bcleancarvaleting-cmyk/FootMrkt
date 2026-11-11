@@ -1,3 +1,4 @@
+import { attachBooster, releaseBooster } from "./boosters";
 import { z } from "zod";
 import { toCrest } from "@/lib/crest";
 import { assertLoansUsable } from "./loans";
@@ -61,6 +62,8 @@ export const SquadSubmissionSchema = z.object({
   captain: z.string().uuid().optional(),
   /** Card id of the vice-captain (a different starter): doubles instead if the captain doesn't play. */
   viceCaptain: z.string().uuid().optional(),
+  /** A weekly booster to play on this entry (null/absent = none). */
+  boosterId: z.string().uuid().nullable().optional(),
 });
 
 export class SquadInvalidError extends DomainError {
@@ -78,8 +81,8 @@ export async function submitEntry(userId: string, competitionId: string, input: 
   const submission = SquadSubmissionSchema.parse(input);
   return withTx(async (tx) => {
     const [comp] = await tx.$queryRaw<
-      Array<{ id: string; status: string; locksAt: Date; format: string; rosterRules: string; entryFeeMinor: number; requirements: unknown; gameweekId: string }>
-    >`SELECT id, status, "locksAt", format, "rosterRules", "entryFeeMinor", requirements, "gameweekId" FROM "Competition" WHERE id = ${competitionId}::uuid FOR SHARE`;
+      Array<{ id: string; status: string; locksAt: Date; format: string; rosterRules: string; entryFeeMinor: number; requirements: unknown; gameweekId: string; rewards: unknown }>
+    >`SELECT id, status, "locksAt", format, "rosterRules", "entryFeeMinor", requirements, "gameweekId", rewards FROM "Competition" WHERE id = ${competitionId}::uuid FOR SHARE`;
     if (!comp) throw new DomainError("NOT_FOUND", "Competition not found.");
     if (comp.status !== "OPEN" || comp.locksAt <= new Date()) {
       throw new DomainError("LOCKED", "Entries for this competition are closed.");
@@ -175,6 +178,7 @@ export async function submitEntry(userId: string, competitionId: string, input: 
         })),
       ],
     });
+    await attachBooster(tx, userId, entry.id, comp, submission.boosterId);
     return entry;
   });
 }
@@ -191,6 +195,7 @@ export async function withdrawEntry(userId: string, competitionId: string) {
     }
     await tx.cardInstance.updateMany({ where: { lock: "COMPETITION", lockRef: entry.id }, data: { lock: "NONE", lockRef: null } });
     await tx.competitionSelection.deleteMany({ where: { entryId: entry.id } });
+    await releaseBooster(tx, entry.id);
     await tx.competitionEntry.delete({ where: { id: entry.id } });
   });
 }

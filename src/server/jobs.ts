@@ -20,6 +20,7 @@ export async function tick() {
     ["welcome packs", grantAllDueWelcomePacks],
     ["weekly reminders & results", weeklyRhythm],
     ["head-to-head", settleH2H],
+    ["weekly boosters", async () => ({ granted: await (await import("./boosters")).grantWeeklyBoosters(), reminded: await (await import("./boosters")).remindExpiringBoosters() })],
     ["squads & transfers (daily)", async () => (await import("./live-data")).dailySquadSync()],
     ["expired logins", async () => (await db.session.deleteMany({ where: { expiresAt: { lt: new Date() } } })).count],
   ];

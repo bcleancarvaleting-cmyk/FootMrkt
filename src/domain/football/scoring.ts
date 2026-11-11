@@ -228,11 +228,15 @@ export interface SquadScore {
   inputHash: string;
 }
 
+/** A weekly booster played on the entry (see src/config/boosters.ts). */
+export type Booster = "GOAL_RUSH" | "ASSIST_KING" | "CLEAN_SHEET_PLUS" | "SHIELD" | "BENCH_BOOST" | "TRIPLE_CAPTAIN";
+
 export function scoreSquad(
   scoring: ScoringRules,
   roster: RosterRules,
   selections: ScoringSelection[],
   data: ReadonlyMap<string, PlayerGameweekData>,
+  booster: Booster | null = null,
 ): SquadScore {
   const get = (playerId: string): PlayerGameweekData => data.get(playerId) ?? { appearance: "PENDING", lines: [] };
   const starters = selections.filter((s) => s.slot === "STARTER").sort((a, b) => a.order - b.order);
@@ -275,8 +279,27 @@ export function scoreSquad(
     );
     const captainCounts = !!s.captain && s.slot === "STARTER" && d.appearance === "PLAYED";
     const viceCounts = !s.captain && !!s.viceCaptain && captainOut && s.slot === "STARTER" && d.appearance === "PLAYED";
-    const points = captainCounts || viceCounts ? base.points * 2 : base.points;
-    const items = base.items;
+    const multiplier = captainCounts || viceCounts ? (booster === "TRIPLE_CAPTAIN" ? 3 : 2) : 1;
+    let points = base.points * multiplier;
+    const items = [...base.items];
+    // Boosters add their own line to the breakdown, so every point stays explainable.
+    const total = (event: string) => base.items.filter((i) => i.event === event).reduce((n, i) => n + i.count, 0);
+    const bonus = (event: string, count: number, each: number) => {
+      if (count > 0) {
+        items.push({ event, count, points: count * each });
+        points += count * each;
+      }
+    };
+    if (booster === "GOAL_RUSH") bonus("Goal Rush booster", total("Goal"), 5);
+    if (booster === "ASSIST_KING") bonus("Assist King booster", total("Assist"), 3);
+    if (booster === "CLEAN_SHEET_PLUS") {
+      const cs = base.items.find((i) => i.event === "Clean sheet");
+      if (cs) bonus("Clean Sheet+ booster", cs.count, cs.points / cs.count);
+    }
+    if (booster === "SHIELD" && points < 0) {
+      items.push({ event: "Shield booster", count: 1, points: -points });
+      points = 0;
+    }
     return {
       cardId: s.cardId,
       playerId: s.playerId,
@@ -284,7 +307,8 @@ export function scoreSquad(
       slot: s.slot,
       order: s.order,
       appearance: d.appearance,
-      counted: active.has(s.cardId) && d.appearance !== "DID_NOT_PLAY",
+      // Bench Boost: subs who played count too, even if they weren't needed.
+      counted: (active.has(s.cardId) || (booster === "BENCH_BOOST" && s.slot === "BENCH")) && d.appearance !== "DID_NOT_PLAY",
       points,
       captain: captainCounts || undefined,
       viceCaptain: viceCounts || undefined,
@@ -300,7 +324,7 @@ export function scoreSquad(
   const formationUsed = matchFormation({ ...roster, allowedFormations: Object.keys(FORMATIONS) }, counts)?.id ?? null;
 
   const inputStatIds = [...new Set(selections.flatMap((s) => get(s.playerId).lines.map((l) => l.statId)))].sort();
-  const inputHash = hashInputs(scoring.id, roster.id, selections, data);
+  const inputHash = hashInputs(scoring.id, roster.id, selections, data, booster);
   const total = results.filter((r) => r.counted).reduce((s, r) => s + r.points, 0);
 
   return {
@@ -334,8 +358,10 @@ function hashInputs(
   rosterId: string,
   selections: ScoringSelection[],
   data: ReadonlyMap<string, PlayerGameweekData>,
+  booster: Booster | null = null,
 ): string {
   const canonical = {
+    ...(booster ? { booster } : {}),
     scoringId,
     rosterId,
     selections: [...selections]

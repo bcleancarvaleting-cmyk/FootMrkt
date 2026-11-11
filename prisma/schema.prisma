@@ -103,6 +103,7 @@ model User {
   updatedAt                DateTime   @updatedAt
 
   sessions         Session[]
+  boosterPacks     BoosterPack[]
   cards            CardInstance[]         @relation("CardOwner")
   ownerships       CardOwnership[]
   packEntitlements PackEntitlement[]
@@ -856,6 +857,8 @@ model CompetitionEntry {
   provisionalPoints Float?
   finalPoints       Float?
   rank              Int?
+  // Weekly booster played on this entry (see src/config/boosters.ts), if any.
+  boosterKind       String?
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
@@ -1381,4 +1384,23 @@ model SeasonArchive {
   standings Json // [{ userId, displayName, clubName, points, wins, gameweeks }] top 50 by total points
   champion  String? // display name of the top manager
   createdAt DateTime @default(now())
+}
+
+// Weekly booster packs: one free per manager every Tuesday; opened to reveal a random booster,
+// played on one match entry, gone 7 days after it lands.
+model BoosterPack {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  user        User      @relation(fields: [userId], references: [id])
+  weekKey     String // e.g. "2026-11-17" (the Tuesday it landed)
+  kind        String? // revealed when opened
+  grantedAt   DateTime  @default(now())
+  expiresAt   DateTime
+  openedAt    DateTime?
+  usedEntryId String?   @unique @db.Uuid
+  usedAt      DateTime?
+  remindedAt  DateTime?
+
+  @@unique([userId, weekKey])
+  @@index([userId, expiresAt])
 }

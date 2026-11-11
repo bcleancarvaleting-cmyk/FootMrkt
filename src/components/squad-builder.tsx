@@ -44,6 +44,7 @@ export function SquadBuilder({
   initial,
   hasEntry,
   draft,
+  boosters,
 }: {
   competitionId: string;
   formations: Formation[];
@@ -53,6 +54,8 @@ export function SquadBuilder({
   hasEntry: boolean;
   /** Free draft: the cards are players (id = player id), priced at their MX value, within a budget. */
   draft?: { budgetMx: number; maxPerClub?: number };
+  /** Weekly boosters this manager can play here; `allowed` is false in cash-prize matches. */
+  boosters?: { allowed: boolean; available: Array<{ id: string; name: string; icon: string; description: string; expires: string }>; current: string | null };
 }) {
   const byId = useMemo(() => new Map(cards.map((c) => [c.id, c])), [cards]);
   const [formationId, setFormationId] = useState(initial?.formation ?? formations[0].id);
@@ -67,6 +70,7 @@ export function SquadBuilder({
   });
   const [selected, setSelected] = useState<SlotKey | null>(null);
   const [captain, setCaptainRaw] = useState<string | null>(initial?.captain ?? null);
+  const [boosterId, setBoosterId] = useState<string | null>(boosters?.current ?? null);
   const [vice, setViceRaw] = useState<string | null>(initial?.viceCaptain ?? null);
   // One player can't hold both armbands: picking one clears the other.
   const setCaptain = (id: string | null) => {
@@ -189,8 +193,8 @@ export function SquadBuilder({
     start(async () =>
       setResult(
         draft
-          ? await submitDraftEntryAction(competitionId, { formation: formationId, starters: starters.map((x) => ({ playerId: x.cardId, position: x.position })), bench, captain: cap, viceCaptain: vc })
-          : await submitEntryAction(competitionId, { formation: formationId, starters, bench, captain: cap, viceCaptain: vc }),
+          ? await submitDraftEntryAction(competitionId, { formation: formationId, starters: starters.map((x) => ({ playerId: x.cardId, position: x.position })), bench, captain: cap, viceCaptain: vc, boosterId })
+          : await submitEntryAction(competitionId, { formation: formationId, starters, bench, captain: cap, viceCaptain: vc, boosterId }),
       ),
     );
   }
@@ -328,6 +332,38 @@ export function SquadBuilder({
             ))}
           </div>
         </div>
+
+        {boosters && (boosters.available.length > 0 || !boosters.allowed) && (
+          <div className="panel space-y-2 p-4">
+            <p className="text-sm font-bold">Booster</p>
+            {!boosters.allowed ? (
+              <p className="text-xs text-faint">Boosters can&apos;t be used in cash-prize matches.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Booster">
+                <button type="button" role="radio" aria-checked={!boosterId} onClick={() => setBoosterId(null)} className={`rounded-xl border px-3 py-2 text-xs font-semibold ${!boosterId ? "border-lime bg-accent/10" : "border-ink-700 text-muted"}`}>
+                  None
+                </button>
+                {boosters.available.map((b) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={boosterId === b.id}
+                    title={b.description}
+                    onClick={() => setBoosterId(b.id)}
+                    className={`rounded-xl border px-3 py-2 text-left text-xs ${boosterId === b.id ? "border-lime bg-accent/10" : "border-ink-700 text-muted"}`}
+                  >
+                    <span className="font-semibold text-fg">
+                      {b.icon} {b.name}
+                    </span>
+                    <span className="block text-[10px] text-faint">expires {b.expires}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {boosterId && <p className="text-xs text-muted">{boosters.available.find((b) => b.id === boosterId)?.description}</p>}
+          </div>
+        )}
 
         <div className="flex flex-wrap items-start gap-3">
           <button className="btn-primary px-6 py-3" onClick={save} disabled={pending || !filled}>

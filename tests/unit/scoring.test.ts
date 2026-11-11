@@ -168,3 +168,51 @@ describe("vice-captain", () => {
     expect(m2(captainPending).points).toBe(m2(captainPlayed).points);
   });
 });
+
+describe("weekly boosters", () => {
+  const setup = async () => {
+    const { scoreSquad, getScoringRules } = await import("@/domain/football/scoring");
+    const { getRosterRules } = await import("@/domain/football/rules");
+    const roster = getRosterRules("football-roster-v3");
+    const scoring = getScoringRules("football-scoring-v2-draft");
+    const st = (id: string, position: "GK" | "DEF" | "MID" | "ATT", order: number, extra: { captain?: boolean } = {}) => ({ cardId: id, playerId: id, position, slot: "STARTER" as const, order, ...extra });
+    const bn = (id: string, position: "GK" | "DEF" | "MID" | "ATT", order: number) => ({ cardId: id, playerId: id, position, slot: "BENCH" as const, order });
+    const squad = [st("gk", "GK", 1), st("d1", "DEF", 2), st("d2", "DEF", 3), st("m1", "MID", 4), st("m2", "MID", 5), st("a1", "ATT", 6, { captain: true }), st("a2", "ATT", 7), bn("s1", "GK", 1), bn("s2", "DEF", 2), bn("s3", "MID", 3), bn("s4", "ATT", 4)];
+    const line = (o: Record<string, unknown> = {}) => ({ appearance: "PLAYED" as const, lines: [{ statId: Math.random().toString(), line: { minutes: 90, goals: 0, assists: 0, goalsConceded: 0, saves: 0, yellowCards: 0, redCards: 0, ownGoals: 0, penaltiesMissed: 0, penaltySaves: 0, tackles: 0, ...o } }] });
+    const data = new Map<string, unknown>(squad.map((s) => [s.playerId, line()]));
+    data.set("a1", line({ goals: 2 }));
+    data.set("m1", line({ assists: 1 }));
+    data.set("a2", line({ minutes: 30, redCards: 1, goalsConceded: 3 }));
+    data.set("s3", line({ goals: 1 }));
+    const run = (b: Parameters<typeof scoreSquad>[4]) => scoreSquad(scoring, roster, squad, data as never, b);
+    return { run };
+  };
+
+  it("each booster adds exactly its bonus, shown as its own line", async () => {
+    const { run } = await setup();
+    const plain = run(null);
+    const pts = (r: ReturnType<typeof run>, id: string) => r.selections.find((s) => s.cardId === id)!.points;
+    // Goal Rush: +5 per goal by counted players (captain's 2 goals: +10, not doubled).
+    expect(run("GOAL_RUSH").total - plain.total).toBe(10);
+    expect(run("GOAL_RUSH").selections.find((s) => s.cardId === "a1")!.items.some((i) => i.event === "Goal Rush booster" && i.points === 10)).toBe(true);
+    // Assist King: +3 per assist.
+    expect(run("ASSIST_KING").total - plain.total).toBe(3);
+    // Triple Captain: captain ×3 instead of ×2.
+    expect(pts(run("TRIPLE_CAPTAIN"), "a1")).toBe((pts(plain, "a1") / 2) * 3);
+    // Shield: the sent-off player's minus points count as 0.
+    expect(pts(plain, "a2")).toBeLessThan(0);
+    expect(pts(run("SHIELD"), "a2")).toBe(0);
+    expect(run("SHIELD").total - plain.total).toBe(-pts(plain, "a2"));
+    // Bench Boost: subs who played count too.
+    expect(run("BENCH_BOOST").selections.filter((s) => s.slot === "BENCH").every((s) => s.counted)).toBe(true);
+    expect(run("BENCH_BOOST").total).toBeGreaterThan(plain.total);
+    // Clean Sheet+: keeper and defenders get their clean-sheet points again.
+    const csPlain = plain.selections.filter((s) => s.counted && s.items.some((i) => i.event === "Clean sheet")).reduce((n, s) => n + s.items.find((i) => i.event === "Clean sheet")!.points, 0);
+    expect(run("CLEAN_SHEET_PLUS").total - plain.total).toBe(csPlain);
+  });
+
+  it("chances add up to 100", async () => {
+    const { BOOSTERS } = await import("@/config/boosters");
+    expect(Object.values(BOOSTERS).reduce((n, b) => n + b.chance, 0)).toBe(100);
+  });
+});

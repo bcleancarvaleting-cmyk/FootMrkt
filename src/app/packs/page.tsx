@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BoosterFace, BoosterPackSealed } from "@/components/booster-card";
+import { myBoosters } from "@/server/boosters";
 import { rollsFinishes } from "@/server/finishes";
 import { getSetting } from "@/server/settings";
 import { LOAN_PICK_CODE } from "@/config/packs";
@@ -24,7 +26,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
   const { welcome } = await searchParams;
   const [diamondOneIn, rubyOneIn, rainbowOneIn] = await Promise.all([getSetting("diamondOneIn"), getSetting("rubyOneIn"), getSetting("rainbowOneIn")]);
   const pct = (n: number) => (100 / n).toLocaleString("en-GB", { maximumSignificantDigits: 2 });
-  const [flags, unopened, skus, history, bal, drop, gifts] = await Promise.all([
+  const [flags, unopened, skus, history, bal, drop, gifts, boosters] = await Promise.all([
     allFlags(),
     db.packEntitlement.findMany({ where: { userId: user.id, status: "UNOPENED" }, include: { packSku: true }, orderBy: { createdAt: "asc" } }),
     db.packSku.findMany({ where: { active: true, kind: "REGULAR" }, orderBy: [{ code: "asc" }, { version: "desc" }], distinct: ["code"] }),
@@ -32,7 +34,12 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
     balancesFor(user.id),
     dropStatus(user.id),
     upcomingWelcomePacks(user.id),
+    myBoosters(user.id),
   ]);
+  const usedOn = boosters.some((b) => b.usedEntryId)
+    ? new Map((await db.competitionEntry.findMany({ where: { id: { in: boosters.flatMap((b) => (b.usedEntryId ? [b.usedEntryId] : [])) } }, select: { id: true, competition: { select: { name: true } } } })).map((e) => [e.id, e.competition.name]))
+    : new Map<string, string>();
+  const expiry = (d: Date) => d.toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Europe/London" });
   const regions = new Map<string, typeof skus>();
   for (const s of skus.filter((x) => !meta(x.code)?.hiddenInShop).sort((a, b) => a.priceMinor - b.priceMinor)) {
     const r = meta(s.code)?.region ?? "All leagues";
@@ -63,6 +70,26 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
           <p className="mt-1 text-lg font-bold">Your free Starter Pack is waiting — open it to sign your first 11 players.</p>
         </div>
       )}
+
+      <section aria-labelledby="boosters">
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="boosters" className="text-2xl">
+            Boosters
+          </h2>
+          <span className="text-xs text-faint">A free booster pack lands every Tuesday · one booster per match entry · not in cash-prize matches</span>
+        </div>
+        {boosters.length === 0 ? (
+          <p className="rounded-2xl border border-ink-700 bg-ink-900 px-4 py-3 text-sm text-muted">Your next free booster pack lands on Tuesday at 9am.</p>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {boosters.map((b) => (
+              <div key={b.id} className="min-h-[230px]">
+                {b.kind ? <BoosterFace kind={b.kind} expires={expiry(b.expiresAt)} usedOn={b.usedEntryId ? (usedOn.get(b.usedEntryId) ?? "a match") : null} /> : <BoosterPackSealed packId={b.id} expires={expiry(b.expiresAt)} />}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {gifts.length > 0 && (
         <section className="flex flex-wrap gap-2">

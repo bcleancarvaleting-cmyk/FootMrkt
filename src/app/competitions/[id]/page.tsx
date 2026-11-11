@@ -13,6 +13,8 @@ import { leaderboard } from "@/server/competitions";
 import { db } from "@/server/db";
 import { recentForm } from "@/server/form";
 import { cardViews } from "@/server/views";
+import { BOOSTERS, type BoosterKind } from "@/config/boosters";
+import { boostersAllowed, myBoosters } from "@/server/boosters";
 import { draftPool, draftPrice } from "@/server/draft";
 import { posterCards } from "@/server/social";
 import { type Pos, fmtDate, relativeTime } from "@/lib/view";
@@ -58,7 +60,7 @@ export default async function CompetitionPage({ params }: { params: Promise<{ id
 
       {open ? (
         ((comp.requirements ?? {}) as Requirements).draftBudgetMx ? (
-          <DraftBuilder competition={comp} entry={entry} />
+          <DraftBuilder userId={user.id} competition={comp} entry={entry} />
         ) : (
           <Builder userId={user.id} competition={comp} entry={entry} />
         )
@@ -104,7 +106,7 @@ async function Builder({
   entry,
 }: {
   userId: string;
-  competition: { id: string; gameweekId: string; rosterRules: string; format: "OPEN" | "BRONZE_ONLY" | "SILVER_ONLY" | "GOLD_ONLY"; requirements: unknown };
+  competition: { id: string; gameweekId: string; rosterRules: string; format: "OPEN" | "BRONZE_ONLY" | "SILVER_ONLY" | "GOLD_ONLY"; requirements: unknown; rewards: unknown };
   entry: { id: string; formation: string; selections: Array<{ cardId: string | null; slot: string; position: string; order: number; isCaptain: boolean; isViceCaptain: boolean }> } | null;
 }) {
   const rules = getRosterRules(competition.rosterRules);
@@ -153,17 +155,20 @@ async function Builder({
       cards={builderCards}
       initial={initial}
       hasEntry={!!entry}
+      boosters={await boosterChoices(userId, competition, entry?.id ?? null)}
     />
   );
 }
 
 /** Free draft: every player in the match's leagues, priced at their current MX value. */
 async function DraftBuilder({
+  userId,
   competition,
   entry,
 }: {
-  competition: { id: string; gameweekId: string; rosterRules: string; requirements: unknown };
-  entry: { formation: string; selections: Array<{ playerId: string; slot: string; position: string; order: number; isCaptain: boolean; isViceCaptain: boolean }> } | null;
+  userId: string;
+  competition: { id: string; gameweekId: string; rosterRules: string; requirements: unknown; rewards: unknown };
+  entry: { id: string; formation: string; selections: Array<{ playerId: string; slot: string; position: string; order: number; isCaptain: boolean; isViceCaptain: boolean }> } | null;
 }) {
   const req = (competition.requirements ?? {}) as Requirements;
   const rules = getRosterRules(competition.rosterRules);
@@ -211,9 +216,21 @@ async function DraftBuilder({
         initial={initial}
         hasEntry={!!entry}
         draft={{ budgetMx: req.draftBudgetMx!, maxPerClub: req.maxPerClub }}
+        boosters={await boosterChoices(userId, competition, entry?.id ?? null)}
       />
     </div>
   );
+}
+
+/** Boosters this manager can play on this entry: opened, not expired, and free or already on it. */
+async function boosterChoices(userId: string, competition: { rewards: unknown }, entryId: string | null) {
+  const mine = (await myBoosters(userId)).filter((b) => b.kind && (!b.usedEntryId || b.usedEntryId === entryId));
+  const fmt = (d: Date) => d.toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "Europe/London" });
+  return {
+    allowed: boostersAllowed(competition),
+    available: mine.map((b) => ({ id: b.id, name: BOOSTERS[b.kind!].name, icon: BOOSTERS[b.kind!].icon, description: BOOSTERS[b.kind!].description, expires: fmt(b.expiresAt) })),
+    current: mine.find((b) => b.usedEntryId === entryId && entryId)?.id ?? null,
+  };
 }
 
 async function Result({ entryId, settled }: { entryId: string; settled: boolean }) {
@@ -246,6 +263,11 @@ async function Result({ entryId, settled }: { entryId: string; settled: boolean 
             <div className="text-xs text-faint">{settled ? `final · rank #${entry.rank}` : "provisional"}</div>
           </div>
         </div>
+        {entry.boosterKind && entry.boosterKind in BOOSTERS && (
+          <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-lime/40 bg-accent/10 px-3 py-1 text-xs font-semibold">
+            {BOOSTERS[entry.boosterKind as BoosterKind].icon} {BOOSTERS[entry.boosterKind as BoosterKind].name} booster played
+          </p>
+        )}
         <div className="space-y-1.5">
           {[...starters, ...bench].map((s) => {
             const c = byId.get(s.cardId);
@@ -262,8 +284,8 @@ async function Result({ entryId, settled }: { entryId: string; settled: boolean 
                     {s.subbedOnFor && <span className="ml-2 text-[11px] text-mint">↑ auto-sub on</span>}
                     {s.appearance === "PENDING" && <span className="ml-2 text-[11px] text-faint">yet to play</span>}
                   </span>
-                  <span className={`font-bold ${s.counted ? "text-lime" : "text-faint"}`}>{s.captain && <span className="mr-1 rounded bg-accent px-1 text-[10px] text-accent-ink">C ×2</span>}
-                    {s.viceCaptain && <span className="mr-1 rounded bg-white px-1 text-[10px] text-black">VC ×2</span>}{s.points}</span>
+                  <span className={`font-bold ${s.counted ? "text-lime" : "text-faint"}`}>{s.captain && <span className="mr-1 rounded bg-accent px-1 text-[10px] text-accent-ink">C ×{entry.boosterKind === "TRIPLE_CAPTAIN" ? 3 : 2}</span>}
+                    {s.viceCaptain && <span className="mr-1 rounded bg-white px-1 text-[10px] text-black">VC ×{entry.boosterKind === "TRIPLE_CAPTAIN" ? 3 : 2}</span>}{s.points}</span>
                 </summary>
                 <ul className="mt-2 space-y-0.5 pl-12 text-xs text-muted">
                   {s.items.map((i) => (

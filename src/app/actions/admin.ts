@@ -142,15 +142,15 @@ export async function releaseAction(releaseId: string, op: "execute" | "pause" |
 }
 
 /** DEV sandbox checkout: simulate the provider calling our webhook after a successful payment. */
-export async function sandboxPayAction(orderId: string): Promise<ActionResult> {
+export async function sandboxPayAction(orderId: string, outcome: "succeeded" | "failed" = "succeeded"): Promise<ActionResult> {
   const user = await requireUser();
   const res = await attempt(async () => {
     if (!(await isEnabled("DEV_TOOLS"))) throw new DomainError("FEATURE_DISABLED", "Sandbox checkout is disabled.");
     const order = await db.order.findUnique({ where: { id: orderId } });
     if (!order || order.userId !== user.id) throw new DomainError("NOT_FOUND", "Order not found.");
     const body = JSON.stringify({
-      providerEventId: `sbx_evt_${order.id}`,
-      type: "payment.succeeded",
+      providerEventId: `sbx_evt_${order.id}_${outcome}`,
+      type: `payment.${outcome}`,
       providerRef: order.providerRef,
       amountMinor: order.amountMinor,
       currency: order.currency,

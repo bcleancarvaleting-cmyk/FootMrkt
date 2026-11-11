@@ -24,9 +24,9 @@ export const metadata = { title: "Packs" };
 
 const meta = (code: string) => FOOTBALL_PACKS.find((p) => p.code === code);
 
-export default async function PacksPage({ searchParams }: { searchParams: Promise<{ welcome?: string; paid?: string }> }) {
+export default async function PacksPage({ searchParams }: { searchParams: Promise<{ welcome?: string; paid?: string; cancelled?: string }> }) {
   const user = await requireUser();
-  const { welcome, paid } = await searchParams;
+  const { welcome, paid, cancelled } = await searchParams;
   const cardReady = (await cardPaymentsReady()).ready;
   const [diamondOneIn, rubyOneIn, rainbowOneIn, xpRate] = await Promise.all([getSetting("diamondOneIn"), getSetting("rubyOneIn"), getSetting("rainbowOneIn"), getSetting("xpPerMx")]);
   const pct = (n: number) => (100 / n).toLocaleString("en-GB", { maximumSignificantDigits: 2 });
@@ -54,6 +54,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
   return (
     <div className="space-y-10">
       {paid && /^[0-9a-f-]{36}$/.test(paid) && <PaymentReveal orderId={paid} />}
+      {!paid && cancelled && /^[0-9a-f-]{36}$/.test(cancelled) && <PaymentReveal orderId={cancelled} cancelled />}
       {drop && !drop.opened && (
         <section className="drop-glow flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl border border-accent/70 bg-ink-900 px-4 py-3 sm:flex-nowrap">
           <span className="live-dot shrink-0" aria-hidden="true" />

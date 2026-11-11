@@ -46,7 +46,7 @@ export const stripeProvider: PaymentProvider = {
       "metadata[order_id]": order.id,
       "payment_intent_data[metadata][order_id]": order.id,
       success_url: `${APP_URL}${order.returnPath ?? "/account/wallet"}${(order.returnPath ?? "").includes("?") ? "&" : "?"}paid=${order.id}`,
-      cancel_url: `${APP_URL}/account/wallet?cancelled=${order.id}`,
+      cancel_url: `${APP_URL}${order.returnPath ?? "/account/wallet"}${(order.returnPath ?? "").includes("?") ? "&" : "?"}cancelled=${order.id}`,
     });
     return { providerRef: s.id, checkoutUrl: s.url };
   },

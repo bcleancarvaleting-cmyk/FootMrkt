@@ -8,7 +8,7 @@ import { OpenPackButton } from "./pack-buttons";
 type Status = { status: string; entitlementId: string | null; opened: boolean; packName: string | null } | null;
 
 /** One line typed out a letter at a time in rainbow, with a blinking cursor while it types. */
-function Typewriter({ text, onDone, className = "" }: { text: string; onDone?: () => void; className?: string }) {
+function Typewriter({ text, onDone, className = "", tone = "rainbow" }: { text: string; onDone?: () => void; className?: string; tone?: "rainbow" | "red" }) {
   const [n, setN] = useState(0);
   useEffect(() => {
     if (n >= text.length) {
@@ -19,7 +19,7 @@ function Typewriter({ text, onDone, className = "" }: { text: string; onDone?: (
     return () => clearTimeout(t);
   }, [n, text, onDone]);
   return (
-    <p className={`rainbow-name font-display font-black uppercase italic leading-[0.95] ${className}`} aria-label={text}>
+    <p className={`${tone === "red" ? "decline-name" : "rainbow-name"} font-display font-black uppercase italic leading-[0.95] ${className}`} aria-label={text}>
       {text.slice(0, n)}
       {n < text.length && <span className="ml-0.5 inline-block w-[0.5ch] animate-pulse text-white [-webkit-text-fill-color:#fff]">|</span>}
     </p>
@@ -31,7 +31,7 @@ function Typewriter({ text, onDone, className = "" }: { text: string; onDone?: (
  * "Payment successful" → "Building your pack…" → "Who will you get…" and offers Open pack.
  * "Payment successful" only ever shows once the order is really PAID.
  */
-export function PaymentReveal({ orderId }: { orderId: string }) {
+export function PaymentReveal({ orderId, cancelled = false }: { orderId: string; cancelled?: boolean }) {
   const [st, setSt] = useState<Status | undefined>(undefined);
   const [step, setStep] = useState(0);
   const [open, setOpen] = useState(true);
@@ -46,7 +46,7 @@ export function PaymentReveal({ orderId }: { orderId: string }) {
       setSt(s);
       tries++;
       setWaited(tries);
-      if (s && s.status === "PENDING" && tries < 60) setTimeout(poll, 1500);
+      if (s && s.status === "PENDING" && !cancelled && tries < 60) setTimeout(poll, 1500);
     };
     poll();
     return () => {
@@ -56,7 +56,8 @@ export function PaymentReveal({ orderId }: { orderId: string }) {
 
   if (!open || st === null) return null;
   const paid = st?.status === "PAID";
-  const failed = st && (st.status === "FAILED" || st.status === "REFUNDED");
+  // Declined, failed or left Stripe's page without paying (and nothing was paid meanwhile).
+  const failed = !!st && st.status !== "PAID" && (st.status === "FAILED" || st.status === "REFUNDED" || cancelled);
   const close = () => {
     setOpen(false);
     window.history.replaceState(null, "", "/packs");
@@ -74,11 +75,19 @@ export function PaymentReveal({ orderId }: { orderId: string }) {
         )}
         {failed && (
           <>
-            <p className="font-display text-3xl font-black uppercase italic text-danger">Payment didn&apos;t go through</p>
-            <p className="text-sm text-muted">You haven&apos;t been charged for a pack. Try again, or pay with MX or XP.</p>
-            <button type="button" onClick={close} className="btn-ghost mt-2">
-              Back to packs
-            </button>
+            <Typewriter tone="red" text="Payment unsuccessful" className="text-4xl sm:text-5xl" onDone={() => setStep((x) => Math.max(x, 1))} />
+            {step >= 1 && <Typewriter tone="red" text="No money has been taken" className="text-2xl sm:text-3xl" onDone={() => setStep((x) => Math.max(x, 2))} />}
+            {step >= 2 && (
+              <div className="mt-4 flex w-full flex-col items-center gap-3 animate-reveal">
+                <p className="max-w-xs text-sm text-muted">Your card was declined or the payment was cancelled. Try again, use another card, or open packs with MX or XP.</p>
+                <Link href="/packs" onClick={close} className="btn-primary px-10 py-4">
+                  Try again
+                </Link>
+                <button type="button" onClick={close} className="text-xs text-faint underline">
+                  Close
+                </button>
+              </div>
+            )}
           </>
         )}
         {paid && (

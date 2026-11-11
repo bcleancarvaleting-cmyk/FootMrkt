@@ -27,12 +27,22 @@ export default async function SandboxCheckout({ params, searchParams }: { params
         {order.kind === "PACK_PURCHASE" ? "Pack purchase" : order.kind === "DEPOSIT" ? "Wallet top-up" : "Transfer Market purchase"} · order {order.id.slice(0, 8)} · {order.status.toLowerCase()}
       </p>
       {order.status === "PENDING" ? (
-        <ActionButton action={sandboxPayAction.bind(null, order.id)} className="btn-primary px-8 py-3">
-          Simulate successful payment
-        </ActionButton>
+        <div className="flex flex-col items-center gap-2">
+          <ActionButton action={sandboxPayAction.bind(null, order.id, "succeeded")} className="btn-primary px-8 py-3">
+            Simulate successful payment
+          </ActionButton>
+          <ActionButton action={sandboxPayAction.bind(null, order.id, "failed")} className="btn-ghost border-danger/60 px-8 py-3 text-danger">
+            Simulate declined payment
+          </ActionButton>
+        </div>
       ) : (
         <>
           <p className="text-mint">This order is {order.status.toLowerCase()}.</p>
+          {order.status === "FAILED" && order.kind === "PACK_PURCHASE" && (
+            <Link href={`/packs?paid=${order.id}`} className="btn-ghost inline-flex px-8 py-3">
+              Back to packs
+            </Link>
+          )}
           {order.status === "PAID" && (
             <Link href={order.kind === "DEPOSIT" ? (next ?? (basket ? "/transfers/basket" : "/account/wallet")) : `/packs?paid=${order.id}`} className="btn-primary inline-flex px-8 py-3">
               {order.kind === "DEPOSIT" ? (next?.startsWith("/competitions") ? "Back to the match" : next?.startsWith("/transfers/basket") || (!next && basket) ? "Back to my basket" : "Back to my wallet") : "Open my pack"}

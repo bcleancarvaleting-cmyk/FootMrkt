@@ -534,7 +534,8 @@ h2 {
   .rainbow-halo {
     animation: rainbow-glow 4s linear infinite;
   }
-  .rainbow-name {
+  .rainbow-name,
+  .decline-name {
     animation: diamond-name 2.5s linear infinite;
   }
   .foil-rainbow + * .gem-shimmer,
@@ -817,4 +818,14 @@ h2 {
   :root {
     --back-offset: 24px;
   }
+}
+
+/* Declined payment: the rainbow typewriter's style, in reds. */
+.decline-name {
+  background: linear-gradient(90deg, #ff3b5c, #ff6b6b, #ff2d55, #c8102e, #ff3b5c);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 3px rgb(0 0 0 / 0.8));
 }

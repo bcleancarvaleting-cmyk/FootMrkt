@@ -157,6 +157,11 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
           <p className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-accent/40 bg-accent/5 px-4 py-3 text-sm">
             <span className="rounded-md bg-accent px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-accent-ink">Coming soon</span>
             <span>The pack shop opens soon. Until then your free packs arrive automatically — check above for what&apos;s next.</span>
+            {user.role === "ADMIN" && (
+              <Link href="/admin/settings#flags" className="basis-full text-xs font-semibold text-lime underline">
+                Admin: XP, MX and card buttons are hidden because the &ldquo;Pack shop&rdquo; switch is off. Turn it on in Admin → Settings → Feature flags.
+              </Link>
+            )}
           </p>
         ) : !flags.PAID_PACKS && (
           <p className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-accent/40 bg-accent/5 px-4 py-3 text-sm">
@@ -210,8 +215,8 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
                             {rollsFinishes(s.code) && (
                               <>
                                 <li className="rainbow-name">Every card has a 1 in {rainbowOneIn.toLocaleString("en-GB")} ({pct(rainbowOneIn)}%) chance of being that player&apos;s Rainbow: one of one, any tier.</li>
-                                <li className="text-[#ff8fa6]">Every Gold has a 1 in {rubyOneIn.toLocaleString("en-GB")} ({pct(rubyOneIn)}%) chance of being a Ruby (only 10 per player, ever).</li>
-                                <li className="text-[#8fe3ff]">Every Gold has a 1 in {diamondOneIn.toLocaleString("en-GB")} ({pct(diamondOneIn)}%) chance of being a Diamond (only 5 per player, ever).</li>
+                                <li className="text-[#ff8fa6]">Every Gold has a 1 in {rubyOneIn.toLocaleString("en-GB")} ({pct(rubyOneIn)}%) chance of being a Ruby (only {FINISHES.RUBY.perPlayer} per player, ever).</li>
+                                <li className="text-[#8fe3ff]">Every Gold has a 1 in {diamondOneIn.toLocaleString("en-GB")} ({pct(diamondOneIn)}%) chance of being a Diamond (only {FINISHES.DIAMOND.perPlayer} per player, ever).</li>
                               </>
                             )}
                             <li className="text-faint">Ruby, Diamond and Rainbow cards look special and play exactly like the normal card. If a player has none of a finish left, the guaranteed card is given another finish.</li>

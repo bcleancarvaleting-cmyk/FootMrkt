@@ -71,6 +71,7 @@ describe("Rebuild from Sportmonks", () => {
         return json([]);
       }),
     );
+    await db.featureFlag.upsert({ where: { key: "PACK_SHOP" }, create: { key: "PACK_SHOP", enabled: true }, update: { enabled: true } });
     await runRebuild(null, { minClubs: 2, minPlayers: 20 });
     const status = await rebuildStatus();
     expect(status.error ?? "").toBe("");
@@ -81,6 +82,8 @@ describe("Rebuild from Sportmonks", () => {
     expect(p.providerRefs).toMatchObject({ sportmonks: "200" });
     expect(p.club?.providerRefs).toMatchObject({ sportmonks: "2" });
     expect(await readSecret("sportmonks")).toBe("token-kept-across-rebuilds-0001");
+    // Feature switches (e.g. Pack shop on) survive a rebuild too.
+    expect((await db.featureFlag.findUnique({ where: { key: "PACK_SHOP" } }))?.enabled).toBe(true);
     await loadIntegrationState(true);
     expect(currentProvider()).toBe("sportmonks");
     expect(await db.user.count({ where: { role: "ADMIN" } })).toBe(1);

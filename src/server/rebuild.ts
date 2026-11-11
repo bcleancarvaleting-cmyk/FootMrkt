@@ -79,9 +79,9 @@ export async function runRebuild(actorId: string | null, sanity = { minClubs: 80
     if (data.leagues.reduce((n, l) => n + l.clubs.length, 0) < sanity.minClubs || players < sanity.minPlayers) {
       throw new Error(`Sportmonks returned too little (${players} players) — nothing was changed.`);
     }
-    await log("Clearing the old game data (keys and settings are kept)…");
+    await log("Clearing the old game data (keys, settings and feature switches are kept)…");
     const tables = await db.$queryRaw<Array<{ tablename: string }>>`
-      SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT IN ('_prisma_migrations', 'AppSetting')`;
+      SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT IN ('_prisma_migrations', 'AppSetting', 'FeatureFlag')`;
     await db.$executeRawUnsafe(`TRUNCATE ${tables.map((t) => `"${t.tablename.replace(/"/g, "")}"`).join(", ")} RESTART IDENTITY CASCADE`);
     const { ensureAdmin, seedWorld } = await import("./seed-world");
     // The admin account comes back first, so you can log in while the rest loads.

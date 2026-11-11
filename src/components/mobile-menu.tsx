@@ -151,7 +151,7 @@ export function MobileMenu({ user, theme, unread = 0, wallet }: { user: { name: 
                 <Link href="/account/wallet#withdraw" className="min-w-0 rounded-xl border border-gold/50 bg-gold/5 px-2 py-2 text-center">
                   <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-muted">£ wallet</span>
                   <span className="block truncate font-display text-lg font-black tabular-nums">{wallet.gbp}</span>
-                  <span className="block truncate text-[10px] text-faint">winnings & cash-outs</span>
+                  <span className="block truncate text-[10px] text-faint">prize winnings</span>
                 </Link>
                 <Link href="/account/wallet#xp" className="min-w-0 rounded-xl border border-ink-600 bg-ink-900 px-2 py-2 text-center">
                   <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-muted">XP</span>

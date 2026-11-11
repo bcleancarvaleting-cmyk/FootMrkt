@@ -11,7 +11,7 @@ const configured = () => !!(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PR
 let ready = false;
 function setup() {
   if (ready || !configured()) return configured();
-  webpush.setVapidDetails(process.env.VAPID_SUBJECT ?? "mailto:hello@matchx.app", process.env.VAPID_PUBLIC_KEY!, process.env.VAPID_PRIVATE_KEY!);
+  webpush.setVapidDetails(process.env.VAPID_SUBJECT ?? "mailto:hello@playmatchx.com", process.env.VAPID_PUBLIC_KEY!, process.env.VAPID_PRIVATE_KEY!);
   ready = true;
   return true;
 }

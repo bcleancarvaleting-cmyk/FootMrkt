@@ -7,7 +7,7 @@ import { AdminTitle } from "../_parts/title";
 export const metadata = { title: "Admin · Emails" };
 
 const SAMPLES: { [K in EmailTemplate]: Parameters<(typeof EMAILS)[K]>[0] } = {
-  welcome: { name: "DemoManager", verifyUrl: "https://matchx.app/verify?token=example" },
+  welcome: { name: "DemoManager", verifyUrl: "https://playmatchx.com/verify?token=example" },
   teamSheet: { name: "DemoManager", match: "Freeroll · GW4", captain: "E. Haaland", deadline: new Date(), edit: false },
   playerSigned: { name: "DemoManager", player: "Cole Palmer", price: "12.99 MX", from: "MATCHX" },
   playerSold: { name: "DemoManager", player: "Cole Palmer", price: "12.99 MX", youGet: "12.34 MX", buyer: "GoldenBoot22" },
@@ -18,7 +18,7 @@ const SAMPLES: { [K in EmailTemplate]: Parameters<(typeof EMAILS)[K]>[0] } = {
   packReady: { name: "DemoManager", pack: "Squad Boost" },
   referralReward: { name: "DemoManager", friend: "PackHunter", pack: "Choice of Bronze" },
   withdrawal: { name: "DemoManager", amount: "£12.50", paid: true },
-  passwordReset: { name: "DemoManager", url: "https://matchx.app/reset-password?token=example" },
+  passwordReset: { name: "DemoManager", url: "https://playmatchx.com/reset-password?token=example" },
   supportReceived: { name: "DemoManager", ref: "A1B2C3" },
   test: { name: "DemoManager" },
   errorAlert: { name: "DemoManager", title: "Server error", message: "Something went wrong", path: "/packs", source: "SERVER" },

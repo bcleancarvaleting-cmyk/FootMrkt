@@ -63,6 +63,11 @@ export default async function OpeningPage({ params }: { params: Promise<{ id: st
         <Link href="/packs" className="btn-ghost">
           Back to packs
         </Link>
+        {(best || counts.GOLD > 0) && (
+          <Link href={`/packs/opening/${opening.id}/share`} className={best ? "btn-diamond px-6 py-3" : "btn-gold px-6 py-3"}>
+            📸 Share your pull
+          </Link>
+        )}
       </div>
       <SharePack openingId={opening.id} rewardName={await referralRewardName()} />
     </div>

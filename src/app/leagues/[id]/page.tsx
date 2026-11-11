@@ -22,7 +22,7 @@ export default async function LeaguePage({ params }: { params: Promise<{ id: str
     throw e;
   });
   const h = await headers();
-  const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host") ?? "matchx.app"}`;
+  const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host") ?? "playmatchx.com"}`;
   const invite = `${origin}/leagues/join/${t.league.code}`;
   return (
     <div className="space-y-6">

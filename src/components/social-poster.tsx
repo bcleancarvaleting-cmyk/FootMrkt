@@ -35,7 +35,7 @@ function BigCard({ card, width }: { card: CardView; width: number }) {
   );
 }
 
-function Frame({ format, bg, children, footer = "matchx.app · Free to play · 18+" }: { format: PosterFormat; bg: string; children: React.ReactNode; footer?: string }) {
+function Frame({ format, bg, children, footer = "playmatchx.com · Free to play · 18+" }: { format: PosterFormat; bg: string; children: React.ReactNode; footer?: string }) {
   const { w, h } = FORMATS[format];
   return (
     <div className="theme-dark relative flex flex-col overflow-hidden text-[#f4f5f2]" style={{ width: w, height: h, background: BG[bg] ?? bg, fontFamily: "var(--font-geist-sans)" }}>
@@ -195,6 +195,21 @@ export function FoundPoster({ card, kind, manager, clubName, format }: { card: C
   );
 }
 
+/** A Gold has come out of a manager's pack (shared from the pack reveal). */
+export function GoldPullPoster({ card, manager, clubName, format }: { card: CardView; manager: string; clubName: string | null; format: PosterFormat }) {
+  return (
+    <Frame format={format} bg="radial-gradient(70% 55% at 50% 35%, rgba(240,203,90,.38), transparent 70%), radial-gradient(50% 40% at 15% 90%, rgba(184,134,43,.3), transparent 70%), #0d0a04">
+      <Headline className={`text-[#f0cb5a] ${format === "square" ? "text-[110px]" : "text-[130px]"}`}>Gold pull!</Headline>
+      <p className="mb-8 mt-4 text-center text-[32px] font-semibold text-white/85">
+        <b>{manager}</b>
+        {clubName ? ` (${clubName})` : ""} signed {card.name}.
+      </p>
+      <BigCard card={card} width={format === "story" ? 560 : format === "portrait" ? 470 : 380} />
+      <p className="mt-8 text-center text-[30px] font-bold">Who will you pull? Play free at playmatchx.com</p>
+    </Frame>
+  );
+}
+
 /** Kept for older links: a Rainbow has been pulled. */
 export function PulledPoster(props: { card: CardView; manager: string; clubName: string | null; format: PosterFormat }) {
   return <FoundPoster {...props} kind="RAINBOW" />;
@@ -321,7 +336,7 @@ export function RainbowHuntPoster({ found, total, cards, format }: { found: numb
 /** Join free. */
 export function JoinPoster({ cards, format }: { cards: CardView[]; format: PosterFormat }) {
   return (
-    <Frame format={format} bg="LIME" footer="matchx.app · 18+">
+    <Frame format={format} bg="LIME" footer="playmatchx.com · 18+">
       <Headline className="text-[120px]">Your club.</Headline>
       <Headline className="mb-8 text-[120px] text-[#adfc07]">Free.</Headline>
       <div className="mb-8 flex items-end justify-center gap-5">

@@ -31,7 +31,7 @@ export default async function AccountPage() {
   ]);
   const gaps = profileGaps(full);
   const h = await headers();
-  const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host") ?? "matchx.app"}`;
+  const origin = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host") ?? "playmatchx.com"}`;
   const referLink = `${origin}/register?ref=${encodeURIComponent(user.displayName)}`;
   const rewardCode = await getText("referralRewardSku");
   const rewardName = FOOTBALL_PACKS.find((p) => p.code === rewardCode)?.name ?? "pack";

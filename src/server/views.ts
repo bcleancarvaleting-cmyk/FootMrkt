@@ -1,4 +1,5 @@
 import type { Prisma } from "@/generated/prisma/client";
+import { FINISH_VALUE } from "@/config/tiers";
 import { stampCounts } from "./stamps";
 import { loansLeft } from "./loans";
 import { type CardView, toCardView } from "@/lib/view";
@@ -72,7 +73,8 @@ export async function enrichCards(cards: CardWithTemplate[]): Promise<CardView[]
   return cards.map((c) => {
     const t = trends.get(valueKey(c.template.playerId, c.template.category));
     return toCardView(c, {
-      valueMp: t?.mp ?? null,
+      // Ruby 2×, Diamond 3×, Rainbow 4× the card's usual value.
+      valueMp: t?.mp != null ? Math.round(t.mp * (c.finish ? FINISH_VALUE[c.finish.kind] : 1) * 100) / 100 : null,
       trendPct: t?.trendPct ?? null,
       acquired: c.loanGameweeks ? "Loan" : (acquired.get(c.id) ?? null),
       pointsForYou: points.get(c.id) ?? null,

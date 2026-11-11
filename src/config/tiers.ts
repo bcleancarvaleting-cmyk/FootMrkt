@@ -37,9 +37,10 @@ export function tierForValue(valueGbp: number, t = VALUE_TIERS): Category {
  * A cap can safely be lowered later (never below what's issued) but raising one dilutes holders —
  * new supply should come from new-season designs instead.
  */
-export const MAX_SUPPLY: Record<Category, number> = { GOLD: 500, SILVER: 1500, BRONZE: 3000 };
+// Doubled 11 Nov 2026 (before launch, so nobody's cards are diluted): room for growth.
+export const MAX_SUPPLY: Record<Category, number> = { GOLD: 1000, SILVER: 3000, BRONZE: 6000 };
 /** The most valuable Gold players are "elite": rarer still. Set at launch by migration. */
-export const ELITE_GOLD = { count: 30, maxSupply: 250 };
+export const ELITE_GOLD = { count: 30, maxSupply: 500 };
 /**
  * Special finishes on Gold cards — cosmetic only (they play, score and trade as the Gold).
  * At most this many of each, per Gold player, ever. Rarest first.
@@ -51,7 +52,9 @@ export const ELITE_GOLD = { count: 30, maxSupply: 250 };
 export const FINISHES = {
   /** One of one: a single Rainbow per player, ever — and any tier can be it, Bronze included. */
   RAINBOW: { label: "Rainbow", perPlayer: 1, anyTier: true },
-  DIAMOND: { label: "Diamond", perPlayer: 5, anyTier: false },
-  RUBY: { label: "Ruby", perPlayer: 10, anyTier: false },
+  DIAMOND: { label: "Diamond", perPlayer: 10, anyTier: false },
+  RUBY: { label: "Ruby", perPlayer: 20, anyTier: false },
 } as const;
+/** A finish is worth this many times the card's usual value (product decision 11 Nov 2026). Looks only — no extra points. */
+export const FINISH_VALUE: Record<"RUBY" | "DIAMOND" | "RAINBOW", number> = { RUBY: 2, DIAMOND: 3, RAINBOW: 4 };
 export type FinishKind = keyof typeof FINISHES;

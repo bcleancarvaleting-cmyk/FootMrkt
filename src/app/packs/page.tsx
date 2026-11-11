@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FINISHES, FINISH_VALUE } from "@/config/tiers";
 import { BoosterFace, BoosterPackSealed } from "@/components/booster-card";
 import { myBoosters } from "@/server/boosters";
 import { rollsFinishes } from "@/server/finishes";
@@ -143,8 +144,9 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
             <h2 className="mt-1 text-4xl leading-none sm:text-5xl">Packs</h2>
             <p className="mt-2 text-sm text-muted">
               Every pack is 100% random: rolled by a secure random generator when you open it, against the <Link href="/odds" className="text-lime underline">published odds</Link>. Nobody picks or builds them, and every draw is logged.
-              Gold packs can hold a <b className="text-[#ff8fa6]">Ruby</b> (only 10 of each Gold player will ever exist), a <b className="text-[#8fe3ff]">Diamond</b> (only 5) or a
-              one-of-one <b className="rainbow-name">Rainbow</b> of any player. The <b className="rainbow-name">Rare pack</b> guarantees one.
+              Gold packs can hold a <b className="text-[#ff8fa6]">Ruby</b> (only {FINISHES.RUBY.perPlayer} of each Gold player will ever exist, worth {FINISH_VALUE.RUBY}× the usual card), a{" "}
+              <b className="text-[#8fe3ff]">Diamond</b> (only {FINISHES.DIAMOND.perPlayer}, worth {FINISH_VALUE.DIAMOND}×) or a one-of-one <b className="rainbow-name">Rainbow</b> of any player (worth {FINISH_VALUE.RAINBOW}×). The{" "}
+              <b className="rainbow-name">Rare pack</b> guarantees one. They play exactly like the normal card.
             </p>
           </div>
           <Link href="/account/wallet" className="rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 text-xs text-muted hover:border-ink-600">

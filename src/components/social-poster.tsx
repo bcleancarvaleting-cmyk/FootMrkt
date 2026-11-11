@@ -1,4 +1,5 @@
 import type { CardView } from "@/lib/view";
+import { FINISHES } from "@/config/tiers";
 import type { Finish } from "./finish-art";
 import { Gem } from "./finish-art";
 import { PlayerCard } from "./player-card";
@@ -150,11 +151,35 @@ export function DropPoster({ card, price, when, format }: { card: CardView; pric
   );
 }
 
+/** Today's player drops: a wall of every player MATCHX drops today, with their prices. */
+export function DroppingTodayPoster({ drops, day, format }: { drops: Array<{ card: CardView; price: string }>; day: string; format: PosterFormat }) {
+  const { h } = FORMATS[format];
+  const shown = drops.slice(0, format === "square" ? 15 : 25);
+  const { cols, width } = wallLayout(shown.length, 960, h - (format === "square" ? 470 : 520) - 30);
+  return (
+    <Frame format={format} bg="LIME">
+      <p className="text-[28px] font-bold uppercase tracking-[0.3em] text-white/70">{day}</p>
+      <Headline className="mb-6 text-[92px] text-[#adfc07]">Players dropping today</Headline>
+      <div className="grid justify-center gap-[14px]" style={{ gridTemplateColumns: `repeat(${cols}, ${width}px)` }}>
+        {shown.map((d) => (
+          <div key={d.card.id} className="flex flex-col items-center">
+            <BigCard card={d.card} width={width} />
+            <span className="mt-1 font-display font-black" style={{ fontSize: Math.max(18, width / 6) }}>{d.price}</span>
+          </div>
+        ))}
+      </div>
+      <p className="mt-6 text-center text-[26px] font-semibold text-white/85">
+        {drops.length} players from the Premier League to League Two · 10am · Buy it now on MATCHX
+      </p>
+    </Frame>
+  );
+}
+
 /** A Ruby / Diamond / Rainbow has just come out of a pack. */
 export function FoundPoster({ card, kind, manager, clubName, format }: { card: CardView; kind: Finish; manager: string; clubName: string | null; format: PosterFormat }) {
   const label = kind === "RAINBOW" ? "Rainbow" : kind === "DIAMOND" ? "Diamond" : "Ruby";
   const cls = kind === "RAINBOW" ? "rainbow-name" : kind === "DIAMOND" ? "diamond-name" : "ruby-name";
-  const of = kind === "RAINBOW" ? "the only one in the world" : kind === "DIAMOND" ? "one of only 5 ever" : "one of only 10 ever";
+  const of = kind === "RAINBOW" ? "the only one in the world" : kind === "DIAMOND" ? `one of only ${FINISHES.DIAMOND.perPlayer} ever` : `one of only ${FINISHES.RUBY.perPlayer} ever`;
   return (
     <Frame format={format} bg={kind}>
       <div className="flex items-center gap-5">
@@ -225,7 +250,7 @@ export function LeagueStarsPoster({ leagueName, cards, format }: { leagueName: s
         ))}
       </div>
       <p className="mt-6 text-center text-[24px] font-semibold text-white/80">
-        {allRainbow ? "Each Rainbow is a true 1 of 1. Every player in the game has one." : "Ruby 1 of 10 · Diamond 1 of 5 · Rainbow 1 of 1"}
+        {allRainbow ? "Each Rainbow is a true 1 of 1. Every player in the game has one." : `Ruby 1 of ${FINISHES.RUBY.perPlayer} · Diamond 1 of ${FINISHES.DIAMOND.perPlayer} · Rainbow 1 of 1`}
       </p>
     </Frame>
   );

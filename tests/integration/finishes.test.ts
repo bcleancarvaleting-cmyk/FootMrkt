@@ -56,13 +56,13 @@ describe("Ruby and Diamond finishes (cosmetic only)", () => {
     expect(views.every((v) => v.finish?.kind === "RUBY" && v.finish.serial === 1 && v.finish.of === 10)).toBe(true);
   });
 
-  it("never more than 10 Rubies or 5 Diamonds of any player, however lucky the draws", async () => {
-    const golds = await db.cardTemplate.findMany({ where: { category: "GOLD", edition: "STANDARD" }, include: { instances: { take: 15, orderBy: { serial: "asc" } } } });
+  it("never more than 20 Rubies or 10 Diamonds of any player, however lucky the draws", async () => {
+    const golds = await db.cardTemplate.findMany({ where: { category: "GOLD", edition: "STANDARD" }, include: { instances: { take: 30, orderBy: { serial: "asc" } } } });
     for (const t of golds) {
       await db.cardFinish.createMany({
         data: [
-          ...t.instances.slice(0, 5).map((ci, i) => ({ kind: "DIAMOND" as const, playerId: t.playerId, cardId: ci.id, serial: i + 1 })),
-          ...t.instances.slice(5, 15).map((ci, i) => ({ kind: "RUBY" as const, playerId: t.playerId, cardId: ci.id, serial: i + 1 })),
+          ...t.instances.slice(0, 10).map((ci, i) => ({ kind: "DIAMOND" as const, playerId: t.playerId, cardId: ci.id, serial: i + 1 })),
+          ...t.instances.slice(10, 30).map((ci, i) => ({ kind: "RUBY" as const, playerId: t.playerId, cardId: ci.id, serial: i + 1 })),
         ],
       });
     }
@@ -70,10 +70,10 @@ describe("Ruby and Diamond finishes (cosmetic only)", () => {
     const u = await makeUser("unlucky");
     await goldPack(u.userId, "d2", lucky(2, [DIAMOND_ONE_IN, RUBY_ONE_IN]));
     expect(await db.cardFinish.count()).toBe(before);
-    // The database itself refuses an 11th Ruby or a 6th Diamond.
-    const extra = await db.cardInstance.findFirstOrThrow({ where: { templateId: golds[0].id, finish: null } });
-    await expect(db.cardFinish.create({ data: { kind: "RUBY", playerId: golds[0].playerId, cardId: extra.id, serial: 11 } })).rejects.toThrow();
-    await expect(db.cardFinish.create({ data: { kind: "DIAMOND", playerId: golds[0].playerId, cardId: extra.id, serial: 6 } })).rejects.toThrow();
+    // The database itself refuses a 21st Ruby or an 11th Diamond.
+    const extra = await db.cardInstance.findFirstOrThrow({ where: { finish: null } });
+    await expect(db.cardFinish.create({ data: { kind: "RUBY", playerId: golds[0].playerId, cardId: extra.id, serial: 21 } })).rejects.toThrow();
+    await expect(db.cardFinish.create({ data: { kind: "DIAMOND", playerId: golds[0].playerId, cardId: extra.id, serial: 11 } })).rejects.toThrow();
   });
 
   it("Rainbow: any tier can be it, but only one per player, ever", async () => {

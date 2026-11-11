@@ -8,8 +8,8 @@ export type Finish = "RUBY" | "DIAMOND" | "RAINBOW";
 
 /** Names, CSS styles, numbers-in-words and reveal timing for each finish — one place to change them. */
 export const FINISH_STYLE: Record<Finish, { label: string; halo: string; name: string; text: string; shadow: string; word: string; rank: number; pause: number }> = {
-  RUBY: { label: "Ruby", halo: "ruby-halo", name: "ruby-name", text: "text-[#ff8fa6]", shadow: "drop-shadow-[0_0_14px_rgba(255,45,85,0.9)]", word: "ten", rank: 3, pause: 1300 },
-  DIAMOND: { label: "Diamond", halo: "diamond-halo", name: "diamond-name", text: "text-[#8fe3ff]", shadow: "drop-shadow-[0_0_14px_rgba(155,232,255,0.9)]", word: "five", rank: 4, pause: 1800 },
+  RUBY: { label: "Ruby", halo: "ruby-halo", name: "ruby-name", text: "text-[#ff8fa6]", shadow: "drop-shadow-[0_0_14px_rgba(255,45,85,0.9)]", word: "twenty", rank: 3, pause: 1300 },
+  DIAMOND: { label: "Diamond", halo: "diamond-halo", name: "diamond-name", text: "text-[#8fe3ff]", shadow: "drop-shadow-[0_0_14px_rgba(155,232,255,0.9)]", word: "ten", rank: 4, pause: 1800 },
   RAINBOW: { label: "Rainbow", halo: "rainbow-halo", name: "rainbow-name", text: "rainbow-name", shadow: "drop-shadow-[0_0_18px_rgba(255,255,255,0.9)]", word: "one", rank: 5, pause: 2600 },
 };
 

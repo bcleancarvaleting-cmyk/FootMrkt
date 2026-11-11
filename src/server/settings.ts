@@ -48,6 +48,13 @@ export const SETTINGS = {
     min: 2,
     max: 50,
   },
+  dailyDrops: {
+    label: "Daily player drops (0 = off)",
+    help: "How many players MATCHX drops each day at 10am UK time, as buy-it-now cards — a mix of the four leagues, picked from players in form over the last few weeks and priced from their value plus a small form premium. Unsold drops stay on sale until bought.",
+    default: 25,
+    min: 0,
+    max: 100,
+  },
   cashAnyCards: {
     label: "Cash prizes with any cards (1 = on, 0 = free cards only)",
     help: "1: £ prizes can be won with any cards, including bought ones (product decision 11 Nov 2026 — your lawyer must confirm before launch). 0: £ prizes only in 'Free cards only' matches. Paid-entry matches never pay £.",

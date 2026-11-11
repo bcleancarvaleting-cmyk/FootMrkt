@@ -62,3 +62,29 @@ describe("top performers", () => {
     expect(await playerDatabase({ ids: [] })).toEqual([]);
   });
 });
+
+describe("daily player drops", () => {
+  it("drops in-form players across the leagues once a day at 10am UK, priced from value plus form", async () => {
+    const { runDailyDrops, todaysDrops } = await import("@/server/player-drops");
+    const { revalueAll } = await import("@/server/valuation");
+    await playedGameweek(1);
+    await revalueAll();
+    const morning = new Date("2026-11-11T08:00:00Z"); // 8am UK: too early
+    expect(await runDailyDrops(morning)).toBe(0);
+    const at = new Date("2026-11-11T09:30:00Z");
+    const n = await runDailyDrops(at);
+    expect(n).toBeGreaterThan(0);
+    expect(n).toBeLessThanOrEqual(25);
+    expect(await runDailyDrops(new Date("2026-11-11T15:00:00Z"))).toBe(0); // once a day
+    const drops = await db.marketListing.findMany({ where: { house: true, status: "ACTIVE" }, include: { card: { include: { template: { include: { player: { include: { club: { include: { league: true } } } } } } } } } });
+    expect(drops).toHaveLength(n);
+    expect(new Set(drops.map((d) => d.card.template.playerId)).size).toBe(n);
+    for (const d of drops) {
+      expect(d.liveAt?.toISOString()).toBe("2026-11-11T10:00:00.000Z");
+      expect(d.askingPriceMinor).toBeGreaterThanOrEqual(10);
+      expect(d.askingPriceMinor).toBeLessThanOrEqual(10_000);
+    }
+    expect(new Set(drops.map((d) => d.card.template.player.club?.league.code)).size).toBeGreaterThan(1);
+    expect((await todaysDrops(at)).length).toBe(n);
+  });
+});

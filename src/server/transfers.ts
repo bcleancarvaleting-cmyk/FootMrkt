@@ -1,4 +1,5 @@
 import { assertCanTrade, assertSensiblePrice, reviewSale } from "./market-safety";
+import { FINISH_VALUE } from "@/config/tiers";
 import { alerts } from "./alerts";
 import { type CardCategory, Prisma } from "@/generated/prisma/client";
 import { alertNewListing } from "./watchlist";
@@ -83,7 +84,7 @@ export function recommendPrice(valueMp: number | null, avg: { avgMinor: number; 
 /** Guide price for one card (normal finishes only — Ruby/Diamond/Rainbow have no guide). */
 export async function guidePriceFor(cardId: string, tx: Tx | typeof db = db): Promise<number | null> {
   const card = await tx.cardInstance.findUnique({ where: { id: cardId }, select: { finish: { select: { kind: true } }, template: { select: { playerId: true, category: true } } } });
-  if (!card || card.finish) return null;
+  if (!card) return null;
   const { playerId, category } = card.template;
   const [val, avg] = await Promise.all([
     tx.mPValuation.findFirst({ where: { playerId, category }, orderBy: { computedAt: "desc" }, select: { valueMp: true } }),
@@ -92,6 +93,8 @@ export async function guidePriceFor(cardId: string, tx: Tx | typeof db = db): Pr
   const sales = avg.get(`${playerId}:${category}`);
   // No valuation and no sales yet = no guide (don't warn against a made-up number).
   if (!val && !sales) return null;
+  // A finish is priced off the usual card's value: Ruby 2×, Diamond 3×, Rainbow 4×.
+  if (card.finish) return val ? Math.round(val.valueMp * FINISH_VALUE[card.finish.kind] * 100) : null;
   return recommendPrice(val?.valueMp ?? null, sales);
 }
 

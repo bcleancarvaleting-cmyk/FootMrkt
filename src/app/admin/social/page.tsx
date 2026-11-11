@@ -7,6 +7,7 @@ import {
   ClubPoster,
   ClubWallPoster,
   DropPoster,
+  DroppingTodayPoster,
   FORMATS,
   FoundPoster,
   JoinPoster,
@@ -57,6 +58,7 @@ const TEMPLATES = [
   ["winners", "Gameweek winners (Monday post)"],
   ["top", "Top performers this week"],
   ["drop", "Drop alert"],
+  ["today", "Players dropping today"],
   ["join", "Join free"],
 ] as const;
 type SP = { t?: string; f?: string; club?: string; player?: string; kind?: string; find?: string; scale?: string; league?: string; seed?: string };
@@ -135,6 +137,12 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
   } else if (t === "top") {
     const rows = await weeklyTopCards(5);
     poster = <TopPerformersPoster rows={rows.map((r) => ({ card: r.card, points: r.row.points, name: r.row.name, club: r.row.club }))} gameweek={null} format={format} />;
+  } else if (t === "today") {
+    const { todaysDrops } = await import("@/server/player-drops");
+    const drops = await todaysDrops();
+    const day = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", weekday: "long", day: "numeric", month: "long" }).format(new Date());
+    if (drops.length) poster = <DroppingTodayPoster drops={drops.map((d) => ({ card: d.card, price: fmtMp(d.priceMinor) }))} day={day} format={format} />;
+    else note = "Nothing is dropping today yet. The daily drops go on sale at 10am UK time (they're picked from 9am) — set how many in Admin → Settings → Daily player drops.";
   } else if (t === "drop") {
     const d = await featuredDrop();
     if (d) {

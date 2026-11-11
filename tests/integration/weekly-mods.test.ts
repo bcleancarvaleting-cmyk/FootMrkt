@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { MAX_SUPPLY } from "@/config/tiers";
 import { db } from "@/server/db";
 import { postMessage, removeMessage, reportMessage, listMessages } from "@/server/chat";
 import { inviteModerator, keepMessage, respondToInvite, revokeModerator } from "@/server/moderation";
@@ -102,7 +103,7 @@ describe("market-value tiering", () => {
     expect(after.every((c) => c.template.category === "GOLD")).toBe(true);
     expect(after.map((c) => c.serial).sort()).toEqual(cards.map((c) => c.serial).sort());
     // Cap is Gold's, but never below what's issued.
-    expect(active[0].maxSupply).toBe(Math.max(500, cards.length));
+    expect(active[0].maxSupply).toBe(Math.max(MAX_SUPPLY.GOLD, cards.length));
     expect((await db.player.findUniqueOrThrow({ where: { id: tpl.playerId } })).marketValueGbp).toBe(45_000_000);
     expect((await applyMarketValues([{ playerId: tpl.playerId, valueGbp: 50_000_000, source: "test", at: new Date() }])).retiered).toBe(0);
 

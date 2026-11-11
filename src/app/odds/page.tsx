@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { FOOTBALL_PACKS } from "@/config/packs";
-import { ELITE_GOLD, FINISHES, MAX_SUPPLY } from "@/config/tiers";
+import { ELITE_GOLD, FINISHES, MAX_SUPPLY, FINISH_VALUE } from "@/config/tiers";
 import { type Category, packOdds, parsePackConfig, slotOdds } from "@/domain/packs/config";
 import { gbp } from "@/lib/view";
 import { db } from "@/server/db";
@@ -139,7 +139,10 @@ export default async function OddsPage() {
             <b className="text-[#ff8fa6]">Ruby:</b> {FINISHES.RUBY.perPlayer} per Gold player · <b className="text-[#8fe3ff]">Diamond:</b> {FINISHES.DIAMOND.perPlayer} per Gold player ·{" "}
             <b className="rainbow-name">Rainbow:</b> exactly 1 for every player in the game. {rainbows.found.toLocaleString("en-GB")} of {rainbows.total.toLocaleString("en-GB")} found so far.
           </li>
-          <li>Every card is numbered (for example No. 37 / 500), so you can always see how rare it is.</li>
+          <li>
+            Value: a Ruby is worth {FINISH_VALUE.RUBY}× the player&apos;s normal card value, a Diamond {FINISH_VALUE.DIAMOND}× and a Rainbow {FINISH_VALUE.RAINBOW}×. They score the same points as any other card of that player.
+          </li>
+          <li>Every card is numbered (for example No. 37 / 1,000), so you can always see how rare it is.</li>
         </ul>
       </section>
 

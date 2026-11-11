@@ -153,6 +153,7 @@ async function afterEntryEmails(userId: string, competitionId: string) {
 export async function packOrderStatusAction(orderId: string) {
   const user = await requireUser();
   if (!/^[0-9a-f-]{36}$/.test(orderId)) return null;
-  const { packOrderStatus } = await import("@/server/market");
+  const { confirmOrderWithProvider, packOrderStatus } = await import("@/server/market");
+  await confirmOrderWithProvider(user.id, orderId).catch((e) => console.error("confirm order", e));
   return packOrderStatus(user.id, orderId);
 }

@@ -1,3 +1,4 @@
+import { confirmOrderWithProvider } from "@/server/market";
 import Link from "next/link";
 import { cardPaymentsReady } from "@/server/payments/config";
 import { ManagerBadge } from "@/components/club-crest";
@@ -25,9 +26,11 @@ import { type Pos, fmtDate, relativeTime } from "@/lib/view";
 
 export const metadata = { title: "Competition" };
 
-export default async function CompetitionPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CompetitionPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ paid?: string }> }) {
   const user = await requireUser();
   const { id } = await params;
+  const { paid } = await searchParams;
+  if (paid && /^[0-9a-f-]{36}$/.test(paid)) await confirmOrderWithProvider(user.id, paid).catch(() => null);
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const comp = await db.competition.findUnique({ where: { id }, include: { gameweek: true } });
   if (!comp) notFound();

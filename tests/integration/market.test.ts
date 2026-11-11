@@ -534,3 +534,33 @@ describe("market safeguards", () => {
     expect((await db.tradeFlag.findFirstOrThrow()).reasons).toEqual(["SHARED_NETWORK"]);
   });
 });
+
+describe("Stripe: confirm with Stripe when the webhook doesn't arrive", () => {
+  it("a paid checkout is fulfilled once by asking Stripe; a later webhook changes nothing", async () => {
+    const { vi } = await import("vitest");
+    const { confirmOrderWithProvider } = await import("@/server/market");
+    const { saveSecret } = await import("@/server/secrets");
+    const { setPaymentsMode } = await import("@/server/payments/config");
+    enableLegalGates();
+    await saveSecret("stripe.secret", "sk_test_abcdefghijklmnop1234", null);
+    await saveSecret("stripe.webhook", "whsec_abcdefghijklmnop1234", null);
+    await setPaymentsMode("stripe", null);
+    const u = await makeTrader("stripey");
+    const sku = await db.packSku.findFirstOrThrow({ where: { kind: "REGULAR", priceMinor: { gt: 0 } } });
+    const order = await db.order.create({ data: { userId: u.userId, kind: "PACK_PURCHASE", refId: sku.id, amountMinor: sku.priceMinor, provider: "stripe", providerRef: "cs_test_paid123", idempotencyKey: "stripe-poll-1" } });
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ id: "cs_test_paid123", amount_total: sku.priceMinor, currency: "gbp", payment_status: "paid", status: "complete", payment_intent: "pi_1" }), { status: 200 })));
+    try {
+      expect(await confirmOrderWithProvider(u.userId, order.id)).toMatchObject({ status: "fulfilled" });
+      expect((await db.order.findUniqueOrThrow({ where: { id: order.id } })).status).toBe("PAID");
+      expect(await db.packEntitlement.count({ where: { sourceRef: `order:${order.id}` } })).toBe(1);
+      expect(await confirmOrderWithProvider(u.userId, order.id)).toBeNull(); // no longer pending
+      // Another manager can't trigger someone else's order.
+      const other = await makeTrader("nosy");
+      expect(await confirmOrderWithProvider(other.userId, order.id)).toBeNull();
+      expect(await db.packEntitlement.count({ where: { sourceRef: `order:${order.id}` } })).toBe(1);
+    } finally {
+      vi.unstubAllGlobals();
+      await setPaymentsMode("test", null);
+    }
+  });
+});

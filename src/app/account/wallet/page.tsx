@@ -1,3 +1,4 @@
+import { confirmOrderWithProvider } from "@/server/market";
 import Link from "next/link";
 import { cardPaymentsReady } from "@/server/payments/config";
 import { ConvertXpForm, DepositForm, WithdrawForm } from "@/components/account-forms";
@@ -35,6 +36,8 @@ const W_TONE: Record<string, string> = { REQUESTED: "text-warn", PAID: "text-min
 export default async function WalletPage({ searchParams }: { searchParams: Promise<{ bundle?: string; paid?: string }> }) {
   const user = await requireUser();
   const { bundle, paid } = await searchParams;
+  // Back from Stripe: make sure the top-up is credited even if the webhook is slow.
+  if (paid && /^[0-9a-f-]{36}$/.test(paid)) await confirmOrderWithProvider(user.id, paid).catch(() => null);
   const inBasket = await basketCount(user.id);
   const cardReady = (await cardPaymentsReady()).ready;
   const XP_PER_MX = await xpPerMx();

@@ -4,7 +4,7 @@ import { DomainError, isUniqueViolation } from "./errors";
 import { requireFlag } from "./flags";
 import { grantPack, latestSku } from "./packs";
 import { loadPayments, requireCardPayments } from "./payments/config";
-import { type PaymentProvider, paymentProvider } from "./payments/provider";
+import { type PaymentProvider, type PaymentWebhookEvent, paymentProvider } from "./payments/provider";
 import { assertCanSpend } from "./safer-play";
 import { fulfilDeposit, isAdult } from "./wallet";
 
@@ -61,6 +61,14 @@ export async function handlePaymentWebhook(rawBody: string, signature: string | 
   await loadPayments();
   const provider = given ?? paymentProvider();
   const event = provider.verifyWebhook(rawBody, signature);
+  return processPaymentEvent(event, provider);
+}
+
+/**
+ * Apply one verified payment event (from a signed webhook, or from asking the provider directly).
+ * Idempotent: each event id once, and an order is only ever fulfilled once whichever arrives first.
+ */
+async function processPaymentEvent(event: PaymentWebhookEvent, provider: PaymentProvider) {
   const result = await withTx(async (tx) => {
     const inserted = await tx.paymentEvent.createMany({
       data: [{ provider: provider.name, providerEventId: event.providerEventId, type: event.type, payload: event as unknown as Prisma.InputJsonValue }],
@@ -114,4 +122,39 @@ export async function packOrderStatus(userId: string, orderId: string) {
   if (!o || o.userId !== userId || o.kind !== "PACK_PURCHASE") return null;
   const ent = o.status === "PAID" ? await db.packEntitlement.findUnique({ where: { sourceRef: `order:${o.id}` }, include: { packSku: { select: { name: true } } } }) : null;
   return { status: o.status, entitlementId: ent?.status === "UNOPENED" ? ent.id : null, opened: ent ? ent.status !== "UNOPENED" : false, packName: ent?.packSku.name ?? null };
+}
+
+/**
+ * Belt and braces for card payments: if the manager is back from Stripe but the webhook hasn't
+ * arrived (not set up yet, delayed, or blocked), ask Stripe directly whether the checkout was paid
+ * and fulfil the order the same way. Safe to call repeatedly; does nothing for other providers.
+ */
+export async function confirmOrderWithProvider(userId: string, orderId: string) {
+  const o = await db.order.findUnique({ where: { id: orderId } });
+  if (!o || o.userId !== userId || o.status !== "PENDING" || o.provider !== "stripe" || !o.providerRef) return null;
+  const { stripeSessionStatus, stripeProvider } = await import("./payments/stripe");
+  const s = await stripeSessionStatus(o.providerRef).catch(() => null);
+  if (!s) return null;
+  if (s.paid) {
+    return processPaymentEvent({ providerEventId: `poll:${o.providerRef}`, type: "payment.succeeded", providerRef: o.providerRef, amountMinor: s.amountMinor, currency: s.currency }, stripeProvider);
+  }
+  if (s.expired) {
+    return processPaymentEvent({ providerEventId: `poll-expired:${o.providerRef}`, type: "payment.failed", providerRef: o.providerRef, amountMinor: s.amountMinor, currency: s.currency }, stripeProvider);
+  }
+  return null;
+}
+
+/** Check this manager's card payments from the last day that are still waiting (packs page load). */
+export async function confirmWaitingOrders(userId: string, now = new Date()) {
+  const waiting = await db.order.findMany({ where: { userId, provider: "stripe", status: "PENDING", createdAt: { gt: new Date(now.getTime() - 86_400_000) } }, select: { id: true }, take: 5 });
+  for (const o of waiting) await confirmOrderWithProvider(userId, o.id).catch(() => null);
+}
+
+/** For Admin → Integrations: when Stripe's last real webhook arrived, and orders stuck waiting. */
+export async function stripeHealth(now = new Date()) {
+  const [lastHook, stuck] = await Promise.all([
+    db.paymentEvent.findFirst({ where: { provider: "stripe", NOT: { providerEventId: { startsWith: "poll" } } }, orderBy: { receivedAt: "desc" } }),
+    db.order.count({ where: { provider: "stripe", status: "PENDING", createdAt: { lt: new Date(now.getTime() - 5 * 60_000) } } }),
+  ]);
+  return { lastHook, stuck };
 }

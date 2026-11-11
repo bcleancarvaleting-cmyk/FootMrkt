@@ -1,3 +1,4 @@
+import { confirmOrderWithProvider } from "@/server/market";
 import Link from "next/link";
 import { cardPaymentsReady } from "@/server/payments/config";
 import { DepositForm } from "@/components/account-forms";
@@ -12,9 +13,10 @@ import { fmtMp } from "@/server/wallet";
 export const metadata = { title: "Basket" };
 export const dynamic = "force-dynamic";
 
-export default async function BasketPage({ searchParams }: { searchParams: Promise<{ signed?: string; missed?: string }> }) {
+export default async function BasketPage({ searchParams }: { searchParams: Promise<{ signed?: string; missed?: string; paid?: string }> }) {
   const user = await requireUser();
   const sp = await searchParams;
+  if (sp.paid && /^[0-9a-f-]{36}$/.test(sp.paid)) await confirmOrderWithProvider(user.id, sp.paid).catch(() => null);
   const signed = (sp.signed ?? "").split("|").filter(Boolean);
   const missed = (sp.missed ?? "").split("|").filter(Boolean);
   const [v, depositsOn, pay] = await Promise.all([basketView(user.id), isEnabled("DEPOSITS"), cardPaymentsReady()]);

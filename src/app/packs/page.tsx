@@ -1,3 +1,4 @@
+import { confirmWaitingOrders } from "@/server/market";
 import Link from "next/link";
 import { PaymentReveal } from "@/components/payment-reveal";
 import { cardPaymentsReady } from "@/server/payments/config";
@@ -27,6 +28,8 @@ const meta = (code: string) => FOOTBALL_PACKS.find((p) => p.code === code);
 export default async function PacksPage({ searchParams }: { searchParams: Promise<{ welcome?: string; paid?: string; cancelled?: string }> }) {
   const user = await requireUser();
   const { welcome, paid, cancelled } = await searchParams;
+  // Any card payment still waiting (e.g. the webhook never arrived): check with Stripe now.
+  await confirmWaitingOrders(user.id).catch(() => null);
   const cardReady = (await cardPaymentsReady()).ready;
   const [diamondOneIn, rubyOneIn, rainbowOneIn, xpRate] = await Promise.all([getSetting("diamondOneIn"), getSetting("rubyOneIn"), getSetting("rainbowOneIn"), getSetting("xpPerMx")]);
   const pct = (n: number) => (100 / n).toLocaleString("en-GB", { maximumSignificantDigits: 2 });

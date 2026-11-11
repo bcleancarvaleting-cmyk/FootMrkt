@@ -1,3 +1,4 @@
+import { stripeHealth } from "@/server/market";
 import { rebuildFromSportmonksAction, removeSportmonksTokenAction, runSportmonksCheckAction, setSportmonksOnAction } from "@/app/actions/integrations";
 import Link from "next/link";
 import { ActionButton } from "@/components/action-button";
@@ -44,6 +45,7 @@ export default async function Integrations() {
     db.appSetting.findUnique({ where: { key: "email.from" } }),
   ]);
   const emailFrom = typeof emailFromRow?.value === "string" ? emailFromRow.value : "";
+  const { lastHook, stuck } = await stripeHealth();
   const flags = await allFlags();
   const appUrl = APP_URL;
   const checklist: Array<[boolean, string, string | null]> = [
@@ -205,6 +207,13 @@ export default async function Integrations() {
           </>
         )}
       </Step>
+
+      <p className={`rounded-xl border px-4 py-3 text-sm ${lastHook ? "border-mint/40 text-mint" : "border-warn/50 text-warn"}`}>
+        {lastHook
+          ? `✓ Stripe webhooks are arriving — last one ${fmtDate(lastHook.receivedAt)}.`
+          : "No webhook from Stripe has arrived yet. Payments still complete when managers return from Stripe (the site checks with Stripe directly), but set up the webhook so packs and top-ups also arrive if someone closes the page early."}
+        {stuck > 0 && <span className="block text-warn">{stuck} Stripe order{stuck > 1 ? "s are" : " is"} still waiting for confirmation.</span>}
+      </p>
 
       <Step n={2} title="Payments switch" done={payReady.ready}>
         <p className="text-sm">

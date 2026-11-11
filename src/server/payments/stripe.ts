@@ -76,3 +76,10 @@ export const stripeProvider: PaymentProvider = {
     await stripe("/refunds", { payment_intent: s.payment_intent, amount: String(amountMinor) });
   },
 };
+
+/** Ask Stripe directly how a Checkout Session stands (used when a webhook hasn't arrived). */
+export async function stripeSessionStatus(sessionId: string) {
+  if (!/^cs_[A-Za-z0-9_]+$/.test(sessionId)) return null;
+  const s = await stripe<Session & { status?: string }>(`/checkout/sessions/${sessionId}`);
+  return { paid: s.payment_status === "paid", expired: s.status === "expired", amountMinor: s.amount_total, currency: String(s.currency ?? "").toUpperCase() };
+}

@@ -92,7 +92,7 @@ export function ChallengeForm({ packs }: { packs: Array<{ code: string; name: st
       <I name="count" label="Cards to hand in" type="number" min="1" max="11" defaultValue="3" required />
       <I name="tiers" label="Tiers (comma list)" placeholder="BRONZE,SILVER" />
       <I name="positions" label="Positions" placeholder="GK,DEF" />
-      <I name="leagues" label="Leagues" placeholder="EPL,CHA,LG1,LG2,NL" />
+      <I name="leagues" label="Leagues" placeholder="EPL,CHA,LG1,LG2" />
       <I name="maxPerClub" label="Max per club" type="number" min="1" />
       <I name="reward" label="Reward (MX)" type="number" step="0.01" min="0" max="100" defaultValue="1.00" />
       <div>

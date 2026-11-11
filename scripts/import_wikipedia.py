@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Build prisma/data/football-<season>.json — leagues, clubs and first-team squads for the English
-Premier League, Championship, League One, League Two and National League — from Wikipedia.
+Premier League, Championship, League One and League Two (the 92) — from Wikipedia.
 
     python3 scripts/import_wikipedia.py            # fetch + parse (needs access to en.wikipedia.org)
     python3 scripts/import_wikipedia.py --offline  # re-parse the cached raw pages only
@@ -31,7 +31,6 @@ LEAGUES = [
     ("CHA", "Championship", 2, False, "2026–27 EFL Championship"),
     ("LG1", "League One", 3, False, "2026–27 EFL League One"),
     ("LG2", "League Two", 4, False, "2026–27 EFL League Two"),
-    ("NL", "National League", 5, False, "2026–27 National League"),
 ]
 
 # Familiar three-letter codes; everything else is derived.

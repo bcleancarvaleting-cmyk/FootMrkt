@@ -13,7 +13,6 @@ const LEAGUES = [
   ["CHA", "Championship"],
   ["LG1", "League One"],
   ["LG2", "League Two"],
-  ["NL", "National League"],
 ] as const;
 const POSITIONS = ["GK", "DEF", "MID", "ATT"] as const;
 const TIER_TEXT = { GOLD: "text-gold", SILVER: "text-silver", BRONZE: "text-bronze" } as const;

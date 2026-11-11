@@ -18,7 +18,7 @@ export interface PackSkuSeed {
   blurb: string;
   /** Shop grouping, e.g. "England". Packs without a region draw from every league. */
   region?: string;
-  /** Leagues printed on the pack front, e.g. ["Premier League", "EFL", "National League"]. */
+  /** Leagues printed on the pack front, e.g. ["Premier League", "EFL"]. */
   leagues?: string[];
   /** Hidden from the shop (still grantable, e.g. by tests or old rewards). */
   hiddenInShop?: boolean;
@@ -153,7 +153,7 @@ function regional(base: PackSkuSeed, code: string, name: string, region: string,
     version: 1,
     name,
     region,
-    leagues: ["Premier League", "EFL", "National League"],
+    leagues: ["Premier League", "EFL"],
     hiddenInShop: false,
     blurb,
     config: {
@@ -194,7 +194,7 @@ FOOTBALL_PACKS.push({
   kind: "REGULAR",
   priceMinor: 1999,
   region: "England",
-  leagues: ["Premier League", "EFL", "National League"],
+  leagues: ["Premier League", "EFL"],
   blurb: "3 English Golds — and one is guaranteed to be a Ruby, a Diamond or a one-of-one Rainbow.",
   config: {
     mode: "POOL",

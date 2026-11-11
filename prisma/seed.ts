@@ -153,9 +153,9 @@ async function main() {
     const club = await db.club.findUnique({ where: { code: short } });
     if (club && silvers.length >= 3) sets.push({ code: `silvers-${short.toLowerCase()}`, name: `${club.name} Silvers`, description: `Collect ${silvers.length} Silver ${club.name} players.`, templateIds: silvers.map((t) => t.id) });
   }
-  const nlClubs = data.leagues.find((l) => l.code === "NL")!.clubs.map((c) => c.short);
-  const nlKeepers = nlClubs.flatMap((s) => (templatesByClub.get(s) ?? []).filter((t) => t.position === "GK").slice(0, 1)).slice(0, 5);
-  sets.push({ code: "national-league-keepers", name: "National League No. 1s", description: "Five National League goalkeepers.", templateIds: nlKeepers.map((t) => t.id) });
+  const l2Clubs = data.leagues.find((l) => l.code === "LG2")!.clubs.map((c) => c.short);
+  const l2Keepers = l2Clubs.flatMap((s) => (templatesByClub.get(s) ?? []).filter((t) => t.position === "GK").slice(0, 1)).slice(0, 5);
+  sets.push({ code: "league-two-keepers", name: "League Two No. 1s", description: "Five League Two goalkeepers.", templateIds: l2Keepers.map((t) => t.id) });
   for (const s of sets) {
     await db.collectionSet.create({
       data: { sportId: sport.id, code: s.code, name: s.name, description: s.description, reward: { mpCreditMinor: 1000 }, requirements: { create: s.templateIds.map((templateId) => ({ templateId })) } },

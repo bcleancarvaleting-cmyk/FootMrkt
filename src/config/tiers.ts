@@ -16,7 +16,7 @@ export function tierFor(leagueTier: number, squadNumber: number | null): Categor
       return firstChoice ? "GOLD" : squadRegular ? "SILVER" : "BRONZE";
     case 2: // Championship
       return firstChoice ? "SILVER" : "BRONZE";
-    default: // League One, League Two, National League
+    default: // League One, League Two
       return "BRONZE";
   }
 }

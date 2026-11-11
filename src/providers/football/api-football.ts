@@ -14,7 +14,7 @@ export const API_FOOTBALL_NAME = "api-football";
 const BASE = process.env.API_FOOTBALL_BASE ?? "https://v3.football.api-sports.io";
 
 /** API-Football league ids for the leagues we cover. */
-export const API_FOOTBALL_LEAGUES: Record<string, number> = { EPL: 39, CHA: 40, LG1: 41, LG2: 42, NL: 43 };
+export const API_FOOTBALL_LEAGUES: Record<string, number> = { EPL: 39, CHA: 40, LG1: 41, LG2: 42 };
 
 export function apiFootballConfigured() {
   return !!process.env.API_FOOTBALL_KEY;

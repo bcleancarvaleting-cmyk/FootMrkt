@@ -20,7 +20,7 @@ export default async function PlayersAdmin({ searchParams }: { searchParams: Pro
   const points = new Map(perf.map((r) => [r.playerId, r.points]));
   // Top performer per league: the best scorer in the window who isn't already on a drop.
   const topIds = new Map<string, string>(); // league -> playerId
-  const topCandidates = [...new Set(["EPL", "CHA", "LG1", "LG2", "NL"].flatMap((l) => perf.filter((r) => r.league === l).slice(0, 6).map((r) => r.playerId)))];
+  const topCandidates = [...new Set(["EPL", "CHA", "LG1", "LG2"].flatMap((l) => perf.filter((r) => r.league === l).slice(0, 6).map((r) => r.playerId)))];
   const candidateRows = await playerDatabase({ ids: topCandidates, take: 100 });
   for (const r of perf) {
     if (!r.league || topIds.has(r.league)) continue;
@@ -30,7 +30,7 @@ export default async function PlayersAdmin({ searchParams }: { searchParams: Pro
   const withPoints = <T extends { playerId: string }>(r: T) => ({ ...r, points: points.get(r.playerId) ?? null, topOf: topOf.get(r.playerId) ?? null });
   let rows = dbRows.map(withPoints);
   if (byPoints) rows = rows.sort((a, b) => (b.points ?? -1e9) - (a.points ?? -1e9)).slice(0, 150);
-  const tops = ["EPL", "CHA", "LG1", "LG2", "NL"].flatMap((l) => candidateRows.filter((c) => c.playerId === topIds.get(l)).map(withPoints));
+  const tops = ["EPL", "CHA", "LG1", "LG2"].flatMap((l) => candidateRows.filter((c) => c.playerId === topIds.get(l)).map(withPoints));
   const now = new Date();
   const qs = (patch: Partial<SP>) => {
     const p = new URLSearchParams();
@@ -42,7 +42,7 @@ export default async function PlayersAdmin({ searchParams }: { searchParams: Pro
       <AdminTitle title="Player database & drops" intro="Every player's supply in their current tier. Tick players to release them as daily drops: one new copy each, a set price, live from a set time with no end." />
       <form action="/admin/players" className="flex flex-wrap items-center gap-2">
         <input name="q" defaultValue={sp.q} placeholder="Search player or club" className="input max-w-xs" />
-        {(["EPL", "CHA", "LG1", "LG2", "NL"] as const).map((l) => (
+        {(["EPL", "CHA", "LG1", "LG2"] as const).map((l) => (
           <Link key={l} href={qs({ league: sp.league === l ? undefined : l })} className={`chip ${sp.league === l ? "border-accent text-fg" : ""}`}>
             {l}
           </Link>

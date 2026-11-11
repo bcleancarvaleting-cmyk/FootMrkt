@@ -16,6 +16,15 @@ import { fulfilDeposit, isAdult } from "./wallet";
 /** After paying for a pack you land back on Packs, where the "building your pack" animation plays. */
 const returnPathFor = (kind: string) => (kind === "PACK_PURCHASE" ? "/packs" : undefined);
 
+/** What the manager is buying, as shown on Stripe's page and their receipt: "MATCHX · England Bronze pack". */
+async function itemName(kind: string, refId: string) {
+  if (kind === "PACK_PURCHASE") {
+    const sku = await db.packSku.findUnique({ where: { id: refId }, select: { name: true } });
+    return sku ? `MATCHX · ${sku.name} pack` : "MATCHX pack";
+  }
+  return "MATCHX order";
+}
+
 async function createOrder(
   args: { userId: string; kind: "PACK_PURCHASE" | "MARKET_PURCHASE"; refId: string; amountMinor: number; idempotencyKey: string },
   provider: PaymentProvider,
@@ -24,14 +33,14 @@ async function createOrder(
     const order = await db.order.create({
       data: { ...args, provider: provider.name },
     });
-    const checkout = await provider.createCheckout({ id: order.id, amountMinor: order.amountMinor, currency: order.currency, returnPath: returnPathFor(args.kind) });
+    const checkout = await provider.createCheckout({ id: order.id, amountMinor: order.amountMinor, currency: order.currency, returnPath: returnPathFor(args.kind), name: await itemName(args.kind, args.refId) });
     await db.order.update({ where: { id: order.id }, data: { providerRef: checkout.providerRef } });
     return { orderId: order.id, checkoutUrl: checkout.checkoutUrl };
   } catch (e) {
     if (!isUniqueViolation(e)) throw e;
     const existing = await db.order.findUniqueOrThrow({ where: { idempotencyKey: args.idempotencyKey } });
     if (existing.status !== "PENDING") throw new DomainError("ORDER_DONE", "This order has already been processed.");
-    const checkout = await provider.createCheckout({ id: existing.id, amountMinor: existing.amountMinor, currency: existing.currency, returnPath: returnPathFor(args.kind) });
+    const checkout = await provider.createCheckout({ id: existing.id, amountMinor: existing.amountMinor, currency: existing.currency, returnPath: returnPathFor(args.kind), name: await itemName(args.kind, args.refId) });
     return { orderId: existing.id, checkoutUrl: checkout.checkoutUrl };
   }
 }

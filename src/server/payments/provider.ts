@@ -17,7 +17,8 @@ export interface PaymentWebhookEvent {
 export interface PaymentProvider {
   readonly name: string;
   /** returnPath: where to send the player after paying (a path on this site, e.g. back to a match). */
-  createCheckout(order: { id: string; amountMinor: number; currency: string; returnPath?: string }): Promise<{ providerRef: string; checkoutUrl: string }>;
+  /** name: what's being bought, shown on the payment page and receipt (e.g. "England Bronze pack"). */
+  createCheckout(order: { id: string; amountMinor: number; currency: string; returnPath?: string; name?: string }): Promise<{ providerRef: string; checkoutUrl: string }>;
   /** Verify signature and parse. Throws on an invalid signature. */
   verifyWebhook(rawBody: string, signature: string | null): PaymentWebhookEvent;
   refund(providerRef: string, amountMinor: number): Promise<void>;

@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { packOrderStatusAction } from "@/app/actions/game";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { openPackAction, packOrderStatusAction } from "@/app/actions/game";
 import { OpenPackButton } from "./pack-buttons";
 
 type Status = { status: string; entitlementId: string | null; opened: boolean; packName: string | null } | null;
@@ -12,10 +13,10 @@ function Typewriter({ text, onDone, className = "", tone = "rainbow" }: { text: 
   const [n, setN] = useState(0);
   useEffect(() => {
     if (n >= text.length) {
-      const t = setTimeout(() => onDone?.(), 650);
+      const t = setTimeout(() => onDone?.(), 380);
       return () => clearTimeout(t);
     }
-    const t = setTimeout(() => setN((x) => x + 1), 55);
+    const t = setTimeout(() => setN((x) => x + 1), 38);
     return () => clearTimeout(t);
   }, [n, text, onDone]);
   return (
@@ -36,6 +37,10 @@ export function PaymentReveal({ orderId, cancelled = false }: { orderId: string;
   const [step, setStep] = useState(0);
   const [open, setOpen] = useState(true);
   const [waited, setWaited] = useState(0);
+  const router = useRouter();
+  // The pack is built while "Building your pack…" types, so Open pack goes straight to the reveal.
+  const [openingId, setOpeningId] = useState<string | null>(null);
+  const building = useRef(false);
 
   useEffect(() => {
     let alive = true;
@@ -52,7 +57,20 @@ export function PaymentReveal({ orderId, cancelled = false }: { orderId: string;
     return () => {
       alive = false;
     };
-  }, [orderId]);
+  }, [orderId, cancelled]);
+
+  useEffect(() => {
+    if (step < 1 || building.current || !st?.entitlementId) return;
+    building.current = true;
+    openPackAction(st.entitlementId)
+      .then((r) => {
+        if (r.ok) {
+          setOpeningId(r.data.openingId);
+          router.prefetch(`/packs/opening/${r.data.openingId}`);
+        }
+      })
+      .catch(() => {});
+  }, [step, st, router]);
 
   if (!open || st === null) return null;
   const paid = st?.status === "PAID";
@@ -98,16 +116,22 @@ export function PaymentReveal({ orderId, cancelled = false }: { orderId: string;
             {step >= 3 && (
               <div className="mt-4 flex w-full flex-col items-center gap-3 animate-reveal">
                 {st?.packName && <p className="text-sm font-semibold text-muted">{st.packName}</p>}
-                {st?.entitlementId ? (
+                {openingId ? (
+                  <button type="button" onClick={() => router.push(`/packs/opening/${openingId}`)} className="btn-primary px-10 py-4">
+                    Open pack
+                  </button>
+                ) : st?.entitlementId ? (
                   <OpenPackButton entitlementId={st.entitlementId} label="Open pack" />
                 ) : (
                   <Link href="/packs" onClick={close} className="btn-primary px-10 py-4">
                     {st?.opened ? "Already opened — see Packs" : "Go to my packs"}
                   </Link>
                 )}
-                <button type="button" onClick={close} className="text-xs text-faint underline">
-                  Open it later
-                </button>
+                {!openingId && (
+                  <button type="button" onClick={close} className="text-xs text-faint underline">
+                    Open it later
+                  </button>
+                )}
               </div>
             )}
           </>

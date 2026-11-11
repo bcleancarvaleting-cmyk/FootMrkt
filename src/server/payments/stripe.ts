@@ -41,7 +41,7 @@ export const stripeProvider: PaymentProvider = {
       "line_items[0][quantity]": "1",
       "line_items[0][price_data][currency]": order.currency.toLowerCase(),
       "line_items[0][price_data][unit_amount]": String(order.amountMinor),
-      "line_items[0][price_data][product_data][name]": "MATCHX order",
+      "line_items[0][price_data][product_data][name]": order.name ?? "MATCHX order",
       client_reference_id: order.id,
       "metadata[order_id]": order.id,
       "payment_intent_data[metadata][order_id]": order.id,

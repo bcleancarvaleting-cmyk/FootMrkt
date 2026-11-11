@@ -111,7 +111,7 @@ export function AuctionListForm({ cardId, enabled, maxMinor = 10_000, suggestedM
       </div>
       <p className="text-xs text-muted">
         The highest bid at or above your minimum wins when the time runs out, or anyone can take the player straight away at your buy-it-now price. Bidders see whether
-        your minimum has been reached, not the amount. You&apos;re paid in bonus MX, minus the 5% fee. You can cancel until the first bid.
+        your minimum has been reached, not the amount. You&apos;re paid in bonus MX, minus the 5% fee. <b>Once started, an auction can&apos;t be cancelled</b>: it runs until it sells or the time runs out.
       </p>
       <button className="btn-gold" disabled={pending || !enabled}>
         {pending ? "Starting…" : "Start auction"}

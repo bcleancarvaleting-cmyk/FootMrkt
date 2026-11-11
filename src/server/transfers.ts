@@ -547,18 +547,6 @@ export async function buyNowAuction(userId: string, auctionId: string, now = new
   return r;
 }
 
-/** A seller can take their auction down while nobody has bid. */
-export async function cancelMyAuction(userId: string, auctionId: string) {
-  return withTx(async (tx) => {
-    const [a] = await tx.$queryRaw<Array<{ id: string; status: string; cardId: string; sellerId: string | null }>>`
-      SELECT id, status, "cardId", "sellerId" FROM "Auction" WHERE id = ${auctionId}::uuid FOR UPDATE`;
-    if (!a || a.sellerId !== userId || a.status !== "LIVE") throw new DomainError("NOT_FOUND", "Auction not found.");
-    if (await tx.auctionBid.count({ where: { auctionId } })) throw new DomainError("HAS_BIDS", "Someone has bid, so this auction has to run to the end.");
-    await tx.cardInstance.update({ where: { id: a.cardId }, data: { lock: "NONE", lockRef: null } });
-    await tx.auction.update({ where: { id: auctionId }, data: { status: "CANCELLED", settledAt: new Date() } });
-  });
-}
-
 // ───────────── House listings (MATCHX sells from circulation) ─────────────
 
 export const HouseStockSchema = z

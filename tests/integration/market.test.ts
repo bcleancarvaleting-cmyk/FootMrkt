@@ -286,7 +286,7 @@ describe("house auctions", () => {
 
   it("manager auctions: 3/12/24 hours, bids, buy-it-now ends it, the seller is paid minus 5%", async () => {
     enableLegalGates();
-    const { createManagerAuction, buyNowAuction, cancelMyAuction } = await import("@/server/transfers");
+    const { createManagerAuction, buyNowAuction } = await import("@/server/transfers");
     const seller = await makeTrader("msell");
     const a = await makeTrader("mbid1");
     const b = await makeTrader("mbid2");
@@ -301,7 +301,6 @@ describe("house auctions", () => {
     await expect(placeBid(seller.userId, au.id, 100)).rejects.toMatchObject({ code: "OWN_AUCTION" });
     await expect(placeBid(a.userId, au.id, 500)).rejects.toMatchObject({ code: "USE_BUY_NOW" });
     await placeBid(a.userId, au.id, 150);
-    await expect(cancelMyAuction(seller.userId, au.id)).rejects.toMatchObject({ code: "HAS_BIDS" });
     // b buys it outright: a's bid comes back, b pays 5.00, the seller gets 4.75 bonus MX.
     await buyNowAuction(b.userId, au.id);
     expect((await balancesFor(a.userId)).earned).toBe(1000);

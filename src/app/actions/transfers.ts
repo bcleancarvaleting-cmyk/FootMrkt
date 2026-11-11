@@ -5,7 +5,7 @@ import { requireUser } from "@/server/auth/session";
 import { db } from "@/server/db";
 import { emailUser } from "@/server/email/send";
 import { fmtMp } from "@/server/wallet";
-import { buyNow, buyNowAuction, cancelListing, cancelMyAuction, createListing, createManagerAuction, makeOffer, placeBid, respondToOffer, withdrawOffer } from "@/server/transfers";
+import { buyNow, buyNowAuction, cancelListing, createListing, createManagerAuction, makeOffer, placeBid, respondToOffer, withdrawOffer } from "@/server/transfers";
 import { type ActionResult, attempt } from "./result";
 
 const mpToMinor = (v: FormDataEntryValue | null) => Math.round(Number(v) * 100);
@@ -123,12 +123,5 @@ export async function buyNowAuctionAction(auctionId: string): Promise<ActionResu
     await buyNowAuction(user.id, auctionId);
   }, "Bought — the player is in your club");
   refresh();
-  return res;
-}
-
-export async function cancelMyAuctionAction(auctionId: string, cardId: string): Promise<ActionResult> {
-  const user = await requireUser();
-  const res = await attempt(() => cancelMyAuction(user.id, auctionId), "Auction cancelled");
-  refresh(cardId);
   return res;
 }

@@ -7,7 +7,7 @@ import { FINISH_STYLE, FinishPill } from "@/components/finish-art";
 import { discardLoanAction } from "@/app/actions/account";
 import { notFound } from "next/navigation";
 import { toggleFavouriteAction, toggleShowcaseAction } from "@/app/actions/game";
-import { cancelListingAction, cancelMyAuctionAction } from "@/app/actions/transfers";
+import { cancelListingAction } from "@/app/actions/transfers";
 import { ActionButton } from "@/components/action-button";
 import { AuctionListForm, ListingForm } from "@/components/listing-form";
 import { listingGuidance } from "@/server/transfers-view";
@@ -256,11 +256,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
                   In auction until <b>{fmtDate(auction.endsAt)}</b> · {auction._count.bids} bid{auction._count.bids === 1 ? "" : "s"}
                   {auction.buyNowMinor ? ` · buy it now ${(auction.buyNowMinor / 100).toFixed(2)} MX` : ""}
                 </span>
-                {auction._count.bids === 0 && (
-                  <ActionButton action={cancelMyAuctionAction.bind(null, auction.id, id)} className="btn-danger">
-                    Cancel auction
-                  </ActionButton>
-                )}
+                <span className="text-xs text-faint">Auctions can&apos;t be cancelled: it runs until it sells or the time runs out.</span>
               </div>
             ) : card.lock === "NONE" ? (
               <div className="space-y-6">

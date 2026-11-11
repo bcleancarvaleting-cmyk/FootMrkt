@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cancelPlayerDropAction } from "@/app/actions/economy";
-import { runSquadSyncAction } from "@/app/actions/admin";
+import { previewTransferNoticeAction, runSquadSyncAction } from "@/app/actions/admin";
 import { lastSquadSync } from "@/server/live-data";
 import { ActionButton } from "@/components/action-button";
 import { DropScheduler } from "@/components/drop-scheduler";
@@ -52,9 +52,14 @@ export default async function PlayersAdmin({ searchParams }: { searchParams: Pro
             </p>
             <p className="mt-1 text-xs text-faint">{sync ? `Last run ${fmtDate(new Date(sync.at))}${sync.by ? " (by an admin)" : " (nightly)"}` : "Not run yet."}</p>
           </div>
-          <ActionButton action={runSquadSyncAction} className="btn-primary px-5 py-2.5 text-xs" confirm="Check every English squad on Sportmonks now? Takes about a minute.">
-            Run squad sync now
-          </ActionButton>
+          <span className="flex flex-wrap gap-2">
+            <ActionButton action={previewTransferNoticeAction} className="btn-ghost px-4 py-2.5 text-xs">
+              Preview transfer notice
+            </ActionButton>
+            <ActionButton action={runSquadSyncAction} className="btn-primary px-5 py-2.5 text-xs" confirm="Check every English squad on Sportmonks now? Takes about a minute.">
+              Run squad sync now
+            </ActionButton>
+          </span>
         </div>
         {sync && (
           <div className="grid gap-3 md:grid-cols-3">

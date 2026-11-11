@@ -475,16 +475,41 @@ export async function syncSquads(actorId: string | null = null) {
 async function tellOwnersOfMove(playerId: string, name: string, from: string, to: string, toClubId: string) {
   const owners = await db.cardInstance.findMany({ where: { template: { playerId }, ownerId: { not: null } }, select: { ownerId: true, id: true }, distinct: ["ownerId"] });
   if (!owners.length) return;
+  const deal = await latestTransfer(playerId);
   const { notify } = await import("./notifications");
   for (const o of owners) {
     await notify(o.ownerId!, {
       kind: "TRANSFER",
       title: `🔁 ${name} has moved to ${to}`,
-      body: `Real-life transfer from ${from}. Your ${name} card now plays for ${to} — same card, same number and history.`,
+      body: `${name} has moved to ${to} from ${from}${deal.fee ? ` for a reported ${deal.fee}` : deal.type ? ` (${deal.type.toLowerCase()})` : ""}. Your card now plays for ${to} — same card, same number and history.`,
       href: `/cards/${o.id}`,
       dedupeKey: `move:${playerId}:${toClubId}:${o.ownerId}`,
+      data: { player: name, from, to, fee: deal.fee, type: deal.type, date: deal.date, cardId: o.id, playerId },
     }).catch(() => {});
   }
+}
+
+/** The player's latest real transfer on Sportmonks: reported fee (if any), type (loan/free/…) and date. */
+async function latestTransfer(playerId: string): Promise<{ fee: string | null; type: string | null; date: string | null }> {
+  const none = { fee: null, type: null, date: null };
+  try {
+    const p = await db.player.findUnique({ where: { id: playerId }, select: { providerRefs: true } });
+    const ref = p && refOf(p.providerRefs, SPORTMONKS_NAME);
+    if (!ref) return none;
+    const rows = await smGet<{ date?: string | null; amount?: number | null; type?: { name?: string } | null }>(`/transfers/players/${ref}`, { include: "type", order: "desc", per_page: "5" }, 1);
+    const t = [...rows].sort((a, b) => String(b.date ?? "").localeCompare(String(a.date ?? "")))[0];
+    if (!t) return none;
+    return { fee: t.amount && t.amount > 0 ? formatFee(t.amount) : null, type: t.type?.name ?? null, date: t.date ?? null };
+  } catch {
+    return none; // fee is a nice-to-have: never block the move or the notice
+  }
+}
+
+/** Sportmonks reports fees in euros: €65m, €12.5m, €750k. */
+function formatFee(amount: number) {
+  if (amount >= 1_000_000) return `€${Math.round(amount / 100_000) / 10}m`;
+  if (amount >= 1_000) return `€${Math.round(amount / 1_000)}k`;
+  return `€${amount}`;
 }
 
 /** The last squad sync's report (for the admin page). */

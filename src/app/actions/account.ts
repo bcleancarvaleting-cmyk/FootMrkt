@@ -136,3 +136,11 @@ export async function choosePickAction(entitlementId: string, playerIds: string 
   return res;
 }
 
+
+export async function acceptTransferNewsAction(id: string): Promise<ActionResult> {
+  const user = await requireUser();
+  const { acceptNotification } = await import("@/server/notifications");
+  await acceptNotification(user.id, id);
+  revalidatePath("/notifications");
+  return { ok: true, data: undefined };
+}

@@ -172,3 +172,25 @@ export async function runSquadSyncAction(): Promise<ActionResult> {
   revalidatePath("/", "layout");
   return r.ok ? { ok: true, data: undefined, message: `Done: ${r.data.moved} moved · ${r.data.added} new players · ${r.data.missing} no longer in an English squad.` } : r;
 }
+
+/** Show the admin the transfer-news pop-up with one of their own cards (nothing is moved). */
+export async function previewTransferNoticeAction(): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const card =
+    (await db.cardInstance.findFirst({ where: { ownerId: admin.id }, include: { template: { include: { player: { include: { club: true } } } } } })) ??
+    (await db.cardInstance.findFirst({ include: { template: { include: { player: { include: { club: true } } } } } }));
+  if (!card) return { ok: false, error: "No cards in the game yet." };
+  const to = await db.club.findFirst({ where: { id: { not: card.template.player.clubId ?? undefined }, league: { isTopFlight: true } }, orderBy: { name: "asc" } });
+  const { notify } = await import("@/server/notifications");
+  const p = card.template.player;
+  await notify(admin.id, {
+    kind: "TRANSFER",
+    title: `🔁 Preview: ${p.displayName} has moved to ${to?.name ?? "Manchester City"}`,
+    body: "Preview of the transfer news pop-up — nothing has moved.",
+    href: `/cards/${card.id}`,
+    dedupeKey: `move-preview:${admin.id}:${Date.now()}`,
+    data: { player: p.displayName, from: p.club?.name ?? "Free agent", to: to?.name ?? "Manchester City", fee: "€65m", type: "Transfer", date: new Date().toISOString(), cardId: card.id, playerId: p.id },
+  });
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined, message: "Preview sent — it pops up now (and on your next page)." };
+}

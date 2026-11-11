@@ -428,6 +428,8 @@ model Notification {
   href      String?
   // Stops the same alert being sent twice (e.g. "drop:<listingId>:<userId>").
   dedupeKey String?   @unique
+  // Extra detail for rich notices, e.g. a transfer: { player, from, to, fee, type, cardId }.
+  data      Json?
   readAt    DateTime?
   createdAt DateTime  @default(now())
 

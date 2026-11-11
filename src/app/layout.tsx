@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { BottomNav } from "@/components/bottom-nav";
 import { ChatDrawer } from "@/components/chat-drawer";
 import { AppBackButton, AppTracker, NotifyPrompt } from "@/components/app-install";
+import { TransferNewsGate } from "@/components/transfer-news-gate";
 import { Logo } from "@/components/nav";
 import { CHAT_ROOMS, CHAT_RULES } from "@/config/chat";
 import { canModerate } from "@/server/moderation";
@@ -61,6 +62,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <AppBackButton />
         {user && <AppTracker />}
         {user && <NotifyPrompt />}
+        {user && <TransferNewsGate userId={user.id} />}
         {user && user.realityCheckMinutes > 0 && <RealityCheck minutes={user.realityCheckMinutes} spentToday={fmtGbp(paidToday)} />}
         {user && (
           <ChatDrawer

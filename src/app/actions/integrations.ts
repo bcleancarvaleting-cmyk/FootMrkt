@@ -85,7 +85,8 @@ export async function saveIntegrationSecretAction(name: string, _: ActionResult 
   const { loadPayments } = await import("@/server/payments/config");
   await loadPayments(true);
   refresh();
-  return { ok: true, data: undefined, message: `${rule.label} saved (stored encrypted).` };
+  const mode = name.startsWith("stripe.") && name !== "stripe.webhook" ? (/_live_/.test(value) ? " — a LIVE key: real payments" : /_test_/.test(value) ? " — a TEST/sandbox key: test cards only" : "") : "";
+  return { ok: true, data: undefined, message: `${rule.label} saved (stored encrypted)${mode}.` };
 }
 
 export async function removeIntegrationSecretAction(name: string): Promise<ActionResult> {

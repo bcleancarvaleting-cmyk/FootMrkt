@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ActionButton } from "@/components/action-button";
 import { diagnoseOrderAction, removeIntegrationSecretAction, sendTestEmailAction, setPaymentsModeAction } from "@/app/actions/integrations";
 import { EmailFromForm, SecretForm } from "@/components/integrations-forms";
-import { cardPaymentsReady, loadPayments } from "@/server/payments/config";
+import { cardPaymentsReady, loadPayments, stripeKeyModes } from "@/server/payments/config";
 import { allFlags } from "@/server/flags";
 import { APP_URL } from "@/server/email/templates";
 import { SportmonksTokenForm } from "@/components/integrations-forms";
@@ -46,6 +46,8 @@ export default async function Integrations() {
   ]);
   const emailFrom = typeof emailFromRow?.value === "string" ? emailFromRow.value : "";
   const { lastHook, stuck } = await stripeHealth();
+  const keyModes = await stripeKeyModes();
+
   const recent = await recentCardOrders();
   const flags = await allFlags();
   const appUrl = APP_URL;
@@ -167,6 +169,12 @@ export default async function Integrations() {
 
       <h2 className="pt-6 text-3xl">Card payments</h2>
       <Step n={1} title="Stripe keys" done={!!pay.stripeKey && !!pay.webhookSecret}>
+        {keyModes.secret === "TEST" && (
+          <p className="rounded-xl border border-warn/50 bg-warn/10 px-3 py-2 text-sm text-warn">
+            The saved secret key is a <b>TEST / sandbox</b> key, so checkout runs in Stripe&apos;s sandbox (test cards only, no real money) even with Live switched on. For real payments, paste your <b>sk_live_…</b> key from Stripe with Sandbox/Test mode switched off.
+          </p>
+        )}
+        {keyModes.mismatch && <p className="rounded-xl border border-danger/50 bg-danger/10 px-3 py-2 text-sm text-danger">The secret and publishable keys are from different modes (one live, one test). Use both from the same mode.</p>}
         <p className="text-sm text-muted">
           In Stripe → Developers → Webhooks, add an endpoint for <code className="break-all font-mono text-xs">{appUrl}/api/webhooks/payments</code> with the events checkout.session.completed,
           checkout.session.async_payment_succeeded, checkout.session.async_payment_failed and checkout.session.expired. Then save the two keys here. Card details never touch MATCHX — players pay on Stripe&apos;s page.
@@ -177,7 +185,7 @@ export default async function Integrations() {
           <>
             {stripeSecret && (
               <p className="text-sm">
-                <span className="text-mint">Secret key saved</span> · ends in <code className="font-mono">••••{stripeSecret.last4}</code>{" "}
+                <span className="text-mint">Secret key saved</span> <Mode m={keyModes.secret} /> · ends in <code className="font-mono">••••{stripeSecret.last4}</code>{" "}
                 <ActionButton action={removeIntegrationSecretAction.bind(null, "stripe.secret")} className="ml-2 text-xs text-danger underline" confirm="Remove the Stripe secret key? Live card payments switch off.">
                   Remove
                 </ActionButton>
@@ -188,7 +196,7 @@ export default async function Integrations() {
         )}
         {stripePub ? (
           <p className="text-sm">
-            <span className="text-mint">Publishable key saved</span> · ends in <code className="font-mono">••••{stripePub.last4}</code>
+            <span className="text-mint">Publishable key saved</span> <Mode m={keyModes.publishable} /> · ends in <code className="font-mono">••••{stripePub.last4}</code>
           </p>
         ) : null}
         {!process.env.STRIPE_PUBLISHABLE_KEY && <SecretForm name="stripe.publishable" label="Stripe publishable key" placeholder="pk_live_…" has={!!stripePub} hint="Optional today (checkout runs on Stripe's own page), kept for Apple Pay / Google Pay later." />}
@@ -329,4 +337,9 @@ export default async function Integrations() {
       </Step>
     </>
   );
+}
+
+function Mode({ m }: { m: "LIVE" | "TEST" | "UNKNOWN" | null }) {
+  if (!m) return null;
+  return <span className={`ml-1 rounded px-1.5 py-0.5 text-[10px] font-extrabold ${m === "LIVE" ? "bg-mint/20 text-mint" : "bg-warn/20 text-warn"}`}>{m === "LIVE" ? "LIVE" : m === "TEST" ? "TEST · SANDBOX" : "?"}</span>;
 }

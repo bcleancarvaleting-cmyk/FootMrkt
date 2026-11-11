@@ -69,3 +69,13 @@ export async function requireCardPayments() {
   const r = await cardPaymentsReady();
   if (!r.ready) throw new DomainError("PAYMENTS_OFF", "Card payments aren't available yet — coming soon.");
 }
+
+const modeOf = (key: string | null) => (!key ? null : /_live_/.test(key) ? ("LIVE" as const) : /_test_/.test(key) ? ("TEST" as const) : ("UNKNOWN" as const));
+
+/** Which Stripe account mode each saved key belongs to (LIVE or TEST/sandbox) — the secret key decides. */
+export async function stripeKeyModes() {
+  const c = await loadPayments(true);
+  const secret = modeOf(c.stripeKey);
+  const publishable = modeOf(c.publishableKey);
+  return { secret, publishable, mismatch: !!secret && !!publishable && secret !== publishable };
+}

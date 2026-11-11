@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { stripeProvider } from "./stripe";
 
 /**
- * Payment-provider abstraction (spec §11). No card details are ever handled by COLLECTR.
+ * Payment-provider abstraction (spec §11). No card details are ever handled by MATCHX.
  * BLOCKER: no provider is approved for this business model (spec §9.3). Only a sandbox exists.
  */
 export interface PaymentWebhookEvent {

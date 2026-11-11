@@ -24,7 +24,7 @@ SEASON = "2026-27"
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "prisma", "data", f"football-{SEASON}.json")
 CACHE = os.path.join(ROOT, ".cache", f"wikipedia-{SEASON}.json")
-UA = "COLLECTR-dev-import/0.1 (development data import)"
+UA = "MATCHX-dev-import/0.1 (development data import)"
 
 LEAGUES = [
     ("EPL", "Premier League", 1, True, "2026–27 Premier League"),

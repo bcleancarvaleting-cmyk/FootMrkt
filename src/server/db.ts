@@ -10,9 +10,9 @@ function create(): PrismaClient {
   return new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
 }
 
-const g = globalThis as unknown as { __collectrDb?: PrismaClient };
-export const db: PrismaClient = g.__collectrDb ?? create();
-if (process.env.NODE_ENV !== "production") g.__collectrDb = db;
+const g = globalThis as unknown as { __matchxDb?: PrismaClient };
+export const db: PrismaClient = g.__matchxDb ?? create();
+if (process.env.NODE_ENV !== "production") g.__matchxDb = db;
 
 /** Run in a SERIALIZABLE-safe retry loop for ownership-changing transactions. */
 export async function withTx<T>(fn: (tx: Tx) => Promise<T>, opts: { retries?: number; timeoutMs?: number } = {}): Promise<T> {

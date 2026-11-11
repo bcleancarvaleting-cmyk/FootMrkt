@@ -24,7 +24,7 @@ export default function HowItWorks() {
     <div className="mx-auto max-w-3xl space-y-10">
       <div>
         <p className="eyebrow">Rules</p>
-        <h1 className="text-4xl font-black">How COLLECTR Football works</h1>
+        <h1 className="text-4xl font-black">How MATCHX Football works</h1>
       </div>
 
       <Section title="1. Collect">

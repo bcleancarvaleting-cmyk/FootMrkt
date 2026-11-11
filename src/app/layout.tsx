@@ -34,7 +34,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { themeColor: "#07080a", width: "device-width", initialScale: 1, viewportFit: "cover" };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const theme: Theme = (await cookies()).get("collectr_theme")?.value === "light" ? "light" : "dark";
+  const theme: Theme = (await cookies()).get("matchx_theme")?.value === "light" ? "light" : "dark";
   const [user, stats] = await Promise.all([getCurrentUser(), liveStats()]);
   if (user) {
     await grantDueWelcomePacks(user.id);

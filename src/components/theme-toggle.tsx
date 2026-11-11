@@ -11,7 +11,7 @@ export function ThemeToggle({ initial }: { initial: Theme }) {
     const next: Theme = theme === "dark" ? "light" : "dark";
     setTheme(next);
     document.documentElement.dataset.theme = next;
-    document.cookie = `collectr_theme=${next}; path=/; max-age=31536000; samesite=lax`;
+    document.cookie = `matchx_theme=${next}; path=/; max-age=31536000; samesite=lax`;
   }
   const dark = theme === "dark";
   return (

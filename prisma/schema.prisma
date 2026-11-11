@@ -1,4 +1,4 @@
-// COLLECTR — core data model (spec §14).
+// MATCHX — core data model (spec §14).
 //
 // Design notes
 // - Player identity (Player) is stored separately from card designs (CardTemplate),

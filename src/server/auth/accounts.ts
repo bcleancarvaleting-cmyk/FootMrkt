@@ -38,7 +38,7 @@ function adminEmails(): string[] {
 const DUMMY_HASH = ["scrypt", 16384, 8, 1, "AAAAAAAAAAAAAAAAAAAAAA==", Buffer.alloc(64).toString("base64")].join("$");
 
 /**
- * Register a COLLECTR account (one account for every world) and grant the free football
+ * Register a MATCHX account (one account for every world) and grant the free football
  * Starter Pack in the same transaction (spec §5.2, §18).
  */
 export async function registerUser(input: z.input<typeof RegisterSchema>) {

@@ -171,12 +171,12 @@ async function main() {
   console.log(`Initial supply release minted ${r.minted} cards`, r.byCategory ?? "");
   await revalueAll(new Date(now - 28 * DAY));
 
-  const adminEmail = (process.env.SEED_ADMIN_EMAIL ?? "admin@collectr.dev").toLowerCase();
+  const adminEmail = (process.env.SEED_ADMIN_EMAIL ?? "admin@matchx.dev").toLowerCase();
   await db.user.create({
     data: {
       email: adminEmail,
       displayName: "Admin",
-      passwordHash: await hashPassword(process.env.SEED_ADMIN_PASSWORD ?? "collectr-admin"),
+      passwordHash: await hashPassword(process.env.SEED_ADMIN_PASSWORD ?? "matchx-admin"),
       role: "ADMIN",
       emailVerifiedAt: new Date(),
     },

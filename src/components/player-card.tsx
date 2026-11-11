@@ -48,7 +48,7 @@ export function tierStyle(c: CardView["category"]) {
 }
 
 /**
- * A COLLECTR card face: position, player image, name, MX value (with trend) and the points this
+ * A MATCHX card face: position, player image, name, MX value (with trend) and the points this
  * card has won for its owner. No FIFA-style ratings (spec §4.1).
  * The image is the licensed headshot when one is set (Player.imageUrl); until image rights are
  * in place it shows the player's shirt in club colours with their squad number.

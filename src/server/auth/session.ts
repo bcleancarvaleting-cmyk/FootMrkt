@@ -7,7 +7,7 @@ import { cache } from "react";
 import { touchUser } from "../stats";
 import { createSession, destroySession, hashToken, userForSessionToken } from "./accounts";
 
-const COOKIE = "collectr_session";
+const COOKIE = "matchx_session";
 
 export const getCurrentUser = cache(async () => {
   const token = (await cookies()).get(COOKIE)?.value;

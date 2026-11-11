@@ -6,7 +6,7 @@ import { db, withTx } from "./db";
 import { DomainError } from "./errors";
 
 /**
- * Controlled card supply (spec §7.1). COLLECTR mints new STANDARD inventory into the pack pool on
+ * Controlled card supply (spec §7.1). MATCHX mints new STANDARD inventory into the pack pool on
  * a weekly schedule. Quantities are configurable per category with per-template overrides, and
  * capped by each template's maxSupply. Releases never touch already-issued cards.
  * STATUS: weekly quantities are TO CONFIRM.

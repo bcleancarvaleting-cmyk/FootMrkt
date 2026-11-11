@@ -21,7 +21,7 @@ describe("manager chat", () => {
   it("rejects links, empty and over-long messages, and unknown rooms", async () => {
     const a = await makeUser();
     await expect(postMessage(a.userId, "dugout", "free packs at http://scam.example")).rejects.toMatchObject({ code: "NO_LINKS" });
-    await expect(postMessage(a.userId, "dugout", "visit collectr-free.com now")).rejects.toMatchObject({ code: "NO_LINKS" });
+    await expect(postMessage(a.userId, "dugout", "visit matchx-free.com now")).rejects.toMatchObject({ code: "NO_LINKS" });
     await expect(postMessage(a.userId, "dugout", "   ")).rejects.toMatchObject({ code: "EMPTY" });
     await expect(postMessage(a.userId, "dugout", "x".repeat(401))).rejects.toMatchObject({ code: "TOO_LONG" });
     await expect(postMessage(a.userId, "nope", "hi")).rejects.toMatchObject({ code: "NO_ROOM" });

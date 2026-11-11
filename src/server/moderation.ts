@@ -4,7 +4,7 @@ import { db, withTx } from "./db";
 import { DomainError } from "./errors";
 
 /**
- * Chat moderation (product decision 9 Nov 2026): the COLLECTR team (admins) are the moderators.
+ * Chat moderation (product decision 9 Nov 2026): the MATCHX team (admins) are the moderators.
  * Anyone else becomes a moderator only by invitation from an admin, which they must accept.
  * Admins can revoke at any time. Every step is audited.
  */

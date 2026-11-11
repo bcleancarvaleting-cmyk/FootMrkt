@@ -87,7 +87,7 @@ export async function submitDraftEntry(userId: string, competitionId: string, in
         ...sub.bench.map((id, i) => ({ entryId: entry.id, cardId: null, playerId: id, slot: "BENCH" as const, position: cards.get(id)!.playerPosition, order: i + 1 })),
       ],
     });
-    await attachBooster(tx, userId, entry.id, comp, sub.boosterId, sub.boostedOn);
+    await attachBooster(tx, userId, entry.id, sub.boosterId, sub.boostedOn);
     return entry;
   });
 }

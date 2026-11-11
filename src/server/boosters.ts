@@ -88,11 +88,6 @@ export async function myBoosters(userId: string, now = new Date()) {
   return rows.map((b) => ({ id: b.id, kind: (b.kind as BoosterKind | null) ?? null, expiresAt: b.expiresAt, usedEntryId: b.usedEntryId, opened: !!b.openedAt }));
 }
 
-/** Boosters can't be used in matches that pay cash prizes. */
-export function boostersAllowed(comp: { rewards: unknown }) {
-  return !((comp.rewards as Array<{ cashMinor?: number }> | null) ?? []).some((r) => (r.cashMinor ?? 0) > 0);
-}
-
 /**
  * Inside an entry save: play the chosen booster on this entry (or none). A booster already on the
  * entry is released if it's changed. A booster can only be on one entry.
@@ -102,7 +97,7 @@ export function boostersAllowed(comp: { rewards: unknown }) {
  * the player id in a free draft. Super Sub must go on a sub; the others on anyone in the squad.
  * Runs after the entry's selections have been written, in the same transaction.
  */
-export async function attachBooster(tx: Tx, userId: string, entryId: string, comp: { rewards: unknown }, boosterId: string | null | undefined, boostedOn?: string | null) {
+export async function attachBooster(tx: Tx, userId: string, entryId: string, boosterId: string | null | undefined, boostedOn?: string | null) {
   const current = await tx.boosterPack.findUnique({ where: { usedEntryId: entryId } });
   if (current && current.id !== boosterId) await tx.boosterPack.update({ where: { id: current.id }, data: { usedEntryId: null, usedAt: null } });
   await tx.competitionSelection.updateMany({ where: { entryId, isBoosted: true }, data: { isBoosted: false } });
@@ -110,7 +105,6 @@ export async function attachBooster(tx: Tx, userId: string, entryId: string, com
     await tx.competitionEntry.update({ where: { id: entryId }, data: { boosterKind: null } });
     return null;
   }
-  if (!boostersAllowed(comp)) throw new DomainError("NO_BOOSTERS", "Boosters can't be used in cash-prize matches.");
   const b = await tx.boosterPack.findFirst({ where: { id: boosterId, userId } });
   if (!b || !b.kind) throw new DomainError("NO_BOOSTER", "Open your booster pack first.");
   if (b.expiresAt <= new Date()) throw new DomainError("EXPIRED", "That booster has expired.");

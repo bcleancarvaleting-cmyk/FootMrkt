@@ -54,8 +54,8 @@ export function SquadBuilder({
   hasEntry: boolean;
   /** Free draft: the cards are players (id = player id), priced at their MX value, within a budget. */
   draft?: { budgetMx: number; maxPerClub?: number };
-  /** Weekly boosters this manager can play here; `allowed` is false in cash-prize matches. */
-  boosters?: { allowed: boolean; available: Array<{ id: string; name: string; icon: string; description: string; expires: string; benchOnly: boolean }>; current: string | null };
+  /** Weekly boosters this manager can play here (any match; strictly one per entry). */
+  boosters?: { available: Array<{ id: string; name: string; icon: string; description: string; color: string; expires: string; benchOnly: boolean }>; current: string | null };
 }) {
   const byId = useMemo(() => new Map(cards.map((c) => [c.id, c])), [cards]);
   const [formationId, setFormationId] = useState(initial?.formation ?? formations[0].id);
@@ -257,6 +257,7 @@ export function SquadBuilder({
                         selected={selected === s.key}
                         onSelect={() => setSelected(selected === s.key ? null : s.key)}
                         onClear={() => clear(s.key)}
+                        boost={booster && boostTarget && assign[s.key] === boostTarget ? booster : undefined}
                       />
                       {assign[s.key] && (
                         <button
@@ -286,7 +287,6 @@ export function SquadBuilder({
                           V
                         </button>
                       )}
-                      {booster && boostTarget && assign[s.key] === boostTarget && <BoostBadge icon={booster.icon} name={booster.name} corner="-bottom-2 -right-2" />}
                     </div>
                   ))}
               </div>
@@ -319,13 +319,13 @@ export function SquadBuilder({
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {benchSlots.map((k, i) => (
               <div key={k} className="relative flex flex-col items-center gap-1">
-                {booster && boostTarget && assign[k] === boostTarget && <BoostBadge icon={booster.icon} name={booster.name} corner="-left-2 -top-2" />}
                 <PitchSlot
                   label={`Sub ${i + 1}`}
                   card={assign[k] ? byId.get(assign[k]) : undefined}
                   selected={selected === k}
                   onSelect={() => setSelected(selected === k ? null : k)}
                   onClear={() => clear(k)}
+                  boost={booster && boostTarget && assign[k] === boostTarget ? booster : undefined}
                 />
                 <div className="flex gap-1">
                   <button className="rounded px-1.5 text-xs text-faint hover:text-fg disabled:opacity-20" disabled={i === 0} onClick={() => moveBench(i, -1)} aria-label="Move earlier">
@@ -340,13 +340,12 @@ export function SquadBuilder({
           </div>
         </div>
 
-        {boosters && (boosters.available.length > 0 || !boosters.allowed) && (
+        {boosters && boosters.available.length > 0 && (
           <div className="panel space-y-2 p-4">
-            <p className="text-sm font-bold">Booster</p>
-            {!boosters.allowed ? (
-              <p className="text-xs text-faint">Boosters can&apos;t be used in cash-prize matches.</p>
-            ) : (
-              <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Booster">
+            <p className="text-sm font-bold">
+              Booster <span className="font-normal text-faint">· one per match</span>
+            </p>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Booster">
                 <button type="button" role="radio" aria-checked={!boosterId} onClick={() => setBoosterId(null)} className={`rounded-xl border px-3 py-2 text-xs font-semibold ${!boosterId ? "border-lime bg-accent/10" : "border-ink-700 text-muted"}`}>
                   None
                 </button>
@@ -358,7 +357,8 @@ export function SquadBuilder({
                     aria-checked={boosterId === b.id}
                     title={b.description}
                     onClick={() => setBoosterId(b.id)}
-                    className={`rounded-xl border px-3 py-2 text-left text-xs ${boosterId === b.id ? "border-lime bg-accent/10" : "border-ink-700 text-muted"}`}
+                    style={{ borderColor: b.color, borderWidth: boosterId === b.id ? 2 : 1 }}
+                    className={`rounded-xl border px-3 py-2 text-left text-xs ${boosterId === b.id ? "bg-white/5" : "text-muted opacity-80"}`}
                   >
                     <span className="font-semibold text-fg">
                       {b.icon} {b.name}
@@ -366,8 +366,7 @@ export function SquadBuilder({
                     <span className="block text-[10px] text-faint">expires {b.expires}</span>
                   </button>
                 ))}
-              </div>
-            )}
+            </div>
             {booster && (
               <div className="space-y-2">
                 <p className="text-xs text-muted">{booster.description}</p>
@@ -385,7 +384,8 @@ export function SquadBuilder({
                         role="radio"
                         aria-checked={boostTarget === id}
                         onClick={() => setBoostedOn(id)}
-                        className={`rounded-full border px-3 py-1 text-xs ${boostTarget === id ? "border-lime bg-accent/10 font-semibold text-fg" : "border-ink-700 text-muted"}`}
+                        style={boostTarget === id ? { borderColor: booster.color, background: `${booster.color}22` } : undefined}
+                        className={`rounded-full border px-3 py-1 text-xs ${boostTarget === id ? "border-2 font-semibold text-fg" : "border-ink-700 text-muted"}`}
                       >
                         {byId.get(id)?.name}
                       </button>
@@ -485,18 +485,24 @@ function PitchSlot({
   selected,
   onSelect,
   onClear,
+  boost,
 }: {
   label: string;
   card?: BuilderCard;
   selected: boolean;
   onSelect: () => void;
   onClear: () => void;
+  /** The booster on this player: the card takes the booster's colour as its border. */
+  boost?: { name: string; color: string };
 }) {
   const t = card ? tierStyle(card.category) : null;
+  const boostStyle = boost && card && !selected ? { borderColor: boost.color, borderWidth: 3, boxShadow: `0 0 14px ${boost.color}66` } : undefined;
   return (
     <div className="relative">
       <button
         onClick={onSelect}
+        style={boostStyle}
+        title={boost && card ? `${boost.name} booster` : undefined}
         className={`flex h-20 w-[72px] flex-col items-center justify-center rounded-xl border text-center transition sm:w-24 ${
           selected ? "border-lime bg-lime/15 ring-2 ring-lime/40" : card ? "border-white/15 bg-ink-950/70" : "border-dashed border-white/25 bg-ink-950/30 hover:border-lime/60"
         }`}
@@ -517,14 +523,5 @@ function PitchSlot({
         </button>
       )}
     </div>
-  );
-}
-
-/** The booster's icon on the player who carries it. */
-function BoostBadge({ icon, name, corner }: { icon: string; name: string; corner: string }) {
-  return (
-    <span title={`${name} booster`} aria-label={`${name} booster`} className={`absolute ${corner} z-10 flex h-6 w-6 items-center justify-center rounded-full border border-lime bg-black/80 text-[12px]`}>
-      {icon}
-    </span>
   );
 }

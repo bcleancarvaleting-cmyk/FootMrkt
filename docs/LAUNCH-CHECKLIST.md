@@ -18,6 +18,7 @@ Legal-gated switches can't be turned on from admin until `LEGAL_GATES_CLEARED` l
 
 - Paid packs with random contents, including the Rare pack's guaranteed Ruby/Diamond/Rainbow (a 1-of-1 card can be resold for MX).
 - Cash prizes on free-to-enter, free-cards-only matches.
+- Weekly boosters in cash-prize matches: everyone gets one free random booster each Tuesday (never sold) and puts it on one player of their choice, one per match. Ask whether this random element affects how the cash-prize matches are treated as skill-based prize competitions.
 - MX: non-withdrawable, not exchangeable for money.
 - The public odds page (`/odds`), Terms, Privacy, Risk warning and Responsible play pages.
 - Age verification approach (currently: date of birth declared, checked before any payment; identity checked before the first payout).

@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { BOOSTERS } from "@/config/boosters";
-import { grantWeeklyBoosters, latestDrop, myBoosters, openBoosterPack, remindExpiringBoosters } from "@/server/boosters";
+import { attachBooster, grantWeeklyBoosters, latestDrop, myBoosters, openBoosterPack, remindExpiringBoosters } from "@/server/boosters";
 import { submitEntry, withdrawEntry } from "@/server/competitions";
-import { db } from "@/server/db";
+import { db, withTx } from "@/server/db";
 import { createGameweek } from "@/server/gameweeks";
 import { openPack } from "@/server/packs";
 import { buildWorld, makeUser, resetDb } from "./fixtures";
@@ -39,7 +39,7 @@ async function enteredSquad(userId: string, entitlementId: string) {
 }
 
 describe("weekly booster packs", () => {
-  it("land once a week for active managers, open to a booster, and play on one non-cash match entry", async () => {
+  it("land once a week for active managers, open to a booster, and play on one player in one match entry, paid or free", async () => {
     const now = new Date();
     const gw = await createGameweek({ season: "T", number: 1, opensAt: new Date(now.getTime() - 1000), firstKickoffAt: new Date(now.getTime() + 3 * 86_400_000), actorId: null });
     const a = await makeUser();
@@ -57,12 +57,10 @@ describe("weekly booster packs", () => {
     const squad = await enteredSquad(a.userId, a.starterEntitlementId);
     const open = await db.competition.findFirstOrThrow({ where: { gameweekId: gw.id, code: { endsWith: "-open" } } });
     const freeroll = await db.competition.findFirstOrThrow({ where: { gameweekId: gw.id, code: { endsWith: "-freeroll" } } });
-    // Not in a cash-prize match.
     // The manager picks who carries it: a sub for Super Sub, a starter for the rest.
     const benchOnly = BOOSTERS[kind as keyof typeof BOOSTERS].benchOnly;
     const right = benchOnly ? squad.bench[0] : squad.starters[0].cardId;
     const wrong = benchOnly ? squad.starters[0].cardId : squad.bench[0];
-    await expect(submitEntry(a.userId, freeroll.id, { ...squad, boosterId: pack.id, boostedOn: right })).rejects.toThrow(/cash-prize/);
     await expect(submitEntry(a.userId, open.id, { ...squad, boosterId: pack.id })).rejects.toThrow(/Pick the player/);
     await expect(submitEntry(a.userId, open.id, { ...squad, boosterId: pack.id, boostedOn: wrong })).rejects.toThrow(/goes on one of your/);
     const entry = await submitEntry(a.userId, open.id, { ...squad, boosterId: pack.id, boostedOn: right });
@@ -74,9 +72,16 @@ describe("weekly booster packs", () => {
     expect(await db.competitionSelection.count({ where: { entryId: entry.id, isBoosted: true } })).toBe(0);
     await submitEntry(a.userId, open.id, { ...squad, boosterId: pack.id, boostedOn: right });
     expect((await myBoosters(a.userId))[0].usedEntryId).toBe(entry.id);
-    // Withdrawing gives it back.
+    // Strictly once: it can't go on a second match while it's on this one.
+    const other = await db.competitionEntry.create({ data: { competitionId: freeroll.id, userId: a.userId, formation: squad.formation } });
+    await expect(withTx((tx) => attachBooster(tx, a.userId, other.id, pack.id, right))).rejects.toThrow(/already on another/);
+    await db.competitionEntry.delete({ where: { id: other.id } });
+    // Withdrawing gives it back...
     await withdrawEntry(a.userId, open.id);
     expect((await myBoosters(a.userId))[0].usedEntryId).toBeNull();
+    // ...and it can go on any match, cash-prize ones included.
+    const cash = await submitEntry(a.userId, freeroll.id, { ...squad, boosterId: pack.id, boostedOn: right });
+    expect((await db.competitionEntry.findUniqueOrThrow({ where: { id: cash.id } })).boosterKind).toBe(kind);
   });
 
   it("can't be played once expired, and owners get one reminder the day before", async () => {

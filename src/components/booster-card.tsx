@@ -17,7 +17,7 @@ const RARITY_STYLE: Record<string, string> = {
 export function BoosterFace({ kind, expires, usedOn }: { kind: BoosterKind; expires: string; usedOn?: string | null }) {
   const b = BOOSTERS[kind];
   return (
-    <div className={`flex h-full flex-col gap-2 rounded-2xl border bg-gradient-to-b p-4 ${RARITY_STYLE[b.rarity]}`}>
+    <div className={`flex h-full flex-col gap-2 rounded-2xl border-2 bg-gradient-to-b p-4 ${RARITY_STYLE[b.rarity]}`} style={{ borderColor: b.color }}>
       <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.16em] text-faint">
         <span>Booster</span>
         <span className={b.rarity === "Epic" ? "text-[#e9c46a]" : b.rarity === "Rare" ? "text-[#8fe3ff]" : ""}>{b.rarity}</span>
@@ -27,6 +27,10 @@ export function BoosterFace({ kind, expires, usedOn }: { kind: BoosterKind; expi
       </div>
       <p className="font-display text-2xl font-black uppercase italic leading-none">{b.name}</p>
       <p className="text-sm text-muted">{b.description}</p>
+      <p className="flex items-center gap-2 text-xs text-muted">
+        <span className="h-3 w-3 shrink-0 rounded-sm border-2" style={{ borderColor: b.color }} aria-hidden="true" />
+        Your boosted player&apos;s card gets this colour border
+      </p>
       <p className="mt-auto text-xs text-faint">{usedOn ? `Playing on ${usedOn}` : `Expires ${expires}`}</p>
       {!usedOn && (
         <Link href="/matches" className="btn-primary py-2 text-[11px]">

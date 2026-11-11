@@ -180,7 +180,7 @@ export async function submitEntry(userId: string, competitionId: string, input: 
         })),
       ],
     });
-    await attachBooster(tx, userId, entry.id, comp, submission.boosterId, submission.boostedOn);
+    await attachBooster(tx, userId, entry.id, submission.boosterId, submission.boostedOn);
     return entry;
   });
 }

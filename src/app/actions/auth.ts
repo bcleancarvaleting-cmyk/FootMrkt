@@ -10,9 +10,16 @@ import { endSession, startSession } from "@/server/auth/session";
 import { rateLimit } from "@/lib/rate-limit";
 import { type ActionResult, attempt } from "./result";
 
+/**
+ * The visitor's address as our own infrastructure saw it: Cloudflare's header when proxied, else
+ * the last X-Forwarded-For hop (added by the host's load balancer). The first hop is whatever the
+ * visitor typed, so it can't be trusted for rate limits.
+ */
 async function clientKey(prefix: string) {
   const h = await headers();
-  return `${prefix}:${h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local"}`;
+  const xff = h.get("x-forwarded-for")?.split(",").map((s) => s.trim()).filter(Boolean) ?? [];
+  const ip = h.get("cf-connecting-ip") ?? h.get("x-real-ip") ?? xff[xff.length - 1] ?? "local";
+  return `${prefix}:${ip}`;
 }
 
 export async function registerAction(_: ActionResult | null, form: FormData): Promise<ActionResult> {
@@ -39,7 +46,8 @@ export async function registerAction(_: ActionResult | null, form: FormData): Pr
 
 export async function loginAction(_: ActionResult | null, form: FormData): Promise<ActionResult> {
   const email = String(form.get("email") ?? "");
-  if (!rateLimit(await clientKey(`login:${email.toLowerCase()}`), { capacity: 8, perMinute: 4 })) {
+  // Per connection, and per account wherever the attempts come from (password guessing).
+  if (!rateLimit(await clientKey(`login:${email.toLowerCase()}`), { capacity: 8, perMinute: 4 }) || !rateLimit(`login-account:${email.toLowerCase()}`, { capacity: 20, perMinute: 5 })) {
     return { ok: false, error: "Too many attempts. Please wait a minute and try again." };
   }
   const res = await attempt(() => authenticate(email, String(form.get("password") ?? "")));

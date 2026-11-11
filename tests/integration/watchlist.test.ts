@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
 import { scheduleDrops } from "@/server/player-drops";
 import { applyMarketValues } from "@/server/tiering";
-import { alertNewListing, announceLiveDrops, isWatching, myWatchlist, unwatchPlayer, watchPlayer } from "@/server/watchlist";
+import { alertNewListing, alertValueMoves, announceLiveDrops, isWatching, myWatchlist, unwatchPlayer, watchPlayer } from "@/server/watchlist";
 import { buildWorld, makeUser, resetDb } from "./fixtures";
 
 beforeEach(async () => {
@@ -44,5 +44,22 @@ describe("watchlist and alerts", () => {
 
     await unwatchPlayer(u.userId, playerId);
     expect(await myWatchlist(u.userId)).toEqual([]);
+  });
+
+  it("alerts once when a watched player's value moves 10% or more", async () => {
+    const u = await makeUser("valuewatch");
+    const t = await db.cardTemplate.findFirstOrThrow({ where: { edition: "STANDARD", active: true } });
+    await watchPlayer(u.userId, t.playerId);
+    const val = (mp: number, minsAgo: number) =>
+      db.mPValuation.create({ data: { playerId: t.playerId, category: t.category, valueMp: mp, method: "t", signals: {}, computedAt: new Date(Date.now() - minsAgo * 60_000) } });
+    await val(20, 30);
+    expect(await alertValueMoves()).toBe(0); // first value is the baseline
+    await val(19, 20);
+    expect(await alertValueMoves()).toBe(0); // 5%: no alert
+    await val(17, 10);
+    expect(await alertValueMoves()).toBe(1); // 15% down from 20
+    expect(await alertValueMoves()).toBe(0); // told once
+    const n = await db.notification.findFirstOrThrow({ where: { userId: u.userId, kind: "value" } });
+    expect(n.title).toContain("down 15% to 17 MX");
   });
 });

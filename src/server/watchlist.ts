@@ -7,7 +7,8 @@ import { fmtMp } from "./wallet";
  * Watchlist and alerts. Managers follow players and are told (in-app notifications) when:
  *  - MATCHX drops one of them (once the drop goes live),
  *  - another manager lists one on the Transfer list — at or under their alert price, if they set one,
- *  - the player changes tier (e.g. Bronze → Gold) after a value update.
+ *  - the player changes tier (e.g. Bronze → Gold) after a value update,
+ *  - the player's card value moves 10% or more (up or down) from the value they were last told.
  */
 export const MAX_WATCHED = 100;
 
@@ -114,6 +115,49 @@ export async function announceLiveDrops(now = new Date()) {
       });
       sent++;
     }
+  }
+  return sent;
+}
+
+export const VALUE_ALERT_PCT = 10;
+
+/**
+ * Value alerts for watched players. The first time a watched player has a value it becomes the
+ * baseline (no alert). After that, a move of 10%+ from the baseline (and at least 1 MX) tells the
+ * manager — "a buying chance" when it falls — and resets the baseline, so each move is told once.
+ */
+export async function alertValueMoves() {
+  const items = await db.watchItem.findMany({ select: { id: true, userId: true, playerId: true, baselineMp: true } });
+  if (!items.length) return 0;
+  const players = await db.player.findMany({
+    where: { id: { in: [...new Set(items.map((i) => i.playerId))] } },
+    select: { id: true, displayName: true, templates: { where: { edition: "STANDARD", active: true }, select: { category: true }, orderBy: { version: "desc" }, take: 1 } },
+  });
+  const { latestValues } = await import("./valuation");
+  const keys = players.flatMap((p) => (p.templates[0] ? [{ playerId: p.id, category: p.templates[0].category }] : []));
+  const values = await latestValues(keys);
+  const now = new Map(keys.map((k) => [k.playerId, values.get(`${k.playerId}:${k.category}`)]));
+  let sent = 0;
+  for (const w of items) {
+    const v = now.get(w.playerId);
+    if (v == null) continue;
+    if (w.baselineMp == null || w.baselineMp <= 0) {
+      await db.watchItem.update({ where: { id: w.id }, data: { baselineMp: v } });
+      continue;
+    }
+    const diff = v - w.baselineMp;
+    const pct = Math.round((diff / w.baselineMp) * 100);
+    if (Math.abs(pct) < VALUE_ALERT_PCT || Math.abs(diff) < 1) continue;
+    const name = players.find((p) => p.id === w.playerId)?.displayName ?? "A watched player";
+    await notify(w.userId, {
+      kind: "value",
+      title: diff < 0 ? `▼ ${name} down ${Math.abs(pct)}% to ${v} MX` : `▲ ${name} up ${pct}% to ${v} MX`,
+      body: diff < 0 ? `Was ${w.baselineMp} MX — a buying chance if you've been waiting.` : `Was ${w.baselineMp} MX. Their value is rising.`,
+      href: `/players/${w.playerId}`,
+      dedupeKey: `value:${w.id}:${w.baselineMp}:${v}`,
+    });
+    await db.watchItem.update({ where: { id: w.id }, data: { baselineMp: v } });
+    sent++;
   }
   return sent;
 }

@@ -64,6 +64,25 @@ export const DEFAULT_CHALLENGES: ChallengeSeed[] = [
     criteria: { count: 3, tiers: ["SILVER"] },
     rewardMinor: 300,
   },
+  // Upgrades (product request 11 Nov 2026: "card upgrades — add this in for challenges").
+  {
+    code: "upgrade-silver",
+    name: "Upgrade: Bronze → Silver",
+    description: "Trade 5 Bronze cards up for a Choice of Silver — pick 1 of 3 Silver players to keep. Untradeable cards count.",
+    criteria: { count: 5, tiers: ["BRONZE"] },
+    rewardMinor: 0,
+    rewardPackSku: "football-silver-pick",
+    maxPerUser: 10,
+  },
+  {
+    code: "upgrade-gold",
+    name: "Upgrade: Silver → Gold",
+    description: "Trade 5 tradeable Silver cards up for a Choice of Gold — pick 1 of 3 Gold players to keep. Free and starter cards don't count.",
+    criteria: { count: 5, tiers: ["SILVER"], includeUntradeable: false },
+    rewardMinor: 0,
+    rewardPackSku: "football-gold-pick",
+    maxPerUser: 5,
+  },
   {
     code: "gold-swap",
     name: "Golden handshake",

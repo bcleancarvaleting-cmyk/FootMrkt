@@ -17,7 +17,7 @@ export default async function WatchlistPage() {
       <PageHeader
         eyebrow="Alerts"
         title="Watchlist"
-        intro="Follow players and we'll tell you when MATCHX drops one, when someone lists one (at or under your price, if you set one), and when they change tier. Watch a player from their page."
+        intro="Follow players and we'll tell you when MATCHX drops one, when someone lists one (at or under your price, if you set one), when their value rises or falls 10% or more, and when they change tier. Watch a player from their page."
       />
       {items.length === 0 ? (
         <EmptyState title="Not watching anyone yet" action={<Link href="/top-performers" className="btn-primary">Find players</Link>}>

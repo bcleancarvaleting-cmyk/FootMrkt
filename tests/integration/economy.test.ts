@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { completeChallenge, eligibleCards } from "@/server/challenges";
+import { completeChallenge, eligibleCards, ensureDefaultChallenges } from "@/server/challenges";
 import { submitEntry, updateCompetitionRules, withdrawEntry } from "@/server/competitions";
 import { db, withTx } from "@/server/db";
 import { claimDrop, dropStatus, scheduleDrop } from "@/server/drops";
@@ -61,6 +61,23 @@ describe("challenges", () => {
     const ch = await db.challenge.create({ data: { code: "t-gold", name: "G", description: "", criteria: { count: 1, tiers: ["GOLD"] }, rewardMinor: 100, maxPerUser: 1 } });
     const bronze = await db.cardInstance.findFirstOrThrow({ where: { ownerId: userId, template: { category: "BRONZE" } } });
     await expect(completeChallenge(userId, ch.id, [bronze.id], "g1")).rejects.toMatchObject({ code: "NOT_ELIGIBLE" });
+  });
+});
+
+describe("upgrade challenges", () => {
+  it("5 Bronze trade up for a Choice of Silver", async () => {
+    const { userId } = await makeUser();
+    await bronzePack(userId, 3);
+    await ensureDefaultChallenges();
+    const up = await db.challenge.findUniqueOrThrow({ where: { code: "upgrade-silver" } });
+    const { cards } = await eligibleCards(userId, up.id);
+    expect(cards.length).toBeGreaterThanOrEqual(5);
+    expect(cards.every((c) => c.category === "BRONZE")).toBe(true);
+    const done = await completeChallenge(userId, up.id, cards.slice(0, 5).map((c) => c.id), "up1");
+    const ent = await db.packEntitlement.findFirst({ where: { userId, sourceRef: `challenge:${done.id}` }, include: { packSku: true } });
+    expect(ent?.packSku.code).toBe("football-silver-pick");
+    const gold = await db.challenge.findUniqueOrThrow({ where: { code: "upgrade-gold" } });
+    expect(gold.rewardPackSku).toBe("football-gold-pick");
   });
 });
 

@@ -1,0 +1,1 @@
+ALTER TABLE "WatchItem" ADD COLUMN "baselineMp" INTEGER;

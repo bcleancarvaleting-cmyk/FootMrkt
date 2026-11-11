@@ -494,6 +494,8 @@ model WatchItem {
   userId        String   @db.Uuid
   playerId      String   @db.Uuid
   maxPriceMinor Int?
+  // Value alerts: the card value (MX) last told to the manager; they're alerted on a 10%+ move from it.
+  baselineMp    Int?
   createdAt     DateTime @default(now())
 
   @@unique([userId, playerId])

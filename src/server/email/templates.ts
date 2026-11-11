@@ -125,6 +125,13 @@ export const EMAILS = {
       title: "We've got your message",
       paragraphs: [`Thanks ${esc(d.name)} — your message (ref ${b(d.ref)}) is with the MATCHX team. We'll reply to this email address, usually within a day.`],
     }),
+  errorAlert: (d: { name: string; title: string; message: string; path: string; source: string }) =>
+    layout({
+      preheader: `${d.source === "BROWSER" ? "A player's browser" : "The server"} hit an error.`,
+      title: `🚨 ${esc(d.title)}`,
+      paragraphs: [`${b(d.source === "BROWSER" ? "In a player's browser" : "On the server")} · page ${esc(d.path)}`, esc(d.message), "You'll only be emailed again if it comes back after you mark it fixed."],
+      cta: { label: "Open Admin → Errors", href: `${APP_URL}/admin/errors` },
+    }),
   test: (d: { name: string }) =>
     layout({
       preheader: "Your MATCHX emails are working.",

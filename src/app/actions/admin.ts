@@ -194,3 +194,17 @@ export async function previewTransferNoticeAction(): Promise<ActionResult> {
   revalidatePath("/", "layout");
   return { ok: true, data: undefined, message: "Preview sent — it pops up now (and on your next page)." };
 }
+
+export async function resolveErrorAction(id: string): Promise<ActionResult> {
+  await requireAdmin();
+  await db.errorLog.updateMany({ where: { id }, data: { resolvedAt: new Date() } });
+  revalidatePath("/admin/errors");
+  return { ok: true, data: undefined, message: "Marked fixed" };
+}
+
+export async function resolveAllErrorsAction(): Promise<ActionResult> {
+  await requireAdmin();
+  const r = await db.errorLog.updateMany({ where: { resolvedAt: null }, data: { resolvedAt: new Date() } });
+  revalidatePath("/admin/errors");
+  return { ok: true, data: undefined, message: `${r.count} marked fixed` };
+}

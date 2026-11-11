@@ -21,6 +21,7 @@ const SAMPLES: { [K in EmailTemplate]: Parameters<(typeof EMAILS)[K]>[0] } = {
   passwordReset: { name: "DemoManager", url: "https://matchx.app/reset-password?token=example" },
   supportReceived: { name: "DemoManager", ref: "A1B2C3" },
   test: { name: "DemoManager" },
+  errorAlert: { name: "DemoManager", title: "Server error", message: "Something went wrong", path: "/packs", source: "SERVER" },
 };
 
 export default async function EmailsAdmin({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {

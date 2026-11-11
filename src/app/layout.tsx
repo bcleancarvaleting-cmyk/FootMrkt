@@ -7,6 +7,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { ChatDrawer } from "@/components/chat-drawer";
 import { AppBackButton, AppTracker, NotifyPrompt } from "@/components/app-install";
 import { TransferNewsGate } from "@/components/transfer-news-gate";
+import { ErrorReporter } from "@/components/error-reporter";
 import { WelcomeTourGate } from "@/components/welcome-tour-gate";
 import { Logo } from "@/components/nav";
 import { CHAT_ROOMS, CHAT_RULES } from "@/config/chat";
@@ -61,6 +62,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <SiteFooter loggedIn={!!user} credit={await dataCredit()} />
         {user && <BottomNav unopenedPacks={unopened} />}
         <AppBackButton />
+        <ErrorReporter />
         {user && <AppTracker />}
         {user && <NotifyPrompt />}
         {user && <TransferNewsGate userId={user.id} />}

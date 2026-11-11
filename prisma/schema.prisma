@@ -1432,3 +1432,20 @@ model BasketItem {
   @@unique([userId, listingId])
   @@index([userId])
 }
+
+// Errors seen by the server or in players' browsers (Admin → Errors). Same error = same row, counted.
+model ErrorLog {
+  id          String    @id @default(uuid()) @db.Uuid
+  fingerprint String    @unique
+  source      String // SERVER | BROWSER
+  title       String
+  message     String
+  path        String?
+  detail      Json?
+  count       Int       @default(1)
+  firstAt     DateTime  @default(now())
+  lastAt      DateTime  @default(now())
+  resolvedAt  DateTime?
+
+  @@index([lastAt])
+}

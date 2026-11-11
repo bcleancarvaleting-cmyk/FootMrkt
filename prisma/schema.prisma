@@ -1170,6 +1170,9 @@ model Withdrawal {
   processedBy String?          @db.Uuid
   payoutRef   String?
   note        String?
+  // WINNINGS = prize money; MX = bought MX cashed out (11 Nov 2026), after the fee.
+  source      String           @default("WINNINGS")
+  feeMinor    Int              @default(0)
 
   @@index([status, createdAt])
 }

@@ -23,7 +23,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
         "MX (MATCHX credits)",
         [
           "MX is the in-game balance. You buy MX by card in bundles (bigger bundles include bonus MX — the MX you get is shown before you pay). You can also earn MX from challenges, sets, promotions and selling cards.",
-          "MX is only for buying packs and cards, bidding in auctions and entering matches. It can't be withdrawn, refunded, exchanged for cash or transferred to another account.",
+          "MX is for buying packs and cards, bidding in auctions and entering matches. It can't be refunded or transferred to another account. MX you buy by card can be cashed back to £ — 7 days or more after buying it, less a 10% fee, after an identity check. Bonus MX and MX earned from XP, challenges, rewards and sales can't be cashed out.",
           "MX is not a deposit account, e-money or an investment and earns no interest.",
         ],
       ],
@@ -72,7 +72,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
       ],
       ["Packs are random", ["The cards in a pack are random. A pack can be worth less than you paid for it."]],
       ["No guaranteed resale", ["There's no guarantee anyone will buy your card, or buy it at the price you want. A 5% fee applies to every sale."]],
-      ["MX can't be cashed out", ["MX you add or earn can only be spent in the game. It can't be withdrawn or refunded. Only £ winnings from match prizes can be withdrawn."]],
+      ["Cashing out", ["MX you buy by card can be cashed back to £ — 7 days or more after buying it, less a 10% fee, after an identity check. Bonus MX and MX earned from XP, challenges, rewards and sales can't be cashed out. £ winnings from match prizes can be withdrawn (minimum £10)."]],
       ["Only spend what you can afford", ["MATCHX is entertainment, not an investment or a way to make money. Set a deposit limit in Wallet → Responsible play."]],
     ],
   },

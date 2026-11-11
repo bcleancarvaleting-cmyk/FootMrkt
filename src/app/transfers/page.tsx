@@ -162,7 +162,7 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
         </>
       )}
       <p className="mt-6 text-xs text-faint">
-        Card values go up and down and past prices don&apos;t predict future ones. MX can&apos;t be withdrawn — it&apos;s for buying cards and packs and entering matches.
+        Card values go up and down and past prices don&apos;t predict future ones. MX from sales is earned MX: it stays in the game for cards, packs and matches.
       </p>
     </div>
   );

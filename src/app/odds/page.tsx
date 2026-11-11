@@ -150,7 +150,7 @@ export default async function OddsPage() {
         <h2 className="mb-3 text-2xl">Rules that matter</h2>
         <ul className="space-y-1.5 text-sm text-muted">
           <li>MATCHX is for over-18s only.</li>
-          <li>MX is an in-game currency. It can&apos;t be withdrawn or exchanged for money.</li>
+          <li>MX is an in-game currency. Only MX you&apos;ve bought by card can be cashed back to £ (after 7 days, less a 10% fee); MX from packs, rewards and sales can&apos;t.</li>
           <li>Cash prizes are only offered on matches that are free to enter and played with free cards, so you never need to pay to win money.</li>
           <li>Card values go up and down with real-world form. A card is a collectible, not an investment.</li>
           <li>Player-to-player transfers carry a 5% fee, paid by the seller.</li>

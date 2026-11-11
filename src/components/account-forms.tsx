@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { MX_BUNDLES, bonusPct } from "@/config/bundles";
 import { useActionState, useState } from "react";
-import { convertXpAction, depositAction, updateProfileAction, withdrawAction } from "@/app/actions/account";
+import { cashOutMxAction, convertXpAction, depositAction, updateProfileAction, withdrawAction } from "@/app/actions/account";
 import { ResultText } from "./action-button";
 
 /** Buy an MX bundle by card (wallet, and the basket when MX is short). */
@@ -40,12 +40,12 @@ export function DepositForm({ enabled, initial = "squad" }: { enabled: boolean; 
       </div>
       <p className="text-center text-xs text-faint">{chosen.note}</p>
       <div className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-xs leading-relaxed text-fg">
-        <b>MX can&apos;t be withdrawn or refunded</b> — it&apos;s for buying packs and players and entering matches. What you pull from a pack is random and
-        player values go down as well as up. Only add what you can afford to spend. Not an investment.
+        <b>MX is for buying packs and players and entering matches.</b> MX you buy can be cashed back to £ after 7 days, less a 10% fee; bonus MX and
+        MX you earn can&apos;t. What you pull from a pack is random and player values go down as well as up. Only add what you can afford to spend. Not an investment.
       </div>
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" name="acceptRisk" className="mt-1 accent-lime" required />
-        <span>I understand MX can&apos;t be withdrawn and player values go up and down.</span>
+        <span>I understand player values go up and down and only bought MX can be cashed out (10% fee).</span>
       </label>
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" name="acceptTerms" className="mt-1 accent-lime" required />
@@ -73,6 +73,33 @@ export function WithdrawForm({ enabled, maxMinor }: { enabled: boolean; maxMinor
       </div>
       <button className="btn-ghost w-full" disabled={!enabled || pending || maxMinor < 1000}>
         {pending ? "Requesting…" : "Request withdrawal"}
+      </button>
+      {state && <ResultText result={state} />}
+    </form>
+  );
+}
+
+/** Cash out bought MX: shows the 10% fee and the £ they'll receive as they type. */
+export function CashOutForm({ enabled, cashableMinor, feePct, minMinor }: { enabled: boolean; cashableMinor: number; feePct: number; minMinor: number }) {
+  const [state, action, pending] = useActionState(cashOutMxAction, null);
+  const [mx, setMx] = useState(String(Math.max(minMinor, cashableMinor) / 100));
+  const minor = Math.round(Number(mx || 0) * 100);
+  const fee = Math.ceil((minor * feePct) / 100);
+  return (
+    <form action={action} className="space-y-3">
+      <div>
+        <label className="label" htmlFor="co-mx">
+          Bought MX to cash out — minimum {minMinor / 100} MX
+        </label>
+        <input id="co-mx" name="mx" type="number" min={minMinor / 100} step="0.01" max={(cashableMinor / 100).toFixed(2)} value={mx} onChange={(e) => setMx(e.target.value)} className="input" required />
+      </div>
+      {minor > 0 && (
+        <p className="text-sm">
+          You get <b className="tabular-nums">£{((minor - fee) / 100).toFixed(2)}</b> <span className="text-faint">(10% fee £{(fee / 100).toFixed(2)})</span>
+        </p>
+      )}
+      <button className="btn-ghost w-full" disabled={!enabled || pending || cashableMinor < minMinor}>
+        {pending ? "Requesting…" : "Cash out to my bank"}
       </button>
       {state && <ResultText result={state} />}
     </form>

@@ -102,3 +102,50 @@ describe("drops basket", () => {
     await expect(addToBasket(u.userId, "00000000-0000-0000-0000-000000000000")).rejects.toMatchObject({ code: "NOT_AVAILABLE" });
   });
 });
+
+describe("cashing out bought MX", () => {
+  async function adultWithProfile(name: string) {
+    const u = await makeUser(name);
+    await db.user.update({ where: { id: u.userId }, data: { dateOfBirth: new Date("1990-01-01"), fullName: "Test Person", addressLine1: "1 Road", city: "Leeds", postcode: "LS1 1AA" } });
+    return u;
+  }
+
+  it("only bought MX, only after 7 days, 10% fee; bonus MX stays in the game; reject returns it", async () => {
+    process.env.LEGAL_GATES_CLEARED = "MARKET,PAID_PACKS,DEPOSITS,WITHDRAWALS";
+    process.env.FLAG_WITHDRAWALS = "true";
+    const { cashableMx, requestMxCashOut, processWithdrawal } = await import("@/server/wallet");
+    const u = await adultWithProfile("casher");
+    const admin = await makeUser("payer");
+    const { orderId } = await startDeposit(u.userId, { bundle: "champion", acceptTerms: true, acceptRisk: true }, "c1");
+    await pay(orderId);
+    const bal = await balancesFor(u.userId);
+    expect(bal.cash).toBe(3999); // what was paid
+    expect(bal.earned).toBeGreaterThanOrEqual(1001); // the bonus, game-only
+    // Just bought: held for 7 days.
+    expect(await cashableMx(u.userId)).toBe(0);
+    await expect(requestMxCashOut(u.userId, 1000)).rejects.toMatchObject({ code: "NOT_CASHABLE" });
+    // A week later it's cashable — but never the bonus.
+    const week = new Date(Date.now() + 8 * 86_400_000);
+    expect(await cashableMx(u.userId, db, week)).toBe(3999);
+    await expect(requestMxCashOut(u.userId, 4000, week)).rejects.toMatchObject({ code: "NOT_CASHABLE" });
+    await expect(requestMxCashOut(u.userId, 500, week)).rejects.toMatchObject({ code: "MIN" });
+    const w = await requestMxCashOut(u.userId, 2000, week);
+    expect(w).toMatchObject({ amountMinor: 1800, feeMinor: 200, source: "MX" });
+    expect((await balancesFor(u.userId)).cash).toBe(1999);
+    await processWithdrawal(admin.userId, w.id, "REJECTED");
+    expect((await balancesFor(u.userId)).cash).toBe(3999);
+    // Spending uses earned MX first, so bought MX stays cashable for longest.
+    const w2 = await requestMxCashOut(u.userId, 3999, week);
+    expect(w2.amountMinor).toBe(3999 - 400);
+    expect((await balancesFor(u.userId)).cash).toBe(0);
+  });
+
+  it("MX from sales, XP and rewards can never be cashed out", async () => {
+    process.env.LEGAL_GATES_CLEARED = "MARKET,PAID_PACKS,DEPOSITS,WITHDRAWALS";
+    process.env.FLAG_WITHDRAWALS = "true";
+    const { cashableMx } = await import("@/server/wallet");
+    const u = await adultWithProfile("earner");
+    await withTx((tx) => credit(tx, { userId: u.userId, amountMinor: 5000, kind: "MARKET_SALE", bucket: "BONUS", refId: "sale-x" }));
+    expect(await cashableMx(u.userId, db, new Date(Date.now() + 30 * 86_400_000))).toBe(0);
+  });
+});

@@ -219,12 +219,13 @@ export async function EconomySections({ only }: { only: string[] }) {
       )}
 
       {show("withdrawals") && (
-      <Section title="Withdrawals" intro="Managers can only withdraw £ winnings from match prizes — never MX. Check identity and bank details with the payout provider, then mark paid. Rejecting returns the winnings.">
+      <Section title="Withdrawals" intro="Prize winnings, and cash-outs of bought MX (bought MX only, 7+ days old, 10% fee already taken — the amount shown is what to pay). Check identity and bank details with the payout provider, then mark paid. Rejecting returns the winnings or MX.">
         <ul className="divide-y divide-ink-700 text-sm">
           {withdrawals.map((w) => (
             <li key={w.id} className="flex flex-wrap items-center justify-between gap-3 py-2">
               <span>
-                <b>{fmtGbp(w.amountMinor)}</b> · {w.user.displayName} <span className="text-faint">({w.user.fullName ?? "no name"}, KYC {w.user.kycStatus.toLowerCase()}) · {fmtDate(w.createdAt)}</span>
+                <b>{fmtGbp(w.amountMinor)}</b>{" "}
+                <span className={`chip ${w.source === "MX" ? "border-accent/60 text-lime" : ""}`}>{w.source === "MX" ? `MX cash-out · fee ${fmtGbp(w.feeMinor)}` : "Prize winnings"}</span> · {w.user.displayName} <span className="text-faint">({w.user.fullName ?? "no name"}, KYC {w.user.kycStatus.toLowerCase()}) · {fmtDate(w.createdAt)}</span>
               </span>
               <span className="flex gap-2">
                 <ActionButton action={processWithdrawalAction.bind(null, w.id, "REJECTED")} className="btn-ghost px-3 py-1.5 text-[11px]">Reject</ActionButton>

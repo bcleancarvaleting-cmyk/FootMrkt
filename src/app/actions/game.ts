@@ -149,3 +149,10 @@ async function afterEntryEmails(userId: string, competitionId: string) {
     await emailUser(reward.userId, "referralReward", { friend: me?.displayName ?? "Your friend", pack: reward.packSku.name }, `referral:${userId}`);
   }
 }
+
+export async function packOrderStatusAction(orderId: string) {
+  const user = await requireUser();
+  if (!/^[0-9a-f-]{36}$/.test(orderId)) return null;
+  const { packOrderStatus } = await import("@/server/market");
+  return packOrderStatus(user.id, orderId);
+}

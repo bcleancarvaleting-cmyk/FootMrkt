@@ -34,7 +34,7 @@ export default async function SandboxCheckout({ params, searchParams }: { params
         <>
           <p className="text-mint">This order is {order.status.toLowerCase()}.</p>
           {order.status === "PAID" && (
-            <Link href={order.kind === "DEPOSIT" ? (next ?? (basket ? "/transfers/basket" : "/account/wallet")) : "/packs"} className="btn-primary inline-flex px-8 py-3">
+            <Link href={order.kind === "DEPOSIT" ? (next ?? (basket ? "/transfers/basket" : "/account/wallet")) : `/packs?paid=${order.id}`} className="btn-primary inline-flex px-8 py-3">
               {order.kind === "DEPOSIT" ? (next?.startsWith("/competitions") ? "Back to the match" : next?.startsWith("/transfers/basket") || (!next && basket) ? "Back to my basket" : "Back to my wallet") : "Open my pack"}
             </Link>
           )}

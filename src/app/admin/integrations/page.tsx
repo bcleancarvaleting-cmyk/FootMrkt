@@ -209,10 +209,10 @@ export default async function Integrations() {
       <Step n={2} title="Payments switch" done={payReady.ready}>
         <p className="text-sm">
           Now: <b>{pay.mode === "off" ? "Off — every £ button shows “coming soon”" : pay.mode === "test" ? "Test payments (no real money)" : "Live card payments through Stripe"}</b>
-          {pay.fromEnv ? " — set on the server (PAYMENTS_PROVIDER)" : ""}.
+          {pay.fromEnv ? " — the server's starting setting; choose below to change it" : ""}.
         </p>
         {!payReady.ready && pay.mode !== "off" && <p className="text-sm text-warn">Not taking payments yet: {payReady.reason}</p>}
-        {!pay.fromEnv && (
+        {(
           <div className="flex flex-wrap gap-2">
             {(
               [

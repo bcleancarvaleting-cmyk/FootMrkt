@@ -13,6 +13,9 @@ import { fulfilDeposit, isAdult } from "./wallet";
  * and live in ./transfers. LEGAL GATE: PAID_PACKS / DEPOSITS must be cleared before use.
  */
 
+/** After paying for a pack you land back on Packs, where the "building your pack" animation plays. */
+const returnPathFor = (kind: string) => (kind === "PACK_PURCHASE" ? "/packs" : undefined);
+
 async function createOrder(
   args: { userId: string; kind: "PACK_PURCHASE" | "MARKET_PURCHASE"; refId: string; amountMinor: number; idempotencyKey: string },
   provider: PaymentProvider,
@@ -21,14 +24,14 @@ async function createOrder(
     const order = await db.order.create({
       data: { ...args, provider: provider.name },
     });
-    const checkout = await provider.createCheckout({ id: order.id, amountMinor: order.amountMinor, currency: order.currency });
+    const checkout = await provider.createCheckout({ id: order.id, amountMinor: order.amountMinor, currency: order.currency, returnPath: returnPathFor(args.kind) });
     await db.order.update({ where: { id: order.id }, data: { providerRef: checkout.providerRef } });
     return { orderId: order.id, checkoutUrl: checkout.checkoutUrl };
   } catch (e) {
     if (!isUniqueViolation(e)) throw e;
     const existing = await db.order.findUniqueOrThrow({ where: { idempotencyKey: args.idempotencyKey } });
     if (existing.status !== "PENDING") throw new DomainError("ORDER_DONE", "This order has already been processed.");
-    const checkout = await provider.createCheckout({ id: existing.id, amountMinor: existing.amountMinor, currency: existing.currency });
+    const checkout = await provider.createCheckout({ id: existing.id, amountMinor: existing.amountMinor, currency: existing.currency, returnPath: returnPathFor(args.kind) });
     return { orderId: existing.id, checkoutUrl: checkout.checkoutUrl };
   }
 }
@@ -100,4 +103,15 @@ export async function handlePaymentWebhook(rawBody: string, signature: string | 
   });
   if ("refund" in result && result.refund) await provider.refund(result.providerRef, result.amountMinor);
   return result;
+}
+
+/**
+ * A pack order's progress, for the post-payment screen: PENDING until the payment provider's
+ * signed webhook confirms it, then PAID with the new pack's id (or FAILED).
+ */
+export async function packOrderStatus(userId: string, orderId: string) {
+  const o = await db.order.findUnique({ where: { id: orderId } });
+  if (!o || o.userId !== userId || o.kind !== "PACK_PURCHASE") return null;
+  const ent = o.status === "PAID" ? await db.packEntitlement.findUnique({ where: { sourceRef: `order:${o.id}` }, include: { packSku: { select: { name: true } } } }) : null;
+  return { status: o.status, entitlementId: ent?.status === "UNOPENED" ? ent.id : null, opened: ent ? ent.status !== "UNOPENED" : false, packName: ent?.packSku.name ?? null };
 }

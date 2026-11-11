@@ -8,6 +8,7 @@ import { DomainError } from "@/server/errors";
 import { isEnabled, setFlag } from "@/server/flags";
 import {
   createGameweek,
+  deleteGameweek,
   finaliseGameweek,
   footballSport,
   lockGameweek,
@@ -41,6 +42,13 @@ export async function createNextGameweekAction(): Promise<ActionResult> {
       actorId: admin.id,
     });
   }, "Gameweek created");
+  done();
+  return res;
+}
+
+export async function deleteGameweekAction(gameweekId: string): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const res = await attempt(() => deleteGameweek(admin.id, gameweekId), "Gameweek deleted");
   done();
   return res;
 }

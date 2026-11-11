@@ -307,3 +307,24 @@ async function prizePools() {
 function autoTemplates() {
   return process.env.AUTO_MATCHES === "true" ? FOOTBALL_COMPETITION_TEMPLATES : [];
 }
+
+/**
+ * Admin: delete a gameweek nobody is using (no matches in it and no fixture played yet) — e.g. one
+ * created by mistake. Its fixtures go with it; real ones come back if the week is created again.
+ */
+export async function deleteGameweek(adminId: string, gameweekId: string) {
+  await db.$transaction(async (tx) => {
+    const gw = await tx.gameweek.findUnique({ where: { id: gameweekId }, include: { _count: { select: { competitions: true } }, fixtures: { select: { id: true, status: true } } } });
+    if (!gw) throw new DomainError("NOT_FOUND", "Gameweek not found.");
+    if (gw._count.competitions) throw new DomainError("IN_USE", `GW${gw.number} has matches in it — delete or cancel those first.`);
+    if (gw.fixtures.some((f) => f.status !== "SCHEDULED")) throw new DomainError("IN_USE", `GW${gw.number} has fixtures that have started or been played, so it can't be deleted.`);
+    const ids = gw.fixtures.map((f) => f.id);
+    await tx.playerMatchStat.deleteMany({ where: { fixtureId: { in: ids } } });
+    await tx.fixture.deleteMany({ where: { id: { in: ids } } });
+    await tx.gameweek.delete({ where: { id: gw.id } });
+    await audit(tx, { actorId: adminId, action: "gameweek.delete", entityType: "Gameweek", entityId: gw.id, after: { number: gw.number, season: gw.season, fixtures: ids.length } });
+  }).catch((e) => {
+    if (e instanceof DomainError) throw e;
+    throw new DomainError("IN_USE", "This gameweek is linked to other records (e.g. a daily prediction), so it can't be deleted.");
+  });
+}

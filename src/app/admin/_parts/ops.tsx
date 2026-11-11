@@ -1,6 +1,7 @@
 import {
   correctionsAction,
   createNextGameweekAction,
+  deleteGameweekAction,
   finaliseAction,
   lockGameweekAction,
   releaseAction,
@@ -61,10 +62,17 @@ export async function OpsSections({ only }: { only: string[] }) {
       <section className="panel p-5">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold">Gameweeks</h2>
-          <ActionButton action={createNextGameweekAction} className="btn-primary">
-            Create next gameweek
+          <ActionButton
+            action={createNextGameweekAction}
+            className="btn-primary"
+            confirm="Add the next gameweek? It loads next week's real fixtures so you can build matches from them. No matches are created — you add those yourself."
+          >
+            Add next gameweek
           </ActionButton>
         </div>
+        <p className="mb-3 text-xs text-faint">
+          Gameweeks are only ever added by you (or by a Sportmonks rebuild, which opens the next real week). A gameweek just holds that week&apos;s fixtures — players only see the matches you create in it.
+        </p>
         {!flags.SIMULATED_DATA && (
           <p className="mb-3 text-sm text-warn">Simulated data is off and no licensed provider is connected — gameweek tools are unavailable.</p>
         )}
@@ -89,6 +97,11 @@ export async function OpsSections({ only }: { only: string[] }) {
                       {(g.status === "OPEN" || g.status === "UPCOMING") && (
                         <ActionButton action={lockGameweekAction.bind(null, g.id)} confirm="Lock all squads now?">
                           Lock now
+                        </ActionButton>
+                      )}
+                      {g.competitions.length === 0 && played === 0 && (
+                        <ActionButton action={deleteGameweekAction.bind(null, g.id)} className="btn-ghost text-danger" confirm={`Delete GW${g.number}? Its fixtures are removed too. Only possible while it has no matches and nothing has been played.`}>
+                          Delete
                         </ActionButton>
                       )}
                       <ActionButton action={simulateAction.bind(null, g.id, 3)}>DEV: play 3 fixtures</ActionButton>

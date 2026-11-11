@@ -124,6 +124,7 @@ model User {
   offers           MarketOffer[]
   bids             AuctionBid[]
   auctionsWon      Auction[]              @relation("AuctionWinner")
+  auctionsSelling  Auction[]              @relation("AuctionSeller")
   challengeRuns    ChallengeCompletion[]
   auditActions     AdminAuditLog[]
 
@@ -1023,10 +1024,16 @@ model Auction {
   createdById       String?       @db.Uuid
   createdAt         DateTime      @default(now())
   settledAt         DateTime?
+  // Manager auctions (product decision 11 Nov 2026): the seller's own card, 3/12/24 hours, with an
+  // optional buy-it-now price. Null seller = a MATCHX (house) auction.
+  sellerId          String?       @db.Uuid
+  seller            User?         @relation("AuctionSeller", fields: [sellerId], references: [id])
+  buyNowMinor       Int?
 
   bids AuctionBid[]
 
   @@index([status, endsAt])
+  @@index([sellerId])
 }
 
 enum BidStatus {

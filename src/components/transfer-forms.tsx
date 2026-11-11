@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { makeOfferAction, placeBidAction } from "@/app/actions/transfers";
+import { useActionState, useState, useTransition } from "react";
+import { buyNowAuctionAction, makeOfferAction, placeBidAction } from "@/app/actions/transfers";
+import type { ActionResult } from "@/app/actions/result";
 import { ResultText } from "./action-button";
 
 const mp = (minor: number) => (minor / 100).toFixed(2);
@@ -60,5 +61,19 @@ export function BidForm({ auctionId, minMinor, enabled }: { auctionId: string; m
       </span>
       {state && <ResultText result={state} />}
     </form>
+  );
+}
+
+/** Take a manager's auction straight away at its buy-it-now price. */
+export function AuctionBuyNowButton({ auctionId, priceMinor, enabled }: { auctionId: string; priceMinor: number; enabled: boolean }) {
+  const [res, setRes] = useState<ActionResult<unknown> | null>(null);
+  const [pending, start] = useTransition();
+  return (
+    <span className="flex flex-col items-end gap-1">
+      <button type="button" className="btn-gold px-3 py-2 text-[11px]" disabled={pending || !enabled} onClick={() => start(async () => setRes(await buyNowAuctionAction(auctionId)))}>
+        {pending ? "…" : `Buy now ${mp(priceMinor)} MX`}
+      </button>
+      {res && <ResultText result={res} />}
+    </span>
   );
 }

@@ -7,9 +7,9 @@ import { FINISH_STYLE, FinishPill } from "@/components/finish-art";
 import { discardLoanAction } from "@/app/actions/account";
 import { notFound } from "next/navigation";
 import { toggleFavouriteAction, toggleShowcaseAction } from "@/app/actions/game";
-import { cancelListingAction } from "@/app/actions/transfers";
+import { cancelListingAction, cancelMyAuctionAction } from "@/app/actions/transfers";
 import { ActionButton } from "@/components/action-button";
-import { ListingForm } from "@/components/listing-form";
+import { AuctionListForm, ListingForm } from "@/components/listing-form";
 import { listingGuidance } from "@/server/transfers-view";
 import { PlayerCard } from "@/components/player-card";
 import { ValueChart } from "@/components/value-chart";
@@ -36,6 +36,8 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
   const [view] = await enrichCards([card]);
   const favourite = user ? !!(await db.favouriteCard.findUnique({ where: { userId_cardId: { userId: user.id, cardId: id } } })) : false;
   const listing = card.listings[0];
+  // In a manager auction: the card is locked to it until it ends.
+  const auction = card.lock === "LISTED" && !listing && card.lockRef ? await db.auction.findFirst({ where: { id: card.lockRef, status: "LIVE" }, include: { _count: { select: { bids: true } } } }) : null;
   const stamps = await stampsForCard(id);
   const pointsHistory =
     isOwner && user
@@ -248,14 +250,35 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
                   Cancel listing
                 </ActionButton>
               </div>
+            ) : auction ? (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span>
+                  In auction until <b>{fmtDate(auction.endsAt)}</b> · {auction._count.bids} bid{auction._count.bids === 1 ? "" : "s"}
+                  {auction.buyNowMinor ? ` · buy it now ${(auction.buyNowMinor / 100).toFixed(2)} MX` : ""}
+                </span>
+                {auction._count.bids === 0 && (
+                  <ActionButton action={cancelMyAuctionAction.bind(null, auction.id, id)} className="btn-danger">
+                    Cancel auction
+                  </ActionButton>
+                )}
+              </div>
             ) : card.lock === "NONE" ? (
-              <ListingForm
-                cardId={id}
-                guidance={await listingGuidance(view)}
-                enabled={flags.MARKET}
-                maxMinor={maxPriceFor(view.finish?.kind)}
-                finishLabel={view.finish ? FINISH_STYLE[view.finish.kind].label : null}
-              />
+              <div className="space-y-6">
+                <div>
+                  <h3 className="mb-2 text-sm font-bold uppercase tracking-[0.14em] text-muted">Buy now</h3>
+                  <ListingForm
+                    cardId={id}
+                    guidance={await listingGuidance(view)}
+                    enabled={flags.MARKET}
+                    maxMinor={maxPriceFor(view.finish?.kind)}
+                    finishLabel={view.finish ? FINISH_STYLE[view.finish.kind].label : null}
+                  />
+                </div>
+                <div className="border-t border-ink-700 pt-5">
+                  <h3 className="mb-2 text-sm font-bold uppercase tracking-[0.14em] text-muted">…or auction it</h3>
+                  <AuctionListForm cardId={id} enabled={flags.MARKET && flags.AUCTIONS} maxMinor={maxPriceFor(view.finish?.kind)} suggestedMinor={(await listingGuidance(view)).recommendedMinor} />
+                </div>
+              </div>
             ) : (
               <p className="text-sm text-muted">This card is busy and can&apos;t be listed right now.</p>
             )}

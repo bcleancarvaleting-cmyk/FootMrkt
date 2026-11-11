@@ -284,6 +284,49 @@ describe("house auctions", () => {
     return createAuction(adminId, { playerId: tpl.playerId, category: "GOLD", startPriceMinor: 100, minIncrementMinor: 50, startsAt: new Date(Date.now() - 1000), hours });
   }
 
+  it("manager auctions: 3/12/24 hours, bids, buy-it-now ends it, the seller is paid minus 5%", async () => {
+    enableLegalGates();
+    const { createManagerAuction, buyNowAuction, cancelMyAuction } = await import("@/server/transfers");
+    const seller = await makeTrader("msell");
+    const a = await makeTrader("mbid1");
+    const b = await makeTrader("mbid2");
+    await fund(a.userId, 1000);
+    await fund(b.userId, 1000);
+    const cardId = await tradeableCard(seller.userId);
+    await expect(createManagerAuction(seller.userId, { cardId, startPriceMinor: 100, hours: 6 as never })).rejects.toThrow();
+    await expect(createManagerAuction(seller.userId, { cardId, startPriceMinor: 300, buyNowMinor: 200, hours: 3 })).rejects.toThrow(/higher than the starting price/);
+    const au = await createManagerAuction(seller.userId, { cardId, startPriceMinor: 100, buyNowMinor: 500, hours: 12 });
+    expect(au.endsAt.getTime() - au.startsAt.getTime()).toBe(12 * 3_600_000);
+    expect((await db.cardInstance.findUniqueOrThrow({ where: { id: cardId } })).lock).toBe("LISTED");
+    await expect(placeBid(seller.userId, au.id, 100)).rejects.toMatchObject({ code: "OWN_AUCTION" });
+    await expect(placeBid(a.userId, au.id, 500)).rejects.toMatchObject({ code: "USE_BUY_NOW" });
+    await placeBid(a.userId, au.id, 150);
+    await expect(cancelMyAuction(seller.userId, au.id)).rejects.toMatchObject({ code: "HAS_BIDS" });
+    // b buys it outright: a's bid comes back, b pays 5.00, the seller gets 4.75 bonus MX.
+    await buyNowAuction(b.userId, au.id);
+    expect((await balancesFor(a.userId)).earned).toBe(1000);
+    expect((await balancesFor(b.userId)).earned).toBe(500);
+    expect((await balancesFor(seller.userId)).earned).toBe(500 - feeFor(500));
+    const card = await db.cardInstance.findUniqueOrThrow({ where: { id: cardId } });
+    expect(card).toMatchObject({ ownerId: b.userId, lock: "NONE" });
+    expect((await db.auction.findUniqueOrThrow({ where: { id: au.id } })).status).toBe("SETTLED");
+
+    // Unsold: the card goes back to its owner, unlocked.
+    const card2 = await tradeableCard(seller.userId);
+    const au2 = await createManagerAuction(seller.userId, { cardId: card2, startPriceMinor: 100, hours: 3 });
+    expect(await settleAuctions(new Date(Date.now() + 4 * 3_600_000))).toBe(1);
+    expect(await db.cardInstance.findUniqueOrThrow({ where: { id: card2 } })).toMatchObject({ ownerId: seller.userId, lock: "NONE", supplyState: "HELD" });
+    expect((await db.auction.findUniqueOrThrow({ where: { id: au2.id } })).status).toBe("UNSOLD");
+
+    // Won at the end: highest bid takes it.
+    const card3 = await tradeableCard(seller.userId);
+    const au3 = await createManagerAuction(seller.userId, { cardId: card3, startPriceMinor: 100, hours: 24 });
+    await placeBid(a.userId, au3.id, 200);
+    await settleAuctions(new Date(Date.now() + 25 * 3_600_000));
+    expect((await db.cardInstance.findUniqueOrThrow({ where: { id: card3 } })).ownerId).toBe(a.userId);
+    expect((await balancesFor(seller.userId)).earned).toBe(500 - feeFor(500) + 200 - feeFor(200));
+  });
+
   it("bids hold cash MX, outbid managers get it back, and the winner gets the card", async () => {
     enableLegalGates();
     const admin = await makeTrader("admin1");

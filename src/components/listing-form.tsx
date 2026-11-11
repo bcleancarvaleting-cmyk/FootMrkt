@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { createListingAction } from "@/app/actions/transfers";
+import { createAuctionListingAction, createListingAction } from "@/app/actions/transfers";
 import { ResultText } from "./action-button";
 
 const FEE_BPS = 500;
@@ -71,6 +71,39 @@ export function ListingForm({
       )}
       <button className="btn-primary" disabled={pending || !enabled}>
         {pending ? "Listing…" : "List on Transfers"}
+      </button>
+      {state && <ResultText result={state} />}
+    </form>
+  );
+}
+
+/** Sell as an auction: a starting price, an optional buy-it-now price, and 3, 12 or 24 hours. */
+export function AuctionListForm({ cardId, enabled, maxMinor = 10_000, suggestedMinor }: { cardId: string; enabled: boolean; maxMinor?: number; suggestedMinor: number }) {
+  const [state, action, pending] = useActionState(createAuctionListingAction, null);
+  return (
+    <form action={action} className="space-y-3">
+      <input type="hidden" name="cardId" value={cardId} />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div>
+          <label className="label" htmlFor="a-start">Starting bid (MX)</label>
+          <input id="a-start" className="input tabular-nums" name="start" type="number" min="0.10" max={maxMinor / 100} step="0.01" defaultValue={mp(Math.max(10, Math.round(suggestedMinor * 0.6)))} required />
+        </div>
+        <div>
+          <label className="label" htmlFor="a-buynow">Buy it now (MX, optional)</label>
+          <input id="a-buynow" className="input tabular-nums" name="buyNow" type="number" min="0.11" max={maxMinor / 100} step="0.01" placeholder={mp(suggestedMinor)} />
+        </div>
+        <div>
+          <label className="label" htmlFor="a-hours">Runs for</label>
+          <select id="a-hours" className="input" name="hours" defaultValue="24">
+            <option value="3">3 hours</option>
+            <option value="12">12 hours</option>
+            <option value="24">24 hours</option>
+          </select>
+        </div>
+      </div>
+      <p className="text-xs text-muted">The highest bid when the time runs out wins, or anyone can take it straight away at your buy-it-now price. You&apos;re paid in bonus MX, minus the 5% fee. You can cancel until the first bid.</p>
+      <button className="btn-gold" disabled={pending || !enabled}>
+        {pending ? "Starting…" : "Start auction"}
       </button>
       {state && <ResultText result={state} />}
     </form>

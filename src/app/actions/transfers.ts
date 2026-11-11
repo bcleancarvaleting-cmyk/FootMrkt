@@ -5,7 +5,7 @@ import { requireUser } from "@/server/auth/session";
 import { db } from "@/server/db";
 import { emailUser } from "@/server/email/send";
 import { fmtMp } from "@/server/wallet";
-import { buyNow, cancelListing, createListing, makeOffer, placeBid, respondToOffer, withdrawOffer } from "@/server/transfers";
+import { buyNow, buyNowAuction, cancelListing, cancelMyAuction, createListing, createManagerAuction, makeOffer, placeBid, respondToOffer, withdrawOffer } from "@/server/transfers";
 import { type ActionResult, attempt } from "./result";
 
 const mpToMinor = (v: FormDataEntryValue | null) => Math.round(Number(v) * 100);
@@ -97,4 +97,36 @@ async function saleEmails(listingId: string, offerAccepted = false) {
   const price = fmtMp(l.soldPriceMinor ?? 0);
   if (!offerAccepted) await emailUser(l.buyerId, "playerSigned", { player, price, from: l.seller?.displayName ?? "MATCHX" }, `signed:${l.id}`);
   if (l.sellerId) await emailUser(l.sellerId, "playerSold", { player, price, youGet: fmtMp((l.soldPriceMinor ?? 0) - (l.feeMinor ?? 0)), buyer: l.buyer?.displayName ?? "A manager" }, `sold:${l.id}`);
+}
+
+export async function createAuctionListingAction(_: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const user = await requireUser();
+  const cardId = String(form.get("cardId"));
+  const buyNowRaw = String(form.get("buyNow") ?? "").trim();
+  const res = await attempt(async () => {
+    await createManagerAuction(user.id, {
+      cardId,
+      startPriceMinor: mpToMinor(form.get("start")),
+      buyNowMinor: buyNowRaw ? mpToMinor(buyNowRaw) : undefined,
+      hours: Number(form.get("hours")) as 3 | 12 | 24,
+    });
+  }, "Auction started — it's on Transfers → Auctions");
+  refresh(cardId);
+  return res;
+}
+
+export async function buyNowAuctionAction(auctionId: string): Promise<ActionResult> {
+  const user = await requireUser();
+  const res = await attempt(async () => {
+    await buyNowAuction(user.id, auctionId);
+  }, "Bought — the player is in your club");
+  refresh();
+  return res;
+}
+
+export async function cancelMyAuctionAction(auctionId: string, cardId: string): Promise<ActionResult> {
+  const user = await requireUser();
+  const res = await attempt(() => cancelMyAuction(user.id, auctionId), "Auction cancelled");
+  refresh(cardId);
+  return res;
 }

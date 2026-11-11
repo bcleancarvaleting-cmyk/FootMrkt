@@ -373,9 +373,12 @@ export async function placeBid(userId: string, auctionId: string, amountMinor: n
   await requireFlag("AUCTIONS");
   price.parse(amountMinor);
   const r = await withTx(async (tx) => {
-    const [a] = await tx.$queryRaw<Array<{ id: string; status: string; startsAt: Date; endsAt: Date; startPriceMinor: number; minIncrementMinor: number; antiSnipeMinutes: number }>>`
-      SELECT id, status, "startsAt", "endsAt", "startPriceMinor", "minIncrementMinor", "antiSnipeMinutes" FROM "Auction" WHERE id = ${auctionId}::uuid FOR UPDATE`;
+    const [a] = await tx.$queryRaw<Array<{ id: string; status: string; startsAt: Date; endsAt: Date; startPriceMinor: number; minIncrementMinor: number; antiSnipeMinutes: number; sellerId: string | null; buyNowMinor: number | null }>>`
+      SELECT id, status, "startsAt", "endsAt", "startPriceMinor", "minIncrementMinor", "antiSnipeMinutes", "sellerId", "buyNowMinor" FROM "Auction" WHERE id = ${auctionId}::uuid FOR UPDATE`;
     if (!a || !["LIVE", "SCHEDULED"].includes(a.status) || a.startsAt > now || a.endsAt <= now) throw new DomainError("CLOSED", "This auction isn't open for bids.");
+    if (a.sellerId === userId) throw new DomainError("OWN_AUCTION", "You can't bid on your own auction.");
+    if (a.sellerId) await assertCanTrade(userId);
+    if (a.buyNowMinor !== null && amountMinor >= a.buyNowMinor) throw new DomainError("USE_BUY_NOW", `That's at or above the buy-it-now price — just buy it now for ${fmtMp(a.buyNowMinor)}.`);
     const leading = await tx.auctionBid.findFirst({ where: { auctionId, status: "LEADING" } });
     const min = leading ? leading.amountMinor + a.minIncrementMinor : a.startPriceMinor;
     if (amountMinor < min) throw new DomainError("TOO_LOW", `The minimum bid is ${fmtMp(min)}.`);
@@ -406,8 +409,8 @@ export async function settleAuctions(now = new Date()) {
   const due = await db.auction.findMany({ where: { status: "LIVE", endsAt: { lte: now } }, select: { id: true } });
   for (const { id } of due) {
     const won = await withTx(async (tx) => {
-      const [a] = await tx.$queryRaw<Array<{ id: string; status: string; cardId: string; reserveMinor: number | null; endsAt: Date }>>`
-        SELECT id, status, "cardId", "reserveMinor", "endsAt" FROM "Auction" WHERE id = ${id}::uuid FOR UPDATE`;
+      const [a] = await tx.$queryRaw<Array<{ id: string; status: string; cardId: string; reserveMinor: number | null; endsAt: Date; sellerId: string | null }>>`
+        SELECT id, status, "cardId", "reserveMinor", "endsAt", "sellerId" FROM "Auction" WHERE id = ${id}::uuid FOR UPDATE`;
       if (!a || a.status !== "LIVE" || a.endsAt > now) return;
       const top = await tx.auctionBid.findFirst({ where: { auctionId: id, status: "LEADING" } });
       if (!top || (a.reserveMinor !== null && top.amountMinor < a.reserveMinor)) {
@@ -416,9 +419,19 @@ export async function settleAuctions(now = new Date()) {
           await release(tx, { userId: top.userId, refId: `bid:${top.id}`, kind: "AUCTION_RELEASE", note: "Reserve not met — MX returned" });
           await tx.auctionBid.update({ where: { id: top.id }, data: { status: "RELEASED" } });
         }
-        await tx.cardInstance.update({ where: { id: a.cardId }, data: { supplyState: "AVAILABLE" } });
+        // Unsold: a manager's card goes back to them; a MATCHX card goes back into packs.
+        if (a.sellerId) await tx.cardInstance.update({ where: { id: a.cardId }, data: { lock: "NONE", lockRef: null } });
+        else await tx.cardInstance.update({ where: { id: a.cardId }, data: { supplyState: "AVAILABLE" } });
         await tx.auction.update({ where: { id }, data: { status: "UNSOLD", settledAt: now } });
         return;
+      }
+      if (a.sellerId) {
+        await lockWallets(tx, top.userId, a.sellerId);
+        await release(tx, { userId: top.userId, refId: `bid:${top.id}`, kind: "AUCTION_RELEASE", note: "Auction won" });
+        await debit(tx, { userId: top.userId, amountMinor: top.amountMinor, kind: "MARKET_PURCHASE", refId: `auction:${id}:win`, note: "Auction won", earnedOnly: true });
+        await tx.auctionBid.update({ where: { id: top.id }, data: { status: "WON" } });
+        await sellAuctionCard(tx, { id, cardId: a.cardId, sellerId: a.sellerId }, top.userId, top.amountMinor, now);
+        return { userId: top.userId, cardId: a.cardId, amount: top.amountMinor, sellerId: a.sellerId };
       }
       await lockWallet(tx, top.userId);
       await release(tx, { userId: top.userId, refId: `bid:${top.id}`, kind: "AUCTION_RELEASE", note: "Auction won" });
@@ -428,17 +441,20 @@ export async function settleAuctions(now = new Date()) {
       await tx.cardInstance.update({ where: { id: a.cardId }, data: { supplyState: "HELD", ownerId: top.userId, lock: "NONE", lockRef: null, tradeStatus } });
       await tx.cardOwnership.create({ data: { cardId: a.cardId, userId: top.userId, acquiredVia: "MARKET", acquiredRef: `auction:${id}`, acquiredAt: now } });
       await tx.auction.update({ where: { id }, data: { status: "SETTLED", winnerId: top.userId, winningBidMinor: top.amountMinor, settledAt: now } });
-      return { userId: top.userId, cardId: a.cardId, amount: top.amountMinor };
+      return { userId: top.userId, cardId: a.cardId, amount: top.amountMinor, sellerId: null as string | null };
     });
-    if (won) await alerts.auctionWon(won.userId, won.cardId, won.amount, id);
+    if (won) {
+      await alerts.auctionWon(won.userId, won.cardId, won.amount, id);
+      if (won.sellerId) await alerts.cardSold(won.sellerId, won.cardId, won.amount, `auction:${id}`);
+    }
   }
   return due.length;
 }
 
 export async function cancelAuction(adminId: string, auctionId: string) {
   return withTx(async (tx) => {
-    const [a] = await tx.$queryRaw<Array<{ id: string; status: string; cardId: string }>>`
-      SELECT id, status, "cardId" FROM "Auction" WHERE id = ${auctionId}::uuid FOR UPDATE`;
+    const [a] = await tx.$queryRaw<Array<{ id: string; status: string; cardId: string; sellerId: string | null }>>`
+      SELECT id, status, "cardId", "sellerId" FROM "Auction" WHERE id = ${auctionId}::uuid FOR UPDATE`;
     if (!a || !["LIVE", "SCHEDULED"].includes(a.status)) throw new DomainError("DONE", "This auction has already closed.");
     const top = await tx.auctionBid.findFirst({ where: { auctionId, status: "LEADING" } });
     if (top) {
@@ -446,9 +462,96 @@ export async function cancelAuction(adminId: string, auctionId: string) {
       await release(tx, { userId: top.userId, refId: `bid:${top.id}`, kind: "AUCTION_RELEASE", note: "Auction cancelled — MX returned" });
       await tx.auctionBid.update({ where: { id: top.id }, data: { status: "RELEASED" } });
     }
-    await tx.cardInstance.update({ where: { id: a.cardId }, data: { supplyState: "AVAILABLE" } });
+    if (a.sellerId) await tx.cardInstance.update({ where: { id: a.cardId }, data: { lock: "NONE", lockRef: null } });
+    else await tx.cardInstance.update({ where: { id: a.cardId }, data: { supplyState: "AVAILABLE" } });
     await tx.auction.update({ where: { id: auctionId }, data: { status: "CANCELLED", settledAt: new Date() } });
     await audit(tx, { actorId: adminId, action: "auction.cancel", entityType: "Auction", entityId: auctionId });
+  });
+}
+
+// ───────────── Manager auctions ─────────────
+
+/** How long a manager's auction can run (product decision 11 Nov 2026). */
+export const AUCTION_HOURS = [3, 12, 24] as const;
+export const ManagerAuctionSchema = z
+  .object({
+    cardId: z.string().uuid(),
+    startPriceMinor: price,
+    buyNowMinor: price.optional(),
+    hours: z.union([z.literal(3), z.literal(12), z.literal(24)]),
+  })
+  .refine((d) => d.buyNowMinor === undefined || d.buyNowMinor > d.startPriceMinor, { message: "The buy-it-now price must be higher than the starting price." });
+
+/** A manager puts one of their own tradeable cards up for auction. */
+export async function createManagerAuction(userId: string, input: z.input<typeof ManagerAuctionSchema>) {
+  await requireFlag("MARKET");
+  await requireFlag("AUCTIONS");
+  const d = ManagerAuctionSchema.parse(input);
+  await assertCanTrade(userId);
+  return withTx(async (tx) => {
+    const card = await lockOwnedCard(tx, userId, d.cardId);
+    if (card.tradeStatus !== "TRADEABLE") throw new DomainError("NOT_TRADEABLE", "This card can't be traded.");
+    if (card.lock !== "NONE") throw new DomainError("CARD_BUSY", "This card is already listed or in a match.");
+    const finish = await tx.cardFinish.findUnique({ where: { cardId: d.cardId }, select: { kind: true } });
+    const cap = maxPriceFor(finish?.kind);
+    if ((d.buyNowMinor ?? d.startPriceMinor) > cap) throw new DomainError("PRICE_CAP", `The maximum price for this card is ${(cap / 100).toLocaleString("en-GB")} MX.`);
+    const now = new Date();
+    const a = await tx.auction.create({
+      data: { cardId: d.cardId, sellerId: userId, startPriceMinor: d.startPriceMinor, buyNowMinor: d.buyNowMinor, startsAt: now, endsAt: new Date(now.getTime() + d.hours * 3_600_000), status: "LIVE" },
+    });
+    await tx.cardInstance.update({ where: { id: d.cardId }, data: { lock: "LISTED", lockRef: a.id } });
+    return a;
+  });
+}
+
+/** The card changes hands at the end of a manager's auction (or on buy-it-now); the seller is paid minus the 5% fee. */
+async function sellAuctionCard(tx: Tx, a: { id: string; cardId: string; sellerId: string }, buyerId: string, priceMinor: number, now: Date) {
+  const fee = feeFor(priceMinor);
+  await credit(tx, { userId: a.sellerId, amountMinor: priceMinor - fee, kind: "MARKET_SALE", bucket: "BONUS", refId: `auction:${a.id}:sale`, note: `Auction sold for ${fmtMp(priceMinor)} (5% fee ${fmtMp(fee)})` });
+  const closed = await tx.cardOwnership.updateMany({ where: { cardId: a.cardId, userId: a.sellerId, releasedAt: null }, data: { releasedAt: now, releasedVia: "MARKET_SALE", releasedRef: `auction:${a.id}` } });
+  if (closed.count !== 1) throw new Error("Seller ownership record missing");
+  await tx.cardOwnership.create({ data: { cardId: a.cardId, userId: buyerId, acquiredVia: "MARKET", acquiredRef: `auction:${a.id}`, acquiredAt: now } });
+  await tx.cardInstance.update({ where: { id: a.cardId }, data: { ownerId: buyerId, lock: "NONE", lockRef: null } });
+  await tx.favouriteCard.deleteMany({ where: { cardId: a.cardId } });
+  await tx.auction.update({ where: { id: a.id }, data: { status: "SETTLED", winnerId: buyerId, winningBidMinor: priceMinor, settledAt: now } });
+  await reviewSale(tx, { listingId: a.id, sellerId: a.sellerId, buyerId, priceMinor, guideMinor: await guidePriceFor(a.cardId, tx) }); // the auction id stands in for the listing
+}
+
+/** Buy a manager's auction outright at its buy-it-now price; any leading bid gets its MX back. */
+export async function buyNowAuction(userId: string, auctionId: string, now = new Date()) {
+  await requireFlag("MARKET");
+  await requireFlag("AUCTIONS");
+  const r = await withTx(async (tx) => {
+    const [a] = await tx.$queryRaw<Array<{ id: string; status: string; cardId: string; endsAt: Date; sellerId: string | null; buyNowMinor: number | null }>>`
+      SELECT id, status, "cardId", "endsAt", "sellerId", "buyNowMinor" FROM "Auction" WHERE id = ${auctionId}::uuid FOR UPDATE`;
+    if (!a || a.status !== "LIVE" || a.endsAt <= now) throw new DomainError("CLOSED", "This auction has closed.");
+    if (!a.sellerId || a.buyNowMinor === null) throw new DomainError("NO_BUY_NOW", "This auction has no buy-it-now price.");
+    if (a.sellerId === userId) throw new DomainError("OWN_AUCTION", "You can't buy your own auction.");
+    await assertCanTrade(userId);
+    const leading = await tx.auctionBid.findFirst({ where: { auctionId, status: "LEADING" } });
+    await lockWallets(tx, userId, a.sellerId, ...(leading ? [leading.userId] : []));
+    if (leading) {
+      await release(tx, { userId: leading.userId, refId: `bid:${leading.id}`, kind: "AUCTION_RELEASE", note: "Bought outright — MX returned" });
+      await tx.auctionBid.update({ where: { id: leading.id }, data: { status: "OUTBID" } });
+    }
+    await debit(tx, { userId, amountMinor: a.buyNowMinor, kind: "MARKET_PURCHASE", refId: `auction:${a.id}:buynow`, note: "Auction — buy it now", earnedOnly: true });
+    await sellAuctionCard(tx, { id: a.id, cardId: a.cardId, sellerId: a.sellerId }, userId, a.buyNowMinor, now);
+    return { cardId: a.cardId, sellerId: a.sellerId, price: a.buyNowMinor, outbid: leading };
+  });
+  if (r.outbid && r.outbid.userId !== userId) await alerts.outbid(r.outbid.userId, r.cardId, auctionId, r.outbid.id);
+  await alerts.cardSold(r.sellerId, r.cardId, r.price, `auction:${auctionId}`);
+  return r;
+}
+
+/** A seller can take their auction down while nobody has bid. */
+export async function cancelMyAuction(userId: string, auctionId: string) {
+  return withTx(async (tx) => {
+    const [a] = await tx.$queryRaw<Array<{ id: string; status: string; cardId: string; sellerId: string | null }>>`
+      SELECT id, status, "cardId", "sellerId" FROM "Auction" WHERE id = ${auctionId}::uuid FOR UPDATE`;
+    if (!a || a.sellerId !== userId || a.status !== "LIVE") throw new DomainError("NOT_FOUND", "Auction not found.");
+    if (await tx.auctionBid.count({ where: { auctionId } })) throw new DomainError("HAS_BIDS", "Someone has bid, so this auction has to run to the end.");
+    await tx.cardInstance.update({ where: { id: a.cardId }, data: { lock: "NONE", lockRef: null } });
+    await tx.auction.update({ where: { id: auctionId }, data: { status: "CANCELLED", settledAt: new Date() } });
   });
 }
 

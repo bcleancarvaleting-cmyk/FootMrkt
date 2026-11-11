@@ -112,6 +112,7 @@ export async function auctionBoard(viewerId: string | null) {
     include: {
       card: { include: CARD_INCLUDE },
       bids: { orderBy: { amountMinor: "desc" }, take: 1, include: { user: { select: { displayName: true } } } },
+      seller: { select: { displayName: true } },
       _count: { select: { bids: true } },
     },
     orderBy: { endsAt: "asc" },
@@ -132,6 +133,9 @@ export async function auctionBoard(viewerId: string | null) {
       youLead: !!viewerId && top?.userId === viewerId,
       minNextMinor: top ? top.amountMinor + a.minIncrementMinor : a.startPriceMinor,
       reserveMet: a.reserveMinor === null || (top?.amountMinor ?? 0) >= a.reserveMinor,
+      seller: a.seller?.displayName ?? null,
+      mine: !!viewerId && a.sellerId === viewerId,
+      buyNowMinor: a.buyNowMinor,
       history: hist.get(key(keys[i].playerId, keys[i].category)) ?? [],
     };
   });

@@ -17,6 +17,7 @@ export async function tick() {
   if ((await rebuildStatus()).state === "running") return { skipped: "rebuild running" };
   const steps: Array<[string, () => Promise<unknown>]> = [
     ["gameweeks & live data", runScheduledJobs],
+    ["top recruiters' prizes", async () => (await import("./referrals")).payRecruiterPrizes()],
     ["daily player drops", async () => (await import("./player-drops")).runDailyDrops()],
     ["standard matches", async () => (await import("./gameweeks")).ensureStandardMatches()],
     ["card releases", executeDueReleases],

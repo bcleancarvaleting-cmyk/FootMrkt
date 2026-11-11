@@ -155,3 +155,25 @@ describe("counter-offers", () => {
     }
   });
 });
+
+describe("top recruiters", () => {
+  it("counts friends who joined and played this month; pays last month's top 3 once", async () => {
+    const { recruiterBoard, payRecruiterPrizes } = await import("@/server/referrals");
+    const a = await makeUser("recA");
+    const b = await makeUser("recB");
+    const now = new Date("2026-12-02T12:00:00Z");
+    const lastMonth = new Date("2026-11-15T12:00:00Z");
+    // Referral rewards (paid when each friend played their first match), dated last month.
+    for (const [who, n] of [[a, 3], [b, 1]] as const) {
+      for (let i = 0; i < n; i++) {
+        const e = await withTx((tx) => grantPack(tx, { userId: who.userId, skuCode: "football-bronze-pick", source: "REWARD", sourceRef: `referral:fake-${who.userId}-${i}` }));
+        await db.packEntitlement.update({ where: { id: e.id }, data: { createdAt: lastMonth } });
+      }
+    }
+    const board = await recruiterBoard("2026-11");
+    expect(board.map((r) => [r.name, r.friends])).toEqual([["recA", 3], ["recB", 1]]);
+    expect(await payRecruiterPrizes(now)).toBe(2);
+    expect(await payRecruiterPrizes(now)).toBe(0); // once only
+    expect(await db.packEntitlement.count({ where: { sourceRef: { startsWith: "referral-month:2026-11:" } } })).toBe(2);
+  });
+});

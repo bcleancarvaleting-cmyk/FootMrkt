@@ -9,7 +9,7 @@ import { AdminTitle } from "../_parts/title";
 export const metadata = { title: "Admin · Settings" };
 
 export default async function SettingsPage() {
-  const [values, fbGroup, whatsapp, referral, hero] = await Promise.all([allSettings(), getText("facebookGroupUrl"), getText("whatsappChannelUrl"), getText("referralRewardSku"), getText("homeHeroImage")]);
+  const [values, fbGroup, whatsapp, referral, hero, monthly] = await Promise.all([allSettings(), getText("facebookGroupUrl"), getText("whatsappChannelUrl"), getText("referralRewardSku"), getText("homeHeroImage"), getText("referralMonthlyPrizeSku")]);
   return (
     <>
       <AdminTitle title="Settings & flags" intro="Game settings, feature switches (pack shop, transfers, auctions, beta…) and the audit log.">
@@ -22,6 +22,7 @@ export default async function SettingsPage() {
           <SettingForm key={k} settingKey={k} label={SETTINGS[k].label} help={SETTINGS[k].help} value={values[k]} min={SETTINGS[k].min} max={SETTINGS[k].max} />
         ))}
         <TextSettingForm settingKey="referralRewardSku" label={TEXT_SETTINGS.referralRewardSku.label} help={TEXT_SETTINGS.referralRewardSku.help} value={referral} options={giftPacks()} />
+        <TextSettingForm settingKey="referralMonthlyPrizeSku" label={TEXT_SETTINGS.referralMonthlyPrizeSku.label} help={TEXT_SETTINGS.referralMonthlyPrizeSku.help} value={monthly} options={giftPacks()} />
       </section>
       <section className="panel space-y-4 p-5">
         <h2 className="text-2xl">Homepage</h2>

@@ -1,3 +1,4 @@
+import { recruiterBoard } from "@/server/referrals";
 import Link from "next/link";
 import { ClubCrest } from "@/components/club-crest";
 import { logoutAction } from "@/app/actions/auth";
@@ -35,6 +36,8 @@ export default async function AccountPage() {
   const referLink = `${origin}/register?ref=${encodeURIComponent(user.displayName)}`;
   const rewardCode = await getText("referralRewardSku");
   const rewardName = FOOTBALL_PACKS.find((p) => p.code === rewardCode)?.name ?? "pack";
+  const [board, monthlyCode] = await Promise.all([recruiterBoard(), getText("referralMonthlyPrizeSku")]);
+  const monthlyName = FOOTBALL_PACKS.find((p) => p.code === monthlyCode)?.name ?? "prize pack";
   const [referred, referralPacks] = await Promise.all([
     db.user.count({ where: { referredById: user.id } }),
     db.packEntitlement.count({ where: { userId: user.id, sourceRef: { startsWith: "referral:" } } }),
@@ -145,6 +148,31 @@ export default async function AccountPage() {
             </a>
           </div>
         </div>
+      </section>
+
+      <section className="rounded-2xl border border-ink-700 bg-ink-900 p-5">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <p className="eyebrow text-gold">This month</p>
+            <h2 className="text-2xl">Top recruiters</h2>
+          </div>
+          <p className="text-xs text-muted">Top 3 on the 1st win a free {monthlyName}</p>
+        </div>
+        {board.length === 0 ? (
+          <p className="mt-3 text-sm text-faint">Nobody yet this month — a friend counts once they&apos;ve joined with your link and played a match. Be first!</p>
+        ) : (
+          <ol className="mt-3 divide-y divide-ink-800 text-sm">
+            {board.map((r) => (
+              <li key={r.userId} className={`flex items-center gap-3 py-2 ${r.userId === user.id ? "font-bold text-lime" : ""}`}>
+                <span className={`w-6 text-center font-display text-lg font-black ${r.rank === 1 ? "text-gold" : r.rank === 2 ? "text-silver" : r.rank === 3 ? "text-bronze" : "text-faint"}`}>{r.rank}</span>
+                <span className="min-w-0 flex-1 truncate">{r.name}</span>
+                <span className="tabular-nums">
+                  {r.friends} friend{r.friends === 1 ? "" : "s"}
+                </span>
+              </li>
+            ))}
+          </ol>
+        )}
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">

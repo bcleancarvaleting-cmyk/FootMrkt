@@ -113,6 +113,11 @@ export const TEXT_SETTINGS = {
     help: "By finishing position, e.g. 1=10, 2=6, 3=4 (a £20 pot). Ties split. Saving also updates this week's cup if it hasn't locked.",
     default: "1=10, 2=6, 3=4",
   },
+  referralMonthlyPrizeSku: {
+    label: "Top recruiters' monthly prize",
+    help: "The free pack each of the month's top 3 recruiters gets (friends who joined with their link and played a match). Sent on the 1st of the next month.",
+    default: "football-gold-pick",
+  },
   homeHeroImage: {
     label: "Homepage hero photo",
     help: "Link to a photo for the homepage hero (e.g. Wembley at night), starting https:// and ending .jpg, .jpeg, .png or .webp — use one you have the rights to (Unsplash and Pexels photos are free to use). Leave blank for the built-in floodlit stadium with the arch.",
@@ -143,7 +148,7 @@ export async function setText(adminId: string, key: TextSettingKey, value: strin
   if (key === "homeHeroImage" && v && !/^https:\/\/[^\s"'<>]+$/i.test(v)) {
     throw new DomainError("URL", "Paste the full image link, starting https:// — e.g. a photo's direct link from Unsplash or Pexels.");
   }
-  if (key === "referralRewardSku") {
+  if (key === "referralRewardSku" || key === "referralMonthlyPrizeSku") {
     const { FOOTBALL_PACKS } = await import("@/config/packs");
     if (!FOOTBALL_PACKS.some((p) => p.code === v && p.kind === "WEEKLY")) throw new DomainError("PACK", "Choose a free pack.");
   }

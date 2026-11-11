@@ -55,7 +55,7 @@ export function BuyPackButton({ skuCode, price, enabled, gold }: { skuCode: stri
         title={enabled ? undefined : "Buying packs by card is coming soon"}
         onClick={() => start(async () => setRes(await buyPackAction(skuCode, crypto.randomUUID())))}
       >
-        {pending ? "…" : enabled ? `${price} by card` : `${price} · Soon`}
+        {pending ? "…" : enabled ? `Pay by card · ${price}` : `Pay by card · ${price} · soon`}
       </button>
       {res && <ResultText result={res} />}
     </span>
@@ -85,7 +85,7 @@ export function XpPackButton({ skuCode, xp, affordable }: { skuCode: string; xp:
   const [pending, start] = useTransition();
   const [res, setRes] = useState<ActionResult<unknown> | null>(null);
   return (
-    <span className="col-span-2 inline-flex flex-col gap-1">
+    <span className="inline-flex flex-col gap-1">
       <button
         className="btn-ghost"
         disabled={pending || !affordable}

@@ -219,9 +219,12 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
                         <div className="mt-auto grid grid-cols-2 gap-2 pt-5">
                           {flags.PACK_SHOP ? (
                             <>
-                              <BuyPackButton skuCode={s.code} price={gbp(s.priceMinor)} enabled={flags.PAID_PACKS} gold={s.code.includes("gold")} />
-                              <CreditPackButton skuCode={s.code} price={fmtMp(s.priceMinor)} affordable={bal.total >= s.priceMinor} />
+                              {/* XP | MX side by side, then card payment full width. */}
                               <XpPackButton skuCode={s.code} xp={xpPriceFor(s.priceMinor, xpRate)} affordable={bal.xp >= xpPriceFor(s.priceMinor, xpRate)} />
+                              <CreditPackButton skuCode={s.code} price={fmtMp(s.priceMinor)} affordable={bal.total >= s.priceMinor} />
+                              <div className="col-span-2 grid">
+                                <BuyPackButton skuCode={s.code} price={gbp(s.priceMinor)} enabled={flags.PAID_PACKS} gold={s.code.includes("gold")} />
+                              </div>
                             </>
                           ) : (
                             <span className="col-span-2 rounded-xl border border-accent/40 bg-accent/5 py-3 text-center text-[11px] font-extrabold uppercase tracking-[0.14em] text-lime">

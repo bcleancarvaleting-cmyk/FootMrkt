@@ -117,3 +117,37 @@ describe("Sportmonks season-to-date import", () => {
     expect(Array.isArray(out)).toBe(true);
   });
 });
+
+describe("Sportmonks nightly squad sync", () => {
+  it("moves a transferred player (cards follow) and adds a new signing", async () => {
+    const { syncSquads } = await import("@/server/live-data");
+    const ids = await link();
+    await db.league.update({ where: { code: "T1" }, data: { code: "EPL" } }); // our two test clubs play in "the Premier League"
+    const mover = ids[0][3];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: URL | string) => {
+        const url = new URL(String(input));
+        const json = (data: unknown) => new Response(JSON.stringify({ data, pagination: { has_more: false } }), { status: 200 });
+        if (/\/leagues\/\d+$/.test(url.pathname)) return json({ id: 8, currentseason: { id: 777 } });
+        const squad = url.pathname.match(/\/squads\/seasons\/777\/teams\/(\d+)$/);
+        if (squad) {
+          const team = Number(squad[1]);
+          const base = (team === 100 ? ids[0].filter((p) => p !== mover) : [...ids[1], mover]).map((p) => ({ player_id: p, position_id: 26, player: { display_name: `P${p}` } }));
+          return json(team === 101 ? [...base, { player_id: 9999, jersey_number: 7, position_id: 27, player: { display_name: "New Signing" } }] : base);
+        }
+        return json([]);
+      }),
+    );
+    const r = await syncSquads();
+    expect(r).toEqual({ moved: 1, added: 1, missing: 0 });
+    const club01 = await db.club.findUniqueOrThrow({ where: { code: "C01" } });
+    const moved = await db.player.findFirstOrThrow({ where: { providerRefs: { equals: { sportmonks: String(mover) } } }, include: { templates: { include: { instances: { take: 1 } } } } });
+    expect(moved.clubId).toBe(club01.id);
+    const signing = await db.player.findFirstOrThrow({ where: { displayName: "New Signing" }, include: { templates: true } });
+    expect(signing).toMatchObject({ clubId: club01.id, position: "ATT" });
+    expect(signing.templates).toHaveLength(1);
+    // Running again changes nothing.
+    expect(await syncSquads()).toEqual({ moved: 0, added: 0, missing: 0 });
+  });
+});

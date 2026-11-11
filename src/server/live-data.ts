@@ -351,3 +351,79 @@ export async function importSeasonToDate(season: string, now = new Date()) {
   }
   return { gameweeks: number, fixtures, openGameweek };
 }
+
+/**
+ * Nightly transfer check (Sportmonks): read every club's current squad and
+ *  - move a player who now appears at another of our clubs (their cards follow them);
+ *  - add a new signing we don't have yet, as a Bronze card (re-tiered by the next value update);
+ *  - leave alone anyone missing from every squad (injured, loaned abroad…) — they're listed for admin.
+ * About 92 API calls. Runs once a day from the scheduled job.
+ */
+export async function syncSquads(actorId: string | null = null) {
+  const src = requireKey();
+  if (src.name !== SPORTMONKS_NAME) return { moved: 0, added: 0, missing: 0 };
+  const { tierFor, MAX_SUPPLY } = await import("@/config/tiers");
+  const { positionOf } = await import("@/providers/football/sportmonks");
+  const sport = await footballSport();
+  const clubs = await db.club.findMany({ include: { league: true } });
+  const players = await db.player.findMany({ select: { id: true, clubId: true, providerRefs: true, displayName: true } });
+  const byRef = new Map(players.flatMap((p) => (refOf(p.providerRefs, src.name) ? [[refOf(p.providerRefs, src.name)!, p] as const] : [])));
+  const seen = new Set<string>();
+  let moved = 0;
+  let added = 0;
+  for (const club of clubs) {
+    const teamId = refOf(club.providerRefs, src.name);
+    const leagueId = src.leagues[club.league.code];
+    if (!teamId || !leagueId) continue;
+    const rows = await smGet<{ player_id: number; jersey_number?: number | null; position_id?: number | null; player?: { display_name?: string; common_name?: string; name?: string; position_id?: number | null } }>(
+      `/squads/seasons/${await sportmonksSeasonId(leagueId)}/teams/${teamId}`,
+      { include: "player" },
+    );
+    for (const r of rows) {
+      const ref = String(r.player_id);
+      seen.add(ref);
+      const ours = byRef.get(ref);
+      if (ours) {
+        if (ours.clubId !== club.id) {
+          await db.player.update({ where: { id: ours.id }, data: { clubId: club.id, active: true } });
+          await audit(db, { actorId, action: "player.move", entityType: "Player", entityId: ours.id, before: { clubId: ours.clubId }, after: { clubId: club.id, via: "sportmonks" } });
+          moved++;
+        }
+        continue;
+      }
+      const position = positionOf({ position_id: r.position_id ?? r.player?.position_id });
+      const name = r.player?.display_name ?? r.player?.common_name ?? r.player?.name;
+      if (!position || !name) continue;
+      const parts = name.trim().split(/\s+/);
+      const player = await db.player.create({
+        data: {
+          sportId: sport.id,
+          clubId: club.id,
+          firstName: parts.length > 1 ? parts[0] : "",
+          lastName: parts.length > 1 ? parts.slice(1).join(" ") : parts[0],
+          displayName: name.length <= 18 || parts.length < 2 ? name : `${parts[0][0]}. ${parts.slice(1).join(" ")}`,
+          position,
+          squadNumber: r.jersey_number ?? null,
+          nationality: "",
+          rightsStatus: "PENDING",
+          providerRefs: { [src.name]: ref },
+        },
+      });
+      const category = tierFor(club.league.tier, r.jersey_number ?? null);
+      await db.cardTemplate.create({ data: { playerId: player.id, category, maxSupply: MAX_SUPPLY[category] } });
+      await audit(db, { actorId, action: "player.add", entityType: "Player", entityId: player.id, after: { name, club: club.code, via: "sportmonks" } });
+      added++;
+    }
+  }
+  const missing = [...byRef.keys()].filter((ref) => !seen.has(ref)).length;
+  await db.appSetting.upsert({ where: { key: "squads.lastSyncAt" }, create: { key: "squads.lastSyncAt", value: Date.now() }, update: { value: Date.now() } });
+  return { moved, added, missing };
+}
+
+/** Scheduled job: the squad sync, at most once a day. */
+export async function dailySquadSync() {
+  if (!liveDataReady() || liveSource().name !== SPORTMONKS_NAME) return null;
+  const last = await db.appSetting.findUnique({ where: { key: "squads.lastSyncAt" } });
+  if (last && Date.now() - Number(last.value) < 20 * 3600_000) return null;
+  return syncSquads();
+}

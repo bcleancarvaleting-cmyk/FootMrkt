@@ -20,6 +20,7 @@ export async function tick() {
     ["welcome packs", grantAllDueWelcomePacks],
     ["weekly reminders & results", weeklyRhythm],
     ["head-to-head", settleH2H],
+    ["squads & transfers (daily)", async () => (await import("./live-data")).dailySquadSync()],
     ["expired logins", async () => (await db.session.deleteMany({ where: { expiresAt: { lt: new Date() } } })).count],
   ];
   const out: Record<string, unknown> = {};

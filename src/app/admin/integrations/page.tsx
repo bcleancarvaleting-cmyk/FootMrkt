@@ -1,0 +1,137 @@
+import { rebuildFromSportmonksAction, removeSportmonksTokenAction, runSportmonksCheckAction, setSportmonksOnAction } from "@/app/actions/integrations";
+import { ActionButton } from "@/components/action-button";
+import { SportmonksTokenForm } from "@/components/integrations-forms";
+import { fmtDate } from "@/lib/view";
+import { db } from "@/server/db";
+import { loadIntegrationState } from "@/server/integrations";
+import { rebuildBlocker, rebuildStatus } from "@/server/rebuild";
+import { secretInfo } from "@/server/secrets";
+import type { CheckLine } from "@/server/sportmonks-check";
+import { AdminTitle } from "../_parts/title";
+
+export const metadata = { title: "Admin · Integrations" };
+export const dynamic = "force-dynamic";
+
+const MARK: Record<CheckLine["level"], string> = { ok: "text-mint", warn: "text-warn", fail: "text-danger", head: "font-semibold text-fg pt-2", info: "text-muted pl-4" };
+const ICON: Record<CheckLine["level"], string> = { ok: "✓ ", warn: "! ", fail: "✗ ", head: "", info: "" };
+
+function Step({ n, title, children, done }: { n: number; title: string; children: React.ReactNode; done?: boolean }) {
+  return (
+    <section className="panel space-y-3 p-5">
+      <h2 className="flex items-center gap-3 font-display text-xl font-extrabold uppercase italic">
+        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm not-italic ${done ? "bg-accent text-accent-ink" : "border border-ink-600 text-muted"}`}>{done ? "✓" : n}</span>
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+export default async function Integrations() {
+  const [state, token, lastCheckRow, rebuild, blocker, players] = await Promise.all([
+    loadIntegrationState(true),
+    secretInfo("sportmonks"),
+    db.appSetting.findUnique({ where: { key: "sportmonks.lastCheck" } }),
+    rebuildStatus(),
+    rebuildBlocker(),
+    db.$queryRaw<Array<{ n: bigint }>>`SELECT count(*) AS n FROM "Player" WHERE active AND "providerRefs" ? 'sportmonks'`.then((r) => Number(r[0]?.n ?? 0)),
+  ]);
+  const fromEnv = !!process.env.SPORTMONKS_API_TOKEN;
+  const hasToken = state.hasSportmonksToken;
+  const lastCheck = lastCheckRow?.value as { at: string; passed: boolean; lines: CheckLine[] } | undefined;
+  const on = state.provider === "sportmonks";
+  return (
+    <>
+      <AdminTitle title="Integrations" intro="Connect Sportmonks (football data for the 92) straight from here — no server settings needed." />
+
+      <Step n={1} title="Sportmonks API token" done={hasToken}>
+        {fromEnv ? (
+          <p className="text-sm text-mint">Set on the server (SPORTMONKS_API_TOKEN). To manage it here instead, remove it from the server settings.</p>
+        ) : token ? (
+          <p className="text-sm">
+            <span className={token.readable ? "text-mint" : "text-danger"}>{token.readable ? "Saved" : "Saved, but can't be read (the server's secret changed) — enter it again"}</span> · ends in{" "}
+            <code className="font-mono">••••{token.last4}</code> · {fmtDate(token.savedAt)}
+          </p>
+        ) : (
+          <p className="text-sm text-muted">Not connected yet. On my.sportmonks.com open the menu → API → Tokens, create a token and paste it below.</p>
+        )}
+        {!fromEnv && <SportmonksTokenForm hasToken={!!token} />}
+        {!fromEnv && token && (
+          <ActionButton action={removeSportmonksTokenAction} className="btn-ghost px-4 py-2 text-xs text-danger" confirm="Remove the saved Sportmonks token? Live scores stop until a new one is saved.">
+            Remove token
+          </ActionButton>
+        )}
+      </Step>
+
+      <Step n={2} title="Test the connection" done={!!lastCheck?.passed}>
+        <p className="text-sm text-muted">
+          Checks your plan&apos;s leagues, every league&apos;s clubs, a squad, and that last week&apos;s real matches add up — scorers, minutes and goals conceded. Read-only; about 15 of your 2,000 hourly calls.
+        </p>
+        <ActionButton action={runSportmonksCheckAction} className="btn-primary px-5 py-2.5 text-xs" disabled={!hasToken}>
+          Test connection
+        </ActionButton>
+        {lastCheck && (
+          <div className="rounded-xl border border-ink-700 bg-ink-900 p-3">
+            <p className={`mb-2 text-sm font-semibold ${lastCheck.passed ? "text-mint" : "text-danger"}`}>
+              {lastCheck.passed ? "Passed" : "Problems found"} · {fmtDate(new Date(lastCheck.at))}
+            </p>
+            <ul className="space-y-0.5 font-mono text-xs">
+              {lastCheck.lines.map((l, i) => (
+                <li key={i} className={MARK[l.level]}>
+                  {ICON[l.level]}
+                  {l.text}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </Step>
+
+      <Step n={3} title="Rebuild the game from Sportmonks" done={rebuild.state === "done" || players > 1500}>
+        <p className="text-sm text-muted">
+          For a test site: replaces the starter data with the real 92 squads and this season&apos;s real matches, so values, tiers and form start from real results. Takes several minutes. Everyone is
+          logged out and test accounts and cards are cleared; saved keys and settings are kept. Log back in with the admin account you set up on the host.
+        </p>
+        {rebuild.state !== "idle" && (
+          <div className="rounded-xl border border-ink-700 bg-ink-900 p-3">
+            <p className={`mb-2 text-sm font-semibold ${rebuild.state === "done" ? "text-mint" : rebuild.state === "failed" ? "text-danger" : "text-warn"}`}>
+              {rebuild.state === "running" ? "Running… refresh to follow it" : rebuild.state === "done" ? "Finished" : `Failed: ${rebuild.error}`}
+              {rebuild.startedAt ? ` · started ${fmtDate(new Date(rebuild.startedAt))}` : ""}
+            </p>
+            <ul className="max-h-60 space-y-0.5 overflow-y-auto font-mono text-xs text-muted">
+              {rebuild.log.map((l, i) => (
+                <li key={i}>{l}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {blocker ? (
+          <p className="text-sm text-faint">{blocker}</p>
+        ) : (
+          <ActionButton
+            action={rebuildFromSportmonksAction}
+            className="btn-primary px-5 py-2.5 text-xs"
+            disabled={!lastCheck?.passed}
+            confirm="Rebuild the game from Sportmonks? Test accounts, cards and history are cleared and everyone is logged out. This takes several minutes."
+          >
+            Rebuild from Sportmonks
+          </ActionButton>
+        )}
+        {!lastCheck?.passed && !blocker && <p className="text-xs text-faint">Run the connection test first — the rebuild unlocks once it passes.</p>}
+      </Step>
+
+      <Step n={4} title="Data provider" done={on}>
+        <p className="text-sm">
+          Now: <b>{on ? "Sportmonks" : "development data (Wikipedia squads, simulated matches)"}</b>
+          {process.env.DATA_PROVIDER ? " — set on the server (DATA_PROVIDER)" : ""}.
+        </p>
+        <p className="text-sm text-muted">Live scores, the nightly transfer check and the &ldquo;Football data powered by Sportmonks&rdquo; credit follow this switch. The rebuild switches it on for you.</p>
+        {!process.env.DATA_PROVIDER && (
+          <ActionButton action={setSportmonksOnAction.bind(null, !on)} className="btn-ghost px-4 py-2 text-xs" disabled={!on && !hasToken}>
+            {on ? "Switch back to development data" : "Switch data to Sportmonks"}
+          </ActionButton>
+        )}
+      </Step>
+    </>
+  );
+}

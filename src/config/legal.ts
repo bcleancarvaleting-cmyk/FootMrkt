@@ -1,4 +1,3 @@
-import { usingSportmonks } from "./data-credit";
 /**
  * Legal pages. DRAFTS written for the soft launch — every page must be reviewed by a UK solicitor
  * before real money is enabled (paid packs, deposits, withdrawals and trading are legal-gated).
@@ -107,15 +106,20 @@ export const LEGAL_DOCS: LegalDoc[] = [
     title: "Data & licensing",
     summary: "Where player data, images and stats come from.",
     sections: [
-      ...(usingSportmonks()
-        ? ([
-            ["Football data", ["Squads, fixtures, results and player statistics are supplied by Sportmonks (sportmonks.com). Club crests and shirts are generic lookalikes, not official marks."]],
-          ] as Array<[string, string[]]>)
-        : ([
-            ["Development build", ["Squads come from Wikipedia (CC BY-SA). Match data is simulated during testing. Club crests and shirts are generic lookalikes, not official marks."]],
-            ["Launch", ["Before launch, squads and player statistics will be supplied by our licensed data provider, Sportmonks."]],
-          ] as Array<[string, string[]]>)),
+
       ["No affiliation", ["MATCHX is not affiliated with or endorsed by any club, league or player."]],
     ],
   },
 ];
+
+/** The Data & licensing page's first sections depend on whether Sportmonks supplies the data yet. */
+export function withDataSource(doc: LegalDoc, sportmonks: boolean): LegalDoc {
+  if (doc.slug !== "data") return doc;
+  const source: Array<[string, string[]]> = sportmonks
+    ? [["Football data", ["Squads, fixtures, results and player statistics are supplied by Sportmonks (sportmonks.com). Club crests and shirts are generic lookalikes, not official marks."]]]
+    : [
+        ["Development build", ["Squads come from Wikipedia (CC BY-SA). Match data is simulated during testing. Club crests and shirts are generic lookalikes, not official marks."]],
+        ["Launch", ["Before launch, squads and player statistics will be supplied by our licensed data provider, Sportmonks."]],
+      ];
+  return { ...doc, sections: [...source, ...doc.sections] };
+}

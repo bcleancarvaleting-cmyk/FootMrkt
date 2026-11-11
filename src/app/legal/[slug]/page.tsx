@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { LEGAL_DOCS, LEGAL_UPDATED } from "@/config/legal";
+import { LEGAL_DOCS, LEGAL_UPDATED, withDataSource } from "@/config/legal";
+import { usingSportmonks } from "@/config/data-credit";
 
-export function generateStaticParams() {
-  return LEGAL_DOCS.map((d) => ({ slug: d.slug }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -14,8 +13,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function LegalPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const doc = LEGAL_DOCS.find((d) => d.slug === slug);
-  if (!doc) notFound();
+  const found = LEGAL_DOCS.find((d) => d.slug === slug);
+  if (!found) notFound();
+  const doc = withDataSource(found, await usingSportmonks());
   return (
     <div className="grid gap-10 lg:grid-cols-[220px_1fr]">
       <nav className="hidden lg:block" aria-label="Legal">

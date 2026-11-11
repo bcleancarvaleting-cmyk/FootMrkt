@@ -11,7 +11,8 @@ import {
   messagesForFixture,
   nameKey,
 } from "@/providers/football/api-football";
-import { FIXTURE_INCLUDES, SPORTMONKS_LEAGUES, SPORTMONKS_NAME, type SmFixture, smGet, smGetOne, sportmonksConfigured, toSharedFixture } from "@/providers/football/sportmonks";
+import { FIXTURE_INCLUDES, SPORTMONKS_LEAGUES, SPORTMONKS_NAME, type SmFixture, smGet, smGetOne, toSharedFixture } from "@/providers/football/sportmonks";
+import { currentProvider, hasSportmonksToken, loadIntegrationState } from "./integrations";
 import type { FootballDataProvider } from "@/providers/football/types";
 import { audit } from "./audit";
 import { db } from "./db";
@@ -81,7 +82,7 @@ export async function sportmonksSeasonId(leagueId: number) {
 const sportmonksSource: LiveSource = {
   name: SPORTMONKS_NAME,
   label: "Sportmonks",
-  configured: sportmonksConfigured,
+  configured: hasSportmonksToken,
   provider: { ...apiFootballProvider, name: SPORTMONKS_NAME },
   leagues: SPORTMONKS_LEAGUES,
   async teams(leagueId) {
@@ -108,16 +109,17 @@ const sportmonksSource: LiveSource = {
 
 /** The provider in use: Sportmonks if switched on, else API-Football if its key is set. */
 export function liveSource(): LiveSource {
-  return process.env.DATA_PROVIDER === SPORTMONKS_NAME || (sportmonksConfigured() && !apiFootballConfigured()) ? sportmonksSource : apiFootballSource;
+  return currentProvider() === SPORTMONKS_NAME || (hasSportmonksToken() && !apiFootballConfigured()) ? sportmonksSource : apiFootballSource;
 }
 
 export function liveDataReady() {
   return liveSource().configured();
 }
 
-function requireKey() {
+async function requireKey() {
+  await loadIntegrationState();
   const src = liveSource();
-  if (!src.configured()) throw new DomainError("NO_PROVIDER", "Connect a football data provider first: set DATA_PROVIDER=sportmonks (with its API token saved), or API_FOOTBALL_KEY.");
+  if (!src.configured()) throw new DomainError("NO_PROVIDER", "Connect a football data provider first: add the Sportmonks API token in Admin → Integrations, or set API_FOOTBALL_KEY.");
   return src;
 }
 
@@ -137,7 +139,7 @@ const clubKey = (s: string) =>
 
 /** Step 1: link our clubs to the provider's teams, league by league. */
 export async function linkClubs(season: string, actorId: string | null) {
-  const src = requireKey();
+  const src = await requireKey();
   const leagues = await db.league.findMany({ include: { clubs: true } });
   const report: Array<{ league: string; linked: number; unmatched: string[] }> = [];
   for (const league of leagues) {
@@ -166,7 +168,7 @@ export async function linkClubs(season: string, actorId: string | null) {
 
 /** Step 2: link players to the provider's squad lists, by name within each linked club. */
 export async function linkPlayers(actorId: string | null, onlyClubIds?: string[]) {
-  const src = requireKey();
+  const src = await requireKey();
   const clubs = await db.club.findMany({ where: onlyClubIds ? { id: { in: onlyClubIds } } : {}, include: { league: true, players: { where: { active: true } } } });
   let linked = 0;
   const unmatched: Array<{ club: string; provider: string[] }> = [];
@@ -199,6 +201,7 @@ export async function setPlayerProviderId(playerId: string, providerId: string, 
 
 /** Coverage: how much of the catalogue is linked. */
 export async function liveCoverage() {
+  await loadIntegrationState();
   const name = liveSource().name;
   const [row] = await db.$queryRaw<Array<{ clubs: bigint; linked_clubs: bigint; players: bigint; linked_players: bigint }>>`
     SELECT (SELECT count(*) FROM "Club") AS clubs,
@@ -219,7 +222,7 @@ export async function unlinkedPlayers(take = 40) {
 
 /** Step 3: create a gameweek from every real fixture in our leagues between two dates. */
 export async function createLiveGameweek(args: { season: string; number: number; from: string; to: string; opensAt: Date; actorId: string | null }) {
-  const src = requireKey();
+  const src = await requireKey();
   const clubs = await db.club.findMany({ select: { id: true, providerRefs: true } });
   const clubByTeam = new Map(clubs.flatMap((c) => (refOf(c.providerRefs) ? [[refOf(c.providerRefs)!, c.id] as const] : [])));
   const fixtures: Array<{ providerFixtureId: string; homeClubId: string; awayClubId: string; kickoffAt: Date }> = [];
@@ -236,7 +239,7 @@ export async function createLiveGameweek(args: { season: string; number: number;
 
 /** Step 4: poll every live-data fixture that has kicked off and isn't final yet, then rescore. */
 export async function syncLiveGameweek(gameweekId: string, actorId: string | null = null) {
-  const src = requireKey();
+  const src = await requireKey();
   const gw = await db.gameweek.findUniqueOrThrow({ where: { id: gameweekId } });
   const due = await db.fixture.findMany({
     where: { gameweekId, provider: src.name, finalisedAt: null, kickoffAt: { lte: new Date() } },
@@ -257,6 +260,7 @@ export async function syncLiveGameweek(gameweekId: string, actorId: string | nul
 
 /** Scheduled job: sync every unsettled live-data gameweek. */
 export async function syncLiveData() {
+  await loadIntegrationState();
   if (!liveDataReady()) return [];
   const sport = await footballSport();
   const gws = await db.gameweek.findMany({ where: { sportId: sport.id, status: { not: "SETTLED" }, fixtures: { some: { provider: liveSource().name } } } });
@@ -272,7 +276,7 @@ export async function syncLiveData() {
  * entries. Uses about 40 API calls for a full season to mid-November.
  */
 export async function importSeasonToDate(season: string, now = new Date()) {
-  const src = requireKey();
+  const src = await requireKey();
   const { finaliseGameweek } = await import("./gameweeks");
   const DAY = 86_400_000;
   const clubs = await db.club.findMany({ select: { id: true, providerRefs: true } });
@@ -360,7 +364,7 @@ export async function importSeasonToDate(season: string, now = new Date()) {
  * About 92 API calls. Runs once a day from the scheduled job.
  */
 export async function syncSquads(actorId: string | null = null) {
-  const src = requireKey();
+  const src = await requireKey();
   if (src.name !== SPORTMONKS_NAME) return { moved: 0, added: 0, missing: 0 };
   const { tierFor, MAX_SUPPLY } = await import("@/config/tiers");
   const { positionOf } = await import("@/providers/football/sportmonks");
@@ -422,6 +426,7 @@ export async function syncSquads(actorId: string | null = null) {
 
 /** Scheduled job: the squad sync, at most once a day. */
 export async function dailySquadSync() {
+  await loadIntegrationState();
   if (!liveDataReady() || liveSource().name !== SPORTMONKS_NAME) return null;
   const last = await db.appSetting.findUnique({ where: { key: "squads.lastSyncAt" } });
   if (last && Date.now() - Number(last.value) < 20 * 3600_000) return null;

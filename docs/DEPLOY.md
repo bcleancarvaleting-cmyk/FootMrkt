@@ -75,3 +75,18 @@ In Stripe: Developers → Webhooks → add `https://your-domain/api/webhooks/pay
 `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
 `checkout.session.async_payment_failed`, `checkout.session.expired`. Copy the signing secret into
 `STRIPE_WEBHOOK_SECRET`.
+
+## 8. Football data (Sportmonks) — from your phone
+
+No server settings needed. Once the site is up:
+
+1. Log in as the admin and open **Admin → Integrations**.
+2. Paste your Sportmonks API token (my.sportmonks.com → API → Tokens). It's checked with Sportmonks,
+   then stored encrypted.
+3. Press **Test connection**. It checks the plan's leagues, every league's clubs, a squad, and that
+   last week's real matches add up.
+4. On a test site, press **Rebuild from Sportmonks** to replace the starter data with the real 92
+   squads and this season's real matches (several minutes; log in again afterwards).
+5. Data now comes from Sportmonks: live scores, the nightly transfer check and the footer credit.
+
+(`SPORTMONKS_API_TOKEN` and `DATA_PROVIDER=sportmonks` on the server still work and take priority.)

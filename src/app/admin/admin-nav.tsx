@@ -36,7 +36,7 @@ export const ADMIN_MENU: Array<{ group: string; items: Array<{ href: string; lab
     ],
   },
   { group: "Marketing", items: [{ href: "/admin/social", label: "Social content" }] },
-  { group: "System", items: [{ href: "/admin/emails", label: "Emails" }, { href: "/admin/settings", label: "Settings & flags" }] },
+  { group: "System", items: [{ href: "/admin/integrations", label: "Integrations" }, { href: "/admin/emails", label: "Emails" }, { href: "/admin/settings", label: "Settings & flags" }] },
 ];
 
 export function AdminNav() {

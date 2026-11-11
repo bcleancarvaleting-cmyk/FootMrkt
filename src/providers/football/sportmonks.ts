@@ -79,9 +79,10 @@ export interface SmFixture {
   events?: SmEvent[] | null;
 }
 
-export function sportmonksConfigured() {
-  // The token is injected by the network proxy, or read from SPORTMONKS_API_TOKEN.
-  return process.env.DATA_PROVIDER === SPORTMONKS_NAME || !!process.env.SPORTMONKS_API_TOKEN;
+/** Where the token comes from (Admin → Integrations, or SPORTMONKS_API_TOKEN); set by the server. */
+let tokenSource: () => Promise<string | null> = async () => process.env.SPORTMONKS_API_TOKEN ?? null;
+export function setSportmonksTokenSource(fn: () => Promise<string | null>) {
+  tokenSource = fn;
 }
 
 /** GET from Sportmonks, following every page. */
@@ -92,7 +93,8 @@ export async function smGet<T>(path: string, params: Record<string, string | num
     for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
     url.searchParams.set("page", String(page));
     if (!url.searchParams.has("per_page")) url.searchParams.set("per_page", "50");
-    const token = process.env.SPORTMONKS_API_TOKEN;
+    // Sportmonks takes the token on its own in the Authorization header (no "Bearer").
+    const token = await tokenSource();
     const res = await fetch(url, { headers: { Accept: "application/json", ...(token ? { Authorization: token } : {}) }, cache: "no-store" });
     const body = (await res.json().catch(() => ({}))) as { data?: T | T[]; message?: string; pagination?: { has_more?: boolean } };
     if (!res.ok) throw new Error(`Sportmonks ${path} failed: HTTP ${res.status}${body.message ? ` — ${body.message}` : ""}`);
@@ -224,4 +226,16 @@ export function positionOf(p: { position_id?: number | null; position?: SmType |
   if (n.startsWith("MID")) return "MID";
   if (n.startsWith("ATT") || n.startsWith("FORW") || n.startsWith("STRIK")) return "ATT";
   return ({ 24: "GK", 25: "DEF", 26: "MID", 27: "ATT" } as const)[p.position_id as 24 | 25 | 26 | 27] ?? null;
+}
+
+/** Check a token before saving it: Sportmonks lists the leagues on the plan, or says it's invalid. */
+export async function testSportmonksToken(token: string): Promise<{ ok: true; leagues: string[] } | { ok: false; message: string }> {
+  try {
+    const res = await fetch(`${BASE}/leagues?per_page=50`, { headers: { Accept: "application/json", Authorization: token }, cache: "no-store" });
+    const body = (await res.json().catch(() => ({}))) as { data?: Array<{ name: string }>; message?: string };
+    if (!res.ok) return { ok: false, message: body.message ?? `HTTP ${res.status}` };
+    return { ok: true, leagues: (body.data ?? []).map((l) => l.name) };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "Sportmonks didn't respond" };
+  }
 }

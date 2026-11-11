@@ -1,7 +1,8 @@
 # MATCHX TEST SITE on Render (free plan). Everything switched on, pretend card payments, simulated
 # match data. NOT for real money: no real payment provider is connected.
 # Render dashboard → New → Blueprint → pick this repository and branch. You'll be asked for an
-# admin password; then wait for the first deploy (about 5–10 minutes).
+# admin password; then wait for the first deploy (about 5–10 minutes). Then connect Sportmonks from
+# the site itself: Admin → Integrations (see docs/DEPLOY.md, step 8).
 services:
   - type: web
     name: matchx-test

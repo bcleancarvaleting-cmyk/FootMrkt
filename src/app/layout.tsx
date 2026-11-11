@@ -56,7 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <StatsTicker initial={stats} />
         <Header theme={theme} unopenedPacks={unopened} />
         <main className={`mx-auto w-full max-w-6xl flex-1 px-4 pt-6 sm:px-6 ${user ? "pb-32 md:pb-16" : "pb-16"}`}>{children}</main>
-        <SiteFooter loggedIn={!!user} />
+        <SiteFooter loggedIn={!!user} credit={await dataCredit()} />
         {user && <BottomNav unopenedPacks={unopened} />}
         {user && <AppTracker />}
         {user && user.realityCheckMinutes > 0 && <RealityCheck minutes={user.realityCheckMinutes} spentToday={fmtGbp(paidToday)} />}
@@ -72,7 +72,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   );
 }
 
-function SiteFooter({ loggedIn }: { loggedIn: boolean }) {
+function SiteFooter({ loggedIn, credit }: { loggedIn: boolean; credit: string }) {
   const cols: [string, [string, string][]][] = [
     ["Play", [["Packs", "/packs"], ["Transfers", "/transfers"], ["Matches", "/matches"], ["Top performers", "/top-performers"], ["Hall of Fame", "/hall-of-fame"], ["How it works", "/how-it-works"]]],
     ["Account", [["My Club", "/account/club"], ["Challenges", "/account/challenges"], ["Wallet", "/account/wallet"], ["Profile", "/account/profile"]]],
@@ -84,7 +84,7 @@ function SiteFooter({ loggedIn }: { loggedIn: boolean }) {
         <div className="space-y-3">
           <Logo height={20} />
           <p className="max-w-xs text-xs leading-relaxed text-faint">
-            Player values go up and down. MX is an in-game valuation, not an investment. 18+ only. {dataCredit()}
+            Player values go up and down. MX is an in-game valuation, not an investment. 18+ only. {credit}
           </p>
         </div>
         {cols.map(([h, links]) => (

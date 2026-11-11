@@ -12,9 +12,11 @@ beforeEach(async () => {
   await resetDb();
   await buildWorld();
   process.env.DATA_PROVIDER = "sportmonks";
+  process.env.SPORTMONKS_API_TOKEN = "test-token";
 });
 afterEach(() => {
   delete process.env.DATA_PROVIDER;
+  delete process.env.SPORTMONKS_API_TOKEN;
   vi.unstubAllGlobals();
 });
 

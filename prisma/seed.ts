@@ -193,6 +193,11 @@ async function main() {
   }
   const gw = await createGameweek({ season: data.season, number: HISTORY_GAMEWEEKS + 1, opensAt: new Date(now), firstKickoffAt: new Date(now + 3 * DAY), actorId: null });
   console.log(`Gameweek ${gw.number} open for entries`);
+  // Test sites: let brand-new testers use the Transfer list straight away.
+  if (process.env.TEST_SITE === "true") {
+    await db.appSetting.upsert({ where: { key: "newTraderDays" }, create: { key: "newTraderDays", value: 0 }, update: { value: 0 } });
+    console.log("Test site: new accounts can trade immediately");
+  }
 }
 
 main()

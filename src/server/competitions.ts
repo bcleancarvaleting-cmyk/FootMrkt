@@ -302,6 +302,75 @@ export async function updateCompetitionRules(adminId: string, competitionId: str
   });
 }
 
+export const PRIZE_PACKS = { BRONZE: "football-eng-bronze", SILVER: "football-eng-silver", GOLD: "football-eng-gold" } as const;
+export const NewMatchSchema = z.object({
+  gameweekId: z.string().uuid(),
+  name: z.string().trim().min(3, "Give the match a name").max(40),
+  kind: z.enum(["CARDS", "DRAFT"]).default("CARDS"),
+  league: z.string().max(10).optional(),
+  tier: z.enum(["BRONZE", "SILVER", "GOLD"]).optional(),
+  freeCardsOnly: z.boolean().default(false),
+  foundersOnly: z.boolean().default(false),
+  maxPerClub: z.number().int().min(1).max(7).optional(),
+  draftBudgetMx: z.number().int().min(10).max(1000).optional(),
+  entryFeeMinor: z.number().int().min(0).max(10_000).default(0),
+  winnerPack: z.enum(["BRONZE", "SILVER", "GOLD"]).optional(),
+  top3Pack: z.enum(["BRONZE", "SILVER", "GOLD"]).optional(),
+  everyonePack: z.enum(["BRONZE", "SILVER", "GOLD"]).optional(),
+  prizes: z.string().max(200).optional(),
+});
+
+/** Admin → Matches: add an extra match to a gameweek that hasn't locked yet (e.g. a League One Cup). */
+export async function createMatch(adminId: string, input: z.input<typeof NewMatchSchema>) {
+  const m = NewMatchSchema.parse(input);
+  const gw = await db.gameweek.findUnique({ where: { id: m.gameweekId }, include: { competitions: { select: { locksAt: true, entryOpensAt: true, code: true, rosterRules: true, scoringRules: true } } } });
+  if (!gw || !["UPCOMING", "OPEN"].includes(gw.status)) throw new DomainError("LOCKED", "Pick a gameweek that's still open for entries.");
+  if (m.league && !(await db.league.findUnique({ where: { code: m.league } }))) throw new DomainError("LEAGUE", "Unknown league.");
+  if (m.kind === "DRAFT" && m.tier) throw new DomainError("RULES", "Free draft matches use any players, so there's no card tier.");
+  const requirements = RequirementsSchema.parse({
+    leagues: m.league ? [m.league] : undefined,
+    freeCardsOnly: m.kind === "CARDS" && m.freeCardsOnly ? true : undefined,
+    foundersOnly: m.foundersOnly || undefined,
+    maxPerClub: m.maxPerClub,
+    draftBudgetMx: m.kind === "DRAFT" ? (m.draftBudgetMx ?? 70) : undefined,
+  });
+  const cash = m.prizes?.trim() ? parsePrizes(m.prizes) : [];
+  assertPrizeRules(m.entryFeeMinor, requirements, cash);
+  const rewards = [
+    ...(m.winnerPack ? [{ rankFrom: 1, rankTo: 1, packSkuCode: PRIZE_PACKS[m.winnerPack] }] : []),
+    ...(m.top3Pack ? [{ rankFrom: m.winnerPack ? 2 : 1, rankTo: 3, packSkuCode: PRIZE_PACKS[m.top3Pack] }] : []),
+    ...(m.everyonePack ? [{ rankFrom: m.winnerPack || m.top3Pack ? (m.top3Pack ? 4 : 2) : 1, rankTo: 1_000_000, packSkuCode: PRIZE_PACKS[m.everyonePack] }] : []),
+    ...cash,
+  ];
+  // Same deadline and rules as the gameweek's other matches.
+  const ref = gw.competitions[0];
+  const locksAt = ref?.locksAt ?? new Date(gw.startsAt.getTime() - 10 * 60_000);
+  const opensAt = ref?.entryOpensAt ?? new Date();
+  const key = ref?.code.split("-").slice(0, -1).join("-") || `gw-${gw.season}-${gw.number}`;
+  const slug = m.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "match";
+  return withTx(async (tx) => {
+    const c = await tx.competition.create({
+      data: {
+        sportId: gw.sportId,
+        gameweekId: gw.id,
+        code: `${key}-${slug}-${Date.now().toString(36)}`,
+        name: `${m.name} · GW${gw.number}`,
+        format: m.tier ? (`${m.tier}_ONLY` as "BRONZE_ONLY" | "SILVER_ONLY" | "GOLD_ONLY") : "OPEN",
+        rosterRules: ref?.rosterRules ?? "football-roster-v3",
+        scoringRules: ref?.scoringRules ?? "football-scoring-v2-draft",
+        rewards: rewards as never,
+        requirements: requirements as never,
+        entryFeeMinor: m.entryFeeMinor,
+        entryOpensAt: opensAt,
+        locksAt,
+        status: opensAt <= new Date() ? "OPEN" : "UPCOMING",
+      },
+    });
+    await audit(tx, { actorId: adminId, action: "competition.create", entityType: "Competition", entityId: c.id, after: { name: c.name, requirements, rewards, fee: m.entryFeeMinor } });
+    return c;
+  });
+}
+
 /** Move competitions through their windows. Safe to run repeatedly (scheduled job). */
 export async function advanceCompetitionWindows(now = new Date()) {
   const opened = await db.competition.updateMany({

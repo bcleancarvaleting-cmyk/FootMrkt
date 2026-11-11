@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { applyPrizeFundAction, backfillFoundersAction, lockHeldCardsAction, cancelAuctionAction, cancelDropAction, clearHouseAction, launchMixAction, processWithdrawalAction, toggleChallengeAction, updateWelcomeGiftAction } from "@/app/actions/economy";
 import { ActionButton } from "@/components/action-button";
-import { AuctionForm, ChallengeForm, DropForm, HouseStockForm, MatchRulesForm, PinnedListingsForm, WelcomeGiftForm } from "@/components/admin-forms";
+import { AuctionForm, ChallengeForm, CreateMatchForm, DropForm, HouseStockForm, MatchRulesForm, PinnedListingsForm, WelcomeGiftForm } from "@/components/admin-forms";
 import { isEnabled } from "@/server/flags";
 import { PRIZE_FUND_SHARE, prizeFund } from "@/server/prize-fund";
 import { fmtGbp as gbpFmt } from "@/server/wallet";
@@ -45,6 +45,14 @@ export async function EconomySections({ only }: { only: string[] }) {
     isEnabled("PAID_PACKS"),
     prizeFund(),
   ]);
+  const [leagueRows, openGws] = show("matchrules")
+    ? await Promise.all([
+        db.league.findMany({ orderBy: { tier: "asc" }, select: { code: true, name: true } }),
+        db.gameweek.findMany({ where: { status: { in: ["UPCOMING", "OPEN"] } }, orderBy: [{ season: "asc" }, { number: "asc" }], select: { id: true, number: true, season: true } }),
+      ])
+    : [[], []];
+  const leagueOpts = leagueRows.map((l) => ({ value: l.code, label: l.name }));
+  const gwOpts = openGws.map((g) => ({ value: g.id, label: `GW${g.number} · ${g.season}` }));
   const freerolls = comps.filter((c) => ((c.requirements ?? {}) as Requirements).freeCardsOnly && c.entryFeeMinor === 0);
   const houseActive = house.find((h) => h.status === "ACTIVE")?._count._all ?? 0;
   const houseSold = house.find((h) => h.status === "SOLD");
@@ -215,6 +223,11 @@ export async function EconomySections({ only }: { only: string[] }) {
       {show("matchrules") && (
       <Section title="Match entry rules" intro="£ prizes are only allowed on free-entry matches with 'Free cards only', so nothing anyone bought can improve their chances of real money. Matches with an MX entry fee pay MX or pack prizes. MX entry fees are charged once PAID_ENTRY is cleared; fees can't change after someone has entered.">
         <div className="space-y-5">
+          <div className="rounded-xl border border-accent/40 p-4">
+            <h3 className="mb-1 font-bold">Create a match</h3>
+            <p className="mb-3 text-xs text-muted">Adds an extra match to a gameweek that&apos;s still open, with the same deadline as the others. Pick the league and rules from the drop-downs.</p>
+            {gwOpts.length ? <CreateMatchForm gameweeks={gwOpts} leagues={leagueOpts} /> : <p className="text-sm text-faint">No gameweek is open for entries right now.</p>}
+          </div>
           {comps.map((c) => (
             <div key={c.id} className="border-t border-ink-700 pt-4 first:border-0 first:pt-0">
               <p className="mb-2 text-sm">
@@ -224,6 +237,7 @@ export async function EconomySections({ only }: { only: string[] }) {
                 id={c.id}
                 fee={c.entryFeeMinor}
                 req={(c.requirements ?? {}) as Requirements}
+                leagues={leagueOpts}
                 prizes={((c.rewards as Array<{ rankFrom: number; rankTo: number; cashMinor?: number }>) ?? []).filter((r) => r.cashMinor).map((r) => `${r.rankFrom === r.rankTo ? r.rankFrom : `${r.rankFrom}-${r.rankTo}`}=${r.cashMinor! / 100}`).join(", ")}
               />
             </div>

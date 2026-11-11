@@ -167,17 +167,7 @@ export async function seedWorld(data: WorldData, opts: { realHistory?: boolean; 
   log(`Initial supply release minted ${r.minted} cards`);
   await revalueAll(new Date(now - 28 * DAY));
 
-  const adminEmail = (process.env.SEED_ADMIN_EMAIL ?? "admin@matchx.dev").toLowerCase();
-  await db.user.create({
-    data: {
-      email: adminEmail,
-      displayName: "Admin",
-      passwordHash: await hashPassword(process.env.SEED_ADMIN_PASSWORD ?? "matchx-admin"),
-      role: "ADMIN",
-      emailVerifiedAt: new Date(),
-    },
-  });
-  log(`Admin account: ${adminEmail}`);
+  log(`Admin account: ${await ensureAdmin()}`);
 
   if (opts.realHistory) {
     // Real history: every match played so far this season, scored and settled week by week, so
@@ -201,4 +191,18 @@ export async function seedWorld(data: WorldData, opts: { realHistory?: boolean; 
     await db.appSetting.upsert({ where: { key: "newTraderDays" }, create: { key: "newTraderDays", value: 0 }, update: { value: 0 } });
     log("Test site: new accounts can trade immediately");
   }
+}
+
+/**
+ * Make sure the host's admin account (SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD) exists, so the site
+ * can never be left without a way in: run at every start-up and straight after a rebuild clears
+ * the data. An existing account is left exactly as it is.
+ */
+export async function ensureAdmin() {
+  const email = (process.env.SEED_ADMIN_EMAIL ?? "admin@matchx.dev").toLowerCase();
+  if (await db.user.findUnique({ where: { email } })) return email;
+  await db.user.create({
+    data: { email, displayName: "Admin", passwordHash: await hashPassword(process.env.SEED_ADMIN_PASSWORD ?? "matchx-admin"), role: "ADMIN", emailVerifiedAt: new Date() },
+  });
+  return email;
 }

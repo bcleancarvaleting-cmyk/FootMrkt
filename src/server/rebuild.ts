@@ -15,14 +15,17 @@ import { reportError } from "./monitoring";
  * SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD account.
  */
 const STATUS_KEY = "rebuild.status";
+/** When this server process started: a rebuild runs inside it, so one started earlier was cut off by a restart. */
+const BOOTED_AT = Date.now();
 const MAX_PLAYERS = 50;
 export type RebuildStatus = { state: "idle" | "running" | "done" | "failed"; startedAt?: string; finishedAt?: string; log: string[]; error?: string };
 
 export async function rebuildStatus(): Promise<RebuildStatus> {
   const row = await db.appSetting.findUnique({ where: { key: STATUS_KEY } });
   const s = (row?.value as RebuildStatus | undefined) ?? { state: "idle", log: [] };
-  // A run that died with the server (e.g. a restart) shows as failed after an hour.
-  if (s.state === "running" && s.startedAt && Date.now() - Date.parse(s.startedAt) > 3600_000) return { ...s, state: "failed", error: "Interrupted — the server restarted. Run it again." };
+  // A run that died with the server (a restart or redeploy) shows as failed, so it can be run again.
+  if (s.state === "running" && s.startedAt && (Date.parse(s.startedAt) < BOOTED_AT || Date.now() - Date.parse(s.startedAt) > 3600_000))
+    return { ...s, state: "failed", error: "Interrupted — the server restarted. Run it again." };
   return s;
 }
 
@@ -74,8 +77,10 @@ export async function runRebuild(actorId: string | null, sanity = { minClubs: 80
     const tables = await db.$queryRaw<Array<{ tablename: string }>>`
       SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT IN ('_prisma_migrations', 'AppSetting')`;
     await db.$executeRawUnsafe(`TRUNCATE ${tables.map((t) => `"${t.tablename.replace(/"/g, "")}"`).join(", ")} RESTART IDENTITY CASCADE`);
+    const { ensureAdmin, seedWorld } = await import("./seed-world");
+    // The admin account comes back first, so you can log in while the rest loads.
+    await log(`Admin account restored: ${await ensureAdmin()} — you can log back in now`);
     await log("Building the game: clubs, players, cards, packs and this season's real matches…");
-    const { seedWorld } = await import("./seed-world");
     await seedWorld(data, { realHistory: true, log: (m) => void log(m) });
     await setDataProvider("sportmonks", null);
     status.state = "done";

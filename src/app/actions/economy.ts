@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/server/auth/session";
 import { createChallenge, setChallengeActive } from "@/server/challenges";
-import { updateCompetitionRules } from "@/server/competitions";
+import { createMatch, updateCompetitionRules } from "@/server/competitions";
 import { db } from "@/server/db";
 import { cancelDrop, scheduleDrop } from "@/server/drops";
 import { DomainError } from "@/server/errors";
@@ -129,6 +129,32 @@ export async function competitionRulesAction(_: ActionResult | null, f: FormData
   }, "Match rules saved");
   done();
   return res;
+}
+
+export async function createMatchAction(_: ActionResult | null, f: FormData): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const opt = (k: string) => str(f, k) || undefined;
+  const res = await attempt(async () => {
+    const c = await createMatch(admin.id, {
+      gameweekId: str(f, "gameweekId"),
+      name: str(f, "name"),
+      kind: (opt("kind") ?? "CARDS") as "CARDS" | "DRAFT",
+      league: opt("league"),
+      tier: opt("tier") as "BRONZE" | "SILVER" | "GOLD" | undefined,
+      freeCardsOnly: str(f, "cards") === "FREE",
+      foundersOnly: str(f, "who") === "FOUNDERS",
+      maxPerClub: opt("maxPerClub") ? Number(str(f, "maxPerClub")) : undefined,
+      draftBudgetMx: opt("budget") ? Number(str(f, "budget")) : undefined,
+      entryFeeMinor: mp(f, "fee"),
+      winnerPack: opt("winnerPack") as "BRONZE" | "SILVER" | "GOLD" | undefined,
+      top3Pack: opt("top3Pack") as "BRONZE" | "SILVER" | "GOLD" | undefined,
+      everyonePack: opt("everyonePack") as "BRONZE" | "SILVER" | "GOLD" | undefined,
+      prizes: str(f, "prizes"),
+    });
+    return c.name;
+  });
+  done();
+  return res.ok ? { ok: true, data: undefined, message: `Created ${res.data}` } : res;
 }
 
 export async function processWithdrawalAction(id: string, decision: "PAID" | "REJECTED"): Promise<ActionResult> {

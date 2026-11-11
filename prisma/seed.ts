@@ -9,11 +9,12 @@ import "dotenv/config";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { db } from "../src/server/db";
-import { type WorldData, seedWorld } from "../src/server/seed-world";
+import { type WorldData, ensureAdmin, seedWorld } from "../src/server/seed-world";
 
 async function main() {
   if (await db.sport.findUnique({ where: { code: "football" } })) {
-    console.log("Database already seeded — truncate it (or run `npm run db:reset`) for a fresh start.");
+    // Never leave the site without a way in (e.g. after a rebuild cut off by a restart).
+    console.log(`Database already seeded — admin account: ${await ensureAdmin()}`);
     return;
   }
   if (process.env.DATA_PROVIDER === "sportmonks") {

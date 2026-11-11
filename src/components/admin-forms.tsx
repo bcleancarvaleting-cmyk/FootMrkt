@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { setSettingAction, setTextSettingAction, addWelcomeGiftAction, competitionRulesAction, createAuctionAction, createChallengeAction, pinnedListingsAction, scheduleDropAction, stockHouseAction } from "@/app/actions/economy";
+import { setSettingAction, setTextSettingAction, addWelcomeGiftAction, competitionRulesAction, createAuctionAction, createMatchAction, createChallengeAction, pinnedListingsAction, scheduleDropAction, stockHouseAction } from "@/app/actions/economy";
 import type { ActionResult } from "@/app/actions/result";
 import { ResultText } from "./action-button";
 
@@ -113,15 +113,55 @@ export function ChallengeForm({ packs }: { packs: Array<{ code: string; name: st
   );
 }
 
-export function MatchRulesForm({ id, fee, req, prizes }: { id: string; fee: number; req: { tiers?: string[]; leagues?: string[]; maxPerClub?: number; maxSquadValueMp?: number; foundersOnly?: boolean; freeCardsOnly?: boolean; clubs?: string[] }; prizes: string }) {
+type Opt = { value: string; label: string };
+/** A labelled drop-down. */
+function S({ name, label, options, defaultValue }: { name: string; label: string; options: Opt[]; defaultValue?: string }) {
+  return (
+    <div>
+      <label className="label" htmlFor={`f-${name}`}>{label}</label>
+      <select id={`f-${name}`} name={name} className="input" defaultValue={defaultValue ?? ""}>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+const TIERS: Opt[] = [{ value: "", label: "Any tier" }, { value: "BRONZE", label: "Bronze only" }, { value: "SILVER", label: "Silver only" }, { value: "GOLD", label: "Gold only" }];
+const PER_CLUB: Opt[] = [{ value: "", label: "No limit" }, ...[1, 2, 3, 4].map((n) => ({ value: String(n), label: `Max ${n} per club` }))];
+const PACK: Opt[] = [{ value: "", label: "None" }, { value: "BRONZE", label: "Bronze Pack" }, { value: "SILVER", label: "Silver Pack" }, { value: "GOLD", label: "Gold Pack" }];
+
+/** Admin: add an extra match to an open gameweek, set up with drop-downs. */
+export function CreateMatchForm({ gameweeks, leagues }: { gameweeks: Opt[]; leagues: Opt[] }) {
+  return (
+    <Form action={createMatchAction} submit="Create match">
+      <I name="name" label="Match name" placeholder="League One Cup" required />
+      <S name="gameweekId" label="Gameweek" options={gameweeks} defaultValue={gameweeks[0]?.value} />
+      <S name="kind" label="Type" options={[{ value: "CARDS", label: "Managers use their own cards" }, { value: "DRAFT", label: "Free draft (no cards needed)" }]} />
+      <S name="league" label="League" options={[{ value: "", label: "All leagues" }, ...leagues]} />
+      <S name="tier" label="Card tier" options={TIERS} />
+      <S name="cards" label="Which cards" options={[{ value: "ANY", label: "Any cards" }, { value: "FREE", label: "Free cards only (needed for £ prizes)" }]} />
+      <S name="who" label="Who can enter" options={[{ value: "ALL", label: "Everyone" }, { value: "FOUNDERS", label: "Founding members only" }]} />
+      <S name="maxPerClub" label="Players per club" options={PER_CLUB} />
+      <S name="budget" label="Free draft budget" options={[{ value: "", label: "Not a draft" }, ...[50, 70, 100, 150].map((n) => ({ value: String(n), label: `${n} MX` }))]} />
+      <S name="fee" label="Entry" options={[{ value: "0", label: "Free" }, ...[0.5, 1, 2, 5].map((n) => ({ value: String(n), label: `${n.toFixed(2)} MX` }))]} />
+      <S name="winnerPack" label="Winner's pack" options={PACK} />
+      <S name="top3Pack" label={"Top 3's pack"} options={PACK} />
+      <S name="everyonePack" label="Everyone else's pack" options={PACK} />
+      <I name="prizes" label="£ prizes (optional, e.g. 1=10, 2=5)" placeholder="1=10" />
+    </Form>
+  );
+}
+
+export function MatchRulesForm({ id, fee, req, prizes, leagues }: { id: string; fee: number; req: { tiers?: string[]; leagues?: string[]; maxPerClub?: number; maxSquadValueMp?: number; foundersOnly?: boolean; freeCardsOnly?: boolean; clubs?: string[] }; prizes: string; leagues: Opt[] }) {
   return (
     <Form action={competitionRulesAction} submit="Save">
       <input type="hidden" name="competitionId" value={id} />
       <I name="fee" label="Entry fee (MX)" type="number" step="0.01" min="0" max="100" defaultValue={(fee / 100).toFixed(2)} />
-      <I name="tiers" label="Tiers only" placeholder="BRONZE" defaultValue={req.tiers?.join(",")} />
-      <I name="leagues" label="Leagues only" placeholder="EPL" defaultValue={req.leagues?.join(",")} />
+      <S name="tiers" label="Card tier" options={TIERS} defaultValue={req.tiers?.length === 1 ? req.tiers[0] : ""} />
+      <S name="leagues" label="League" options={[{ value: "", label: "All leagues" }, ...leagues]} defaultValue={req.leagues?.length === 1 ? req.leagues[0] : ""} />
       <I name="clubs" label="Clubs only (e.g. CHE,MUN)" placeholder="CHE,MUN" defaultValue={req.clubs?.join(",")} />
-      <I name="maxPerClub" label="Max per club" type="number" min="1" defaultValue={req.maxPerClub} />
+      <S name="maxPerClub" label="Players per club" options={PER_CLUB} defaultValue={req.maxPerClub ? String(req.maxPerClub) : ""} />
       <I name="maxValue" label="Max starters value (MX)" type="number" min="1" defaultValue={req.maxSquadValueMp} />
       <I name="prizes" label="£ prize pot by position (e.g. 1=10, 2=5, 3=3) — ties split" placeholder="1=10, 2=5, 3=3" defaultValue={prizes} />
       <label className="flex items-center gap-2 self-end pb-2.5 text-sm">

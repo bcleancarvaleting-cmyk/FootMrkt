@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { levelFor } from "@/config/progression";
+import { ACHIEVEMENTS, STAGES, currentStage, levelFor } from "@/config/progression";
 import { db, withTx } from "@/server/db";
 import { createGameweek, simulateFixturesNow } from "@/server/gameweeks";
 import { openPack } from "@/server/packs";
@@ -39,6 +39,41 @@ describe("levels", () => {
     expect(await db.packEntitlement.count({ where: { userId: u.userId, sourceRef: { startsWith: "level:" } } })).toBe(3);
     expect((await refreshProgress(u.userId)).levels).toEqual([]);
     expect(await db.notification.count({ where: { userId: u.userId, kind: "level" } })).toBe(3);
+  });
+
+  it("achievements come in stages: finish a stage for its XP bonus (once) and the next one opens", async () => {
+    const codes = (n: number) => ACHIEVEMENTS.filter((a) => a.stage === n).map((a) => a.code);
+    expect(currentStage(new Set())).toBe(1);
+    expect(currentStage(new Set(codes(1)))).toBe(2);
+    expect(currentStage(new Set([...codes(1), ...codes(2), ...codes(3), ...codes(4), ...codes(5)]))).toBe(6);
+    // Later-stage achievements already earned don't skip a stage.
+    expect(currentStage(new Set(codes(2)))).toBe(1);
+
+    const u = await makeUser("stager");
+    // Everything in stage 1 except opening a pack.
+    await db.userAchievement.createMany({ data: codes(1).filter((c) => c !== "first-pack").map((code) => ({ userId: u.userId, code })) });
+    const before = await lifetimeXp(u.userId);
+    await openPack(u.userId, u.starterEntitlementId);
+    const r = await refreshProgress(u.userId);
+    expect(r.unlocked).toContain("first-pack");
+    expect(r.stages).toEqual([1]);
+    const bonus = STAGES[0].bonusXp;
+    expect(bonus).toBe(1000);
+    expect((await lifetimeXp(u.userId)) - before).toBeGreaterThanOrEqual(bonus + 10);
+    const again = await refreshProgress(u.userId);
+    expect(again.stages).toEqual([]);
+    expect(await db.walletEntry.count({ where: { userId: u.userId, refId: `ach:stage-1:${u.userId}` } })).toBe(1);
+    expect(await db.notification.count({ where: { userId: u.userId, title: { startsWith: "🏅 Stage 1" } } })).toBe(1);
+  });
+
+  it("a locked stage's achievements wait until the stage before is finished", async () => {
+    const u = await makeUser("gated");
+    await openPack(u.userId, u.starterEntitlementId);
+    // Pretend they've done stage 2's "First signing" condition: it's in a locked stage, so it waits.
+    const drop = ACHIEVEMENTS.find((a) => a.code === "drop")!;
+    expect(drop.stage).toBe(2);
+    const r = await refreshProgress(u.userId);
+    expect(r.unlocked.every((c) => { const a = ACHIEVEMENTS.find((x) => x.code === c)!; return a.stage === null || a.stage === 1; })).toBe(true);
   });
 });
 

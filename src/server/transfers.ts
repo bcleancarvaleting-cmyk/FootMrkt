@@ -244,6 +244,16 @@ export async function cancelListing(userId: string, listingId: string) {
   throw new DomainError("FINAL", "Listings can't be cancelled: it stays on Transfers until it sells or the listing ends.");
 }
 
+/** Take a listing down (admin only — e.g. the seller was blocked): offers refunded, card unlocked. */
+export async function withdrawListingForAdmin(adminId: string, listingId: string, reason: string) {
+  await withTx(async (tx) => {
+    const l = await lockListing(tx, listingId);
+    if (!l || l.status !== "ACTIVE") return;
+    await closeListing(tx, l, "CANCELLED");
+    await audit(tx, { actorId: adminId, action: "listing.withdraw", entityType: "MarketListing", entityId: listingId, after: { reason } });
+  });
+}
+
 export async function expireListings(now = new Date()) {
   const expired = await db.marketListing.findMany({ where: { status: "ACTIVE", expiresAt: { lte: now } }, select: { id: true } });
   for (const { id } of expired) {

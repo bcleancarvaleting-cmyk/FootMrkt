@@ -26,7 +26,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   const sup = supporters.map((s) => ({ ...clubs.find((c) => c.id === s.favouriteClubId)!, count: s._count._all })).filter((s) => s.code).sort((a, b) => b.count - a.count);
   return (
     <>
-      <AdminTitle title="Users" intro={`${total.toLocaleString("en-GB")} manager${total === 1 ? "" : "s"}${club || q ? " matching" : ""}, newest first.`} />
+      <AdminTitle title="Users" intro={`${total.toLocaleString("en-GB")} manager${total === 1 ? "" : "s"}${club || q ? " matching" : ""}, newest first. Open a manager to reset their password, block them or see their history.`} />
       <form className="flex flex-wrap gap-2" action="/admin/users">
         <input name="q" defaultValue={q} placeholder="Search name or email" className="input max-w-xs" />
         {club && <input type="hidden" name="club" value={club} />}
@@ -60,7 +60,8 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
               <tr key={u.id}>
                 <td data-label="Manager" className="px-3 py-2">
                   <span className="flex items-center gap-1.5 font-semibold">
-                    {u.displayName} <FoundingBadge number={u.foundingNumber} compact />
+                    <Link href={`/admin/users/${u.id}`} className="underline-offset-2 hover:underline">{u.displayName}</Link> <FoundingBadge number={u.foundingNumber} compact />
+                    {u.status === "SUSPENDED" && <span className="chip border-danger/60 text-danger">blocked</span>}
                     {u.role !== "USER" && <span className="chip">{u.role.toLowerCase()}</span>}
                   </span>
                   <span className="block text-xs text-faint">{u.email}</span>

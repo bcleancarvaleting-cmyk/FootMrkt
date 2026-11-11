@@ -49,7 +49,7 @@ export async function registerUser(input: z.input<typeof RegisterSchema>) {
   const favourite = data.favouriteClub && data.favouriteClub !== "none" ? await db.club.findUnique({ where: { code: data.favouriteClub }, select: { id: true } }) : null;
   const referrer = data.ref ? await db.user.findFirst({ where: { displayName: { equals: data.ref, mode: "insensitive" }, status: "ACTIVE" }, select: { id: true } }) : null;
   try {
-    return await withTx(async (tx) => {
+    const made = await withTx(async (tx) => {
       // Founding members get the next number; an advisory lock stops two sign-ups taking the same one.
       let foundingNumber: number | null = null;
       if (founding) {
@@ -76,6 +76,11 @@ export async function registerUser(input: z.input<typeof RegisterSchema>) {
       await grantStarterLoans(tx, user.id);
       return { user, starterEntitlementId: starter.id, emailVerificationToken };
     });
+    if (referrer) {
+      const { notify } = await import("../notifications");
+      await notify(referrer.id, { kind: "REFERRAL", title: `👋 ${made.user.displayName} joined with your link`, body: "Your free pack arrives as soon as they play their first match.", href: "/account", dedupeKey: `referral-joined:${made.user.id}` }).catch(() => {});
+    }
+    return made;
   } catch (e) {
     if (isUniqueViolation(e)) throw new DomainError("ACCOUNT_EXISTS", "That email or manager name is already registered.");
     throw e;

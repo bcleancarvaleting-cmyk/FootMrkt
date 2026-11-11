@@ -225,7 +225,7 @@ export function PinnedListingsForm() {
   );
 }
 
-export function SettingForm({ settingKey, label, help, value, min, max }: { settingKey: string; label: string; help: string; value: number; min: number; max: number }) {
+export function SettingForm({ settingKey, label, help, value, min, max, choices }: { settingKey: string; label: string; help: string; value: number; min: number; max: number; choices?: Array<{ value: number; label: string }> }) {
   const [state, run, pending] = useActionState(setSettingAction, null);
   return (
     <form action={run} className="flex flex-wrap items-end gap-3 border-t border-ink-700 pt-4 first:border-0 first:pt-0">
@@ -233,7 +233,15 @@ export function SettingForm({ settingKey, label, help, value, min, max }: { sett
       <div className="min-w-0 flex-1 basis-64">
         <label className="label" htmlFor={`s-${settingKey}`}>{label}</label>
         <p className="mb-2 text-xs text-faint">{help}</p>
-        <input id={`s-${settingKey}`} name="value" type="number" min={min} max={max} defaultValue={value} className="input max-w-[180px] tabular-nums" />
+        {choices ? (
+          <select id={`s-${settingKey}`} name="value" defaultValue={String(value)} className="input max-w-md">
+            {choices.map((c) => (
+              <option key={c.value} value={c.value}>{c.label}</option>
+            ))}
+          </select>
+        ) : (
+          <input id={`s-${settingKey}`} name="value" type="number" min={min} max={max} defaultValue={value} className="input max-w-[180px] tabular-nums" />
+        )}
       </div>
       <button className="btn-primary px-4 py-2 text-xs" disabled={pending}>{pending ? "Saving…" : "Save"}</button>
       {state && <ResultText result={state} />}
@@ -241,7 +249,7 @@ export function SettingForm({ settingKey, label, help, value, min, max }: { sett
   );
 }
 
-export function TextSettingForm({ settingKey, label, help, value, options }: { settingKey: string; label: string; help: string; value: string; options?: Array<{ code: string; name: string }> }) {
+export function TextSettingForm({ settingKey, label, help, value, options, placeholder }: { settingKey: string; label: string; help: string; value: string; options?: Array<{ code: string; name: string }>; placeholder?: string }) {
   const [state, run, pending] = useActionState(setTextSettingAction, null);
   return (
     <form action={run} className="flex flex-wrap items-end gap-3 border-t border-ink-700 pt-4">
@@ -256,7 +264,7 @@ export function TextSettingForm({ settingKey, label, help, value, options }: { s
             ))}
           </select>
         ) : (
-          <input id={`t-${settingKey}`} name="value" defaultValue={value} className="input max-w-md" placeholder="https://www.facebook.com/groups/…" />
+          <input id={`t-${settingKey}`} name="value" defaultValue={value} className="input max-w-md" placeholder={placeholder ?? "https://www.facebook.com/groups/…"} />
         )}
       </div>
       <button className="btn-primary px-4 py-2 text-xs" disabled={pending}>{pending ? "Saving…" : "Save"}</button>

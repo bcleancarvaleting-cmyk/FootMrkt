@@ -18,7 +18,7 @@ export default async function SettingsPage() {
       </AdminTitle>
       <section className="panel space-y-4 p-5">
         <h2 className="text-2xl">Game settings</h2>
-        {(Object.keys(SETTINGS) as SettingKey[]).map((k) => (
+        {(Object.keys(SETTINGS) as SettingKey[]).filter((k) => k !== "cashAnyCards").map((k) => (
           <SettingForm key={k} settingKey={k} label={SETTINGS[k].label} help={SETTINGS[k].help} value={values[k]} min={SETTINGS[k].min} max={SETTINGS[k].max} />
         ))}
         <TextSettingForm settingKey="referralRewardSku" label={TEXT_SETTINGS.referralRewardSku.label} help={TEXT_SETTINGS.referralRewardSku.help} value={referral} options={giftPacks()} />

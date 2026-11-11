@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { applyPrizeFundAction, backfillFoundersAction, lockHeldCardsAction, cancelAuctionAction, cancelDropAction, clearHouseAction, launchMixAction, processWithdrawalAction, toggleChallengeAction, updateWelcomeGiftAction } from "@/app/actions/economy";
+import { backfillFoundersAction, lockHeldCardsAction, cancelAuctionAction, cancelDropAction, clearHouseAction, launchMixAction, processWithdrawalAction, toggleChallengeAction, updateWelcomeGiftAction } from "@/app/actions/economy";
 import { ActionButton } from "@/components/action-button";
 import { AuctionForm, ChallengeForm, CreateMatchForm, DropForm, HouseStockForm, MatchRulesForm, PinnedListingsForm, WelcomeGiftForm } from "@/components/admin-forms";
 import { isEnabled } from "@/server/flags";
-import { PRIZE_FUND_SHARE, prizeFund } from "@/server/prize-fund";
 import { fmtGbp as gbpFmt } from "@/server/wallet";
 import { LAUNCH_MIX } from "@/config/transfers";
 import { FOOTBALL_PACKS } from "@/config/packs";
@@ -29,7 +28,7 @@ function Section({ title, intro, children }: { title: string; intro?: string; ch
 
 export async function EconomySections({ only }: { only: string[] }) {
   const show = (k: string) => only.includes(k);
-  const [drops, auctions, challenges, comps, withdrawals, fees, gifts, house, founders, nonFounders, foundingOpen, tradeableHeld, paidPacks, fund] = await Promise.all([
+  const [drops, auctions, challenges, comps, withdrawals, fees, gifts, house, founders, nonFounders, foundingOpen, tradeableHeld, paidPacks] = await Promise.all([
     upcomingDrops(),
     db.auction.findMany({ where: { status: { in: ["LIVE", "SCHEDULED"] } }, include: { card: { include: { template: { include: { player: true } } } }, bids: { where: { status: "LEADING" } } }, orderBy: { endsAt: "asc" } }),
     db.challenge.findMany({ orderBy: { createdAt: "desc" }, include: { _count: { select: { completions: true } } } }),
@@ -43,7 +42,6 @@ export async function EconomySections({ only }: { only: string[] }) {
     isEnabled("FOUNDING_SIGNUPS"),
     db.cardInstance.count({ where: { supplyState: "HELD", tradeStatus: "TRADEABLE" } }),
     isEnabled("PAID_PACKS"),
-    prizeFund(),
   ]);
   const [leagueRows, openGws, fixtureRows] = show("matchrules")
     ? await Promise.all([
@@ -66,39 +64,6 @@ export async function EconomySections({ only }: { only: string[] }) {
 
   return (
     <div className="space-y-6">
-      {show("prize") && (
-      <Section title="Prize fund" intro={`${Math.round(PRIZE_FUND_SHARE * 100)}% of the last 7 days' card revenue (packs and MX top-ups) goes into the next prizes, with a £10 minimum. Keep this as internal policy: advertise the prizes, not a share of sales.`}>
-        <div className="mb-4 grid gap-px overflow-hidden rounded-xl border border-ink-700 bg-ink-700 sm:grid-cols-4">
-          {[
-            ["Packs sold", gbpFmt(fund.packs)],
-            ["MX top-ups", gbpFmt(fund.topUps)],
-            ["Revenue (7 days)", gbpFmt(fund.revenue)],
-            ["Prize fund", gbpFmt(fund.fund)],
-          ].map(([k, v]) => (
-            <div key={k} className="bg-ink-900 p-4">
-              <p className="eyebrow">{k}</p>
-              <p className="mt-1 font-display text-2xl font-extrabold italic tabular-nums">{v}</p>
-            </div>
-          ))}
-        </div>
-        <p className="mb-3 text-sm text-muted">
-          Suggested split: 1st {gbpFmt(fund.split[0])} · 2nd {gbpFmt(fund.split[1])} · 3rd {gbpFmt(fund.split[2])} (ties split).
-        </p>
-        <ul className="divide-y divide-ink-700 text-sm">
-          {freerolls.map((c) => (
-            <li key={c.id} className="flex items-center justify-between gap-3 py-2">
-              <span>
-                <b>{c.name}</b> <span className="text-faint">· {prizesSummary(c.rewards) || "no £ prizes yet"}</span>
-              </span>
-              <ActionButton action={applyPrizeFundAction.bind(null, c.id)} className="btn-primary px-3 py-1.5 text-[11px]" confirm={`Set ${c.name} prizes from the fund?`}>
-                Apply fund
-              </ActionButton>
-            </li>
-          ))}
-          {!freerolls.length && <li className="py-2 text-faint">No open freerolls this gameweek.</li>}
-        </ul>
-      </Section>
-      )}
 
       {show("founders") && (
       <Section title="Founding members" intro="Everyone who signs up while Founding sign-ups is on becomes a numbered Founding Member, with a badge next to their name for good. Use the match rule 'Founding members only' for founders' freerolls.">

@@ -9,7 +9,6 @@ import { cancelDrop, scheduleDrop } from "@/server/drops";
 import { DomainError } from "@/server/errors";
 import { syncPackCatalogue } from "@/server/packs";
 import { ensureClubBinders } from "@/server/collections";
-import { applyPrizeFund } from "@/server/prize-fund";
 import { cancelPlayerDrop, scheduleDrops } from "@/server/player-drops";
 import { type SettingKey, type TextSettingKey, setSetting, setText } from "@/server/settings";
 import { cancelAuction, clearHouseListings, createAuction, stockHouseListings, stockLaunchMix, stockPinnedListings } from "@/server/transfers";
@@ -257,15 +256,6 @@ export async function clubBindersAction(): Promise<ActionResult> {
   const res = await attempt(() => ensureClubBinders());
   done();
   return res.ok ? { ok: true, data: undefined, message: `${res.data} club binder(s) created` } : res;
-}
-
-export async function applyPrizeFundAction(competitionId: string): Promise<ActionResult> {
-  const admin = await requireAdmin();
-  const res = await attempt(async () => {
-    await applyPrizeFund(admin.id, competitionId);
-  }, "Prize fund applied");
-  done();
-  return res;
 }
 
 export async function setSettingAction(_: ActionResult | null, f: FormData): Promise<ActionResult> {

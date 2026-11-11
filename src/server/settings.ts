@@ -55,13 +55,6 @@ export const SETTINGS = {
     min: 0,
     max: 1,
   },
-  prizeFundSharePct: {
-    label: "Prize fund share (%)",
-    help: "Share of the last 7 days' card revenue suggested for next week's prizes. Admin-only.",
-    default: 50,
-    min: 0,
-    max: 100,
-  },
 } as const;
 export type SettingKey = keyof typeof SETTINGS;
 

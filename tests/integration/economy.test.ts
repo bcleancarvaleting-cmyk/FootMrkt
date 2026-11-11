@@ -376,30 +376,6 @@ describe("club binders", () => {
   });
 });
 
-describe("prize fund", () => {
-  it("50% of last week's pack and top-up revenue (min £10), applied to a freeroll as 1st/2nd/3rd", async () => {
-    const { prizeFund, applyPrizeFund } = await import("@/server/prize-fund");
-    const admin = await makeUser("adm13");
-    const { userId } = await makeUser("buyer13");
-    expect((await prizeFund()).fund).toBe(1000);
-    for (const [i, amt] of [150000, 50000].entries()) {
-      await db.order.create({ data: { userId, kind: i ? "DEPOSIT" : "PACK_PURCHASE", refId: "x", amountMinor: amt, provider: "sandbox", idempotencyKey: `pf${i}`, status: "PAID" } });
-    }
-    // A second ahead: the database's clock can run a few ms ahead of this process's.
-    const f = await prizeFund(new Date(Date.now() + 1000));
-    expect(f).toMatchObject({ revenue: 200000, fund: 100000, split: [50000, 30000, 20000] });
-    const sport = await db.sport.findFirstOrThrow();
-    const gw = await db.gameweek.create({ data: { sportId: sport.id, season: "p", number: 1, startsAt: new Date(), endsAt: new Date(Date.now() + 86_400_000), status: "OPEN" } });
-    const c = await db.competition.create({ data: { sportId: sport.id, gameweekId: gw.id, code: "pf-c", name: "F", format: "OPEN", rosterRules: "football-roster-v3", scoringRules: "football-scoring-v2-draft", requirements: { freeCardsOnly: true }, entryOpensAt: new Date(), locksAt: new Date(Date.now() + 86_400_000), status: "OPEN" } });
-    await applyPrizeFund(admin.userId, c.id);
-    expect((await db.competition.findUniqueOrThrow({ where: { id: c.id } })).rewards).toEqual([
-      { rankFrom: 1, rankTo: 1, cashMinor: 50000 },
-      { rankFrom: 2, rankTo: 2, cashMinor: 30000 },
-      { rankFrom: 3, rankTo: 3, cashMinor: 20000 },
-    ]);
-  });
-});
-
 describe("emails", () => {
   it("emails are logged in the outbox (sent when a provider is set) and dedupe", async () => {
     const { sendEmail, emailUser } = await import("@/server/email/send");

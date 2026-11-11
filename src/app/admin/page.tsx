@@ -26,7 +26,7 @@ export default async function Dashboard() {
     ["Managers", k.users.toLocaleString("en-GB"), `+${k.newToday} today · +${k.newWeek} this week`, "/admin/users"],
     ["Active this week", k.active7.toLocaleString("en-GB"), `${k.users ? Math.round((k.active7 / k.users) * 100) : 0}% of managers`, "/admin/users"],
     ["App installs", k.installs.toLocaleString("en-GB"), `${k.notif} with notifications on`, "/admin/app"],
-    ["Revenue this week", `£${(k.revenueWeekMinor / 100).toFixed(2)}`, "Packs and MX top-ups", "/admin/prizes"],
+    ["Revenue this week", `£${(k.revenueWeekMinor / 100).toFixed(2)}`, "Packs and MX top-ups", "/admin/packs"],
     ["Cards in clubs", k.cardsHeld.toLocaleString("en-GB"), "Held by managers now", "/admin/packs"],
   ];
   const top = d.support.slice(0, 12);

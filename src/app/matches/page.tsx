@@ -1,27 +1,15 @@
 import Link from "next/link";
+import { MatchCard } from "@/components/match-card";
 import { Countdown } from "@/components/countdown";
 import { EmptyState } from "@/components/page-header";
-import { FORMATIONS, getRosterRules } from "@/domain/football/rules";
 import { requireUser } from "@/server/auth/session";
-import { type Requirements, podiums, prizesSummary, requirementsSummary } from "@/server/competitions";
-import { FoundingBadge } from "@/components/founding-badge";
+import { podiums } from "@/server/competitions";
 import { db } from "@/server/db";
 import { isEnabled } from "@/server/flags";
 import { footballSport } from "@/server/gameweeks";
-import { fmtMp } from "@/server/wallet";
 import { fmtDate } from "@/lib/view";
 
 export const metadata = { title: "Matches" };
-
-const STATUS: Record<string, [string, string]> = {
-  UPCOMING: ["Opens soon", "text-muted"],
-  OPEN: ["Open", "text-lime"],
-  LOCKED: ["Locked", "text-warn"],
-  PROVISIONAL: ["Live", "text-danger"],
-  SETTLED: ["Final", "text-faint"],
-  CANCELLED: ["Cancelled", "text-faint"],
-};
-const FORMAT_TIER: Record<string, string> = { OPEN: "", BRONZE_ONLY: "tier-BRONZE", SILVER_ONLY: "tier-SILVER", GOLD_ONLY: "tier-GOLD" };
 
 export default async function MatchesPage({ searchParams }: { searchParams: Promise<{ gw?: string }> }) {
   const user = await requireUser();
@@ -84,68 +72,23 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
       </div>
 
       <section>
-        <div className="mb-2 hidden items-center gap-4 px-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-faint md:flex">
-          <span className="flex-1">Match · requirements</span>
-          <span className="w-20 text-right">Entry</span>
-          <span className="w-20 text-right">Managers</span>
-          <span className="w-24 text-right">Status</span>
-          <span className="w-40 text-right">Your squad</span>
-        </div>
-        <p className="mb-2 px-1 text-xs text-muted">
-          <span className="font-semibold text-mint">Green</span> = you&apos;ve entered · <span className="font-semibold text-danger">red</span> = still open, not entered yet.
-        </p>
-        <ul className="space-y-2">
-          {comps.map((c) => {
-            const entry = c.entries[0];
-            const rules = getRosterRules(c.rosterRules);
-            const [label, tone] = STATUS[c.status];
-            const feeBlocked = c.entryFeeMinor > 0 && !paidEntry;
-            return (
-              <li key={c.id}>
-                <Link href={`/competitions/${c.id}`} className={`row-item flex-wrap md:flex-nowrap ${FORMAT_TIER[c.format]} border-2 ${entry ? "!border-mint/80" : c.status === "OPEN" ? "!border-danger/70" : ""}`}>
-                  <span className="min-w-0 flex-1 basis-full md:basis-auto">
-                    <span className="block font-display text-xl font-bold uppercase italic leading-tight">{c.name}</span>
-                    <span className="block truncate text-xs text-muted">
-                      {requirementsSummary((c.requirements ?? {}) as Requirements, c.format)} · {rules.allowedFormations.map((f) => FORMATIONS[f].id).join(" / ")}
-                    </span>
-                    {prizesSummary(c.rewards) && <span className="mt-0.5 block text-xs font-semibold text-lime">{prizesSummary(c.rewards)}</span>}
-                    {(results.get(c.id)?.length ?? 0) > 0 && (
-                      <span className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
-                        {results.get(c.id)!.map((p, i) => (
-                          <span key={i} className="flex items-center gap-1">
-                            <span className={`font-extrabold ${p.rank === 1 ? "text-gold" : p.rank === 2 ? "text-silver" : "text-bronze"}`}>{p.rank === 1 ? "1st" : p.rank === 2 ? "2nd" : "3rd"}</span>
-                            <span className="font-semibold text-fg">{p.displayName}</span>
-                            <FoundingBadge number={p.foundingNumber} compact />
-                            <span className="text-muted">{p.points} pts</span>
-                            {p.prizeMinor > 0 && <span className="font-bold text-lime">£{(p.prizeMinor / 100).toFixed(2)}</span>}
-                          </span>
-                        ))}
-                      </span>
-                    )}
-                  </span>
-                  <span className="w-20 text-right font-bold tabular-nums">{c.entryFeeMinor > 0 ? fmtMp(c.entryFeeMinor) : <span className="text-lime">Free</span>}</span>
-                  <span className="w-20 text-right text-sm tabular-nums text-muted">{c._count.entries}</span>
-                  <span className={`w-24 text-right text-xs font-extrabold uppercase tracking-[0.14em] ${tone}`}>{label}</span>
-                  <span className="w-40 text-right text-sm">
-                    {entry ? (
-                      entry.finalPoints !== null ? (
-                        <b className="text-lime">{entry.finalPoints} pts · #{entry.rank}</b>
-                      ) : entry.provisionalPoints !== null ? (
-                        <b className="text-mint">{entry.provisionalPoints} pts live</b>
-                      ) : (
-                        <span className="text-mint">Entered ✓</span>
-                      )
-                    ) : c.status === "OPEN" ? (
-                      feeBlocked ? <span className="text-faint">Paid entry soon</span> : <span className="btn-primary px-3 py-1.5 text-[11px]">Pick squad</span>
-                    ) : (
-                      <span className="text-faint">Leaderboard →</span>
-                    )}
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        {comps.length === 0 ? (
+          <EmptyState title="No matches yet this gameweek">New matches are added here before the deadline — check back soon.</EmptyState>
+        ) : (
+          <>
+            <p className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-xs text-muted">
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-mint" /> Entered</span>
+              <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-danger" /> Open — not entered yet</span>
+            </p>
+            <ul className="grid gap-4 md:grid-cols-2">
+              {comps.map((c) => (
+                <li key={c.id}>
+                  <MatchCard c={c} entry={c.entries[0]} paidEntry={paidEntry} results={results.get(c.id)} />
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </section>
 
       <section>
@@ -171,8 +114,9 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
             </div>
           ))}
         </div>
-        <p className="mt-3 text-xs text-faint">Match data in this build is simulated. A licensed data provider will power launch.</p>
+        <p className="mt-3 text-xs text-faint">Live scores and stats update through the match. Points stay provisional until the data window closes.</p>
       </section>
     </div>
   );
 }
+

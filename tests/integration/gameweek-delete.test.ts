@@ -28,3 +28,18 @@ describe("deleting a gameweek", () => {
     await expect(deleteGameweek(admin.userId, played.id)).rejects.toMatchObject({ code: "IN_USE" });
   });
 });
+
+describe("removing a match", () => {
+  it("removes a match that hasn't locked; refuses one that has", async () => {
+    const { removeCompetition } = await import("@/server/competitions");
+    const admin = await makeUser("matchadmin");
+    const now = new Date();
+    const gw = await createGameweek({ season: "T", number: 11, opensAt: now, firstKickoffAt: new Date(now.getTime() + 3 * 86_400_000), actorId: null });
+    const base = { sportId: gw.sportId, gameweekId: gw.id, rosterRules: "football-roster-v3", scoringRules: "football-scoring-v2-draft", entryOpensAt: now, format: "OPEN" as const, rewards: [], requirements: {} };
+    const open = await db.competition.create({ data: { ...base, code: "rm-open", name: "Open", locksAt: new Date(now.getTime() + 86_400_000), status: "OPEN" } });
+    const locked = await db.competition.create({ data: { ...base, code: "rm-locked", name: "Locked", locksAt: new Date(now.getTime() - 1000), status: "LOCKED" } });
+    expect(await removeCompetition(admin.userId, open.id)).toBe(0);
+    expect(await db.competition.count({ where: { id: open.id } })).toBe(0);
+    await expect(removeCompetition(admin.userId, locked.id)).rejects.toMatchObject({ code: "LOCKED" });
+  });
+});

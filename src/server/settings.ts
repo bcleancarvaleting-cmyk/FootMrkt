@@ -113,6 +113,11 @@ export const TEXT_SETTINGS = {
     help: "By finishing position, e.g. 1=10, 2=6, 3=4 (a £20 pot). Ties split. Saving also updates this week's cup if it hasn't locked.",
     default: "1=10, 2=6, 3=4",
   },
+  homeHeroImage: {
+    label: "Homepage hero photo",
+    help: "Link to a photo for the homepage hero (e.g. Wembley at night), starting https:// and ending .jpg, .jpeg, .png or .webp — use one you have the rights to (Unsplash and Pexels photos are free to use). Leave blank for the built-in floodlit stadium with the arch.",
+    default: "",
+  },
   referralRewardSku: {
     label: "Refer-a-friend reward",
     help: "The free pack a manager gets for each friend who joins with their link and plays a match.",
@@ -134,6 +139,9 @@ export async function setText(adminId: string, key: TextSettingKey, value: strin
   }
   if (key === "whatsappChannelUrl" && v && !/^https:\/\/(www\.)?(whatsapp\.com\/channel\/|chat\.whatsapp\.com\/|wa\.me\/)[^\s]+$/i.test(v)) {
     throw new DomainError("URL", "Paste the WhatsApp channel link, e.g. https://whatsapp.com/channel/…");
+  }
+  if (key === "homeHeroImage" && v && !/^https:\/\/[^\s"'<>]+$/i.test(v)) {
+    throw new DomainError("URL", "Paste the full image link, starting https:// — e.g. a photo's direct link from Unsplash or Pexels.");
   }
   if (key === "referralRewardSku") {
     const { FOOTBALL_PACKS } = await import("@/config/packs");

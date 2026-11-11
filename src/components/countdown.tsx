@@ -31,3 +31,34 @@ export function Countdown({ to, className = "", endedLabel = "Ended" }: { to: st
     </span>
   );
 }
+
+/** The same countdown as four big blocks: days · hrs · mins · secs (for heroes). */
+export function CountdownBlocks({ to, className = "" }: { to: string; className?: string }) {
+  const target = new Date(to).getTime();
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    const first = setTimeout(() => setNow(Date.now()), 0);
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(t);
+    };
+  }, []);
+  const p = parts(now === null ? 0 : target - now);
+  const cells: Array<[string, number]> = [
+    ["Days", p.d],
+    ["Hrs", p.h],
+    ["Mins", p.m],
+    ["Secs", p.s],
+  ];
+  return (
+    <span className={`flex gap-2 ${className}`} suppressHydrationWarning>
+      {cells.map(([l, v]) => (
+        <span key={l} className="flex w-14 flex-col items-center rounded-xl border border-white/15 bg-black/40 py-1.5 backdrop-blur-md sm:w-16">
+          <span className="font-display text-2xl font-black tabular-nums leading-none text-white sm:text-3xl">{now === null ? "--" : pad(v)}</span>
+          <span className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-white/60">{l}</span>
+        </span>
+      ))}
+    </span>
+  );
+}

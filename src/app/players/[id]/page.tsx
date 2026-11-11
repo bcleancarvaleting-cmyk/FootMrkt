@@ -32,7 +32,6 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
           {age !== null && ` · ${age}`}
         </p>
         {player.rightsStatus === "PLACEHOLDER" && <p className="mt-1 text-xs text-warn">Placeholder player for development — not a real person.</p>}
-        {player.rightsStatus === "PENDING" && <p className="mt-1 text-xs text-faint">Match stats shown are simulated for development.</p>}
         <WatchButton playerId={player.id} initial={await isWatching(user.id, player.id)} className="mt-3" />
       </div>
 

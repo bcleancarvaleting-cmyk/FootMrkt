@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { removeMatchAction } from "@/app/actions/admin";
 import { backfillFoundersAction, lockHeldCardsAction, cancelAuctionAction, cancelDropAction, clearHouseAction, launchMixAction, processWithdrawalAction, toggleChallengeAction, updateWelcomeGiftAction } from "@/app/actions/economy";
 import { ActionButton } from "@/components/action-button";
 import { AuctionForm, ChallengeForm, CreateMatchForm, DropForm, HouseStockForm, MatchRulesForm, PinnedListingsForm, WelcomeGiftForm } from "@/components/admin-forms";
@@ -201,9 +202,18 @@ export async function EconomySections({ only }: { only: string[] }) {
           </div>
           {comps.map((c) => (
             <div key={c.id} className="border-t border-ink-700 pt-4 first:border-0 first:pt-0">
-              <p className="mb-2 text-sm">
-                <b>{c.name}</b> <span className="text-faint">· GW{c.gameweek.number} · {c._count.entries} entries · {requirementsSummary((c.requirements ?? {}) as Requirements, c.format)}{prizesSummary(c.rewards) ? ` · prizes ${prizesSummary(c.rewards)}` : ""}</span>
-              </p>
+              <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+                <p className="min-w-0 flex-1 text-sm">
+                  <b>{c.name}</b> <span className="text-faint">· GW{c.gameweek.number} · {c._count.entries} entries · {requirementsSummary((c.requirements ?? {}) as Requirements, c.format)}{prizesSummary(c.rewards) ? ` · prizes ${prizesSummary(c.rewards)}` : ""}</span>
+                </p>
+                <ActionButton
+                  action={removeMatchAction.bind(null, c.id)}
+                  className="btn-ghost px-3 py-1.5 text-[11px] text-danger"
+                  confirm={`Remove "${c.name}"?${c._count.entries ? ` ${c._count.entries} manager${c._count.entries > 1 ? "s have" : " has"} entered — they're refunded, their players freed and they're told.` : ""}`}
+                >
+                  Remove match
+                </ActionButton>
+              </div>
               <MatchRulesForm
                 id={c.id}
                 fee={c.entryFeeMinor}

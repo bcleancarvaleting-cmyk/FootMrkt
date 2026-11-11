@@ -15,7 +15,39 @@ const CROWD = (() => {
   });
 })();
 
-export function StadiumScene({ className = "" }: { className?: string }) {
+/** A great lit lattice arch over the stadium (national-stadium style), with a soft glow. */
+function Arch() {
+  // Quadratic arch from (150,330) up to (800,10) and down to (1450,330); ties every 1/28th.
+  const pt = (t: number, lift: number) => {
+    const x = (1 - t) ** 2 * 150 + 2 * (1 - t) * t * 800 + t ** 2 * 1450;
+    const y = (1 - t) ** 2 * 330 + 2 * (1 - t) * t * (-310 + lift) + t ** 2 * 330;
+    return [x, y] as const;
+  };
+  const ties = Array.from({ length: 27 }, (_, i) => {
+    const t = (i + 1) / 28;
+    const [x1, y1] = pt(t, 0);
+    const [x2, y2] = pt(t + (i % 2 ? 0.018 : -0.018), 36);
+    return <path key={i} d={`M${x1.toFixed(1)},${y1.toFixed(1)} L${x2.toFixed(1)},${y2.toFixed(1)}`} />;
+  });
+  return (
+    <g aria-hidden="true">
+      <path d="M150,330 Q800,-310 1450,330" stroke="#f6ffe6" strokeOpacity="0.16" strokeWidth="44" fill="none" filter="url(#archGlow)" />
+      <g stroke="#f4f7f2" strokeLinecap="round" fill="none">
+        <path d="M150,330 Q800,-310 1450,330" strokeWidth="5" />
+        <path d="M150,330 Q800,-274 1450,330" strokeWidth="3" strokeOpacity="0.85" />
+        <g strokeWidth="1.6" strokeOpacity="0.7">{ties}</g>
+      </g>
+    </g>
+  );
+}
+
+const STARS = (() => {
+  let seed = 11;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  return Array.from({ length: 70 }, () => ({ x: (rnd() * 1600).toFixed(0), y: (rnd() * 260).toFixed(0), r: rnd() > 0.85 ? 1.4 : 0.8, o: (0.3 + rnd() * 0.6).toFixed(2) }));
+})();
+
+export function StadiumScene({ className = "", arch = false }: { className?: string; arch?: boolean }) {
   const stripes = Array.from({ length: 12 }, (_, i) => {
     const t0 = i / 12;
     const t1 = (i + 1) / 12;
@@ -52,12 +84,17 @@ export function StadiumScene({ className = "" }: { className?: string }) {
           <stop offset="0" stopColor="#d7ff8a" stopOpacity="0.35" />
           <stop offset="1" stopColor="#000" stopOpacity="0" />
         </radialGradient>
+        <filter id="archGlow" x="-10%" y="-30%" width="120%" height="160%">
+          <feGaussianBlur stdDeviation="18" />
+        </filter>
         <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0.45" stopColor="#060708" stopOpacity="0" />
           <stop offset="1" stopColor="#060708" stopOpacity="0.95" />
         </linearGradient>
       </defs>
       <rect width="1600" height="900" fill="url(#sky)" />
+      {arch && STARS.map((s, i) => <circle key={`s${i}`} cx={s.x} cy={s.y} r={s.r} fill="#fff" opacity={s.o} />)}
+      {arch && <Arch />}
       {/* Roof canopy */}
       <path d="M-40,300 Q800,190 1640,300 L1640,350 Q800,250 -40,350 Z" fill="#0f1317" />
       <path d="M-40,350 Q800,250 1640,350" stroke="#2a3139" strokeWidth="3" fill="none" />

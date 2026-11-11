@@ -46,6 +46,14 @@ export async function createNextGameweekAction(): Promise<ActionResult> {
   return res;
 }
 
+export async function removeMatchAction(competitionId: string): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const { removeCompetition } = await import("@/server/competitions");
+  const r = await attempt(() => removeCompetition(admin.id, competitionId));
+  done();
+  return r.ok ? { ok: true, data: undefined, message: r.data ? `Match removed — ${r.data} entr${r.data > 1 ? "ies" : "y"} refunded and told.` : "Match removed." } : r;
+}
+
 export async function deleteGameweekAction(gameweekId: string): Promise<ActionResult> {
   const admin = await requireAdmin();
   const res = await attempt(() => deleteGameweek(admin.id, gameweekId), "Gameweek deleted");

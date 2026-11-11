@@ -4,9 +4,14 @@ import { LevelBadge } from "@/components/level-badge";
 import { PREDICTION_XP, predictionPanel } from "@/server/predictions";
 import { managerLevel } from "@/server/progression";
 import { CardRow } from "@/components/card-row";
-import { Countdown } from "@/components/countdown";
+import { Countdown, CountdownBlocks } from "@/components/countdown";
 import { PlayerCard } from "@/components/player-card";
 import { StadiumScene } from "@/components/stadium";
+import { ClubBadge } from "@/components/club-badge";
+import { KitShirt } from "@/components/kit-shirt";
+import { MatchCard } from "@/components/match-card";
+import { Sparkline } from "@/components/card-row";
+import { getText } from "@/server/settings";
 import { HeroCarousel } from "@/components/hero-carousel";
 import { TakeItOnTheGo } from "@/components/app-install";
 import { CommunityLinks } from "@/components/community-links";
@@ -36,7 +41,7 @@ async function Landing() {
   );
   const picks = [showcase[3], showcase[0], showcase[11]].filter(Boolean);
   const market = [showcase[5], showcase[8], showcase[14], showcase[20]].filter(Boolean);
-  const [players, clubs] = await Promise.all([db.player.count({ where: { active: true } }), db.club.count()]);
+  const [players, clubs, heroImage] = await Promise.all([db.player.count({ where: { active: true } }), db.club.count(), getText("homeHeroImage")]);
 
   return (
     <div className="-mt-6 space-y-20">
@@ -44,7 +49,7 @@ async function Landing() {
       <div className="-mx-4 sm:-mx-6 lg:mx-0">
         <HeroCarousel labels={["Manage your team", "Transfer market", "Buy packs"]}>
           <Slide
-            background={<StadiumScene className="absolute inset-0 h-full w-full" />}
+            background={<HeroBackground image={heroImage} />}
             eyebrow="Manage your team"
             title={
               <>
@@ -236,36 +241,80 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
     db.auction.count({ where: { status: "LIVE" } }),
     db.miniLeagueMember.count({ where: { userId } }),
   ]);
-  const comps = gw
-    ? await db.competition.findMany({ where: { gameweekId: gw.id }, include: { entries: { where: { userId } }, _count: { select: { entries: true } } }, orderBy: { name: "asc" } })
-    : [];
+  const [comps, heroImage, paidEntry] = await Promise.all([
+    gw
+      ? db.competition.findMany({ where: { gameweekId: gw.id }, include: { entries: { where: { userId } }, _count: { select: { entries: true } } }, orderBy: [{ entryFeeMinor: "asc" }, { name: "asc" }] })
+      : [],
+    getText("homeHeroImage"),
+    isEnabled("PAID_ENTRY"),
+  ]);
+  const potTotalGbp =
+    comps.reduce((s, c) => s + ((c.rewards as Array<{ rankFrom: number; rankTo: number; cashMinor?: number }>) ?? []).filter((r) => r.cashMinor).reduce((k, r) => k + r.cashMinor! * (r.rankTo - r.rankFrom + 1), 0), 0) / 100;
   const lock = comps[0]?.locksAt;
   const open = gw && (gw.status === "OPEN" || gw.status === "UPCOMING");
   const entered = comps.filter((c) => c.entries.length).length;
 
   return (
     <div className="space-y-8">
-      <section className="relative overflow-hidden rounded-[28px] border border-ink-700">
-        <StadiumScene className="absolute inset-0 h-full w-full" />
-        <div className="relative flex min-h-[300px] flex-col justify-end gap-4 p-6 text-[#f4f5f2] sm:p-10">
-          <span className="tag w-fit border-white/25 text-white/80">{gw ? `Gameweek ${gw.number} · ${gw.season}` : "Welcome"}</span>
-          <h1 className="text-5xl leading-[0.9] sm:text-7xl">
-            {open ? "Pick your squad" : gw?.status === "SETTLED" ? "Results are in" : "Matchday is live"}
-          </h1>
-          <p className="text-white/75">
-            Welcome back, {name}.{" "}
-            {open && lock && (
-              <>
-                Squads lock in <Countdown to={lock.toISOString()} className="font-bold text-[#adfc07]" /> ({fmtDate(lock)}).
-              </>
-            )}
-          </p>
+      <section className="relative -mx-4 overflow-hidden border-y border-ink-700 sm:mx-0 sm:rounded-[28px] sm:border">
+        <HeroBackground image={heroImage} />
+        <div className="relative flex min-h-[560px] flex-col justify-end gap-5 p-5 pt-44 text-[#f4f5f2] sm:min-h-[540px] sm:p-10">
+          <span className="flex flex-wrap items-center gap-2">
+            {gw && gw.status === "PROVISIONAL" ? (
+              <span className="flex items-center gap-1.5 rounded-full bg-danger px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.18em] text-white">
+                <span className="live-dot" aria-hidden="true" /> Live
+              </span>
+            ) : null}
+            <span className="rounded-full border border-white/25 bg-black/30 px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/85 backdrop-blur">
+              {gw ? `Gameweek ${gw.number} · ${gw.season}` : "Welcome"}
+            </span>
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-white/70">Welcome back, {name}</p>
+            <h1 className="mt-1 text-[52px] leading-[0.86] drop-shadow-[0_4px_24px_rgba(0,0,0,0.6)] sm:text-8xl">
+              {open ? (
+                <>
+                  Pick your <span className="text-[#adfc07]">squad</span>
+                </>
+              ) : gw?.status === "SETTLED" ? (
+                <>
+                  Results are <span className="text-[#adfc07]">in</span>
+                </>
+              ) : (
+                <>
+                  Matchday is <span className="text-[#adfc07]">live</span>
+                </>
+              )}
+            </h1>
+          </div>
+          {open && lock && (
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/60">Squads lock in</p>
+              <CountdownBlocks to={lock.toISOString()} />
+            </div>
+          )}
+          {comps.length > 0 && (
+            <div className="grid max-w-xl grid-cols-3 overflow-hidden rounded-2xl border border-white/15 bg-black/35 backdrop-blur-md">
+              {(
+                [
+                  ["Matches", String(comps.length)],
+                  ["You're in", `${entered}/${comps.length}`],
+                  ["Prize pots", potTotalGbp > 0 ? `£${potTotalGbp % 1 ? potTotalGbp.toFixed(2) : potTotalGbp}` : "Packs & XP"],
+                ] as const
+              ).map(([l, v], i) => (
+                <span key={l} className={`px-3 py-2.5 ${i ? "border-l border-white/10" : ""}`}>
+                  <span className="block text-[9px] font-bold uppercase tracking-[0.16em] text-white/55">{l}</span>
+                  <span className={`block font-display text-xl font-black tabular-nums sm:text-2xl ${l === "Prize pots" ? "text-[#f0cb5a]" : ""}`}>{v}</span>
+                </span>
+              ))}
+            </div>
+          )}
           <div className="flex flex-wrap gap-3">
-            <Link href="/matches" className="btn-primary px-6">
-              {open ? (entered ? `Entered ${entered}/${comps.length} — edit` : "Pick squad") : "Live scores"}
+            <Link href="/matches" className="btn-primary px-7 py-4 text-sm shadow-[0_8px_30px_-6px_rgba(173,252,7,0.55)]">
+              {open ? (entered ? `Entered ${entered}/${comps.length} — edit` : "Pick my squad") : "Live scores"}
             </Link>
             {unopened > 0 && (
-              <Link href="/packs" className="btn-gold px-6">
+              <Link href="/packs" className="btn-gold px-7 py-4 text-sm">
                 Open {unopened} pack{unopened > 1 ? "s" : ""}
               </Link>
             )}
@@ -342,52 +391,65 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
 
       {comps.length > 0 && (
         <section>
-          <div className="mb-3 flex items-end justify-between">
-            <h2 className="text-3xl">This gameweek</h2>
-            <Link href="/matches" className="text-xs font-bold uppercase tracking-[0.14em] text-lime">All matches →</Link>
-          </div>
-          <ul className="space-y-2">
-            {comps.map((c) => {
-              const e = c.entries[0];
-              return (
-                <li key={c.id}>
-                  <Link href={`/competitions/${c.id}`} className="row-item">
-                    <span className="flex-1 font-display text-xl font-bold uppercase italic">{c.name}</span>
-                    <span className="text-xs text-muted">{c._count.entries} managers</span>
-                    <span className="w-36 text-right text-sm font-semibold">
-                      {e ? (e.finalPoints !== null ? <span className="text-lime">{e.finalPoints} pts · #{e.rank}</span> : e.provisionalPoints !== null ? <span className="text-mint">{e.provisionalPoints} pts live</span> : <span className="text-mint">Entered ✓</span>) : c.status === "OPEN" ? <span className="text-warn">Enter →</span> : <span className="text-faint">—</span>}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
+          <SectionHead eyebrow={gw ? `Gameweek ${gw.number}` : "Matches"} title="This gameweek" href="/matches" cta="All matches" />
+          <ul className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-2 md:overflow-visible md:px-0 xl:grid-cols-3">
+            {comps.map((c) => (
+              <li key={c.id} className="w-[86%] shrink-0 snap-start md:w-auto">
+                <MatchCard c={c} entry={c.entries[0]} paidEntry={paidEntry} />
+              </li>
+            ))}
           </ul>
         </section>
       )}
 
       {top.length > 0 && (
         <section>
-          <div className="mb-3 flex items-end justify-between">
-            <h2 className="text-3xl">Top performers</h2>
-            <Link href="/top-performers" className="text-xs font-bold uppercase tracking-[0.14em] text-lime">All rankings →</Link>
-          </div>
-          <ol className="divide-y divide-ink-700 overflow-hidden rounded-2xl border border-ink-700 bg-ink-900">
-            {top.slice(0, 5).map((r, i) => (
-              <li key={r.playerId}>
-                <Link href={`/players/${r.playerId}`} className="flex items-center gap-3 px-4 py-3 hover:bg-ink-850">
-                  <span className={`w-5 text-center font-display text-lg font-black ${i === 0 ? "text-lime" : "text-muted"}`}>{i + 1}</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-semibold">{r.name}</span>
-                    <span className="block truncate text-xs text-muted">
-                      {r.position} · {r.club} · {r.leagueName}
+          <SectionHead eyebrow="Last gameweek" title="Top performers" href="/top-performers" cta="All rankings" />
+          <ol className="grid grid-cols-3 items-end gap-2 sm:gap-4">
+            {[top[1], top[0], top[2]].map((r, i) =>
+              r ? (
+                <li key={r.playerId}>
+                  <Link
+                    href={`/players/${r.playerId}`}
+                    className={`relative flex flex-col items-center overflow-hidden rounded-2xl border bg-ink-900 px-2 pb-4 text-center transition hover:-translate-y-0.5 ${i === 1 ? "border-gold/70 pt-6 shadow-[0_16px_50px_-20px_rgba(240,203,90,0.55)]" : "border-ink-700 pt-4"}`}
+                  >
+                    <span className="pointer-events-none absolute inset-x-0 top-0 h-24 opacity-30" style={{ background: `radial-gradient(70% 100% at 50% 0%, ${r.clubPrimary}, transparent)` }} aria-hidden="true" />
+                    <span className={`relative font-display text-sm font-black ${i === 1 ? "text-gold" : i === 0 ? "text-silver" : "text-bronze"}`}>{i === 1 ? "1st" : i === 0 ? "2nd" : "3rd"}</span>
+                    <KitShirt kit={r.kit} number={r.squadNumber} id={`top-${r.playerId}`} label={`${r.club ?? "Club"} shirt`} className={`relative mt-1 w-auto ${i === 1 ? "h-16 sm:h-20" : "h-12 sm:h-16"}`} />
+                    <span className="relative mt-2 line-clamp-2 font-display text-sm font-bold uppercase leading-tight sm:text-lg">{r.name}</span>
+                    <span className="relative mt-0.5 flex max-w-full items-center gap-1 text-[10px] text-muted sm:text-xs">
+                      <ClubBadge short={r.clubShort} primary={r.clubPrimary} secondary={r.clubSecondary} kit={r.kit} size={12} title={r.club ?? undefined} />
+                      <span className="truncate">{r.clubShort ?? r.club}</span>
                     </span>
-                  </span>
-                  <span className="font-display text-2xl font-black tabular-nums">{r.points}</span>
-                  <span className="text-xs text-muted">pts</span>
-                </Link>
-              </li>
-            ))}
+                    <span className={`relative mt-2 font-display font-black tabular-nums leading-none ${i === 1 ? "text-4xl text-lime sm:text-5xl" : "text-3xl"}`}>{r.points}</span>
+                    <span className="relative text-[10px] font-bold uppercase tracking-[0.16em] text-faint">pts</span>
+                  </Link>
+                </li>
+              ) : (
+                <li key={i} />
+              ),
+            )}
           </ol>
+          {top.length > 3 && (
+            <ol start={4} className="mt-3 divide-y divide-ink-700 overflow-hidden rounded-2xl border border-ink-700 bg-ink-900">
+              {top.slice(3, 8).map((r, i) => (
+                <li key={r.playerId}>
+                  <Link href={`/players/${r.playerId}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-ink-850">
+                    <span className="w-5 text-center font-display text-base font-black text-muted">{i + 4}</span>
+                    <KitShirt kit={r.kit} number={r.squadNumber} id={`top-row-${r.playerId}`} label={`${r.club ?? "Club"} shirt`} className="h-8 w-auto shrink-0" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-semibold">{r.name}</span>
+                      <span className="block truncate text-xs text-muted">
+                        {r.position} · {r.club} · {r.leagueName}
+                      </span>
+                    </span>
+                    {r.byGameweek.length > 1 && <Sparkline points={r.byGameweek} width={56} height={20} />}
+                    <span className="w-12 text-right font-display text-xl font-black tabular-nums">{r.points}</span>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          )}
         </section>
       )}
 
@@ -408,6 +470,36 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
           </ul>
         </section>
       )}
+    </div>
+  );
+}
+
+/** The hero photo set in Admin → Settings, or the built-in floodlit stadium with its arch. */
+function HeroBackground({ image }: { image: string }) {
+  return (
+    <>
+      {image ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      ) : (
+        <StadiumScene arch className="absolute inset-0 h-full w-full" />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-[#060708] via-[#060708]/35 to-transparent" aria-hidden="true" />
+      <div className="absolute inset-0 hidden bg-gradient-to-r from-[#060708]/75 via-[#060708]/10 to-transparent sm:block" aria-hidden="true" />
+    </>
+  );
+}
+
+function SectionHead({ eyebrow, title, href, cta }: { eyebrow: string; title: string; href: string; cta: string }) {
+  return (
+    <div className="mb-4 flex items-end justify-between gap-3">
+      <div>
+        <p className="eyebrow text-lime">{eyebrow}</p>
+        <h2 className="mt-0.5 text-3xl leading-none sm:text-4xl">{title}</h2>
+      </div>
+      <Link href={href} className="shrink-0 rounded-full border border-ink-600 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-fg hover:border-fg/60">
+        {cta} →
+      </Link>
     </div>
   );
 }

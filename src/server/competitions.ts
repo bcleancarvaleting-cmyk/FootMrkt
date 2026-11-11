@@ -470,3 +470,34 @@ export async function podiums(competitionIds: string[]) {
   }
   return out;
 }
+
+/**
+ * Admin: remove a match that hasn't locked. Everyone who entered gets their entry fee back, their
+ * cards and booster are released and they're told. Matches that have started can't be removed.
+ */
+export async function removeCompetition(adminId: string, competitionId: string) {
+  const removed = await withTx(async (tx) => {
+    const comp = await tx.competition.findUnique({ where: { id: competitionId } });
+    if (!comp) throw new DomainError("NOT_FOUND", "Match not found.");
+    if (!["UPCOMING", "OPEN"].includes(comp.status) || comp.locksAt <= new Date()) throw new DomainError("LOCKED", "This match has locked or started, so it can't be removed.");
+    const entries = await tx.competitionEntry.findMany({ where: { competitionId } });
+    for (const e of entries) {
+      if (comp.entryFeeMinor > 0) {
+        await lockWallet(tx, e.userId);
+        await release(tx, { userId: e.userId, refId: `entry:${e.id}`, kind: "ENTRY_REFUND", note: `${comp.name} — match removed, entry refunded` });
+      }
+      await tx.cardInstance.updateMany({ where: { lock: "COMPETITION", lockRef: e.id }, data: { lock: "NONE", lockRef: null } });
+      await tx.competitionSelection.deleteMany({ where: { entryId: e.id } });
+      await releaseBooster(tx, e.id);
+      await tx.competitionEntry.delete({ where: { id: e.id } });
+    }
+    await tx.competition.delete({ where: { id: competitionId } });
+    await audit(tx, { actorId: adminId, action: "competition.remove", entityType: "Competition", entityId: competitionId, after: { name: comp.name, entries: entries.length } });
+    return { name: comp.name, users: entries.map((e) => e.userId) };
+  });
+  const { notify } = await import("./notifications");
+  for (const u of removed.users) {
+    await notify(u, { kind: "MATCH", title: `${removed.name} was removed`, body: "Your entry has been cancelled, any entry fee refunded and your players are free again.", href: "/matches", dedupeKey: `match-removed:${competitionId}:${u}` }).catch(() => {});
+  }
+  return removed.users.length;
+}

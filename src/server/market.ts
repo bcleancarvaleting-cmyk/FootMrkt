@@ -158,3 +158,33 @@ export async function stripeHealth(now = new Date()) {
   ]);
   return { lastHook, stuck };
 }
+
+/** Admin: what Stripe says about an order, then fix it up if Stripe says it's paid. */
+export async function diagnoseOrder(orderId: string) {
+  const o = await db.order.findUnique({ where: { id: orderId } });
+  if (!o) return "Order not found.";
+  const head = `Order ${o.id.slice(0, 8)} · ${o.kind.toLowerCase().replace("_", " ")} · £${(o.amountMinor / 100).toFixed(2)} · ${o.provider} · ${o.status.toLowerCase()}`;
+  if (o.provider !== "stripe") return `${head}. Not a Stripe order (made while payments were in ${o.provider} mode).`;
+  if (!o.providerRef) return `${head}. No Stripe checkout was created for it.`;
+  try {
+    const { stripeSessionStatus } = await import("./payments/stripe");
+    const s = await stripeSessionStatus(o.providerRef);
+    if (!s) return `${head}. Checkout id ${o.providerRef} doesn't look like a Stripe checkout.`;
+    const said = `Stripe says: ${s.paid ? "PAID" : "not paid"}${s.expired ? " (expired)" : ""} · ${(s.amountMinor / 100).toFixed(2)} ${s.currency}`;
+    if (o.status !== "PENDING") return `${head}. ${said}.`;
+    const r = await confirmOrderWithProvider(o.userId, o.id);
+    const after = await db.order.findUniqueOrThrow({ where: { id: o.id } });
+    return `${head}. ${said}. Result: ${r ? r.status : "no change"} → order now ${after.status.toLowerCase()}.`;
+  } catch (e) {
+    return `${head}. Asking Stripe failed: ${e instanceof Error ? e.message : String(e)}`;
+  }
+}
+
+/** Admin → Integrations: the latest card orders and the last webhook outcome. */
+export async function recentCardOrders() {
+  const [orders, hook] = await Promise.all([
+    db.order.findMany({ where: { provider: { in: ["stripe", "sandbox"] } }, orderBy: { createdAt: "desc" }, take: 8, include: { user: { select: { displayName: true } } } }),
+    db.appSetting.findUnique({ where: { key: "payments.lastWebhook" } }),
+  ]);
+  return { orders, lastWebhook: (hook?.value as { ok: boolean; at: string; error?: string; result?: string; hadSignature?: boolean } | undefined) ?? null };
+}

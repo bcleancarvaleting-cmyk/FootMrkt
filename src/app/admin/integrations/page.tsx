@@ -1,8 +1,8 @@
-import { stripeHealth } from "@/server/market";
+import { recentCardOrders, stripeHealth } from "@/server/market";
 import { rebuildFromSportmonksAction, removeSportmonksTokenAction, runSportmonksCheckAction, setSportmonksOnAction } from "@/app/actions/integrations";
 import Link from "next/link";
 import { ActionButton } from "@/components/action-button";
-import { removeIntegrationSecretAction, sendTestEmailAction, setPaymentsModeAction } from "@/app/actions/integrations";
+import { diagnoseOrderAction, removeIntegrationSecretAction, sendTestEmailAction, setPaymentsModeAction } from "@/app/actions/integrations";
 import { EmailFromForm, SecretForm } from "@/components/integrations-forms";
 import { cardPaymentsReady, loadPayments } from "@/server/payments/config";
 import { allFlags } from "@/server/flags";
@@ -46,6 +46,7 @@ export default async function Integrations() {
   ]);
   const emailFrom = typeof emailFromRow?.value === "string" ? emailFromRow.value : "";
   const { lastHook, stuck } = await stripeHealth();
+  const recent = await recentCardOrders();
   const flags = await allFlags();
   const appUrl = APP_URL;
   const checklist: Array<[boolean, string, string | null]> = [
@@ -214,6 +215,45 @@ export default async function Integrations() {
           : "No webhook from Stripe has arrived yet. Payments still complete when managers return from Stripe (the site checks with Stripe directly), but set up the webhook so packs and top-ups also arrive if someone closes the page early."}
         {stuck > 0 && <span className="block text-warn">{stuck} Stripe order{stuck > 1 ? "s are" : " is"} still waiting for confirmation.</span>}
       </p>
+
+      <section className="panel space-y-2 p-5">
+        <h3 className="font-display text-xl font-extrabold uppercase italic">Payment checks</h3>
+        <p className="text-sm">
+          Last webhook:{" "}
+          {recent.lastWebhook ? (
+            recent.lastWebhook.ok ? (
+              <span className="text-mint">✓ accepted {fmtDate(new Date(recent.lastWebhook.at))} ({recent.lastWebhook.result})</span>
+            ) : (
+              <span className="text-danger">
+                ✗ rejected {fmtDate(new Date(recent.lastWebhook.at))}: {recent.lastWebhook.error}
+                {recent.lastWebhook.hadSignature === false ? " — no Stripe signature header" : ""}
+              </span>
+            )
+          ) : (
+            <span className="text-warn">none received yet</span>
+          )}
+        </p>
+        {recent.orders.length === 0 ? (
+          <p className="text-sm text-faint">No card orders yet.</p>
+        ) : (
+          <ul className="divide-y divide-ink-800 text-sm">
+            {recent.orders.map((o) => (
+              <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <span className="min-w-0">
+                  <b>£{(o.amountMinor / 100).toFixed(2)}</b> · {o.kind === "PACK_PURCHASE" ? "pack" : o.kind === "DEPOSIT" ? "top-up" : o.kind.toLowerCase()} · {o.user.displayName}{" "}
+                  <span className="text-faint">· {o.provider} · {fmtDate(o.createdAt)}</span>{" "}
+                  <span className={o.status === "PAID" ? "text-mint" : o.status === "PENDING" ? "text-warn" : "text-danger"}>{o.status.toLowerCase()}</span>
+                </span>
+                {o.provider === "stripe" && (
+                  <ActionButton action={diagnoseOrderAction.bind(null, o.id)} className="btn-ghost px-3 py-1.5 text-[11px]">
+                    Check with Stripe
+                  </ActionButton>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <Step n={2} title="Payments switch" done={payReady.ready}>
         <p className="text-sm">

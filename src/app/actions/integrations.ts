@@ -132,3 +132,11 @@ export async function sendTestEmailAction(): Promise<ActionResult> {
       ? { ok: false, error: "No email key saved, so it was only logged (see Admin → Emails)." }
       : { ok: false, error: "Resend refused it — see the error in Admin → Emails. Usually the sender's domain isn't verified in Resend yet." };
 }
+
+export async function diagnoseOrderAction(orderId: string): Promise<ActionResult> {
+  await requireAdmin();
+  const { diagnoseOrder } = await import("@/server/market");
+  const msg = await diagnoseOrder(orderId);
+  refresh();
+  return /failed|not found|doesn't|No Stripe/i.test(msg) ? { ok: false, error: msg } : { ok: true, data: undefined, message: msg };
+}

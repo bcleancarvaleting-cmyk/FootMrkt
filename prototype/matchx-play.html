@@ -181,6 +181,47 @@ main { padding-top: 22px; padding-bottom: calc(150px + env(safe-area-inset-botto
 .res.on { background: var(--raised); border: 1px solid var(--line); }
 .res.off { opacity: .6; }
 .note { font-size: 12px; color: var(--faint); }
+
+/* Reveal: each card spins in on a stage, then settles into the grid */
+.stage { min-height: 360px; display: grid; place-items: center; perspective: 1000px; cursor: pointer; }
+.stage[hidden] { display: none !important; }
+.spin { animation: spinIn .85s cubic-bezier(.2,.75,.2,1) both; }
+.spin-gold { animation-duration: 1.5s; }
+.spin-gold::after { content: ""; position: absolute; inset: -30%; background: radial-gradient(circle, rgb(242 207 99 / .55), transparent 60%); animation: burst 1.5s ease-out both; pointer-events: none; }
+@keyframes spinIn { 0% { transform: translateX(140%) rotateY(-900deg) scale(.5); opacity: 0; } 35% { opacity: 1; } 100% { transform: none; opacity: 1; } }
+@keyframes burst { 0%, 60% { opacity: 0; transform: scale(.6); } 75% { opacity: 1; } 100% { opacity: 0; transform: scale(1.4); } }
+.land { animation: land .45s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes land { from { transform: translateY(-40px) scale(1.3); opacity: 0; } to { transform: none; opacity: 1; } }
+/* Booster reel */
+.reel { position: relative; overflow: hidden; border-radius: 18px; border: 1px solid var(--line); background: var(--sunk); padding: 14px 0; }
+.reel-strip { display: flex; width: max-content; will-change: transform; }
+.reel-tile { width: 108px; margin: 0 6px; height: 120px; border-radius: 14px; border: 3px solid; background: var(--panel); display: grid; place-items: center; align-content: center; gap: 4px; flex-shrink: 0; }
+.reel-tile span { font-size: 36px; } .reel-tile b { font: 800 14px/1 var(--display); text-transform: uppercase; }
+.reel-mark { position: absolute; top: 0; bottom: 0; left: 50%; width: 3px; margin-left: -1.5px; background: var(--lime); box-shadow: 0 0 12px var(--lime); }
+.pop { animation: pop .5s cubic-bezier(.2,1.4,.4,1) both; }
+@keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+/* Matches: green = entered, red = not */
+.match { display: flex; align-items: center; gap: 12px; padding: 16px; cursor: pointer; color: inherit; border-width: 2px; width: 100%; }
+.match.in { border-color: var(--mint); } .match.out { border-color: var(--red); }
+.hubs { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.hub { display: grid; gap: 4px; padding: 16px; text-align: left; cursor: pointer; color: inherit; min-width: 0; }
+.hub b { font: 800 24px/1 var(--display); text-transform: uppercase; } .hub .muted { font-size: 12px; }
+.slot .lg { font: 600 9px/1 var(--body); opacity: .75; }
+.slot.target { border: 2px dashed var(--tc) !important; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 18px var(--tc); } }
+.c-lg { font: 700 9px/1.3 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--c-faint); }
+.lgname { font-weight: 600; color: var(--muted); }
+.fin { font: 800 10px/1 var(--body); border-radius: 999px; padding: 2px 7px; color: #fff; white-space: nowrap; }
+.fin-RUBY { background: #b3123b; } .fin-DIAMOND { background: #2a8fbf; } .fin-RAINBOW { background: linear-gradient(90deg,#ef4444,#f59e0b,#22c55e,#3b82f6,#a855f7); }
+.fc-RUBY { background: linear-gradient(135deg,#5a0718,#ff4d6d,#8f0d2b,#ffb3c1,#7a0a22); box-shadow: 0 0 26px -6px #ff4d6d; }
+.fc-DIAMOND { background: linear-gradient(135deg,#0f3b52,#b8ecff,#3aa5d6,#ffffff,#1f6f96); box-shadow: 0 0 26px -6px #7fd6ff; }
+.fc-RAINBOW { background: conic-gradient(#ef4444,#f59e0b,#22c55e,#06b6d4,#3b82f6,#a855f7,#ef4444); box-shadow: 0 0 30px -6px #a855f7; }
+.res.lb { width: 100%; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+.res.lb:hover { background: var(--sunk); } .res.lb.on { background: var(--raised); }
+.tgrid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.tcard { display: grid; gap: 2px; justify-items: center; width: 128px; text-align: center; } .tcard.dim { opacity: .5; }
+.trow { display: flex; align-items: center; gap: 10px; padding: 12px 14px; }
+@media (prefers-reduced-motion: reduce) { .spin, .spin-gold::after, .land, .pop, .slot.target { animation: none !important; } }
 </style>
 
 <div class="ticker" aria-label="Live stats"><div class="wrap" id="ticker"></div></div>
@@ -192,7 +233,7 @@ main { padding-top: 22px; padding-bottom: calc(150px + env(safe-area-inset-botto
     <span class="knob"></span>
     <svg class="moon" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11Z"/></svg>
   </button>
-  <button class="credit" data-go="me" id="credit" title="MP credit — spend it on packs"></button>
+  <button class="credit" data-go="me" id="credit" title="Your MX balance"></button>
   <button class="avatar" data-go="me" aria-label="Your profile">Y</button>
 </div></header>
 
@@ -236,15 +277,15 @@ const GIFTS = [["Gift: Gold Pack", "gold"], ["Gift: Silver Pack", "silver"], ["G
 const SCORING = { app: 2, sixty: 2, goal: 10, assist: 6, cs: 5, psave: 8, saves3: 2, tackles3: 1, yellow: -3, red: -10, og: -5, pmiss: -5, conceded2: -1 };
 const ROOMS = [["dugout", "The Dugout"], ["matchday", "Matchday"], ["pulls", "Pack Pulls"], ["tactics", "Tactics Board"]];
 const RIVALS = ["TerraceTalk", "GoldenBoot22", "WrexhamWizard", "PackHunter", "NorthBankNat", "SixYardSam", "Hollywood11", "ValleyBoy", "KopEnd", "BlueMoon88"];
-const KEY = "matchx-play-v2";
+const KEY = "matchx-play-v3";
 
 // ───────── state ─────────
 let S = load() || fresh();
 function fresh() {
   const signup = ["st-1", "st-2", "st-3", "st-4", "pk-2", "pk-3", "pk-4", "loans"];
   return {
-    cards: [], nextId: 1, credit: 2000, packs: [...signup.map((sku, k) => ({ sku, id: k + 1 })), { sku: "booster", id: 9, gw: 5 }], nextPack: 10,
-    ledger: [{ t: Date.now(), d: "Demo credit to try the pack shop", a: 2000 }], squad: { formation: "2-2-2", slots: {}, bench: [], booster: null, boostOn: null },
+    cards: [], nextId: 1, credit: 2000, bonus: 0, winnings: 0, entries: {}, boosterUse: null, market: { listings: [], auctions: [], mine: [] }, packs: [...signup.map((sku, k) => ({ sku, id: k + 1 })), { sku: "booster", id: 9, gw: 5 }], nextPack: 10,
+    ledger: [{ t: Date.now(), d: "Demo credit to try the pack shop", a: 2000 }], 
     gw: { n: 5, deadline: Date.now() + (2 * 86400 + 4 * 3600) * 1000, last: null }, history: [], sets: [], boosters: [],
     gift: { title: "Gift: Gold Pack", sku: "gold", claimed: false, ends: Date.now() + 20 * 3600 * 1000 },
     chat: seedChat(), opened: 0, serials: {},
@@ -301,13 +342,13 @@ function kit(pl) {
 function cardHTML(card, size = "", extra = "") {
   const pl = P(card); const t = trend(pl); const v = value(pl);
   const tr = t === 0 ? `<span class="c-sub">– 0%</span>` : `<span class="${t > 0 ? "up" : "down"}">${t > 0 ? "▲" : "▼"} ${Math.abs(t)}%</span>`;
-  return `<button class="card ${size} foil-${pl.tier}" data-card="${card.id}" ${extra} aria-label="${esc(pl.name)}, ${TIER[pl.tier]} ${pl.pos}"><span class="sheen"></span>
+  return `<button class="card ${size} foil-${pl.tier} ${card.fin ? "fin-card fc-" + card.fin : ""}" data-card="${card.id}" ${extra} aria-label="${esc(pl.name)}, ${TIER[pl.tier]} ${pl.pos}"><span class="sheen"></span>
     <div class="face face-${pl.tier}">${pl.tier === "G" ? '<span class="holo"></span>' : ""}
       <div class="c-top"><span class="c-pos">${pl.pos}</span>${crest(pl.club, size === "sm" ? 16 : size === "lg" ? 26 : 20)}<span class="c-tier">${TIER[pl.tier]}</span></div>
-      <div class="c-img">${kit(pl)}${size === "sm" ? "" : `<span class="c-acq">${card.loan ? "On loan" : card.starter ? esc(card.acq) + " · untradeable" : esc(card.acq)}</span>`}</div>
-      <div class="c-name">${esc(pl.name)}</div><div class="c-club">${esc(club(pl.club)[0])}</div>
+      <div class="c-img">${kit(pl)}${size === "sm" ? "" : `<span class="c-acq">${card.fin ? FIN[card.fin] : card.loan ? "On loan" : card.starter ? esc(card.acq) + " · untradeable" : esc(card.acq)}</span>`}</div>
+      <div class="c-name">${esc(pl.name)}</div><div class="c-club">${esc(club(pl.club)[0])}</div><div class="c-lg">${LEAGUES[club(pl.club)[4]] || ""}</div>
       <div class="c-foot"><div><div class="c-mp">${card.loan ? "Loan" : v + " MX"} ${card.loan ? "" : tr}</div><div class="c-sub">${card.loan ? card.loan + " GW left" : "value"}</div></div>
-        <div class="c-pts">${fmt(card.pts)} pts<div class="c-sub">won for you</div></div></div>
+        <div class="c-pts">${fmt(card.pts)} pts<div class="c-sub">${typeof card.id === "string" ? "this week" : "won for you"}</div></div></div>
     </div></button>`;
 }
 function toast(msg) {
@@ -332,7 +373,7 @@ function draw(tier, pos, used, lt) {
   const pl = pick(pool); used.add(pl.i); return pl;
 }
 function roll(base, ups) { let r = Math.random(), acc = 0; for (const [t, c] of ups) { acc += c; if (r < acc) return t; } return base; }
-function openPack(sku) {
+function openPack(sku, free) {
   const used = new Set(); const out = [];
   const lt = PACKS[sku].starter;
   if (lt) {
@@ -346,7 +387,7 @@ function openPack(sku) {
   else { out.push(draw("G", null, used, 1), draw("G", null, used, 1));
     for (let i = 0; i < 2; i++) out.push(draw(roll("B", [["G", 0.15], ["S", 0.4]]), null, used));
     for (let i = 0; i < 2; i++) out.push(draw(roll("B", [["S", 0.4]]), null, used)); }
-  const cards = out.map((pl) => ({ id: S.nextId++, p: pl.i, serial: serial(pl), acq: lt ? LEAGUES[lt] + " Starter" : "Packed", starter: !!lt, pts: 0 }));
+  const cards = out.map((pl) => ({ id: S.nextId++, p: pl.i, serial: serial(pl), acq: lt ? LEAGUES[lt] + " Starter" : free ? "Gift" : "Packed", starter: !!lt || !!free, pts: 0 }));
   S.cards.push(...cards); S.opened++; save();
   return cards;
 }
@@ -379,54 +420,44 @@ function pickSheet(pk) {
     });
   });
 }
-function openBooster(pk) {
-  const r = Math.random() * 100; let acc = 0, kind = "GOAL_RUSH";
-  for (const [k, b] of Object.entries(BOOSTERS)) { acc += b.chance; if (r < acc) { kind = k; break; } }
-  S.packs = S.packs.filter((x) => x !== pk); S.boosters.push({ id: pk.id, kind, gw: pk.gw, used: false }); save(); render();
-  const b = BOOSTERS[kind];
-  sheet(`<div class="stack" style="text-align:center"><p class="eyebrow">Weekly booster · ${b.rarity}</p>
-    <div style="margin:8px auto;width:220px;border:3px solid ${b.color};border-radius:20px;padding:22px 16px;box-shadow:0 0 30px ${b.color}55">
-      <div style="font-size:54px">${b.icon}</div><h2 class="h-l">${b.name}</h2><p class="muted" style="font-size:13px">${b.desc}</p></div>
-    <p class="muted" style="font-size:13px">Put it on one player in your squad for this gameweek. Their card gets a <b style="color:${b.color}">${b.name}</b> border. Expires when next Tuesday's booster lands.</p>
-    <button class="btn btn-primary" data-go="games">Use it in my squad</button></div>`);
-}
-const activeBoosters = () => S.boosters.filter((b) => !b.used && b.gw === S.gw.n);
-function showReveal(cards, sku) {
-  const order = [...cards].sort((a, b) => "BSG".indexOf(P(a).tier) - "BSG".indexOf(P(b).tier));
-  const golds = cards.filter((c) => P(c).tier === "G").length, silvers = cards.filter((c) => P(c).tier === "S").length;
-  sheet(`<div class="stack" style="text-align:center"><p class="eyebrow">${esc(PACKS[sku].name)}</p>
-    <h2 class="h-l">${golds ? golds + " Gold!" : silvers ? silvers + " Silver" : "New cards"}</h2>
-    <div class="reveal" id="rev"></div>
-    <div class="row" style="justify-content:center"><button class="btn btn-ghost" id="revall">Reveal all</button>
-    <button class="btn btn-primary" data-close>${S.packs.some((p) => PACKS[p.sku].starter) ? "Next pack" : "Add to my club"}</button></div></div>`, (el) => {
-    const rev = el.querySelector("#rev"); let i = 0, timer;
-    const next = () => { if (i >= order.length) return; rev.insertAdjacentHTML("beforeend", cardHTML(order[i], "sm", 'style="animation-delay:0s" ').replace('class="card', 'class="flip card')); i++; timer = setTimeout(next, P(order[i - 1]).tier === "G" ? 900 : 380); };
-    next();
-    el.querySelector("#revall").onclick = () => { clearTimeout(timer); while (i < order.length) { rev.insertAdjacentHTML("beforeend", cardHTML(order[i], "sm").replace('class="card', 'class="flip card')); i++; } };
-    el.querySelector("[data-close]").addEventListener("click", () => go(S.packs.length ? "packs" : "games"));
-  });
-}
-
-// ───────── squad & simulation ─────────
+// ───────── matches, squads & simulation ─────────
+const LG_SHORT = { 1: "PL", 2: "CH", 3: "L1", 4: "L2" };
+const lgOf = (pl) => club(pl.club)[4];
+const MATCHES = [
+  { id: "open", name: "Open League", rule: "Any of your players", prize: "1st: Gold Pack · 2nd–3rd: Silver Pack · everyone else: Bronze Pack", ok: () => true, pool: () => true },
+  { id: "freeroll", name: "Founders' Freeroll", rule: "Free cards only (starters, picks, loans, gifts)", prize: "1st: £10 cash, paid as winnings", ok: (c) => c.starter, pool: (p) => p.tier !== "G" || lgOf(p) === 1 },
+  { id: "bronze", name: "Bronze Cup", rule: "Bronze cards only", prize: "Top 3: Silver Pack", ok: (c) => P(c).tier === "B", pool: (p) => p.tier === "B" },
+  { id: "silver", name: "Silver Cup", rule: "Silver cards only", prize: "Top 3: Silver Pack", ok: (c) => P(c).tier === "S", pool: (p) => p.tier === "S" },
+];
+const M = (id) => MATCHES.find((m) => m.id === id);
+const entryOf = (mid) => (S.entries[mid] ||= { formation: "2-2-2", slots: {}, bench: [], entered: false });
 function slotsFor(f) { const [d, m, a] = FORMATIONS[f]; return [["GK", 1], ["DEF", d], ["MID", m], ["ATT", a]].flatMap(([p, n]) => Array.from({ length: n }, (_, k) => p + "-" + k)); }
-function used() { return new Set([...Object.values(S.squad.slots), ...S.squad.bench].filter(Boolean)); }
-function autofill() {
-  const taken = used(); const players = new Set([...taken].map((id) => S.cards.find((c) => c.id === id)?.p));
+const entryCards = (e) => [...Object.values(e.slots), ...e.bench].filter(Boolean);
+// A card can only be in one match at a time, and never while it's listed for sale.
+function cardBusy(id, mid) {
+  for (const [k, e] of Object.entries(S.entries)) if (k !== mid && entryCards(e).includes(id)) return M(k).name;
+  if (S.market.mine.some((l) => l.cardId === id)) return "listed for sale";
+  return null;
+}
+function autofill(mid) {
+  const e = entryOf(mid); const m = M(mid);
+  const taken = new Set(entryCards(e)); const players = new Set([...taken].map((id) => byId(id)?.p));
   const score = (c) => value(P(c)) + c.pts / 5;
-  const pool = [...S.cards].sort((a, b) => score(b) - score(a));
-  for (const k of slotsFor(S.squad.formation)) {
-    if (S.squad.slots[k]) continue; const pos = k.split("-")[0];
+  const pool = S.cards.filter((c) => m.ok(c) && !cardBusy(c.id, mid)).sort((a, b) => score(b) - score(a));
+  for (const k of slotsFor(e.formation)) {
+    if (e.slots[k]) continue; const pos = k.split("-")[0];
     const c = pool.find((c) => P(c).pos === pos && !taken.has(c.id) && !players.has(c.p));
-    if (c) { S.squad.slots[k] = c.id; taken.add(c.id); players.add(c.p); }
+    if (c) { e.slots[k] = c.id; taken.add(c.id); players.add(c.p); }
   }
   for (let b = 0; b < 4; b++) {
-    if (S.squad.bench[b]) continue;
-    const hasGk = S.squad.bench.some((id) => id && P(S.cards.find((c) => c.id === id)).pos === "GK");
+    if (e.bench[b]) continue;
+    const hasGk = e.bench.some((id) => id && P(byId(id)).pos === "GK");
     const c = (!hasGk && pool.find((c) => P(c).pos === "GK" && !taken.has(c.id) && !players.has(c.p))) || pool.find((c) => !taken.has(c.id) && !players.has(c.p));
-    if (c) { S.squad.bench[b] = c.id; taken.add(c.id); players.add(c.p); }
+    if (c) { e.bench[b] = c.id; taken.add(c.id); players.add(c.p); }
   }
   save();
 }
+const byId = (id) => S.cards.find((c) => c.id === id);
 function simLine(pl) {
   const reg = pl.num >= 1 && pl.num <= 11 ? 0.85 : pl.num <= 25 ? 0.6 : 0.35;
   if (Math.random() > reg) return null;
@@ -450,28 +481,23 @@ function points(pos, s) {
   return { pts: it.reduce((a, [, p]) => a + p, 0), items: it };
 }
 function validShape(counts) { return Object.values(FORMATIONS).some(([d, m, a]) => counts.GK === 1 && counts.DEF === d && counts.MID === m && counts.ATT === a); }
-function playGameweek() {
-  const keys = slotsFor(S.squad.formation);
-  const starters = keys.map((k) => S.cards.find((c) => c.id === S.squad.slots[k]));
-  const bench = S.squad.bench.map((id) => S.cards.find((c) => c.id === id));
-  const lines = new Map(); [...starters, ...bench].forEach((c) => lines.set(c.id, simLine(P(c))));
-  const active = [...starters]; const subs = []; const usedB = new Set();
-  for (const st of [...starters].sort((a, b) => (P(a).pos === "GK" ? -1 : 0) - (P(b).pos === "GK" ? -1 : 0))) {
-    if (lines.get(st.id)) continue;
-    for (const b of bench) {
-      if (usedB.has(b.id) || !lines.get(b.id)) continue;
-      const sp = P(st).pos, bp = P(b).pos;
+// Score one squad. `xi` and `subs` are lists of { key, p }; the booster goes on the item whose key === boostOn.
+function scoreSquad(xi, subs, line, boostOn, kind) {
+  const active = [...xi]; const usedB = new Set(); const subbed = [];
+  for (const st of [...xi].sort((a, b) => (PLAYERS[a.p].pos === "GK" ? -1 : 0) - (PLAYERS[b.p].pos === "GK" ? -1 : 0))) {
+    if (line(st.p)) continue;
+    for (const b of subs) {
+      if (usedB.has(b.key) || !line(b.p)) continue;
+      const sp = PLAYERS[st.p].pos, bp = PLAYERS[b.p].pos;
       if ((sp === "GK" || bp === "GK") && sp !== bp) continue;
-      const counts = { GK: 0, DEF: 0, MID: 0, ATT: 0 }; active.filter((c) => c.id !== st.id).forEach((c) => counts[P(c).pos]++); counts[bp]++;
+      const counts = { GK: 0, DEF: 0, MID: 0, ATT: 0 }; active.filter((x) => x !== st).forEach((x) => counts[PLAYERS[x.p].pos]++); counts[bp]++;
       if (!validShape(counts)) continue;
-      active.splice(active.indexOf(st), 1, b); usedB.add(b.id); subs.push([st.id, b.id]); break;
+      active.splice(active.indexOf(st), 1, b); usedB.add(b.key); subbed.push([st.key, b.key]); break;
     }
   }
-  const bst = S.squad.booster && S.boosters.find((b) => b.id === S.squad.booster && !b.used);
-  const kind = bst ? bst.kind : null;
-  const rows = [...starters, ...bench].map((c) => {
-    const s = lines.get(c.id); const r = points(P(c).pos, s); let counted = active.includes(c);
-    const boosted = !!kind && c.id === S.squad.boostOn;
+  const rows = [...xi, ...subs].map((x) => {
+    const s = line(x.p); const r = points(PLAYERS[x.p].pos, s); let counted = active.includes(x);
+    const boosted = !!kind && x.key === boostOn;
     if (boosted && s) {
       const add = (e, n, each) => { if (n > 0) { r.items.push([e, n * each]); r.pts += n * each; } };
       if (kind === "GOAL_RUSH") add("Goal Rush", s.goals, 5);
@@ -479,64 +505,182 @@ function playGameweek() {
       if (kind === "CLEAN_SHEET_PLUS" && r.items.some(([e]) => e === "Clean sheet")) add("Clean Sheet+", 1, SCORING.cs);
       if (kind === "TRIPLE_UP") { r.items.push(["Triple Up ×3", r.pts * 2]); r.pts *= 3; }
       if (kind === "SHIELD" && r.pts < 0) { r.items.push(["Shield", -r.pts]); r.pts = 0; }
-      if (kind === "SUPER_SUB" && bench.includes(c)) counted = true;
+      if (kind === "SUPER_SUB" && subs.includes(x)) counted = true;
     }
-    return { id: c.id, counted, played: !!s, boosted, ...r };
+    return { key: x.key, p: x.p, fin: x.fin || null, tier: x.tier || PLAYERS[x.p].tier, bench: subs.includes(x), counted, played: !!s, boosted,
+      on: subbed.some((s) => s[1] === x.key), off: subbed.some((s) => s[0] === x.key), ...r };
   });
-  const total = rows.filter((r) => r.counted).reduce((a, r) => a + r.pts, 0);
-  rows.filter((r) => r.counted).forEach((r) => (S.cards.find((c) => c.id === r.id).pts += r.pts));
+  return { rows, total: rows.filter((r) => r.counted).reduce((a, r) => a + r.pts, 0) };
+}
+// Rival managers: real-looking squads drawn from the same players; Gold cards sometimes carry a special finish.
+function rivalTeam(m) {
+  const used = new Set(); const take = (pos) => { const pool = PLAYERS.filter((p) => p.pos === pos && !used.has(p.i) && m.pool(p) && (m.id !== "open" || p.tier !== "B" || Math.random() < 0.3)); const pl = pick(pool.length ? pool : PLAYERS.filter((p) => p.pos === pos)); used.add(pl.i); return pl; };
+  const fin = (pl) => { if (pl.tier !== "G" || m.id === "freeroll") return null; const r = Math.random(); return r < 0.02 ? "RAINBOW" : r < 0.07 ? "DIAMOND" : r < 0.17 ? "RUBY" : null; };
+  const xi = ["GK", "DEF", "DEF", "MID", "MID", "ATT", "ATT"].map((pos, k) => { const pl = take(pos); return { key: "x" + k, p: pl.i, fin: fin(pl) }; });
+  const subs = ["GK", "DEF", "MID", "ATT"].map((pos, k) => { const pl = take(pos); return { key: "b" + k, p: pl.i, fin: fin(pl) }; });
+  const kinds = Object.keys(BOOSTERS); const kind = m.id === "freeroll" ? null : Math.random() < 0.7 ? pick(kinds) : null;
+  const boostOn = kind ? (BOOSTERS[kind].bench ? pick(subs).key : pick(xi).key) : null;
+  return { xi, subs, kind, boostOn };
+}
+const FIN = { RUBY: "♦ Ruby", DIAMOND: "◆ Diamond", RAINBOW: "🌈 Rainbow 1/1" };
+function playGameweek() {
+  const lines = new Map(); const line = (pi) => { if (!lines.has(pi)) lines.set(pi, simLine(PLAYERS[pi])); return lines.get(pi); };
+  const out = {}; const won = [];
+  const kindOf = () => { const b = S.boosters.find((b) => b.id === S.boosterUse?.id && !b.used); return b ? b.kind : null; };
+  for (const m of MATCHES) {
+    const e = S.entries[m.id]; if (!e || !e.entered) continue;
+    const xi = slotsFor(e.formation).map((k) => ({ key: e.slots[k], p: byId(e.slots[k]).p, fin: byId(e.slots[k]).fin }));
+    const subs = e.bench.map((id) => ({ key: id, p: byId(id).p, fin: byId(id).fin }));
+    const myKind = S.boosterUse && S.boosterUse.match === m.id ? kindOf() : null;
+    const mine = scoreSquad(xi, subs, line, myKind ? S.boosterUse.on : null, myKind);
+    mine.rows.filter((r) => r.counted).forEach((r) => (byId(r.key).pts += r.pts));
+    const field = RIVALS.map((name) => { const t = rivalTeam(m); const sc = scoreSquad(t.xi, t.subs, line, t.boostOn, t.kind); return { name, total: sc.total, rows: sc.rows, kind: t.kind }; });
+    field.push({ name: "You", total: mine.total, rows: mine.rows, kind: myKind, you: true });
+    field.sort((a, b) => b.total - a.total);
+    const rank = field.findIndex((f) => f.you) + 1;
+    let reward = null;
+    if (m.id === "open") reward = rank === 1 ? "gold" : rank <= 3 ? "silver" : "bronze";
+    if ((m.id === "bronze" || m.id === "silver") && rank <= 3) reward = "silver";
+    if (m.id === "freeroll" && rank === 1) { S.winnings += 1000; S.ledger.push({ t: Date.now(), d: "Founders' Freeroll — 1st place", a: 1000, kind: "£" }); }
+    if (reward) { S.packs.push({ sku: reward, id: S.nextPack++ }); won.push(PACKS[reward].name); }
+    out[m.id] = { total: mine.total, rank, field, reward, cash: m.id === "freeroll" && rank === 1 };
+  }
+  if (S.boosterUse) { const b = S.boosters.find((b) => b.id === S.boosterUse.id); if (b) b.used = true; }
   // Values move with form.
-  const touched = new Set(rows.map((r) => S.cards.find((c) => c.id === r.id).p));
-  PLAYERS.forEach((pl) => { const v = value(pl); const r = rows.find((x) => S.cards.find((c) => c.id === x.id).p === pl.i);
-    const delta = touched.has(pl.i) && r ? (r.pts >= 12 ? 2 : r.pts >= 6 ? 1 : r.pts === 0 ? -1 : 0) : pick([-1, 0, 0, 0, 1]);
-    pl.hist.push(Math.max(1, v + (pl.tier === "G" ? delta : Math.sign(delta) * (Math.random() < 0.5 ? 1 : 0)))); if (pl.hist.length > 8) pl.hist.shift(); });
-  const field = RIVALS.map((n) => [n, 8 + rnd(42)]).concat([["You", total]]).sort((a, b) => b[1] - a[1]);
-  const rank = field.findIndex((f) => f[0] === "You") + 1;
-  let reward = null;
-  if (rank === 1) reward = "gold"; else if (rank <= 3) reward = "silver"; else reward = "bronze";
-  S.packs.push({ sku: reward, id: S.nextPack++ });
-  if (bst) bst.used = true;
-  S.gw.last = { n: S.gw.n, total, rank, field, rows, subs, formation: S.squad.formation, reward, booster: kind };
-  // Loans count down each gameweek played, then the players go back.
+  PLAYERS.forEach((pl) => { if (!lines.has(pl.i) && Math.random() < 0.7) return; const v = value(pl); const s = lines.get(pl.i); const r = s ? points(pl.pos, s).pts : 0;
+    const delta = lines.has(pl.i) ? (r >= 12 ? 1 : r === 0 ? -0.5 : 0) : pick([-0.5, 0, 0.5]);
+    pl.hist.push(Math.max(1, Math.round((v + delta) * 10) / 10)); if (pl.hist.length > 8) pl.hist.shift(); });
+  // Loans count down each gameweek, then the players go back.
   const ended = S.cards.filter((c) => c.loan && --c.loan <= 0);
-  if (ended.length) { const ids = new Set(ended.map((c) => c.id)); S.cards = S.cards.filter((c) => !ids.has(c.id));
-    for (const k of Object.keys(S.squad.slots)) if (ids.has(S.squad.slots[k])) delete S.squad.slots[k]; S.squad.bench = S.squad.bench.map((x) => (ids.has(x) ? null : x)); S.gw.last.loansEnded = ended.length; }
-  S.history.push({ n: S.gw.n, total, rank });
+  if (ended.length) { const ids = new Set(ended.map((c) => c.id)); S.cards = S.cards.filter((c) => !ids.has(c.id)); dropFromEntries(ids); }
+  settleMarket();
+  S.gw.last = { n: S.gw.n, matches: out, loansEnded: ended.length, won };
+  S.history.push({ n: S.gw.n, matches: Object.fromEntries(Object.entries(out).map(([k, r]) => [k, { total: r.total, rank: r.rank }])) });
   S.gw.n++; S.gw.deadline = Date.now() + (2 * 86400 + 4 * 3600) * 1000;
-  // Tuesday: last week's booster expires (opened or not) and a new booster pack lands.
-  S.packs = S.packs.filter((p) => p.sku !== "booster");
-  S.packs.unshift({ sku: "booster", id: S.nextPack++, gw: S.gw.n });
-  S.squad.booster = null; S.squad.boostOn = null;
-  // The admin sometimes puts a gift on the site.
+  for (const e of Object.values(S.entries)) e.entered = false;
+  // Tuesday: last week's booster expires and a new booster pack lands.
+  S.packs = S.packs.filter((p) => p.sku !== "booster"); S.packs.unshift({ sku: "booster", id: S.nextPack++, gw: S.gw.n }); S.boosterUse = null;
   if (Math.random() < 0.6) { const g = pick(GIFTS); S.gift = { title: g[0], sku: g[1], claimed: false, ends: Date.now() + 24 * 3600 * 1000 }; }
   save();
 }
+function dropFromEntries(ids) {
+  for (const e of Object.values(S.entries)) { for (const k of Object.keys(e.slots)) if (ids.has(e.slots[k])) delete e.slots[k]; e.bench = e.bench.map((x) => (ids.has(x) ? null : x)); }
+  if (S.boosterUse && ids.has(S.boosterUse.on)) S.boosterUse.on = null;
+}
 
+// ───────── money ─────────
+// Bought MX (the demo credit here) and bonus MX (from sales). Both spend the same; neither can be withdrawn.
+const balance = () => S.credit + S.bonus;
+function spend(amount, d) {
+  if (balance() < amount) { toast("Not enough MX"); return false; }
+  const fromBonus = Math.min(S.bonus, amount); S.bonus -= fromBonus; S.credit -= amount - fromBonus;
+  S.ledger.push({ t: Date.now(), d, a: -amount }); return true;
+}
+
+// ───────── transfers ─────────
+const SELLERS = ["PackHunter", "KopEnd", "GoldenBoot22", "ValleyBoy", "NorthBankNat", "Hollywood11"];
+const tradeable = (c) => !c.starter && !c.loan;
+const price = (pl) => Math.max(10, Math.round(value(pl) * 100 * (0.95 + Math.random() * 0.3)));
+function stockMarket() {
+  const pickP = (f) => pick(PLAYERS.filter(f));
+  const house = [...Array(4)].map(() => { const pl = pickP((p) => p.tier === pick(["G", "S", "S", "B"])); return { id: "h" + rnd(1e9), p: pl.i, price: price(pl), seller: "MATCHX" }; });
+  const peers = [...Array(5)].map(() => { const pl = pickP((p) => p.tier === pick(["G", "S", "B", "B"])); return { id: "m" + rnd(1e9), p: pl.i, price: price(pl), seller: pick(SELLERS) }; });
+  const auctions = [...Array(3)].map(() => { const pl = pickP((p) => p.tier === "G" && lgOf(p) === 1); const start = Math.round(value(pl) * 70); const fin = Math.random() < 0.34 ? pick(["RUBY", "DIAMOND"]) : null;
+    return { id: "a" + rnd(1e9), p: pl.i, fin, bid: start, bidder: null, mine: false, botMax: Math.round(value(pl) * 100 * (0.9 + Math.random() * 0.5) * (fin ? 1.6 : 1)) }; });
+  S.market.listings = [...house, ...peers]; S.market.auctions = auctions;
+}
+function settleMarket() {
+  for (const a of S.market.auctions) {
+    if (a.mine && a.bid >= a.botMax) { S.cards.push({ id: S.nextId++, p: a.p, serial: serial(PLAYERS[a.p]), acq: "Auction", starter: false, pts: 0, fin: a.fin }); toast(`Auction won: ${PLAYERS[a.p].name}`); }
+    else if (a.mine) { S.bonus += a.bid; S.ledger.push({ t: Date.now(), d: "Outbid — MX returned", a: a.bid }); }
+  }
+  // Some of your listings sell during the week.
+  for (const l of [...S.market.mine]) { const c = byId(l.cardId); if (c && Math.random() < (l.price <= value(P(c)) * 120 ? 0.8 : 0.25)) sellListing(l); }
+  stockMarket();
+}
+function sellListing(l) {
+  const c = byId(l.cardId); if (!c) return;
+  const fee = Math.round(l.price * 0.05);
+  S.cards = S.cards.filter((x) => x.id !== c.id); S.market.mine = S.market.mine.filter((x) => x !== l);
+  S.bonus += l.price - fee; S.ledger.push({ t: Date.now(), d: `Sold ${P(c).name} (5% fee ${mp(fee)})`, a: l.price - fee });
+  save(); toast(`${P(c).name} sold to ${pick(SELLERS)} for ${mp(l.price)}`); if (view === "transfers" || view === "home") render();
+}
 // ───────── sets ─────────
 const SETS = [
   { id: "trio", name: "Golden Trio", desc: "Three different Gold players.", need: (c) => P(c).tier === "G", n: 3 },
   { id: "brigade", name: "Bronze Brigade", desc: "Six Bronze cards from packs.", need: (c) => P(c).tier === "B", n: 6 },
   { id: "keepers", name: "Keepers' Union", desc: "Two goalkeepers from packs.", need: (c) => P(c).pos === "GK", n: 2 },
 ];
-function setCards(set) { const busy = used(); const seen = new Set(); return S.cards.filter((c) => !c.starter && !busy.has(c.id) && set.need(c) && !seen.has(c.p) && seen.add(c.p)); }
+function setCards(set) { const busy = new Set([...Object.values(S.entries).flatMap(entryCards), ...S.market.mine.map((l) => l.cardId)]); const seen = new Set(); return S.cards.filter((c) => !c.starter && !busy.has(c.id) && set.need(c) && !seen.has(c.p) && seen.add(c.p)); }
+
+// ───────── reveal animations ─────────
+const calm = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+function showReveal(cards, sku) {
+  const order = [...cards].sort((a, b) => "BSG".indexOf(P(a).tier) - "BSG".indexOf(P(b).tier));
+  const golds = cards.filter((c) => P(c).tier === "G").length, silvers = cards.filter((c) => P(c).tier === "S").length;
+  sheet(`<div class="stack" style="text-align:center"><p class="eyebrow">${esc(PACKS[sku].name)}</p>
+    <h2 class="h-l" id="revh">Opening…</h2>
+    <div class="stage" id="stage" aria-live="polite"></div>
+    <div class="reveal" id="rev"></div>
+    <div class="row" style="justify-content:center"><button class="btn btn-ghost" id="revall">Reveal all</button>
+    <button class="btn btn-primary" data-close>${S.packs.some((p) => PACKS[p.sku].starter) ? "Next pack" : "Add to my club"}</button></div></div>`, (el) => {
+    const stage = el.querySelector("#stage"), rev = el.querySelector("#rev"); let i = 0, timer;
+    const done = () => { el.querySelector("#revh").textContent = golds ? golds + " Gold!" : silvers ? silvers + " Silver" : cards.length + " new players"; };
+    const settle = (c) => rev.insertAdjacentHTML("beforeend", cardHTML(c, "sm").replace('class="card', 'class="land card'));
+    const next = () => {
+      if (i >= order.length) { stage.innerHTML = ""; stage.hidden = true; return done(); }
+      const c = order[i++]; const g = P(c).tier === "G";
+      stage.innerHTML = cardHTML(c, "lg").replace('data-card=', "data-x=").replace('class="card', `class="spin ${g ? "spin-gold" : ""} card`);
+      timer = setTimeout(() => { settle(c); next(); }, calm() ? 250 : g ? 1700 : 950);
+    };
+    stage.addEventListener("click", () => { clearTimeout(timer); const c = order[i - 1]; if (c) settle(c); next(); });
+    next();
+    el.querySelector("#revall").onclick = () => { clearTimeout(timer); if (i > 0 && stage.innerHTML) settle(order[i - 1]); while (i < order.length) settle(order[i++]); stage.innerHTML = ""; stage.hidden = true; done(); };
+    el.querySelector("[data-close]").addEventListener("click", () => go(S.packs.length ? "packs" : "games"));
+  });
+}
+// Booster: a reel of every booster spins and slows to a stop on the one you got.
+function openBooster(pk) {
+  const r = Math.random() * 100; let acc = 0, kind = "GOAL_RUSH";
+  for (const [k, b] of Object.entries(BOOSTERS)) { acc += b.chance; if (r < acc) { kind = k; break; } }
+  S.packs = S.packs.filter((x) => x !== pk); S.boosters.push({ id: pk.id, kind, gw: pk.gw, used: false }); save(); render();
+  const keys = Object.keys(BOOSTERS); const strip = [...Array(34)].map((_, k) => (k === 30 ? kind : keys[(k * 5 + rnd(3)) % keys.length]));
+  const b = BOOSTERS[kind];
+  sheet(`<div class="stack" style="text-align:center"><p class="eyebrow">Weekly booster</p><h2 class="h-l" id="bh">Spinning…</h2>
+    <div class="reel" aria-hidden="true"><div class="reel-strip" id="strip">${strip.map((k) => `<div class="reel-tile" style="border-color:${BOOSTERS[k].color}"><span>${BOOSTERS[k].icon}</span><b>${BOOSTERS[k].name}</b></div>`).join("")}</div><i class="reel-mark"></i></div>
+    <div id="bres" hidden><div class="pop" style="margin:4px auto;width:230px;border:3px solid ${b.color};border-radius:20px;padding:20px 16px;box-shadow:0 0 34px ${b.color}66">
+      <p class="eyebrow" style="color:${b.color}">${b.rarity}</p><div style="font-size:52px">${b.icon}</div><h2 class="h-l">${b.name}</h2><p class="muted" style="font-size:13px">${b.desc}</p></div>
+      <p class="muted" style="font-size:13px;margin-top:10px">Put it on one player in one match this gameweek. Their card gets a <b style="color:${b.color}">${b.name}</b> border. It expires when next Tuesday's booster lands.</p>
+      <button class="btn btn-primary" data-go="games" style="margin-top:10px">Use it in a match</button></div></div>`, (el) => {
+    const s = el.querySelector("#strip"); const tile = 120;
+    const target = 30 * tile - (el.querySelector(".reel").clientWidth / 2 - tile / 2);
+    const finish = () => { el.querySelector("#bh").textContent = b.name + "!"; el.querySelector("#bres").hidden = false; };
+    if (calm()) { s.style.transform = `translateX(-${target}px)`; return finish(); }
+    requestAnimationFrame(() => { s.style.transition = "transform 3.4s cubic-bezier(.12,.75,.12,1)"; s.style.transform = `translateX(-${target}px)`; });
+    setTimeout(finish, 3500);
+  });
+}
 
 // ───────── views ─────────
-let view = "home", clubTab = "cards", tierF = "", posF = "", room = "dugout", selSlot = null;
+let view = "home", clubTab = "cards", tierF = "", posF = "", room = "dugout", selSlot = null, cur = null, boostMode = false, tTab = "buy";
 const icons = {
   packs: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M5 8h14M9 3v5M15 3v5"/></svg>',
   club: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M8 3 4 5.5 2.5 10l3 1.2V21h13v-9.8l3-1.2L20 5.5 16 3a4 4 0 0 1-8 0Z"/></svg>',
   games: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="m12 7 4 3-1.5 4.5h-5L8 10Z" fill="currentColor" stroke="none"/></svg>',
+  transfers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h14l-3-3M20 16H6l3 3"/></svg>',
   chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4Z"/><path d="M8 9.5h8M8 12.5h5" stroke-linecap="round"/></svg>',
   me: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" stroke-linecap="round"/></svg>',
 };
-function go(v) { view = v; selSlot = null; closeSheet(); try { history.replaceState(null, "", "#" + v); } catch (e) {} render(); window.scrollTo(0, 0); }
+const VIEWS = ["home", "packs", "club", "games", "transfers", "chat", "me"];
+function go(v) { view = v; selSlot = null; boostMode = false; if (v !== "games") cur = null; closeSheet(); try { history.replaceState(null, "", "#" + v); } catch (e) {} render(); window.scrollTo(0, 0); }
 function render() {
-  document.getElementById("credit").innerHTML = `◆ ${mp(S.credit)}`;
-  const items = [["packs", "Packs"], ["club", "My Club"], ["games", "Games"], ["chat", "Chat"], ["me", "Me"]];
-  const active = { home: null, packs: "packs", club: "club", games: "games", chat: "chat", me: "me" }[view];
+  document.getElementById("credit").innerHTML = `◆ ${mp(balance())}`;
+  const items = [["packs", "Packs"], ["transfers", "Transfers"], ["games", "Games"], ["club", "My Club"], ["me", "Me"]];
+  const active = { home: null, packs: "packs", club: "club", games: "games", transfers: "transfers", chat: null, me: "me" }[view];
+  const toOpen = S.packs.length; const notIn = MATCHES.filter((m) => !S.entries[m.id]?.entered).length;
   document.getElementById("dock").innerHTML = items.map(([k, l], i) => `<li style="display:flex;justify-content:center"><button data-go="${k}" ${i === 2 ? 'class="centre"' : ""} ${active === k ? 'aria-current="page"' : ""}>
-    <span class="ic">${icons[k]}</span>${l}${k === "packs" && S.packs.length ? `<span class="badge">${S.packs.length}</span>` : ""}</button></li>`).join("");
-  document.getElementById("view").innerHTML = { home: vHome, packs: vPacks, club: vClub, games: vGames, chat: vChat, me: vMe }[view]();
+    <span class="ic">${icons[k]}</span>${l}${k === "packs" && toOpen ? `<span class="badge">${toOpen}</span>` : ""}${k === "games" && notIn && S.cards.length ? `<span class="badge">${notIn}</span>` : ""}</button></li>`).join("");
+  document.getElementById("view").innerHTML = { home: vHome, packs: vPacks, club: vClub, games: vGames, transfers: vTransfers, chat: vChat, me: vMe }[view]();
   if (view === "chat") { const l = document.getElementById("msgs"); if (l) l.scrollTop = l.scrollHeight; }
 }
 function countdown() { const ms = S.gw.deadline - Date.now(); if (ms <= 0) return "Locked"; const s = Math.floor(ms / 1000), d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
@@ -544,35 +688,206 @@ function countdown() { const ms = S.gw.deadline - Date.now(); if (ms <= 0) retur
 let online = 214;
 function ticker() {
   online = Math.max(150, Math.min(320, online + rnd(7) - 3));
-  const cells = [[countdown(), `GW${S.gw.n} deadline`], [fmt(online), "Online now"], [fmt(96 + rnd(3)), `In GW${S.gw.n}`], ["1,284", "Managers"],
-    [fmt(12813 + S.cards.length), "Cards in circulation"], [fmt(431 + S.opened), "Packs opened today"]];
+  const cells = [[countdown(), `GW${S.gw.n} deadline`], [fmt(online), "Online now"], [fmt(96 + rnd(3)), `In GW${S.gw.n}`], ["1,284", "Managers"], [fmt(431 + S.opened), "Packs opened today"]];
   document.getElementById("ticker").innerHTML = `<div class="cell live"><i></i>LIVE</div>` + cells.map(([v, l]) => `<div class="cell"><b>${v}</b><span>${l}</span></div>`).join("");
 }
-
+function tile(target, kicker, title, sub, tone) {
+  return `<button class="panel hub" data-go="${target}"><span class="eyebrow" style="${tone ? `color:${tone}` : "color:var(--muted)"}">${kicker}</span><b>${title}</b><span class="muted">${sub}</span></button>`;
+}
 function vHome() {
-  const recent = [...S.cards].slice(-8).reverse();
+  const signup = S.packs.filter((p) => PACKS[p.sku].starter || (PACKS[p.sku].pick && p.sku !== "gift-gpick")).length;
+  const entered = MATCHES.filter((m) => S.entries[m.id]?.entered).length;
+  const b = S.boosters.find((x) => x.gw === S.gw.n && !x.used); const bpack = S.packs.some((p) => p.sku === "booster");
+  const next = signup ? ["packs", `Open your ${signup} sign-up packs`] : bpack ? ["packs", "Open this week's booster"] : entered < MATCHES.length ? ["games", `Enter your squads — ${entered} of ${MATCHES.length} matches entered`] : ["games", "Play the gameweek"];
   return `<div class="stack">
-    <section class="panel" style="padding:28px;position:relative;overflow:hidden">
-      <span class="tag">Gameweek ${S.gw.n} · 2026-27</span>
-      <h1 class="h-xl" style="margin-top:18px">${S.cards.length ? "Pick your<br><span class='lime'>squad</span>" : "Your club<br><span class='lime'>starts here</span>"}</h1>
-      <p class="muted" style="margin-top:10px;font-size:17px">${S.cards.length ? "Squads lock 10 minutes before the first kick-off." : "Open your free sign-up packs: a 7 + 4 squad for the Premier League, Championship, League One and League Two, three league picks and two Premier League Golds on loan."}</p>
-      <div class="stack" style="max-width:360px;margin-top:20px;gap:12px">
-        ${S.cards.length ? `<button class="btn btn-primary btn-block" data-go="games">Pick squad now</button>` : ""}
-        ${S.packs.length ? `<button class="btn btn-gold btn-block" data-go="packs">Open ${S.packs.length} pack${S.packs.length > 1 ? "s" : ""}</button>` : ""}
-      </div></section>
-    <div class="scroll-x">
-      ${promo("MX credit", mp(S.credit), "Spend it on packs", "gold", "me")}
-      ${promo("Sets", `${S.sets.length} done`, "Each completed set = 10 MX", "lime", "club:sets")}
-      ${promo("My club", `${S.cards.length} cards`, `${S.cards.reduce((a, c) => a + c.pts, 0)} pts won for you`, "", "club")}
+    <section class="panel" style="padding:24px;position:relative;overflow:hidden">
+      <span class="tag">Gameweek ${S.gw.n} · deadline in ${countdown()}</span>
+      <h1 class="h-xl" style="margin-top:14px">${S.cards.length ? "Your<br><span class='lime'>club</span>" : "Your club<br><span class='lime'>starts here</span>"}</h1>
+      <p class="muted" style="margin-top:8px">${esc(next[1])}.</p>
+      <button class="btn btn-primary" data-go="${next[0]}" style="margin-top:14px">${next[0] === "packs" ? "Go to Packs" : "Go to Games"}</button>
+    </section>
+    ${giftBanner()}
+    <div class="hubs">
+      ${tile("club", "My Club", `${S.cards.length} players`, `${S.cards.filter((c) => c.fin).length ? S.cards.filter((c) => c.fin).length + " rare · " : ""}${fmt(S.cards.reduce((a, c) => a + c.pts, 0))} pts won`, "var(--lime)")}
+      ${tile("transfers", "Transfers", "Buy · sell · auctions", `${S.market.listings.length} for sale · ${S.market.auctions.length} auctions live`, "var(--gold)")}
+      ${tile("packs", "Packs", S.packs.length ? `${S.packs.length} to open` : "Pack shop", b ? `${BOOSTERS[b.kind].icon} ${BOOSTERS[b.kind].name} booster ready` : bpack ? "⚡ Booster pack to open" : "Bronze, Silver and Gold packs")}
+      ${tile("games", "Games", `${entered}/${MATCHES.length} entered`, S.gw.last ? `Last week: ${Object.values(S.gw.last.matches).map((r) => "#" + r.rank).join(", ") || "no entries"}` : "This week's matches", entered === MATCHES.length ? "var(--mint)" : "var(--red)")}
+      ${tile("chat", "Chat", "Manager chat", "The Dugout, Matchday, Pack Pulls")}
+      ${tile("me", "Wallet", mp(balance()), `${S.bonus ? mp(S.bonus) + " bonus · " : ""}£${(S.winnings / 100).toFixed(2)} winnings`)}
     </div>
-    ${recent.length ? `<h2 class="h-m">Latest cards</h2><div class="scroll-x">${recent.map((c) => cardHTML(c, "sm")).join("")}</div>` : ""}
   </div>`;
 }
-function promo(k, t, s, tone, target) {
-  const ic = tone === "gold" ? '<span class="av foil-G" style="width:52px;height:52px;color:#000a">◆</span>' : tone === "lime" ? '<span class="av" style="width:52px;height:52px;background:var(--lime);color:var(--lime-ink)">★</span>' : '<span class="av" style="width:52px;height:52px;background:var(--sunk);color:var(--fg)">♜</span>';
-  return `<button class="panel" data-go="${target}" style="min-width:250px;display:flex;gap:14px;align-items:center;padding:16px 18px;cursor:pointer;text-align:left;color:inherit">${ic}
-    <span><span class="eyebrow" style="${tone === "lime" ? "color:var(--lime)" : tone ? "" : "color:var(--muted)"}">${k}</span><b style="display:block;font:800 28px/1.1 var(--display)">${t}</b><span class="muted" style="font-size:12px">${s}</span></span></button>`;
+// Games: every match this week, green when entered, red when not.
+function vGames() {
+  if (!S.cards.length) return `<div class="panel" style="padding:28px;text-align:center"><h1 class="h-l">Open your sign-up packs first</h1><p class="muted" style="margin:10px 0 18px">You need players before you can enter a match.</p><button class="btn btn-gold" data-go="packs">Go to packs</button></div>`;
+  if (cur) return vMatch(cur);
+  const bpack = S.packs.find((p) => p.sku === "booster"); const b = S.boosters.find((x) => x.gw === S.gw.n && !x.used);
+  const bLine = b ? (S.boosterUse?.on ? `${BOOSTERS[b.kind].icon} <b>${BOOSTERS[b.kind].name}</b> is on ${esc(P(byId(S.boosterUse.on)).name)} in the ${M(S.boosterUse.match).name}.` : `${BOOSTERS[b.kind].icon} <b>${BOOSTERS[b.kind].name}</b> ready — open a match and tap a player to use it.`)
+    : bpack ? `⚡ You have a booster pack to open. <button class="btn btn-ghost" data-open="${bpack.id}" style="padding:6px 12px">Open</button>` : "";
+  const any = MATCHES.some((m) => S.entries[m.id]?.entered);
+  return `<div class="stack">
+    <div><p class="eyebrow">Gameweek ${S.gw.n}</p><h1 class="h-l">This week's matches</h1><p class="muted">Squads lock in <b>${countdown()}</b>. Each card can play in one match. <span class="mint">Green</span> = entered, <span class="red">red</span> = not entered yet.</p></div>
+    ${bLine ? `<div class="panel" style="padding:12px 14px;font-size:14px">${bLine}</div>` : ""}
+    <div class="stack" style="gap:10px">${MATCHES.map((m) => { const e = S.entries[m.id]; const on = e?.entered;
+      return `<button class="panel match ${on ? "in" : "out"}" data-match="${m.id}"><span style="flex:1;min-width:0;text-align:left"><b style="font:800 22px/1 var(--display);text-transform:uppercase">${m.name}</b>
+        <span class="faint" style="display:block;font-size:12px">${m.rule}</span><span class="muted" style="display:block;font-size:12px">${m.prize}</span></span>
+        <span class="tag ${on ? "" : ""}" style="color:${on ? "var(--mint)" : "var(--red)"}">${on ? "Entered ✓" : "Not entered"}</span></button>`; }).join("")}</div>
+    <button class="btn btn-primary btn-block" data-play ${any ? "" : "disabled"}>Play gameweek ${S.gw.n}</button>
+    <p class="note">Prototype: the gameweek is simulated instantly for every match you entered.</p>
+    ${S.gw.last ? resultsHTML(S.gw.last) : ""}</div>`;
 }
+function vMatch(mid) {
+  const m = M(mid); const e = entryOf(mid); const keys = slotsFor(e.formation);
+  const b = S.boosters.find((x) => x.gw === S.gw.n && !x.used); const B = b && BOOSTERS[b.kind];
+  const here = S.boosterUse && S.boosterUse.match === mid; const bOn = here ? S.boosterUse.on : null; const bCol = B ? B.color : "";
+  const eligible = (k) => B && boostMode && (B.bench ? k.startsWith("B-") : !k.startsWith("B-"));
+  const slotBtn = (k, c, label) => `<button class="slot ${c ? "filled" : ""} ${selSlot === k ? "on" : ""} ${c && eligible(k) ? "target" : ""}" data-slot="${k}" style="${c && bOn === c.id ? `border:3px solid ${bCol};box-shadow:0 0 16px ${bCol}88;` : ""}${c && eligible(k) ? `--tc:${bCol};` : ""}">
+    ${c ? `<span class="p">${label}</span><b>${esc(P(c).name.split(" ").slice(-1)[0])}</b><span class="lg">${LG_SHORT[lgOf(P(c))]} · ${c.loan ? "loan" : value(P(c)) + " MX"}</span>` : `<span class="p">+ ${label}</span>`}</button>`;
+  const rows = ["ATT", "MID", "DEF", "GK"].map((pos) => `<div class="prow">${keys.filter((k) => k.startsWith(pos)).map((k) => slotBtn(k, byId(e.slots[k]), pos)).join("")}</div>`).join("");
+  const bench = [0, 1, 2, 3].map((i) => slotBtn("B-" + i, byId(e.bench[i]), "Sub " + (i + 1))).join("");
+  const full = keys.every((k) => e.slots[k]) && [0, 1, 2, 3].every((i) => e.bench[i]);
+  const elsewhere = S.boosterUse && S.boosterUse.match !== mid && S.boosterUse.on;
+  const bPanel = !B ? "" : `<div class="panel" style="padding:14px;display:grid;gap:8px;border:2px solid ${B.color}"><b>${B.icon} ${B.name} <span class="faint" style="font-weight:500">· one booster, one player, one match</span></b>
+    <p class="muted" style="font-size:13px">${B.desc}</p>
+    ${elsewhere ? `<p style="font-size:13px">It's on ${esc(P(byId(S.boosterUse.on)).name)} in the ${M(S.boosterUse.match).name}.</p><button class="btn btn-ghost" data-boost>Move it to this match</button>`
+      : boostMode ? `<p style="font-size:13px;color:${B.color};font-weight:700">Tap ${B.bench ? "one of your subs" : "a player on the pitch"} to put ${B.name} on them.</p><button class="btn btn-ghost" data-boostcancel>Cancel</button>`
+      : bOn ? `<p style="font-size:13px">On <b>${esc(P(byId(bOn)).name)}</b>. <button class="btn btn-ghost" data-boost style="padding:6px 12px">Change player</button> <button class="btn btn-ghost" data-unboost style="padding:6px 12px">Remove</button></p>`
+      : `<button class="btn btn-primary" data-boost>Use ${B.name} — tap a player</button>`}</div>`;
+  return `<div class="stack">
+    <button class="btn btn-ghost" data-back style="justify-self:start;padding:8px 14px">← All matches</button>
+    <div><p class="eyebrow">${m.name} · GW${S.gw.n}</p><h1 class="h-l">Pick your squad</h1><p class="muted">${m.rule}. ${m.prize}.</p></div>
+    <div class="scroll-x">${Object.keys(FORMATIONS).map((f) => `<button class="chip" data-form="${f}" aria-pressed="${e.formation === f}">1-${f}</button>`).join("")}
+      <button class="chip" data-auto>Auto-fill</button><button class="chip" data-clear>Clear</button></div>
+    <div class="pitch">${rows}</div>
+    <div class="panel" style="padding:14px"><div class="row" style="justify-content:space-between;margin-bottom:10px"><span class="eyebrow" style="color:var(--muted)">Bench · subs come on in this order</span></div><div class="bench">${bench}</div></div>
+    ${bPanel}
+    <div class="row" style="gap:10px"><button class="btn btn-primary" data-enter ${full ? "" : "disabled"}>${e.entered ? "Update squad" : "Enter squad"}</button>
+      ${e.entered ? '<button class="btn btn-ghost" data-withdraw>Withdraw</button>' : ""}</div>
+    ${full ? "" : '<p class="note">Fill all 7 starters and 4 subs to enter.</p>'}</div>`;
+}
+const finTag = (fin) => (fin ? `<span class="fin fin-${fin}">${FIN[fin]}</span>` : "");
+function resultsHTML(r) {
+  const ids = Object.keys(r.matches);
+  return `<section class="stack" style="gap:12px" id="results"><div><p class="eyebrow">Gameweek ${r.n} · final</p><h2 class="h-l">Results</h2>
+    ${r.loansEnded ? `<p class="muted" style="font-size:13px">Your ${r.loansEnded} loan player${r.loansEnded > 1 ? "s have" : " has"} gone back to their club.</p>` : ""}</div>
+    ${ids.length ? ids.map((mid) => { const x = r.matches[mid]; return `<div class="panel" style="padding:8px"><div class="row" style="justify-content:space-between;padding:8px 10px"><b style="font:800 20px/1 var(--display);text-transform:uppercase">${M(mid).name}</b><span><b>${x.total} pts · #${x.rank}</b> ${x.reward ? `<span class="tag">${esc(PACKS[x.reward].name)}</span>` : ""}${x.cash ? '<span class="tag gold">£10 won</span>' : ""}</span></div>
+      ${x.field.map((f, i) => `<button class="res lb ${f.you ? "on" : ""}" data-team="${mid}:${i}"><span class="faint" style="width:28px">#${i + 1}</span><b style="flex:1;text-align:left">${esc(f.name)}${f.rows.some((y) => y.fin) ? ` <span class="fin fin-${f.rows.find((y) => y.fin).fin}">rare</span>` : ""}${f.kind ? ` <span style="font-size:12px">${BOOSTERS[f.kind].icon}</span>` : ""}</b><b>${f.total} pts</b><span class="faint">›</span></button>`).join("")}</div>`; }).join("") : '<p class="muted">You didn\'t enter any matches.</p>'}
+    <p class="note">Tap any manager to see their team and every player's points.</p></section>`;
+}
+function teamSheet(mid, i) {
+  const f = S.gw.last.matches[mid].field[i]; const B = f.kind && BOOSTERS[f.kind];
+  const face = (row) => { const c = { id: "t" + row.key, p: row.p, serial: 0, acq: row.bench ? (row.on ? "Sub · came on" : "Sub") : row.off ? "Didn't play" : "Starter", pts: row.pts, fin: row.fin };
+    let h = cardHTML(c, "sm").replace('data-card="t' + row.key + '"', "tabindex='-1'"); if (row.boosted && B) h = h.replace('class="card', `style="box-shadow:0 0 0 3px ${B.color},0 0 18px ${B.color}" class="card`);
+    return `<div class="tcard ${row.counted ? "" : "dim"}">${h}<b class="${row.counted ? "lime" : "faint"}">${row.pts} pts</b><span class="faint" style="font-size:10px">${row.items.map(([e, p]) => `${e} ${p > 0 ? "+" : ""}${p}`).join(" · ") || (row.played ? "" : "didn't play")}</span></div>`; };
+  sheet(`<div class="stack" style="gap:14px"><div class="row" style="justify-content:space-between"><div><p class="eyebrow">${M(mid).name} · GW${S.gw.last.n}</p><h2 class="h-l">${esc(f.name)} · ${f.total} pts</h2></div><button class="btn btn-ghost" data-close style="padding:8px 14px">Close</button></div>
+    ${B ? `<p style="font-size:13px"><span style="border:2px solid ${B.color};border-radius:999px;padding:3px 10px">${B.icon} ${B.name}</span> on ${esc(PLAYERS[f.rows.find((r) => r.boosted).p].name)}</p>` : ""}
+    <p class="eyebrow" style="color:var(--muted)">Starting seven</p><div class="tgrid">${f.rows.filter((r) => !r.bench).map(face).join("")}</div>
+    <p class="eyebrow" style="color:var(--muted)">Subs</p><div class="tgrid">${f.rows.filter((r) => r.bench).map(face).join("")}</div>
+    <p class="note">Faded players' points didn't count (didn't play, or a sub who wasn't needed).</p></div>`);
+}
+function pickerSheet(k) {
+  const e = entryOf(cur); const m = M(cur); const isB = k.startsWith("B-"); const pos = isB ? null : k.split("-")[0];
+  const current = isB ? e.bench[+k.slice(2)] : e.slots[k]; const mine = new Set(entryCards(e));
+  const players = new Set([...mine].filter((id) => id !== current).map((id) => byId(id)?.p));
+  const list = S.cards.filter((c) => !pos || P(c).pos === pos).sort((a, b) => Number(m.ok(b)) - Number(m.ok(a)) || value(P(b)) - value(P(a)));
+  sheet(`<div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 class="h-m">${pos ? "Choose a " + pos : "Choose Sub " + (+k.slice(2) + 1)}</h2><button class="btn btn-ghost" data-close style="padding:8px 14px">Close</button></div>
+    <ul class="list panel">${list.map((c) => { const pl = P(c); const busy = cardBusy(c.id, cur); const why = !m.ok(c) ? "not allowed here" : busy ? "in " + busy : (mine.has(c.id) && c.id !== current) || players.has(c.p) ? "picked" : "";
+      return `<li><button class="pick" data-choose="${c.id}" data-for="${k}" ${why ? "disabled" : ""}><span class="dot dot-${pl.tier}"></span>${crest(pl.club, 18)}<span style="flex:1;min-width:0"><b>${esc(pl.name)}</b> ${finTag(c.fin)}<br><span class="faint" style="font-size:12px">${pl.pos} · ${esc(club(pl.club)[0])} · <b class="lgname">${LEAGUES[lgOf(pl)]}</b>${why ? " · " + why : ""}</span></span><span style="text-align:right"><b class="lime">${c.loan ? "Loan" : value(pl) + " MX"}</b><br><span class="faint" style="font-size:12px">${c.pts} pts</span></span></button></li>`; }).join("") || '<li style="padding:16px" class="muted">No players for this position yet — open more packs.</li>'}</ul>
+    ${current ? `<button class="btn btn-ghost btn-block" style="margin-top:12px" data-remove="${k}">Remove from slot</button>` : ""}`);
+}
+function vTransfers() {
+  const tabs = `<div class="scroll-x">${[["buy", "Buy now"], ["auctions", "Auctions"], ["sell", "Sell"]].map(([k, l]) => `<button class="chip" data-ttab="${k}" aria-pressed="${tTab === k}">${l}</button>`).join("")}</div>`;
+  const head = `<div class="row" style="justify-content:space-between;align-items:flex-end"><div><p class="eyebrow">Transfers</p><h1 class="h-l">Transfer market</h1></div><span class="credit" style="cursor:default">◆ ${mp(balance())}</span></div>
+    <p class="muted" style="font-size:13px">Sales are paid in <b>bonus MX</b>: spend it on packs, players and auctions — it can't be withdrawn. Free cards (starters, picks, loans, gifts) can't be sold.</p>`;
+  const row = (pl, right, extra = "") => `<div class="panel trow"><span class="dot dot-${pl.tier}"></span>${crest(pl.club, 22)}<span style="flex:1;min-width:0"><b>${esc(pl.name)}</b> ${extra}<br><span class="faint" style="font-size:12px">${TIER[pl.tier]} · ${pl.pos} · ${esc(club(pl.club)[0])} · ${LEAGUES[lgOf(pl)]}</span></span>${right}</div>`;
+  if (tTab === "auctions") return `<div class="stack">${head}${tabs}<p class="muted" style="font-size:13px">Premier League Golds from MATCHX. Auctions close when the gameweek is played; the highest bid wins. Your MX is held while you lead.</p>
+    ${S.market.auctions.map((a) => { const pl = PLAYERS[a.p]; const min = a.bid + 10; return row(pl, `<span style="text-align:right"><b class="gold">${mp(a.bid)}</b><br><span class="faint" style="font-size:11px">${a.mine ? "you lead" : a.bidder ? "top: " + a.bidder : "starting bid"}</span><br><button class="btn btn-gold" data-bid="${a.id}" style="padding:6px 12px;margin-top:4px">Bid ${mp(min)}</button></span>`, finTag(a.fin)); }).join("")}</div>`;
+  if (tTab === "sell") { const mine = S.cards.filter(tradeable).sort((a, b) => value(P(b)) - value(P(a)));
+    return `<div class="stack">${head}${tabs}
+    ${S.market.mine.length ? `<h2 class="h-m">Listed</h2>${S.market.mine.map((l) => { const c = byId(l.cardId); return row(P(c), `<span style="text-align:right"><b class="lime">${mp(l.price)}</b><br><button class="btn btn-ghost" data-unlist="${l.cardId}" style="padding:6px 12px;margin-top:4px">Cancel</button></span>`, finTag(c.fin)); }).join("")}` : ""}
+    <h2 class="h-m">Your tradeable players</h2>
+    ${mine.length ? mine.filter((c) => !S.market.mine.some((l) => l.cardId === c.id)).map((c) => { const busy = cardBusy(c.id, null); const v = Math.round(value(P(c)) * 100);
+      return row(P(c), busy ? `<span class="faint" style="font-size:12px">in ${busy}</span>` : `<span style="text-align:right"><span class="faint" style="font-size:11px">worth ~${mp(v)}</span><br><button class="btn btn-primary" data-list="${c.id}" style="padding:6px 12px;margin-top:4px">Sell</button></span>`, finTag(c.fin)); }).join("") : '<p class="muted">Only players from packs you open, buy or win can be sold. Open a pack from the shop, or win one in a match.</p>'}</div>`; }
+  return `<div class="stack">${head}${tabs}${S.market.listings.map((l) => { const pl = PLAYERS[l.p]; return row(pl, `<span style="text-align:right"><b class="lime">${mp(l.price)}</b><br><span class="faint" style="font-size:11px">${l.seller === "MATCHX" ? "MATCHX buy now" : "from " + esc(l.seller)}</span><br><button class="btn btn-primary" data-buyl="${l.id}" style="padding:6px 12px;margin-top:4px">Buy</button></span>`); }).join("")}</div>`;
+}
+function sellSheet(id) {
+  const c = byId(id); const pl = P(c); const v = Math.round(value(pl) * 100);
+  sheet(`<div class="stack" style="gap:14px"><div class="row" style="justify-content:space-between"><h2 class="h-m">Sell ${esc(pl.name)}</h2><button class="btn btn-ghost" data-close style="padding:8px 14px">Close</button></div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap">${cardHTML(c, "sm", "tabindex='-1'")}<div class="stack" style="flex:1;min-width:200px;gap:10px">
+    <label class="muted" for="sellprice" style="font-size:13px">Asking price (MX). Guide: ${mp(v)}</label><input class="input" id="sellprice" type="number" min="0.1" max="100" step="0.1" value="${(v / 100).toFixed(2)}">
+    <p class="note">MATCHX keeps a 5% fee. You're paid in bonus MX, which can't be withdrawn. Priced near the guide, players usually sell within the week.</p>
+    <button class="btn btn-primary" id="dolist">List for sale</button></div></div></div>`, (el) => {
+    el.querySelector("#dolist").onclick = () => { const p = Math.round(parseFloat(el.querySelector("#sellprice").value) * 100); if (!(p >= 10 && p <= 10000)) return toast("Price must be 0.10–100 MX");
+      const l = { cardId: id, price: p }; S.market.mine.push(l); save(); closeSheet(); render(); toast("Listed for " + mp(p));
+      if (p <= v * 1.1) setTimeout(() => { if (S.market.mine.includes(l)) sellListing(l); }, 2500 + rnd(3500)); };
+  });
+}
+function vMe() {
+  const total = S.cards.reduce((a, c) => a + c.pts, 0);
+  return `<div class="stack"><div><p class="eyebrow">Manager profile</p><h1 class="h-l">You</h1></div>
+    <div class="kpis"><div class="panel kpi"><b class="gold">${mp(S.credit)}</b><span>Bought MX (demo)</span></div><div class="panel kpi"><b class="lime">${mp(S.bonus)}</b><span>Bonus MX · not withdrawable</span></div><div class="panel kpi"><b class="mint">£${(S.winnings / 100).toFixed(2)}</b><span>Cash winnings</span></div><div class="panel kpi"><b>${S.cards.length}</b><span>players</span></div><div class="panel kpi"><b>${fmt(total)}</b><span>points won</span></div></div>
+    <h2 class="h-m">Wallet history</h2><div class="panel" style="padding:8px">${[...S.ledger].reverse().map((e) => `<div class="res"><span style="flex:1">${esc(e.d)}</span><b class="${e.a > 0 ? "mint" : "muted"}">${e.a > 0 ? "+" : ""}${e.kind === "£" ? "£" + (e.a / 100).toFixed(2) : mp(e.a)}</b></div>`).join("")}</div>
+    <button class="btn btn-ghost" data-go="chat" style="justify-self:start">Open manager chat</button>
+    <div id="reset"><button class="btn btn-ghost" data-reset>Start over</button></div>
+    <p class="note">Playable prototype of MATCHX. Real 2026-27 squads; everything else is simulated and saved only in this browser. MX is an in-game valuation, not cash.</p></div>`;
+}
+
+// (events)
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("button"); if (!t) return;
+  const d = t.dataset;
+  if (d.go) { const [v, tab] = d.go.split(":"); if (tab) clubTab = tab; return go(v); }
+  if (d.card) return cardSheet(+d.card);
+  if (d.open) { const pk = S.packs.find((x) => x.id === +d.open); if (!pk) return;
+    if (pk.sku === "booster") return openBooster(pk);
+    if (PACKS[pk.sku].pick) return pickSheet(pk);
+    S.packs = S.packs.filter((x) => x !== pk); const cards = openPack(pk.sku, pk.free); render(); return showReveal(cards, pk.sku); }
+  if (d.gift !== undefined) { if (!S.gift || S.gift.claimed) return; S.gift.claimed = true; S.packs.unshift({ sku: S.gift.sku, id: S.nextPack++, free: true }); save(); render(); return toast(S.gift.title + " claimed — it's in your packs"); }
+  if (d.buy) { const p = PACKS[d.buy]; if (!spend(p.price, "Bought " + p.name)) return; S.packs.unshift({ sku: d.buy, id: S.nextPack++ }); save(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); return toast(p.name + " added — open it at the top"); }
+  if (d.tab) { clubTab = d.tab; return render(); }
+  if (d.tier !== undefined) { tierF = d.tier; return render(); }
+  if (d.pos !== undefined) { posF = d.pos; return render(); }
+  if (d.set) { const set = SETS.find((s) => s.id === d.set); const use = setCards(set).slice(0, set.n); if (use.length < set.n) return;
+    const ids = new Set(use.map((c) => c.id)); S.cards = S.cards.filter((c) => !ids.has(c.id)); dropFromEntries(ids); S.bonus += 1000; S.sets.push(set.id); S.ledger.push({ t: Date.now(), d: "Set completed: " + set.name, a: 1000 }); save(); render(); return toast("+10 MX bonus — " + set.name + " complete"); }
+  // Games
+  if (d.match) { cur = d.match; boostMode = false; render(); return window.scrollTo(0, 0); }
+  if (d.back !== undefined) { cur = null; boostMode = false; return render(); }
+  if (d.form) { const en = entryOf(cur); en.formation = d.form; const keys = new Set(slotsFor(d.form)); for (const k of Object.keys(en.slots)) if (!keys.has(k)) delete en.slots[k]; save(); return render(); }
+  if (d.auto !== undefined) { autofill(cur); return render(); }
+  if (d.clear !== undefined) { const en = entryOf(cur); dropFromEntries(new Set(entryCards(en))); en.slots = {}; en.bench = []; en.entered = false; save(); return render(); }
+  if (d.boost !== undefined) { boostMode = true; return render(); }
+  if (d.boostcancel !== undefined) { boostMode = false; return render(); }
+  if (d.unboost !== undefined) { S.boosterUse = null; save(); return render(); }
+  if (d.slot) { const en = entryOf(cur); const k = d.slot; const id = k.startsWith("B-") ? en.bench[+k.slice(2)] : en.slots[k];
+    if (boostMode) { const b = S.boosters.find((x) => x.gw === S.gw.n && !x.used); const B = BOOSTERS[b.kind];
+      if (!id) return toast("Pick a player for that slot first"); if (B.bench !== k.startsWith("B-")) return toast(B.bench ? "Super Sub goes on one of your subs" : `${B.name} goes on one of your starting seven`);
+      S.boosterUse = { id: b.id, match: cur, on: id }; boostMode = false; save(); render(); return toast(`${B.name} is on ${P(byId(id)).name}`); }
+    selSlot = k; render(); return pickerSheet(k); }
+  if (d.choose) { const en = entryOf(cur); const k = d.for, id = +d.choose; for (const kk of Object.keys(en.slots)) if (en.slots[kk] === id) delete en.slots[kk]; en.bench = en.bench.map((x) => (x === id ? null : x));
+    const prev = k.startsWith("B-") ? en.bench[+k.slice(2)] : en.slots[k]; if (prev && S.boosterUse?.on === prev) S.boosterUse.on = null;
+    if (k.startsWith("B-")) en.bench[+k.slice(2)] = id; else en.slots[k] = id; save(); closeSheet(); selSlot = null; return render(); }
+  if (d.remove) { const en = entryOf(cur); const k = d.remove; const prev = k.startsWith("B-") ? en.bench[+k.slice(2)] : en.slots[k]; if (S.boosterUse?.on === prev) S.boosterUse.on = null;
+    if (k.startsWith("B-")) en.bench[+k.slice(2)] = null; else delete en.slots[k]; save(); closeSheet(); selSlot = null; return render(); }
+  if (d.enter !== undefined) { const b = S.boosters.find((x) => x.gw === S.gw.n && !x.used); if (b && S.boosterUse?.match === cur && !S.boosterUse.on) return toast("Tap a player to carry your booster, or remove it");
+    entryOf(cur).entered = true; save(); const name = M(cur).name; cur = null; render(); window.scrollTo(0, 0); return toast(name + " entered ✓"); }
+  if (d.withdraw !== undefined) { entryOf(cur).entered = false; if (S.boosterUse?.match === cur) S.boosterUse = null; save(); return render(); }
+  if (d.play !== undefined) { playGameweek(); cur = null; render(); const el = document.getElementById("results"); if (el) el.scrollIntoView({ behavior: "smooth" });
+    return toast(`GW${S.gw.last.n} played${S.gw.last.won.length ? " — won " + S.gw.last.won.join(", ") : ""}. Tuesday: a new booster pack has landed`); }
+  if (d.team) { const [mid, i] = d.team.split(":"); return teamSheet(mid, +i); }
+  // Transfers
+  if (d.ttab) { tTab = d.ttab; return render(); }
+  if (d.buyl) { const l = S.market.listings.find((x) => x.id === d.buyl); if (!l || !spend(l.price, "Bought " + PLAYERS[l.p].name)) return;
+    S.market.listings = S.market.listings.filter((x) => x !== l); S.cards.push({ id: S.nextId++, p: l.p, serial: serial(PLAYERS[l.p]), acq: l.seller === "MATCHX" ? "MATCHX" : "Transfer", starter: false, pts: 0 }); save(); render(); return toast(PLAYERS[l.p].name + " signed"); }
+  if (d.bid) { const a = S.market.auctions.find((x) => x.id === d.bid); const amt = a.bid + 10; if (!a.mine && !spend(amt, "Auction bid — held")) return;
+    if (a.mine) { if (!spend(10, "Raised auction bid")) return; } a.bid = amt; a.mine = true; a.bidder = "You"; save(); render();
+    setTimeout(() => { if (a.mine && a.botMax > a.bid && Math.random() < 0.5) { a.mine = false; a.bidder = pick(SELLERS); S.bonus += a.bid; S.ledger.push({ t: Date.now(), d: "Outbid — MX returned", a: a.bid }); a.bid += 10 * (1 + rnd(3)); save(); if (view === "transfers") render(); toast(`Outbid on ${PLAYERS[a.p].name}`); } }, 2500 + rnd(3000));
+    return toast("You lead the auction"); }
+  if (d.list) return sellSheet(+d.list);
+  if (d.unlist) { S.market.mine = S.market.mine.filter((l) => l.cardId !== +d.unlist); save(); return render(); }
+  if (d.room) { room = d.room; return render(); }
+  if (d.reset !== undefined) { document.getElementById("reset").innerHTML = `<div class="row"><span class="muted">Delete your players, MX and history?</span><button class="btn btn-primary" data-reset-yes>Yes, start over</button><button class="btn btn-ghost" data-go="me">Keep playing</button></div>`; return; }
+  if (d.resetYes !== undefined) { PLAYERS.forEach((p, i) => (p.hist = DATA.players[i][5].length > 1 ? DATA.players[i][5].slice() : [DATA.players[i][5][0] || 1, DATA.players[i][5][0] || 1])); S = fresh(); stockMarket(); save(); toast("Fresh start"); return go("home"); }
+});
 function giftBanner() {
   const g = S.gift; if (!g || g.claimed || g.ends < Date.now()) return "";
   return `<div class="panel" style="padding:18px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;border-color:color-mix(in srgb, var(--gold) 55%, transparent)">
@@ -641,54 +956,6 @@ function cardSheet(id) {
         <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto" role="img" aria-label="MP value over the last ${h.length} gameweeks"><path d="M${pts.map((p) => p.join(",")).join(" L")} L${pts[pts.length - 1][0]},${H} L${pts[0][0]},${H} Z" fill="${col}" opacity=".14"/><path d="M${pts.map((p) => p.join(",")).join(" L")}" fill="none" stroke="${col}" stroke-width="2.5" stroke-linejoin="round"/>${pts.map((p, i) => `<circle cx="${p[0]}" cy="${p[1]}" r="${i === pts.length - 1 ? 4 : 2.5}" fill="${col}"/>`).join("")}</svg>
         <p class="note">MP is an indicative value, not cash.</p></div></div></div></div>`);
 }
-function vGames() {
-  if (!S.cards.length) return `<div class="panel" style="padding:28px;text-align:center"><h1 class="h-l">Open your Starter Packs first</h1><p class="muted" style="margin:10px 0 18px">You need players before you can pick a squad.</p><button class="btn btn-gold" data-go="packs">Go to packs</button></div>`;
-  const last = S.gw.last;
-  const keys = slotsFor(S.squad.formation); const byId = (id) => S.cards.find((c) => c.id === id);
-  const avail = activeBoosters(); const bsel = avail.find((b) => b.id === S.squad.booster); const B = bsel && BOOSTERS[bsel.kind];
-  const targets = B ? (B.bench ? S.squad.bench.filter(Boolean) : keys.map((k) => S.squad.slots[k]).filter(Boolean)) : [];
-  const bOn = B && targets.includes(S.squad.boostOn) ? S.squad.boostOn : null; const bCol = B ? B.color : "";
-  const unopened = S.packs.find((p) => p.sku === "booster");
-  const boosterPanel = avail.length ? `<div class="panel" style="padding:14px;display:grid;gap:10px"><b>Booster <span class="faint" style="font-weight:500">· one per match</span></b>
-      <div class="row" style="flex-wrap:wrap;gap:8px"><button class="chip" data-bsel="" aria-pressed="${!bsel}">None</button>${avail.map((b) => { const X = BOOSTERS[b.kind]; return `<button class="chip" data-bsel="${b.id}" aria-pressed="${bsel === b}" style="border:2px solid ${X.color}">${X.icon} ${X.name}</button>`; }).join("")}</div>
-      ${B ? `<p class="muted" style="font-size:13px">${B.desc}</p><b style="font-size:13px">${B.icon} Put it on ${B.bench ? "one of your subs" : "one of your starting seven"}:</b>
-      ${targets.length ? `<div class="row" style="flex-wrap:wrap;gap:8px">${targets.map((id) => `<button class="chip" data-bon="${id}" aria-pressed="${bOn === id}" ${bOn === id ? `style="border:2px solid ${B.color};background:${B.color}22"` : ""}>${esc(P(byId(id)).name)}</button>`).join("")}</div>` : `<p class="faint" style="font-size:13px">Pick your ${B.bench ? "subs" : "starters"} first.</p>`}
-      ${!bOn && targets.length ? '<p class="red" style="font-size:12px">Choose a player to carry your booster.</p>' : ""}` : ""}</div>`
-    : unopened ? `<div class="panel" style="padding:14px;display:flex;gap:12px;align-items:center"><span style="font-size:28px">⚡</span><span style="flex:1" class="muted">You have a booster pack to open for this gameweek.</span><button class="btn btn-primary" data-open="${unopened.id}">Open</button></div>` : "";
-  const rows = ["ATT", "MID", "DEF", "GK"].map((pos) => `<div class="prow">${keys.filter((k) => k.startsWith(pos)).map((k) => { const c = byId(S.squad.slots[k]);
-    return `<button class="slot ${c ? "filled" : ""} ${selSlot === k ? "on" : ""}" data-slot="${k}" ${c && bOn === c.id ? `style="border:3px solid ${bCol};box-shadow:0 0 16px ${bCol}88"` : ""}>${c ? `<span class="p">${pos}</span><b>${esc(P(c).name.split(" ").slice(-1)[0])}</b><span style="opacity:.7">${c.loan ? "loan" : value(P(c)) + " MX"}</span>` : `<span class="p">+ ${pos}</span>`}</button>`; }).join("")}</div>`).join("");
-  const bench = [0, 1, 2, 3].map((i) => { const c = byId(S.squad.bench[i]); return `<button class="slot ${c ? "filled" : ""} ${selSlot === "B-" + i ? "on" : ""}" data-slot="B-${i}" ${c && bOn === c.id ? `style="border:3px solid ${bCol};box-shadow:0 0 16px ${bCol}88"` : ""}><span class="p" style="color:var(--gold)">Sub ${i + 1}</span>${c ? `<b>${esc(P(c).name.split(" ").slice(-1)[0])}</b><span class="faint">${P(c).pos}</span>` : "<span class='faint'>+ add</span>"}</button>`; }).join("");
-  const full = keys.every((k) => S.squad.slots[k]) && [0, 1, 2, 3].every((i) => S.squad.bench[i]);
-  return `<div class="stack">
-    <div><p class="eyebrow">Open League · GW${S.gw.n}</p><h1 class="h-l">Pick your squad</h1><p class="muted">Squads lock in <b>${countdown()}</b> — 10 minutes before the first kick-off.</p></div>
-    <div class="scroll-x">${Object.keys(FORMATIONS).map((f) => `<button class="chip" data-form="${f}" aria-pressed="${S.squad.formation === f}">1-${f}</button>`).join("")}
-      <button class="chip" data-auto>Auto-fill</button><button class="chip" data-clear>Clear</button></div>
-    <div class="pitch">${rows}</div>
-    <div class="panel" style="padding:14px"><div class="row" style="justify-content:space-between;margin-bottom:10px"><span class="eyebrow" style="color:var(--muted)">Bench · subs come on in this order</span></div><div class="bench">${bench}</div></div>
-    ${boosterPanel}
-    <button class="btn btn-primary btn-block" data-play ${full && (!B || bOn) ? "" : "disabled"}>Lock squad &amp; play gameweek ${S.gw.n}</button>
-    <p class="note">Prototype: the gameweek is simulated instantly so you can see scoring, auto-subs and rewards.</p>
-    ${last ? resultsHTML(last) : ""}</div>`;
-}
-function resultsHTML(r) {
-  const byId = (id) => S.cards.find((c) => c.id === id);
-  return `<section class="stack" style="gap:12px"><div class="row" style="justify-content:space-between;align-items:flex-end"><div><p class="eyebrow">Gameweek ${r.n} · final</p><h2 class="h-l">${r.total} pts · #${r.rank}</h2></div><span class="tag">Won: ${esc(PACKS[r.reward].name)}</span></div>
-    ${r.booster ? `<p style="font-size:13px"><span style="border:2px solid ${BOOSTERS[r.booster].color};border-radius:999px;padding:3px 10px">${BOOSTERS[r.booster].icon} ${BOOSTERS[r.booster].name} played</span></p>` : ""}${r.loansEnded ? `<p class="muted" style="font-size:13px">Your ${r.loansEnded} loan player${r.loansEnded > 1 ? "s have" : " has"} gone back to their club.</p>` : ""}
-    <div class="panel" style="padding:8px">${r.rows.filter((x) => byId(x.id)).map((x) => { const c = byId(x.id); const sub = r.subs.find((s) => s[1] === x.id), off = r.subs.find((s) => s[0] === x.id);
-      return `<div class="res ${x.counted ? "on" : "off"}" ${x.boosted && r.booster ? `style="border:2px solid ${BOOSTERS[r.booster].color}"` : ""}><span class="dot dot-${P(c).tier}"></span><b style="flex:1;font-weight:600">${esc(P(c).name)} <span class="faint" style="font-size:12px">${P(c).pos}</span>
-      ${off ? '<span class="red" style="font-size:11px"> ↓ didn\'t play</span>' : ""}${sub ? '<span class="mint" style="font-size:11px"> ↑ auto-sub on</span>' : ""}${!x.played && !off && x.counted ? '<span class="red" style="font-size:11px"> didn\'t play</span>' : ""}</b>
-      <span class="faint" style="font-size:11px;max-width:40%;text-align:right">${x.items.map(([e, p]) => `${e} ${p > 0 ? "+" : ""}${p}`).join(" · ")}</span><b class="${x.counted ? "lime" : "faint"}" style="width:32px;text-align:right">${x.pts}</b></div>`; }).join("")}</div>
-    <div class="panel" style="padding:8px">${r.field.map((f, i) => `<div class="res ${f[0] === "You" ? "on" : ""}"><span class="faint" style="width:28px">#${i + 1}</span><b style="flex:1">${esc(f[0])}</b><b>${f[1]} pts</b></div>`).join("")}</div></section>`;
-}
-function pickerSheet(k) {
-  const pos = k.startsWith("B-") ? null : k.split("-")[0]; const taken = used(); const current = k.startsWith("B-") ? S.squad.bench[+k.slice(2)] : S.squad.slots[k];
-  const players = new Set([...taken].filter((id) => id !== current).map((id) => S.cards.find((c) => c.id === id)?.p));
-  const list = S.cards.filter((c) => !pos || P(c).pos === pos).sort((a, b) => value(P(b)) - value(P(a)));
-  sheet(`<div class="row" style="justify-content:space-between;margin-bottom:10px"><h2 class="h-m">${pos ? "Choose a " + pos : "Choose Sub " + (+k.slice(2) + 1)}</h2><button class="btn btn-ghost" data-close style="padding:8px 14px">Close</button></div>
-    <ul class="list panel">${list.map((c) => { const pl = P(c); const dis = (taken.has(c.id) && c.id !== current) || players.has(c.p);
-      return `<li><button class="pick" data-choose="${c.id}" data-for="${k}" ${dis ? "disabled" : ""}><span class="dot dot-${pl.tier}"></span>${crest(pl.club, 18)}<span style="flex:1;min-width:0"><b>${esc(pl.name)}</b><br><span class="faint" style="font-size:12px">${pl.pos} · ${esc(club(pl.club)[0])}${dis ? " · picked" : ""}</span></span><span style="text-align:right"><b class="lime">${value(pl)} MX</b><br><span class="faint" style="font-size:12px">${c.pts} pts for you</span></span></button></li>`; }).join("") || '<li style="padding:16px" class="muted">No players for this position yet — open more packs.</li>'}</ul>
-    ${current ? `<button class="btn btn-ghost btn-block" style="margin-top:12px" data-remove="${k}">Remove from slot</button>` : ""}`);
-}
 function vChat() {
   const msgs = S.chat[room] || [];
   const hue = (s) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 0);
@@ -700,47 +967,6 @@ function vChat() {
       <form id="chatform" style="border-top:1px solid var(--line);padding:10px;display:flex;gap:8px"><label for="chatinput" style="position:absolute;left:-9999px">Message</label><input id="chatinput" class="input" maxlength="400" placeholder="Message the managers…" autocomplete="off"><button class="btn btn-primary">Send</button></form>
     </div><p class="note">Be kind. No links. Messages can be reported and removed by moderators. (Prototype: other managers here are bots.)</p></div>`;
 }
-function vMe() {
-  const total = S.cards.reduce((a, c) => a + c.pts, 0);
-  return `<div class="stack"><div><p class="eyebrow">Manager profile</p><h1 class="h-l">You</h1></div>
-    <div class="kpis"><div class="panel kpi"><b class="gold">${mp(S.credit)}</b><span>MX credit</span></div><div class="panel kpi"><b>${S.cards.length}</b><span>cards</span></div><div class="panel kpi"><b class="lime">${fmt(total)}</b><span>points won</span></div><div class="panel kpi"><b>${S.history.length ? "#" + Math.min(...S.history.map((h) => h.rank)) : "—"}</b><span>best finish</span></div></div>
-    <h2 class="h-m">Credit history</h2><div class="panel" style="padding:8px">${[...S.ledger].reverse().map((e) => `<div class="res"><span style="flex:1">${esc(e.d)}</span><b class="${e.a > 0 ? "mint" : "muted"}">${e.a > 0 ? "+" : ""}${mp(e.a)}</b></div>`).join("")}</div>
-    <h2 class="h-m">Gameweeks</h2><div class="panel" style="padding:8px">${S.history.length ? [...S.history].reverse().map((h) => `<div class="res"><span style="flex:1">Gameweek ${h.n}</span><b>${h.total} pts · #${h.rank}</b></div>`).join("") : '<p class="muted" style="padding:10px">Play a gameweek from Games.</p>'}</div>
-    <div id="reset"><button class="btn btn-ghost" data-reset>Start over</button></div>
-    <p class="note">Playable prototype of MATCHX Football. Real 2026-27 squads (Wikipedia, CC BY-SA); everything else is simulated and saved only in this browser. MX is an indicative valuation, not cash.</p></div>`;
-}
-
-// ───────── events ─────────
-document.addEventListener("click", (e) => {
-  const t = e.target.closest("button"); if (!t) return;
-  const d = t.dataset;
-  if (d.go) { const [v, tab] = d.go.split(":"); if (tab) clubTab = tab; return go(v); }
-  if (d.card) return cardSheet(+d.card);
-  if (d.open) { const pk = S.packs.find((x) => x.id === +d.open); if (!pk) return;
-    if (pk.sku === "booster") return openBooster(pk);
-    if (PACKS[pk.sku].pick) return pickSheet(pk);
-    S.packs = S.packs.filter((x) => x !== pk); const cards = openPack(pk.sku); render(); return showReveal(cards, pk.sku); }
-  if (d.gift !== undefined) { if (!S.gift || S.gift.claimed) return; S.gift.claimed = true; S.packs.unshift({ sku: S.gift.sku, id: S.nextPack++ }); save(); render(); return toast(S.gift.title + " claimed — it's in your packs"); }
-  if (d.bsel !== undefined) { S.squad.booster = d.bsel ? +d.bsel : null; S.squad.boostOn = null; save(); return render(); }
-  if (d.bon) { S.squad.boostOn = +d.bon; save(); return render(); }
-  if (d.buy) { const p = PACKS[d.buy]; if (S.credit < p.price) return toast("Not enough MX credit"); S.credit -= p.price; S.ledger.push({ t: Date.now(), d: "Bought " + p.name, a: -p.price }); S.packs.unshift({ sku: d.buy, id: S.nextPack++ }); save(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); return toast(p.name + " added — open it at the top"); }
-  if (d.tab) { clubTab = d.tab; return render(); }
-  if (d.tier !== undefined) { tierF = d.tier; return render(); }
-  if (d.pos !== undefined) { posF = d.pos; return render(); }
-  if (d.set) { const set = SETS.find((s) => s.id === d.set); const use = setCards(set).slice(0, set.n); if (use.length < set.n) return;
-    const ids = new Set(use.map((c) => c.id)); S.cards = S.cards.filter((c) => !ids.has(c.id)); S.credit += 1000; S.sets.push(set.id); S.ledger.push({ t: Date.now(), d: "Set completed: " + set.name, a: 1000 }); save(); render(); return toast("+10 MX credit — " + set.name + " complete"); }
-  if (d.form) { S.squad.formation = d.form; const keys = new Set(slotsFor(d.form)); for (const k of Object.keys(S.squad.slots)) if (!keys.has(k)) delete S.squad.slots[k]; save(); return render(); }
-  if (d.auto !== undefined) { autofill(); return render(); }
-  if (d.clear !== undefined) { S.squad.slots = {}; S.squad.bench = []; save(); return render(); }
-  if (d.slot) { selSlot = d.slot; render(); return pickerSheet(d.slot); }
-  if (d.choose) { const k = d.for, id = +d.choose; for (const kk of Object.keys(S.squad.slots)) if (S.squad.slots[kk] === id) delete S.squad.slots[kk]; S.squad.bench = S.squad.bench.map((x) => (x === id ? null : x));
-    if (k.startsWith("B-")) S.squad.bench[+k.slice(2)] = id; else S.squad.slots[k] = id; save(); closeSheet(); selSlot = null; return render(); }
-  if (d.remove) { const k = d.remove; if (k.startsWith("B-")) S.squad.bench[+k.slice(2)] = null; else delete S.squad.slots[k]; save(); closeSheet(); selSlot = null; return render(); }
-  if (d.play !== undefined) { playGameweek(); render(); const el = document.querySelector("section.stack"); if (el) el.scrollIntoView({ behavior: "smooth" }); return toast(`GW${S.gw.last.n}: ${S.gw.last.total} pts, #${S.gw.last.rank} — ${PACKS[S.gw.last.reward].name} won. Tuesday: a new booster pack has landed`); }
-  if (d.room) { room = d.room; return render(); }
-  if (d.reset !== undefined) { document.getElementById("reset").innerHTML = `<div class="row"><span class="muted">Delete your cards, credit and history?</span><button class="btn btn-primary" data-reset-yes>Yes, start over</button><button class="btn btn-ghost" data-go="me">Keep playing</button></div>`; return; }
-  if (d.resetYes !== undefined) { PLAYERS.forEach((p, i) => (p.hist = DATA.players[i][5].slice())); S = fresh(); save(); toast("Fresh start"); return go("home"); }
-});
 document.addEventListener("submit", (e) => {
   if (e.target.id !== "chatform") return; e.preventDefault();
   const input = document.getElementById("chatinput"); const body = input.value.trim(); if (!body) return;
@@ -757,9 +983,9 @@ document.getElementById("theme").addEventListener("click", () => {
   let theme = "dark"; try { theme = localStorage.getItem(KEY + "-theme") || "dark"; } catch (e) {}
   document.documentElement.dataset.theme = theme;
   if (S.hist) PLAYERS.forEach((p) => (p.hist = S.hist[p.i] || p.hist));
-  const h = (location.hash || "").slice(1); if (["home", "packs", "club", "games", "chat", "me"].includes(h)) view = h;
+  const h = (location.hash || "").slice(1); if (VIEWS.includes(h)) view = h; if (!S.market.listings.length) stockMarket();
   render(); ticker(); setInterval(ticker, 1000);
-  window.addEventListener("hashchange", () => { const v = location.hash.slice(1); if (v && v !== view && ["home", "packs", "club", "games", "chat", "me"].includes(v)) go(v); });
+  window.addEventListener("hashchange", () => { const v = location.hash.slice(1); if (v && v !== view && VIEWS.includes(v)) go(v); });
 })();
 // Persist player values with the save.
 const _save = save; save = function () { S.hist = PLAYERS.map((p) => p.hist); _save(); };

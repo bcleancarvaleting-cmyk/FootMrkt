@@ -79,4 +79,24 @@ export const FOOTBALL_COMPETITION_TEMPLATES: CompetitionTemplate[] = [
     rewards: [],
     devRewards: [{ rankFrom: 1, rankTo: 3, packSkuCode: "football-eng-silver" }],
   },
+  // One match per league, every gameweek (product decision 11 Nov 2026): managers use their own
+  // cards, but only players from that league count.
+  ...([
+    ["epl", "Premier League", "EPL"],
+    ["cha", "Championship", "CHA"],
+    ["lg1", "League One", "LG1"],
+    ["lg2", "League Two", "LG2"],
+  ] as const).map(([key, name, league]): CompetitionTemplate => ({
+    key,
+    name,
+    format: "OPEN",
+    rosterRules: "football-roster-v3",
+    scoringRules: "football-scoring-v2-draft",
+    rewards: [],
+    devRewards: [
+      { rankFrom: 1, rankTo: 1, packSkuCode: "football-eng-gold" },
+      { rankFrom: 2, rankTo: 3, packSkuCode: "football-eng-silver" },
+    ],
+    requirements: { leagues: [league] },
+  })),
 ];

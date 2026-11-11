@@ -20,8 +20,8 @@ const BOOTED_AT = Date.now();
 const MAX_PLAYERS = 50;
 export type RebuildStatus = { state: "idle" | "running" | "done" | "failed"; startedAt?: string; finishedAt?: string; log: string[]; error?: string };
 
-export async function rebuildStatus(): Promise<RebuildStatus> {
-  const row = await db.appSetting.findUnique({ where: { key: STATUS_KEY } });
+export async function rebuildStatus(client: Pick<typeof db, "appSetting"> = db): Promise<RebuildStatus> {
+  const row = await client.appSetting.findUnique({ where: { key: STATUS_KEY } });
   const s = (row?.value as RebuildStatus | undefined) ?? { state: "idle", log: [] };
   // A run that died with the server (a restart or redeploy) shows as failed, so it can be run again.
   if (s.state === "running" && s.startedAt && (Date.parse(s.startedAt) < BOOTED_AT || Date.now() - Date.parse(s.startedAt) > 3600_000))
@@ -35,11 +35,11 @@ async function save(s: RebuildStatus) {
 }
 
 /** Why a rebuild isn't allowed right now, or null. */
-export async function rebuildBlocker() {
+export async function rebuildBlocker(client: Pick<typeof db, "order" | "user" | "appSetting"> = db) {
   const [paid, players, s] = await Promise.all([
-    db.order.count({ where: { status: { in: ["PAID", "REFUNDED"] }, provider: { not: "sandbox" } } }),
-    db.user.count({ where: { role: { not: "ADMIN" } } }),
-    rebuildStatus(),
+    client.order.count({ where: { status: { in: ["PAID", "REFUNDED"] }, provider: { not: "sandbox" } } }),
+    client.user.count({ where: { role: { not: "ADMIN" } } }),
+    rebuildStatus(client),
   ]);
   if (s.state === "running") return "A rebuild is already running.";
   if (paid > 0) return "This site has real card payments, so it can't be rebuilt. (Rebuilding is for test sites.)";
@@ -49,9 +49,15 @@ export async function rebuildBlocker() {
 
 /** Start checks; returns at once. The caller runs `runRebuild` in the background. */
 export async function startRebuild(actorId: string) {
-  const blocker = await rebuildBlocker();
-  if (blocker) throw new DomainError("NOT_ALLOWED", blocker);
-  await save({ state: "running", startedAt: new Date().toISOString(), log: ["Starting…"] });
+  // One at a time, even if the button is pressed twice in the same instant: the check and the
+  // "running" mark happen under one database lock, so a second press always sees the first.
+  await db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(777001)`;
+    const blocker = await rebuildBlocker(tx);
+    if (blocker) throw new DomainError("NOT_ALLOWED", blocker);
+    const value = { state: "running", startedAt: new Date().toISOString(), log: ["Starting…"] };
+    await tx.appSetting.upsert({ where: { key: STATUS_KEY }, create: { key: STATUS_KEY, value }, update: { value } });
+  });
   await audit(db, { actorId, action: "rebuild.start", entityType: "Database", entityId: "game" });
 }
 

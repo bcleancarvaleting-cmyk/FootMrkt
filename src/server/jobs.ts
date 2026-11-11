@@ -12,8 +12,12 @@ import { grantAllDueWelcomePacks } from "./welcome";
  * auctions and welcome packs. Each step runs even if an earlier one fails; failures are alerted.
  */
 export async function tick() {
+  // Never run alongside a rebuild: the data is being replaced underneath.
+  const { rebuildStatus } = await import("./rebuild");
+  if ((await rebuildStatus()).state === "running") return { skipped: "rebuild running" };
   const steps: Array<[string, () => Promise<unknown>]> = [
     ["gameweeks & live data", runScheduledJobs],
+    ["standard matches", async () => (await import("./gameweeks")).ensureStandardMatches()],
     ["card releases", executeDueReleases],
     ["expired listings", expireListings],
     ["auctions", settleAuctions],

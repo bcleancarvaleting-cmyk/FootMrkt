@@ -28,14 +28,14 @@ export const DraftSchema = z.object({
 });
 
 /** Every player who can be drafted for a match, with today's MX value (their current tier's card). */
-export async function draftPool(leagues: string[] | undefined) {
+export async function draftPool(leagues: string[] | undefined, clubs?: string[]) {
   const rows = await db.$queryRaw<Array<{ playerId: string; position: string; category: string; valueMp: number | null; marketValueGbp: number | null; clubId: string; clubCode: string; league: string }>>`
     SELECT p.id AS "playerId", p.position::text AS position, t.category::text AS category, v."valueMp", p."marketValueGbp", c.id AS "clubId", c.code AS "clubCode", l.code AS league
     FROM "Player" p
     JOIN "CardTemplate" t ON t."playerId" = p.id AND t.edition = 'STANDARD' AND t.active
     JOIN "Club" c ON c.id = p."clubId" JOIN "League" l ON l.id = c."leagueId"
     LEFT JOIN LATERAL (SELECT "valueMp" FROM "MPValuation" mv WHERE mv."playerId" = p.id AND mv.category = t.category ORDER BY "computedAt" DESC LIMIT 1) v ON true
-    WHERE p.active ${leagues?.length ? Prisma.sql`AND l.code = ANY(${leagues}::text[])` : Prisma.empty}`;
+    WHERE p.active ${leagues?.length ? Prisma.sql`AND l.code = ANY(${leagues}::text[])` : Prisma.empty} ${clubs?.length ? Prisma.sql`AND c.code = ANY(${clubs}::text[])` : Prisma.empty}`;
   return rows;
 }
 
@@ -47,7 +47,7 @@ export async function submitDraftEntry(userId: string, competitionId: string, in
     const req = RequirementsSchema.parse(comp.requirements ?? {});
     if (!req.draftBudgetMx) throw new DomainError("NOT_DRAFT", "This match uses your own cards.");
     const ids = [...sub.starters.map((s) => s.playerId), ...sub.bench];
-    const pool = new Map((await draftPool(req.leagues)).map((p) => [p.playerId, p]));
+    const pool = new Map((await draftPool(req.leagues, req.clubs)).map((p) => [p.playerId, p]));
     const cards = new Map<string, SquadCard>();
     for (const id of ids) {
       const p = pool.get(id);

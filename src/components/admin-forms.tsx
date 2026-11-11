@@ -132,10 +132,11 @@ const PER_CLUB: Opt[] = [{ value: "", label: "No limit" }, ...[1, 2, 3, 4].map((
 const PACK: Opt[] = [{ value: "", label: "None" }, { value: "BRONZE", label: "Bronze Pack" }, { value: "SILVER", label: "Silver Pack" }, { value: "GOLD", label: "Gold Pack" }];
 
 /** Admin: add an extra match to an open gameweek, set up with drop-downs. */
-export function CreateMatchForm({ gameweeks, leagues }: { gameweeks: Opt[]; leagues: Opt[] }) {
+export function CreateMatchForm({ gameweeks, leagues, fixtures }: { gameweeks: Opt[]; leagues: Opt[]; fixtures: Opt[] }) {
   return (
     <Form action={createMatchAction} submit="Create match">
-      <I name="name" label="Match name" placeholder="League One Cup" required />
+      <S name="fixtureId" label="Head to head (optional)" options={[{ value: "", label: "No — a normal match" }, ...fixtures]} />
+      <I name="name" label="Match name (blank = the fixture)" placeholder="Chelsea v Man Utd" />
       <S name="gameweekId" label="Gameweek" options={gameweeks} defaultValue={gameweeks[0]?.value} />
       <S name="kind" label="Type" options={[{ value: "CARDS", label: "Managers use their own cards" }, { value: "DRAFT", label: "Free draft (no cards needed)" }]} />
       <S name="league" label="League" options={[{ value: "", label: "All leagues" }, ...leagues]} />

@@ -248,3 +248,43 @@ export async function currentGameweek() {
     (await db.gameweek.findFirst({ where: { sportId: sport.id }, orderBy: [{ season: "desc" }, { number: "desc" }] }))
   );
 }
+
+/**
+ * Give every gameweek that's still open the full standard set of matches (e.g. the league matches
+ * added after it was created). Idempotent: a match is only added if its code isn't there yet.
+ */
+export async function ensureStandardMatches() {
+  const gws = await db.gameweek.findMany({ where: { status: { in: ["UPCOMING", "OPEN"] } }, include: { competitions: { select: { code: true, locksAt: true, entryOpensAt: true, status: true } } } });
+  const devRewards = await isEnabled("DEV_TOOLS");
+  let added = 0;
+  for (const gw of gws) {
+    const ref = gw.competitions[0];
+    if (!ref) continue;
+    const key = `${gw.season}-gw${gw.number}`;
+    for (const t of FOOTBALL_COMPETITION_TEMPLATES) {
+      const code = `${key}-${t.key}`;
+      if (gw.competitions.some((c) => c.code === code)) continue;
+      await db.competition.createMany({
+        data: [
+          {
+            sportId: gw.sportId,
+            gameweekId: gw.id,
+            code,
+            name: `${t.name} · GW${gw.number}`,
+            format: t.format,
+            rosterRules: t.rosterRules,
+            scoringRules: t.scoringRules,
+            rewards: (devRewards ? t.devRewards : t.rewards) as unknown as Prisma.InputJsonValue,
+            requirements: (t.requirements ?? {}) as Prisma.InputJsonValue,
+            entryOpensAt: ref.entryOpensAt,
+            locksAt: ref.locksAt,
+            status: ref.entryOpensAt <= new Date() ? "OPEN" : "UPCOMING",
+          },
+        ],
+        skipDuplicates: true,
+      });
+      added++;
+    }
+  }
+  return added;
+}

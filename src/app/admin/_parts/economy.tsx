@@ -45,12 +45,18 @@ export async function EconomySections({ only }: { only: string[] }) {
     isEnabled("PAID_PACKS"),
     prizeFund(),
   ]);
-  const [leagueRows, openGws] = show("matchrules")
+  const [leagueRows, openGws, fixtureRows] = show("matchrules")
     ? await Promise.all([
         db.league.findMany({ orderBy: { tier: "asc" }, select: { code: true, name: true } }),
         db.gameweek.findMany({ where: { status: { in: ["UPCOMING", "OPEN"] } }, orderBy: [{ season: "asc" }, { number: "asc" }], select: { id: true, number: true, season: true } }),
+        db.fixture.findMany({
+          where: { gameweek: { status: { in: ["UPCOMING", "OPEN"] } }, kickoffAt: { gt: new Date() } },
+          orderBy: [{ kickoffAt: "asc" }],
+          select: { id: true, kickoffAt: true, gameweek: { select: { number: true } }, homeClub: { select: { name: true, league: { select: { name: true } } } }, awayClub: { select: { name: true } } },
+        }),
       ])
-    : [[], []];
+    : [[], [], []];
+  const fixtureOpts = fixtureRows.map((f) => ({ value: f.id, label: `GW${f.gameweek.number} · ${f.homeClub.name} v ${f.awayClub.name} (${f.homeClub.league.name}, ${fmtDate(f.kickoffAt)})` }));
   const leagueOpts = leagueRows.map((l) => ({ value: l.code, label: l.name }));
   const gwOpts = openGws.map((g) => ({ value: g.id, label: `GW${g.number} · ${g.season}` }));
   const freerolls = comps.filter((c) => ((c.requirements ?? {}) as Requirements).freeCardsOnly && c.entryFeeMinor === 0);
@@ -225,8 +231,8 @@ export async function EconomySections({ only }: { only: string[] }) {
         <div className="space-y-5">
           <div className="rounded-xl border border-accent/40 p-4">
             <h3 className="mb-1 font-bold">Create a match</h3>
-            <p className="mb-3 text-xs text-muted">Adds an extra match to a gameweek that&apos;s still open, with the same deadline as the others. Pick the league and rules from the drop-downs.</p>
-            {gwOpts.length ? <CreateMatchForm gameweeks={gwOpts} leagues={leagueOpts} /> : <p className="text-sm text-faint">No gameweek is open for entries right now.</p>}
+            <p className="mb-3 text-xs text-muted">Adds an extra match to a gameweek that&apos;s still open, with the same deadline as the others. Pick the league and rules from the drop-downs. For a head to head (e.g. Chelsea v Man Utd), pick the fixture: only those two clubs&apos; players can be chosen. Free draft works best there, as few managers own 11 cards from two clubs.</p>
+            {gwOpts.length ? <CreateMatchForm gameweeks={gwOpts} leagues={leagueOpts} fixtures={fixtureOpts} /> : <p className="text-sm text-faint">No gameweek is open for entries right now.</p>}
           </div>
           {comps.map((c) => (
             <div key={c.id} className="border-t border-ink-700 pt-4 first:border-0 first:pt-0">

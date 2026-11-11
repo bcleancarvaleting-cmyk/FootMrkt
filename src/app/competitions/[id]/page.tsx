@@ -179,7 +179,7 @@ async function DraftBuilder({
 }) {
   const req = (competition.requirements ?? {}) as Requirements;
   const rules = getRosterRules(competition.rosterRules);
-  const pool = await draftPool(req.leagues);
+  const pool = await draftPool(req.leagues, req.clubs);
   const value = new Map(pool.map((p) => [p.playerId, draftPrice(p.valueMp, p.category, p.marketValueGbp)]));
   const [faces, form, fixtures] = await Promise.all([
     posterCards(pool.map((p) => p.playerId)),

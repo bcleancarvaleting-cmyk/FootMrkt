@@ -305,7 +305,9 @@ export async function updateCompetitionRules(adminId: string, competitionId: str
 export const PRIZE_PACKS = { BRONZE: "football-eng-bronze", SILVER: "football-eng-silver", GOLD: "football-eng-gold" } as const;
 export const NewMatchSchema = z.object({
   gameweekId: z.string().uuid(),
-  name: z.string().trim().min(3, "Give the match a name").max(40),
+  name: z.string().trim().max(40).optional(),
+  /** A head-to-head match on one real fixture: only the two clubs' players can be picked. */
+  fixtureId: z.string().uuid().optional(),
   kind: z.enum(["CARDS", "DRAFT"]).default("CARDS"),
   league: z.string().max(10).optional(),
   tier: z.enum(["BRONZE", "SILVER", "GOLD"]).optional(),
@@ -323,15 +325,22 @@ export const NewMatchSchema = z.object({
 /** Admin → Matches: add an extra match to a gameweek that hasn't locked yet (e.g. a League One Cup). */
 export async function createMatch(adminId: string, input: z.input<typeof NewMatchSchema>) {
   const m = NewMatchSchema.parse(input);
+  const fixture = m.fixtureId ? await db.fixture.findUnique({ where: { id: m.fixtureId }, include: { homeClub: true, awayClub: true } }) : null;
+  if (m.fixtureId && !fixture) throw new DomainError("FIXTURE", "Unknown fixture.");
+  if (fixture) m.gameweekId = fixture.gameweekId;
+  const name = m.name || (fixture ? `${fixture.homeClub.shortName} v ${fixture.awayClub.shortName}` : "");
+  if (name.length < 3) throw new DomainError("NAME", "Give the match a name.");
   const gw = await db.gameweek.findUnique({ where: { id: m.gameweekId }, include: { competitions: { select: { locksAt: true, entryOpensAt: true, code: true, rosterRules: true, scoringRules: true } } } });
   if (!gw || !["UPCOMING", "OPEN"].includes(gw.status)) throw new DomainError("LOCKED", "Pick a gameweek that's still open for entries.");
   if (m.league && !(await db.league.findUnique({ where: { code: m.league } }))) throw new DomainError("LEAGUE", "Unknown league.");
   if (m.kind === "DRAFT" && m.tier) throw new DomainError("RULES", "Free draft matches use any players, so there's no card tier.");
   const requirements = RequirementsSchema.parse({
-    leagues: m.league ? [m.league] : undefined,
+    leagues: m.league && !fixture ? [m.league] : undefined,
+    clubs: fixture ? [fixture.homeClub.code, fixture.awayClub.code] : undefined,
     freeCardsOnly: m.kind === "CARDS" && m.freeCardsOnly ? true : undefined,
     foundersOnly: m.foundersOnly || undefined,
-    maxPerClub: m.maxPerClub,
+    // Two clubs have to fill 11 places, so a per-club cap below 6 can't be met.
+    maxPerClub: fixture && m.maxPerClub && m.maxPerClub < 6 ? undefined : m.maxPerClub,
     draftBudgetMx: m.kind === "DRAFT" ? (m.draftBudgetMx ?? 70) : undefined,
   });
   const cash = m.prizes?.trim() ? parsePrizes(m.prizes) : [];
@@ -347,14 +356,14 @@ export async function createMatch(adminId: string, input: z.input<typeof NewMatc
   const locksAt = ref?.locksAt ?? new Date(gw.startsAt.getTime() - 10 * 60_000);
   const opensAt = ref?.entryOpensAt ?? new Date();
   const key = ref?.code.split("-").slice(0, -1).join("-") || `gw-${gw.season}-${gw.number}`;
-  const slug = m.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "match";
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "match";
   return withTx(async (tx) => {
     const c = await tx.competition.create({
       data: {
         sportId: gw.sportId,
         gameweekId: gw.id,
         code: `${key}-${slug}-${Date.now().toString(36)}`,
-        name: `${m.name} · GW${gw.number}`,
+        name: `${name} · GW${gw.number}`,
         format: m.tier ? (`${m.tier}_ONLY` as "BRONZE_ONLY" | "SILVER_ONLY" | "GOLD_ONLY") : "OPEN",
         rosterRules: ref?.rosterRules ?? "football-roster-v3",
         scoringRules: ref?.scoringRules ?? "football-scoring-v2-draft",

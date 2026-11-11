@@ -174,3 +174,9 @@ export function hoursAgo(hours: number): Date {
 export function ageFrom(dob: Date | null): number | null {
   return dob ? Math.floor((Date.now() - dob.getTime()) / (365.25 * 86_400_000)) : null;
 }
+
+/** Short league label for tight spaces (pitch slots): PL, CH, L1, L2. */
+export function leagueShort(name: string | null | undefined) {
+  const map: Record<string, string> = { "Premier League": "PL", Championship: "CH", "League One": "L1", "League Two": "L2" };
+  return name ? (map[name] ?? name) : "";
+}

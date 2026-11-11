@@ -6,13 +6,13 @@ What's built, and what needs a person (you, a lawyer or a provider) before each 
 
 | Switch | Turns on | Needs first |
 | --- | --- | --- |
-| `SIMULATED_DATA` **off** | Real match data only | API-Football key set, clubs and players linked (Admin → Live match data) |
+| `SIMULATED_DATA` **off** | Real match data only | Sportmonks token saved and tested (Admin → Integrations), squads rebuilt |
 | `PACK_SHOP` + `PAID_PACKS` | Buying packs by card | Legal sign-off, Stripe live keys, odds page reviewed |
 | `DEPOSITS` | Topping up the wallet by card | Legal sign-off, Stripe live keys |
-| `MARKET` | Player-to-player Transfer list | Legal sign-off, safeguard settings reviewed |
-| `AUCTIONS` | MATCHX auctions | Legal sign-off |
+| `MARKET` | Transfers: selling to other managers, MATCHX buy-nows | Legal sign-off, safeguard settings reviewed. **Planned on from launch day** (11 Nov 2026): sales are paid in bonus MX, which can be spent but never withdrawn. Free cards (starters, picks, loans, gifts) can't be sold. |
+| `AUCTIONS` | MATCHX auctions | Legal sign-off. Planned on from launch day too. |
 
-Legal-gated switches can't be turned on from admin until `LEGAL_GATES_CLEARED` lists them on the server.
+Legal-gated switches can't be turned on from admin until `LEGAL_GATES_CLEARED` lists them on the server. For launch day set it to include `PAID_PACKS,PACK_SHOP,MARKET,AUCTIONS` once the lawyer has signed those off, then switch each on in Admin.
 
 ## For your lawyer
 

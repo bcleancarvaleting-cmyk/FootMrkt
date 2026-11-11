@@ -132,6 +132,7 @@ export function PlayerCard({ card, size = "md", className = "", showcase = false
         <div className="px-2.5 pt-1.5 text-center">
           <div className={`truncate font-display font-bold uppercase leading-tight tracking-wide ${small ? "text-sm" : "text-[17px]"} ${finish ? FINISH_STYLE[finish.kind].name : ""}`}>{card.name}</div>
           <div className="truncate text-[10px] text-muted">{card.clubName ?? "Free agent"}</div>
+          {card.leagueName && <div className="truncate text-[8.5px] font-bold uppercase leading-tight tracking-[0.14em] text-faint">{card.leagueName}</div>}
           <CardNumber card={card} />
         </div>
 

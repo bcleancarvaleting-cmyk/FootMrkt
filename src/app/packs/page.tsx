@@ -3,7 +3,7 @@ import { BoosterFace, BoosterPackSealed } from "@/components/booster-card";
 import { myBoosters } from "@/server/boosters";
 import { rollsFinishes } from "@/server/finishes";
 import { getSetting } from "@/server/settings";
-import { LOAN_PICK_CODE } from "@/config/packs";
+import { LOAN_PICK_CODE, PICK_CODES } from "@/config/packs";
 import { Countdown } from "@/components/countdown";
 import { BuyPackButton, ClaimDropButton, CreditPackButton, DevPackButton, OpenPackButton } from "@/components/pack-buttons";
 import { FOOTBALL_PACKS } from "@/config/packs";
@@ -120,7 +120,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
                   <PackArt code={e.packSku.code} small />
                   <span className="min-w-0 flex-1">
                     <span className="block font-display text-xl font-bold uppercase italic">{e.packSku.name}</span>
-                    <span className="block text-xs text-muted">{e.packSku.code === LOAN_PICK_CODE ? "2 Gold players on loan · first 4 gameweeks" : <>{cardCount(cfg)} cards · {e.source === "WEEKLY" ? "free drop" : e.sourceRef?.startsWith("welcome:") ? "welcome gift · untradeable" : e.source.toLowerCase().replace("_", " ")}</>}</span>
+                    <span className="block text-xs text-muted">{e.packSku.code === LOAN_PICK_CODE ? "2 Gold players on loan · first 4 gameweeks" : PICK_CODES.includes(e.packSku.code as (typeof PICK_CODES)[number]) ? (meta(e.packSku.code)?.blurb ?? "Choose 1 player to keep") : <>{cardCount(cfg)} cards · {e.source === "WEEKLY" ? "free drop" : e.sourceRef?.startsWith("welcome:") ? "welcome gift · untradeable" : e.source.toLowerCase().replace("_", " ")}</>}</span>
                   </span>
                   {isPick(e.packSku.code) ? (
                     <Link href={`/packs/pick/${e.id}`} className="btn-gold">

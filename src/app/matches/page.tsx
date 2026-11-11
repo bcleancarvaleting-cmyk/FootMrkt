@@ -91,6 +91,9 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
           <span className="w-24 text-right">Status</span>
           <span className="w-40 text-right">Your squad</span>
         </div>
+        <p className="mb-2 px-1 text-xs text-muted">
+          <span className="font-semibold text-mint">Green</span> = you&apos;ve entered · <span className="font-semibold text-danger">red</span> = still open, not entered yet.
+        </p>
         <ul className="space-y-2">
           {comps.map((c) => {
             const entry = c.entries[0];
@@ -99,7 +102,7 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
             const feeBlocked = c.entryFeeMinor > 0 && !paidEntry;
             return (
               <li key={c.id}>
-                <Link href={`/competitions/${c.id}`} className={`row-item flex-wrap md:flex-nowrap ${FORMAT_TIER[c.format]}`}>
+                <Link href={`/competitions/${c.id}`} className={`row-item flex-wrap md:flex-nowrap ${FORMAT_TIER[c.format]} border-2 ${entry ? "!border-mint/80" : c.status === "OPEN" ? "!border-danger/70" : ""}`}>
                   <span className="min-w-0 flex-1 basis-full md:basis-auto">
                     <span className="block font-display text-xl font-bold uppercase italic leading-tight">{c.name}</span>
                     <span className="block truncate text-xs text-muted">

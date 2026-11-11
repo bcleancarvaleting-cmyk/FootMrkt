@@ -6,7 +6,11 @@ import { useEffect, useState } from "react";
 import type { CardView } from "@/lib/view";
 import { PlayerCard } from "./player-card";
 
-/** Reveals already-issued cards one by one. Contents were decided server-side before this renders. */
+/**
+ * Reveals already-issued cards one by one. Contents were decided server-side before this renders.
+ * Each card spins in on a stage (Golds and special finishes spin longer, with a flash), then lands
+ * in the grid below. Tap the stage to skip to the next card.
+ */
 export function PackReveal({ cards }: { cards: CardView[] }) {
   // Reveal lowest tiers first so the best card lands last.
   const order = [...cards].sort((a, b) => rank(a) - rank(b));
@@ -15,19 +19,30 @@ export function PackReveal({ cards }: { cards: CardView[] }) {
   const rainbowAt = order.findIndex((c) => c.finish?.kind === "RAINBOW");
   const rainbow = rainbowAt >= 0 ? order[rainbowAt] : null;
   const [dismissed, setDismissed] = useState(false);
+  const staged = shown < order.length ? order[shown] : null;
+  const big = !!staged && (staged.category === "GOLD" || !!staged.finish);
   useEffect(() => {
     if (shown >= order.length) return;
-    // Build up to the big ones: a Gold pauses, a Diamond pauses longer.
+    // Build up to the big ones: a Gold spins longer, a Diamond longer still.
     const next = order[shown];
-    const t = setTimeout(() => setShown((s) => s + 1), shown === 0 ? 300 : next.finish ? FINISH_STYLE[next.finish.kind].pause : next.category === "GOLD" ? 900 : 380);
+    const calm = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const t = setTimeout(() => setShown((s) => s + 1), calm ? 300 : next.finish ? 900 + FINISH_STYLE[next.finish.kind].pause : next.category === "GOLD" ? 1700 : 950);
     return () => clearTimeout(t);
   }, [shown, order]);
   return (
     <div className="space-y-6">
+      {staged && (
+        <button type="button" onClick={() => setShown((s) => s + 1)} className="mx-auto flex min-h-[22rem] w-full items-center justify-center [perspective:1000px]" aria-label="Next card">
+          <div key={staged.id} className={`relative ${big ? "animate-spin-in-big" : "animate-spin-in"}`}>
+            {big && <span className="spin-flash" aria-hidden="true" />}
+            <PlayerCard card={staged} size="lg" />
+          </div>
+        </button>
+      )}
       {/* Every card sits in the same-sized cell with a label underneath, so rows line up neatly. */}
       <div className={`flex flex-wrap items-start justify-center gap-x-4 gap-y-5 sm:grid sm:justify-center ${columns(order.length)}`}>
         {order.map((c, i) => (
-          <div key={c.id} className={`flex w-44 flex-col items-center gap-3 ${i < shown ? "animate-reveal" : "invisible"}`}>
+          <div key={c.id} className={`flex w-44 flex-col items-center gap-3 ${i < shown ? "animate-land" : "hidden sm:invisible sm:flex"}`}>
             <Link href={`/cards/${c.id}`}>
               <PlayerCard card={c} className={c.category === "GOLD" && !c.finish ? "animate-gold" : ""} />
             </Link>

@@ -91,9 +91,15 @@ export default async function CompetitionPage({ params }: { params: Promise<{ id
               </span>
               {r.prizeMinor > 0 && <span className="font-bold text-lime">£{(r.prizeMinor / 100).toFixed(2)}</span>}
               <span className="font-bold">{comp.status === "OPEN" ? "" : `${r.points} pts`}</span>
+              {(comp.status !== "OPEN" || r.userId === user.id) && (
+                <Link href={`/competitions/${comp.id}/team/${r.entryId}`} className="rounded-lg border border-ink-700 px-2.5 py-1 text-xs font-semibold text-muted hover:text-fg" aria-label={`See ${r.displayName}'s team`}>
+                  Team ›
+                </Link>
+              )}
             </div>
           ))}
           {!board.length && <div className="px-4 py-6 text-center text-faint">No entries yet. Be the first!</div>}
+          {comp.status !== "OPEN" && board.length > 0 && <div className="px-4 py-2 text-xs text-faint">Tap Team to see any manager&apos;s players, points and booster.</div>}
         </div>
       </section>
     </div>

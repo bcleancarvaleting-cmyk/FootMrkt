@@ -220,7 +220,7 @@ function Feature({ eyebrow, title, body, href, cta }: { eyebrow: string; title: 
 }
 
 async function Hub({ userId, name }: { userId: string; name: string }) {
-  const [gw, totals, unopened, recent, bal, drop, playerDrops, marketOn, top, level, streak, prediction] = await Promise.all([
+  const [gw, totals, unopened, recent, bal, drop, playerDrops, marketOn, top, level, streak, prediction, auctions, leagues] = await Promise.all([
     currentGameweek(),
     binderTotals(userId),
     db.packEntitlement.count({ where: { userId, status: "UNOPENED" } }),
@@ -233,6 +233,8 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
     managerLevel(userId),
     db.user.findUniqueOrThrow({ where: { id: userId }, select: { loginStreak: true, bestStreak: true } }),
     predictionPanel(userId),
+    db.auction.count({ where: { status: "LIVE" } }),
+    db.miniLeagueMember.count({ where: { userId } }),
   ]);
   const comps = gw
     ? await db.competition.findMany({ where: { gameweekId: gw.id }, include: { entries: { where: { userId } }, _count: { select: { entries: true } } }, orderBy: { name: "asc" } })
@@ -270,6 +272,28 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
           </div>
         </div>
       </section>
+
+      {/* The hub: every part of the game one tap away. */}
+      <nav aria-label="Your game" className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {(
+          [
+            ["My Club", `${totals.total} players`, `${totals.byCategory.GOLD} Gold · ${totals.byCategory.SILVER} Silver · ${totals.byCategory.BRONZE} Bronze`, "/account/club", "text-lime"],
+            ["Transfers", marketOn ? "Buy · sell · bid" : "Opens soon", marketOn ? `${playerDrops} MATCHX buy-nows · ${auctions} auction${auctions === 1 ? "" : "s"} live` : "MATCHX buy-nows and auctions", "/transfers", "text-gold"],
+            ["Packs", unopened ? `${unopened} to open` : "Pack shop", "Starters, boosters, gifts and the shop", "/packs", ""],
+            ["Matches", comps.length ? `${entered}/${comps.length} entered` : "No matches yet", comps.length ? (entered === comps.length ? "All entered ✓" : `${comps.length - entered} still to enter`) : "Next gameweek coming", "/matches", comps.length && entered === comps.length ? "text-mint" : "text-danger"],
+            ["Wallet", fmtMp(bal.total), "MX and £ winnings", "/account/wallet", ""],
+            ["Leagues", leagues ? `${leagues} league${leagues === 1 ? "" : "s"}` : "Start one", "Private leagues with friends", "/leagues", ""],
+            ["Challenges", "Hand in", "Earn MX and packs", "/account/challenges", ""],
+            ["Chat", "Managers", "Talk tactics and pack pulls", "/chat", ""],
+          ] as const
+        ).map(([k, v, s, href, tone]) => (
+          <Link key={k} href={href} className={`rounded-2xl border bg-ink-900 p-4 transition hover:bg-ink-850 ${k === "Matches" && comps.length ? (entered === comps.length ? "border-mint/70" : "border-danger/60") : "border-ink-700"}`}>
+            <p className={`eyebrow ${tone}`}>{k}</p>
+            <p className="mt-1 font-display text-2xl font-extrabold uppercase italic leading-none">{v}</p>
+            <p className="mt-1 text-xs text-faint">{s}</p>
+          </Link>
+        ))}
+      </nav>
 
       <EndedLoansBanner userId={userId} />
 
@@ -315,20 +339,6 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
         </Link>
       )}
 
-      <section className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-ink-700 bg-ink-700 lg:grid-cols-4">
-        {[
-          ["Balance", fmtMp(bal.total), "Wallet", "/account/wallet"],
-          ["My Club", `${totals.total} cards`, `${totals.byCategory.GOLD} Gold · ${totals.byCategory.SILVER} Silver`, "/account/club"],
-          marketOn ? ["Player drops", `${playerDrops} live`, "New players every day", "/transfers/drops"] : ["Player drops", "Coming soon", "Opens after the beta", "/transfers/drops"],
-          ["Challenges", "Hand in", "Earn MX & packs", "/account/challenges"],
-        ].map(([k, v, s, href]) => (
-          <Link key={k} href={href} className="bg-ink-900 p-5 transition hover:bg-ink-850">
-            <p className="eyebrow">{k}</p>
-            <p className="mt-1 font-display text-3xl font-extrabold italic">{v}</p>
-            <p className="truncate text-xs text-faint">{s}</p>
-          </Link>
-        ))}
-      </section>
 
       {comps.length > 0 && (
         <section>

@@ -27,6 +27,8 @@ import {
 import { balancesFor, credit } from "@/server/wallet";
 import { buildWorld, makeTrader, makeUser, resetDb } from "./fixtures";
 
+const kinds = async (userId: string) => (await db.notification.findMany({ where: { userId }, orderBy: { createdAt: "asc" } })).map((n) => n.title);
+
 const ENV = { ...process.env };
 beforeEach(async () => {
   await resetDb();
@@ -119,6 +121,7 @@ describe("P2P transfers in MX", () => {
     expect((await balancesFor(loser)).earned).toBe(2000);
     expect((await db.marketListing.findUniqueOrThrow({ where: { id: listing.id } })).feeMinor).toBe(50);
     expect((await supplyReport()).reconciled).toBe(true);
+    expect(await kinds(seller.userId)).toEqual(["💸 Player sold"]);
   });
 
   it("bought MX can't buy players from other managers (Transfer list is earned MX only)", async () => {
@@ -193,6 +196,11 @@ describe("P2P transfers in MX", () => {
     const card = await db.marketListing.findUniqueOrThrow({ where: { id: listing.id }, include: { card: true } });
     expect(card.card.ownerId).toBe(a.userId);
     expect(card.soldPriceMinor).toBe(600);
+    // Phone/in-app alerts: the seller hears about every offer, buyers hear the answer.
+    expect((await kinds(seller.userId)).filter((t) => t === "📩 New offer")).toHaveLength(5);
+    expect(await kinds(seller.userId)).toContain("💸 Player sold");
+    expect(await kinds(a.userId)).toEqual(["✍️ New signing!"]);
+    expect(await kinds(b.userId)).toEqual(["Offer declined"]);
   });
 
   it("expiring a listing returns held offers", async () => {
@@ -302,6 +310,8 @@ describe("house auctions", () => {
     expect(done.card.supplyState).toBe("HELD");
     expect((await balancesFor(a.userId)).earned).toBe(800);
     expect((await supplyReport()).reconciled).toBe(true);
+    expect(await kinds(a.userId)).toEqual(["⚠️ You've been outbid", "🔨 Auction won!"]);
+    expect(await kinds(b.userId)).toEqual(["⚠️ You've been outbid"]);
   });
 
   it("a late bid extends the auction (anti-sniping)", async () => {

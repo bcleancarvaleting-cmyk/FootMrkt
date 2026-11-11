@@ -36,7 +36,9 @@ export async function grantDueWelcomePacks(userId: string, now = new Date()) {
   for (const g of missing) {
     await withTx((tx) => grantPack(tx, { userId, skuCode: g.skuCode, source: "REWARD", sourceRef: ref(g.id) }));
     const { emailUser } = await import("./email/send");
-    await emailUser(userId, "packReady", { pack: FOOTBALL_PACKS.find((p) => p.code === g.skuCode)?.name ?? "free pack" }, `packready:${ref(g.id)}`);
+    const pack = FOOTBALL_PACKS.find((p) => p.code === g.skuCode)?.name ?? "free pack";
+    await emailUser(userId, "packReady", { pack }, `packready:${ref(g.id)}`);
+    await (await import("./alerts")).alerts.packReady(userId, `Welcome gift: ${pack}`, ref(g.id));
   }
   return missing.length;
 }

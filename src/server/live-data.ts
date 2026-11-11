@@ -270,12 +270,13 @@ export async function syncLiveData() {
 }
 
 /**
- * Launch history (product decision 11 Nov 2026): import every match played so far this season as
- * settled gameweeks — Friday-to-Thursday weeks — so player form, values and tiers start from real
- * results. Matches not yet played in the current week are left out; the following week opens for
- * entries. Uses about 40 API calls for a full season to mid-November.
+ * Launch history (product decision 11 Nov 2026): import the last HISTORY_WEEKS weeks with matches
+ * (Friday-to-Thursday, so international breaks are skipped) as settled gameweeks, so player form,
+ * values and tiers start from real results. Matches not yet played in the current week are left
+ * out; the following week opens for entries. About 8 API calls.
  */
-export async function importSeasonToDate(season: string, now = new Date()) {
+export const HISTORY_WEEKS = 4;
+export async function importSeasonToDate(season: string, now = new Date(), weeksBack = HISTORY_WEEKS) {
   const src = await requireKey();
   const { finaliseGameweek } = await import("./gameweeks");
   const DAY = 86_400_000;
@@ -283,9 +284,10 @@ export async function importSeasonToDate(season: string, now = new Date()) {
   const clubByTeam = new Map(clubs.flatMap((c) => (refOf(c.providerRefs, src.name) ? [[refOf(c.providerRefs, src.name)!, c.id] as const] : [])));
   if (!clubByTeam.size) throw new DomainError("NOT_LINKED", "No clubs are linked to the data provider yet.");
 
-  // Every league fixture from the start of the season to a fortnight ahead (in ≤ 90-day chunks).
+  // League fixtures from far enough back to find the last few match weeks (allowing for an
+  // international break or two), to a fortnight ahead, in ≤ 90-day chunks.
   const iso = (d: Date) => d.toISOString().slice(0, 10);
-  const start = new Date(Date.UTC(seasonYear(season), 6, 1));
+  const start = new Date(Math.max(Date.UTC(seasonYear(season), 6, 1), now.getTime() - (weeksBack + 3) * 7 * DAY));
   const end = new Date(now.getTime() + 14 * DAY);
   const all: Array<{ id: string; at: Date; home: string; away: string }> = [];
   for (const leagueId of Object.values(src.leagues)) {
@@ -312,7 +314,8 @@ export async function importSeasonToDate(season: string, now = new Date()) {
   }
   let number = 0;
   let fixtures = 0;
-  for (const [k, list] of [...weeks].sort((a, b) => a[0] - b[0])) {
+  // Only the most recent weeks that had matches.
+  for (const [k, list] of [...weeks].sort((a, b) => a[0] - b[0]).slice(-weeksBack)) {
     number++;
     const gw = await insertGameweek({
       season,

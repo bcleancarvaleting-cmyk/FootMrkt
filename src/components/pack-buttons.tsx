@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { claimDropAction } from "@/app/actions/account";
-import { buyPackAction, buyPackWithCreditAction, claimDevPackAction, openPackAction } from "@/app/actions/game";
+import { buyPackAction, buyPackWithCreditAction, buyPackWithXpAction, claimDevPackAction, openPackAction } from "@/app/actions/game";
 import { ResultText } from "./action-button";
 import type { ActionResult } from "@/app/actions/result";
 
@@ -74,6 +74,25 @@ export function CreditPackButton({ skuCode, price, affordable }: { skuCode: stri
         onClick={() => start(async () => setRes(await buyPackWithCreditAction(skuCode, crypto.randomUUID())))}
       >
         {pending ? "…" : `${price}`}
+      </button>
+      {res && <ResultText result={res} />}
+    </span>
+  );
+}
+
+/** Buy a pack with XP, priced at the admin's XP-per-MX rate. */
+export function XpPackButton({ skuCode, xp, affordable }: { skuCode: string; xp: number; affordable: boolean }) {
+  const [pending, start] = useTransition();
+  const [res, setRes] = useState<ActionResult<unknown> | null>(null);
+  return (
+    <span className="col-span-2 inline-flex flex-col gap-1">
+      <button
+        className="btn-ghost"
+        disabled={pending || !affordable}
+        title={affordable ? undefined : "Not enough XP yet — your players' match points earn XP"}
+        onClick={() => start(async () => setRes(await buyPackWithXpAction(skuCode, crypto.randomUUID())))}
+      >
+        {pending ? "…" : `${xp.toLocaleString("en-GB")} XP`}
       </button>
       {res && <ResultText result={res} />}
     </span>

@@ -13,7 +13,7 @@ import { DomainError } from "@/server/errors";
 import { isEnabled } from "@/server/flags";
 import { startPackPurchase } from "@/server/market";
 import { grantPack, openPack } from "@/server/packs";
-import { buyPackWithCredit } from "@/server/wallet";
+import { buyPackWithCredit, buyPackWithXp } from "@/server/wallet";
 import { claimWeeklyPack } from "@/server/weekly";
 import { rateLimit } from "@/lib/rate-limit";
 import { emailUser } from "@/server/email/send";
@@ -107,6 +107,15 @@ export async function completeSetAction(setId: string, idempotencyKey: string): 
   if (!res.ok) return res;
   revalidatePath("/", "layout");
   redirect(`/account/challenges?completed=${encodeURIComponent(res.data.name)}`);
+}
+
+export async function buyPackWithXpAction(skuCode: string, clientKey: string): Promise<ActionResult> {
+  const user = await requireUser();
+  const res = await attempt(async () => {
+    await buyPackWithXp(user.id, skuCode, clientKey);
+  }, "Pack added — open it above!");
+  revalidatePath("/", "layout");
+  return res;
 }
 
 export async function buyPackWithCreditAction(skuCode: string, clientKey: string): Promise<ActionResult> {

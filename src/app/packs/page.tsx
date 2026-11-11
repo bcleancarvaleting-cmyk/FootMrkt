@@ -5,7 +5,7 @@ import { rollsFinishes } from "@/server/finishes";
 import { getSetting } from "@/server/settings";
 import { LOAN_PICK_CODE, PICK_CODES } from "@/config/packs";
 import { Countdown } from "@/components/countdown";
-import { BuyPackButton, ClaimDropButton, CreditPackButton, DevPackButton, OpenPackButton } from "@/components/pack-buttons";
+import { BuyPackButton, ClaimDropButton, CreditPackButton, DevPackButton, OpenPackButton, XpPackButton } from "@/components/pack-buttons";
 import { FOOTBALL_PACKS } from "@/config/packs";
 import { advertisedGuarantee, cardCount, parsePackConfig } from "@/domain/packs/config";
 import { requireUser } from "@/server/auth/session";
@@ -14,7 +14,7 @@ import { dropStatus } from "@/server/drops";
 import { upcomingWelcomePacks } from "@/server/welcome";
 import { isPick } from "@/server/picks";
 import { allFlags } from "@/server/flags";
-import { balancesFor, fmtMp } from "@/server/wallet";
+import { balancesFor, fmtMp, xpPriceFor } from "@/server/wallet";
 import { fmtDate, gbp } from "@/lib/view";
 
 export const metadata = { title: "Packs" };
@@ -24,7 +24,7 @@ const meta = (code: string) => FOOTBALL_PACKS.find((p) => p.code === code);
 export default async function PacksPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
   const user = await requireUser();
   const { welcome } = await searchParams;
-  const [diamondOneIn, rubyOneIn, rainbowOneIn] = await Promise.all([getSetting("diamondOneIn"), getSetting("rubyOneIn"), getSetting("rainbowOneIn")]);
+  const [diamondOneIn, rubyOneIn, rainbowOneIn, xpRate] = await Promise.all([getSetting("diamondOneIn"), getSetting("rubyOneIn"), getSetting("rainbowOneIn"), getSetting("xpPerMx")]);
   const pct = (n: number) => (100 / n).toLocaleString("en-GB", { maximumSignificantDigits: 2 });
   const [flags, unopened, skus, history, bal, drop, gifts, boosters] = await Promise.all([
     allFlags(),
@@ -148,7 +148,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
             </p>
           </div>
           <Link href="/account/wallet" className="rounded-xl border border-ink-700 bg-ink-900 px-3 py-2 text-xs text-muted hover:border-ink-600">
-            Balance <b className="ml-1 text-fg tabular-nums">{fmtMp(bal.total)}</b>
+            Balance <b className="ml-1 text-fg tabular-nums">{fmtMp(bal.total)}</b> · <b className="text-fg tabular-nums">{bal.xp.toLocaleString("en-GB")} XP</b>
           </Link>
         </div>
         {!flags.PACK_SHOP ? (
@@ -221,6 +221,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
                             <>
                               <BuyPackButton skuCode={s.code} price={gbp(s.priceMinor)} enabled={flags.PAID_PACKS} gold={s.code.includes("gold")} />
                               <CreditPackButton skuCode={s.code} price={fmtMp(s.priceMinor)} affordable={bal.total >= s.priceMinor} />
+                              <XpPackButton skuCode={s.code} xp={xpPriceFor(s.priceMinor, xpRate)} affordable={bal.xp >= xpPriceFor(s.priceMinor, xpRate)} />
                             </>
                           ) : (
                             <span className="col-span-2 rounded-xl border border-accent/40 bg-accent/5 py-3 text-center text-[11px] font-extrabold uppercase tracking-[0.14em] text-lime">

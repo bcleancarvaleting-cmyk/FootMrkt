@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { completeSet } from "@/server/collections";
 import { db, withTx } from "@/server/db";
 import { grantPack, openPack } from "@/server/packs";
-import { balanceMinor, buyPackWithCredit, credit } from "@/server/wallet";
+import { balanceMinor, balancesFor, buyPackWithCredit, buyPackWithXp, credit, creditXp } from "@/server/wallet";
 import { buildWorld, makeUser, resetDb } from "./fixtures";
 
 let sportId: string;
@@ -42,6 +42,21 @@ describe("MX credit (set rewards)", () => {
     await expect(buyPackWithCredit(userId, "football-bronze", "click-2")).rejects.toMatchObject({ code: "INSUFFICIENT_FUNDS" });
     const opened = await openPack(userId, gold.id);
     expect(opened.cards).toHaveLength(6);
+  });
+
+  it("XP buys packs at the admin exchange rate (XP per 1 MX), once per click, never into minus", async () => {
+    const { userId } = await makeUser();
+    await withTx((tx) => creditXp(tx, { userId, xp: 2000, refId: "xp-1" }));
+    // Default 500 XP = 1 MX, so a 2.99 MX Bronze pack is 1,495 XP.
+    const p = await buyPackWithXp(userId, "football-bronze", "x-1");
+    expect((await buyPackWithXp(userId, "football-bronze", "x-1")).id).toBe(p.id);
+    expect((await balancesFor(userId)).xp).toBe(2000 - 1495);
+    await expect(buyPackWithXp(userId, "football-bronze", "x-2")).rejects.toMatchObject({ code: "INSUFFICIENT_XP" });
+    // The admin changes the rate: prices follow.
+    await db.appSetting.create({ data: { key: "xpPerMx", value: 100 } });
+    await buyPackWithXp(userId, "football-bronze", "x-3"); // 299 XP
+    expect((await balancesFor(userId)).xp).toBe(505 - 299);
+    expect((await openPack(userId, p.id)).cards).toHaveLength(6);
   });
 
   it("concurrent spends can't take the balance below zero", async () => {

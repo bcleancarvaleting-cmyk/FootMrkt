@@ -150,6 +150,28 @@ export async function buyPackWithCredit(userId: string, skuCode: string, clientK
   });
 }
 
+/** A pack's price in XP at the admin exchange rate (XP per 1 MX), rounded up to whole XP. */
+export const xpPriceFor = (priceMinor: number, rate: number) => Math.ceil((priceMinor * rate) / 100);
+
+/** Buy a shop pack with XP at the current exchange rate (Admin → Settings: XP needed for 1 MX). */
+export async function buyPackWithXp(userId: string, skuCode: string, clientKey: string) {
+  await requireFlag("PACK_SHOP");
+  const rate = await xpPerMx();
+  return withTx(async (tx) => {
+    await lockWallet(tx, userId);
+    const refId = `xpbuy:${userId}:${clientKey}`;
+    const done = await tx.packEntitlement.findUnique({ where: { sourceRef: `xp:${refId}` } });
+    if (done) return done;
+    const sku = await latestSku(skuCode, tx);
+    if (sku.kind !== "REGULAR" || sku.priceMinor <= 0) throw new DomainError("NOT_FOR_SALE", "This pack isn't for sale.");
+    const cost = xpPriceFor(sku.priceMinor, rate);
+    const { xp } = await balancesFor(userId, tx);
+    if (xp < cost) throw new DomainError("INSUFFICIENT_XP", `This pack costs ${cost.toLocaleString("en-GB")} XP — you have ${xp.toLocaleString("en-GB")} XP.`);
+    await tx.walletEntry.create({ data: { userId, bucket: "XP", kind: "PACK_PURCHASE", amountMinor: -cost, refId, note: `${sku.name} (${cost} XP)` } });
+    return grantPack(tx, { userId, skuCode, source: "MP_CREDIT", sourceRef: `xp:${refId}` });
+  });
+}
+
 // ───────────── Adding funds ─────────────
 
 export const DepositSchema = z.object({

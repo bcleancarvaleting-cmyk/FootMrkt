@@ -25,7 +25,9 @@ describe("admin: create a match", () => {
       { rankFrom: 2, rankTo: 3, packSkuCode: "football-eng-silver" },
     ]);
 
-    // £ prizes need free entry and free cards only.
+    // £ prizes need free entry; with "Cash prizes with any cards" off they also need free cards only.
+    await expect(createMatch(admin.userId, { gameweekId: gw.id, name: "Paid", prizes: "1=10", entryFeeMinor: 100 })).rejects.toThrow(/free-entry/);
+    await db.appSetting.create({ data: { key: "cashAnyCards", value: 0 } });
     await expect(createMatch(admin.userId, { gameweekId: gw.id, name: "Cash", prizes: "1=10" })).rejects.toThrow(/Free cards only/);
     const cash = await createMatch(admin.userId, { gameweekId: gw.id, name: "Cash", prizes: "1=10", freeCardsOnly: true });
     expect(cash.rewards).toEqual([{ rankFrom: 1, rankTo: 1, cashMinor: 1000 }]);
@@ -50,16 +52,24 @@ describe("admin: create a match", () => {
     expect(new Set(pool.map((p) => p.clubCode))).toEqual(new Set([fx.homeClub.code, fx.awayClub.code]));
   });
 
-  it("every open gameweek gets the four league matches, once", async () => {
+  it("every gameweek has Bronze, Silver and Gold Cups with their weekly £ pools, editable in admin", async () => {
     const now = Date.now();
     const gw = await createGameweek({ season: "T", number: 1, opensAt: new Date(now - 1000), firstKickoffAt: new Date(now + 48 * 3600_000), actorId: null });
-    const names = (await db.competition.findMany({ where: { gameweekId: gw.id } })).map((c) => c.name);
-    expect(names).toEqual(expect.arrayContaining(["Premier League · GW1", "Championship · GW1", "League One · GW1", "League Two · GW1"]));
-    // A gameweek made before the league matches existed gets them added by the scheduled job.
-    await db.competition.deleteMany({ where: { gameweekId: gw.id, code: { endsWith: "-lg2" } } });
+    const cups = await db.competition.findMany({ where: { gameweekId: gw.id, code: { endsWith: "-cup" } } });
+    expect(cups).toHaveLength(0);
+    const cash = async (key: string) => ((await db.competition.findFirstOrThrow({ where: { gameweekId: gw.id, code: { endsWith: `-${key}` } } })).rewards as Array<{ cashMinor?: number }>).reduce((n, r) => n + (r.cashMinor ?? 0), 0);
+    expect([await cash("bronze"), await cash("silver"), await cash("gold")]).toEqual([1000, 1500, 2000]);
+    expect(await db.competition.count({ where: { gameweekId: gw.id, code: { endsWith: "-epl" } } })).toBe(0);
+    // Admin raises the Gold pool: this week's (unlocked) Gold Cup follows.
+    const admin = await makeUser("boss3");
+    const { setText } = await import("@/server/settings");
+    await setText(admin.userId, "prizesGold", "1=20, 2=10, 3=5");
+    expect(await cash("gold")).toBe(3500);
+    await expect(setText(admin.userId, "prizesGold", "first=20")).rejects.toThrow(/Couldn't read/);
+    // A gameweek made before the Gold Cup existed gets it added by the scheduled job, once.
+    await db.competition.deleteMany({ where: { gameweekId: gw.id, code: { endsWith: "-gold" } } });
     expect(await ensureStandardMatches()).toBe(1);
     expect(await ensureStandardMatches()).toBe(0);
-    const lg2 = await db.competition.findFirstOrThrow({ where: { gameweekId: gw.id, code: { endsWith: "-lg2" } } });
-    expect(lg2.requirements).toEqual({ leagues: ["LG2"] });
+    expect(await cash("gold")).toBe(3500);
   });
 });

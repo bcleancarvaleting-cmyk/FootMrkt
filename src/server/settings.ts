@@ -48,6 +48,13 @@ export const SETTINGS = {
     min: 2,
     max: 50,
   },
+  cashAnyCards: {
+    label: "Cash prizes with any cards (1 = on, 0 = free cards only)",
+    help: "1: £ prizes can be won with any cards, including bought ones (product decision 11 Nov 2026 — your lawyer must confirm before launch). 0: £ prizes only in 'Free cards only' matches. Paid-entry matches never pay £.",
+    default: 1,
+    min: 0,
+    max: 1,
+  },
   prizeFundSharePct: {
     label: "Prize fund share (%)",
     help: "Share of the last 7 days' card revenue suggested for next week's prizes. Admin-only.",
@@ -91,6 +98,21 @@ export const TEXT_SETTINGS = {
     help: "Your MATCHX WhatsApp channel. Shown on the homepage as 'Join our WhatsApp channel'. Leave blank to hide it.",
     default: "",
   },
+  prizesBronze: {
+    label: "Bronze Cup weekly £ prize pool",
+    help: "By finishing position, e.g. 1=5, 2=3, 3=2 (a £10 pot). Ties split. Used for every new gameweek; saving also updates this week's cup if it hasn't locked.",
+    default: "1=5, 2=3, 3=2",
+  },
+  prizesSilver: {
+    label: "Silver Cup weekly £ prize pool",
+    help: "By finishing position, e.g. 1=7.50, 2=4.50, 3=3 (a £15 pot). Ties split. Saving also updates this week's cup if it hasn't locked.",
+    default: "1=7.50, 2=4.50, 3=3",
+  },
+  prizesGold: {
+    label: "Gold Cup weekly £ prize pool",
+    help: "By finishing position, e.g. 1=10, 2=6, 3=4 (a £20 pot). Ties split. Saving also updates this week's cup if it hasn't locked.",
+    default: "1=10, 2=6, 3=4",
+  },
   referralRewardSku: {
     label: "Refer-a-friend reward",
     help: "The free pack a manager gets for each friend who joins with their link and plays a match.",
@@ -117,10 +139,19 @@ export async function setText(adminId: string, key: TextSettingKey, value: strin
     const { FOOTBALL_PACKS } = await import("@/config/packs");
     if (!FOOTBALL_PACKS.some((p) => p.code === v && p.kind === "WEEKLY")) throw new DomainError("PACK", "Choose a free pack.");
   }
+  const tierPrize = PRIZE_POOL_KEYS[key as keyof typeof PRIZE_POOL_KEYS];
+  if (tierPrize) {
+    const { parsePrizes } = await import("./competitions");
+    parsePrizes(v); // throws a readable error if it can't be read
+  }
   const before = await getText(key);
   await db.appSetting.upsert({ where: { key }, create: { key, value: v, updatedBy: adminId }, update: { value: v, updatedBy: adminId } });
   await audit(db, { actorId: adminId, action: "setting.set", entityType: "AppSetting", entityId: key, before, after: v });
+  if (tierPrize) await (await import("./competitions")).applyPrizePool(tierPrize, v);
 }
+
+/** Weekly £ prize pool setting for each tier cup (template key). */
+export const PRIZE_POOL_KEYS = { prizesBronze: "bronze", prizesSilver: "silver", prizesGold: "gold" } as const;
 
 /** Name of the pack a manager earns per referral (shown on share and invite prompts). */
 export async function referralRewardName() {

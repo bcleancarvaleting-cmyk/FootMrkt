@@ -18,6 +18,8 @@ export interface CompetitionTemplate {
   devRewards: RewardRule[];
   /** Extra entry rules (see RequirementsSchema). */
   requirements?: Record<string, unknown>;
+  /** Weekly £ prize pool, from this admin setting (Admin → Settings), added to the rewards. */
+  prizePool?: "prizesBronze" | "prizesSilver" | "prizesGold";
 }
 
 export const FOOTBALL_COMPETITION_TEMPLATES: CompetitionTemplate[] = [
@@ -61,6 +63,8 @@ export const FOOTBALL_COMPETITION_TEMPLATES: CompetitionTemplate[] = [
       { rankFrom: 4, rankTo: 1_000_000, packSkuCode: "football-eng-bronze" },
     ],
   },
+  // Weekly cups by card level (product decision 11 Nov 2026), each with a £ prize pool set in
+  // Admin → Settings (defaults: Bronze £10, Silver £15, Gold £20), open to any cards.
   {
     key: "bronze",
     name: "Bronze Cup",
@@ -68,7 +72,8 @@ export const FOOTBALL_COMPETITION_TEMPLATES: CompetitionTemplate[] = [
     rosterRules: "football-roster-v3",
     scoringRules: "football-scoring-v2-draft",
     rewards: [],
-    devRewards: [{ rankFrom: 1, rankTo: 3, packSkuCode: "football-eng-silver" }],
+    devRewards: [],
+    prizePool: "prizesBronze",
   },
   {
     key: "silver",
@@ -77,26 +82,17 @@ export const FOOTBALL_COMPETITION_TEMPLATES: CompetitionTemplate[] = [
     rosterRules: "football-roster-v3",
     scoringRules: "football-scoring-v2-draft",
     rewards: [],
-    devRewards: [{ rankFrom: 1, rankTo: 3, packSkuCode: "football-eng-silver" }],
+    devRewards: [],
+    prizePool: "prizesSilver",
   },
-  // One match per league, every gameweek (product decision 11 Nov 2026): managers use their own
-  // cards, but only players from that league count.
-  ...([
-    ["epl", "Premier League", "EPL"],
-    ["cha", "Championship", "CHA"],
-    ["lg1", "League One", "LG1"],
-    ["lg2", "League Two", "LG2"],
-  ] as const).map(([key, name, league]): CompetitionTemplate => ({
-    key,
-    name,
-    format: "OPEN",
+  {
+    key: "gold",
+    name: "Gold Cup",
+    format: "GOLD_ONLY",
     rosterRules: "football-roster-v3",
     scoringRules: "football-scoring-v2-draft",
     rewards: [],
-    devRewards: [
-      { rankFrom: 1, rankTo: 1, packSkuCode: "football-eng-gold" },
-      { rankFrom: 2, rankTo: 3, packSkuCode: "football-eng-silver" },
-    ],
-    requirements: { leagues: [league] },
-  })),
+    devRewards: [],
+    prizePool: "prizesGold",
+  },
 ];

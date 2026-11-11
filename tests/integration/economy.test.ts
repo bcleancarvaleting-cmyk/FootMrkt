@@ -250,9 +250,12 @@ describe("prize guardrails", () => {
     return db.competition.create({ data: { sportId: sport.id, gameweekId: gw.id, code: `g-${Math.random()}`, name: "G", format: "OPEN", rosterRules: "football-roster-v3", scoringRules: "football-scoring-v2-draft", entryOpensAt: new Date(), locksAt: new Date(Date.now() + 86_400_000), status: "OPEN" } });
   }
 
-  it("£ prizes need free entry and free cards only; MX-entry matches can't carry them", async () => {
+  it("£ prizes need free entry (and free cards only when 'Cash prizes with any cards' is off)", async () => {
     const admin = await makeUser("adm11");
     const c = await comp();
+    // On (the default since 11 Nov 2026): any cards can win cash, but never in a paid-entry match.
+    await updateCompetitionRules(admin.userId, c.id, { entryFeeMinor: 0, requirements: {}, prizes: "1=10" });
+    await db.appSetting.create({ data: { key: "cashAnyCards", value: 0 } });
     await expect(updateCompetitionRules(admin.userId, c.id, { entryFeeMinor: 0, requirements: {}, prizes: "1=10" })).rejects.toMatchObject({ code: "PRIZE_RULES" });
     await expect(updateCompetitionRules(admin.userId, c.id, { entryFeeMinor: 200, requirements: { freeCardsOnly: true }, prizes: "1=10" })).rejects.toMatchObject({ code: "PRIZE_RULES" });
     await updateCompetitionRules(admin.userId, c.id, { entryFeeMinor: 0, requirements: { freeCardsOnly: true }, prizes: "1=10" });
@@ -382,7 +385,8 @@ describe("prize fund", () => {
     for (const [i, amt] of [150000, 50000].entries()) {
       await db.order.create({ data: { userId, kind: i ? "DEPOSIT" : "PACK_PURCHASE", refId: "x", amountMinor: amt, provider: "sandbox", idempotencyKey: `pf${i}`, status: "PAID" } });
     }
-    const f = await prizeFund();
+    // A second ahead: the database's clock can run a few ms ahead of this process's.
+    const f = await prizeFund(new Date(Date.now() + 1000));
     expect(f).toMatchObject({ revenue: 200000, fund: 100000, split: [50000, 30000, 20000] });
     const sport = await db.sport.findFirstOrThrow();
     const gw = await db.gameweek.create({ data: { sportId: sport.id, season: "p", number: 1, startsAt: new Date(), endsAt: new Date(Date.now() + 86_400_000), status: "OPEN" } });

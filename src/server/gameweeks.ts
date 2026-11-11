@@ -89,6 +89,7 @@ export async function insertGameweek(args: {
   const lastKickoff = new Date(Math.max(...fixtures.map((f) => f.kickoffAt.getTime())));
   const locksAt = new Date(firstKickoff.getTime() - DEADLINE_MINUTES * 60_000);
 
+  const pools = await prizePools();
   return db.$transaction(async (tx) => {
     const gw = await tx.gameweek.create({
       data: {
@@ -113,7 +114,7 @@ export async function insertGameweek(args: {
           format: t.format,
           rosterRules: t.rosterRules,
           scoringRules: t.scoringRules,
-          rewards: (devRewards ? t.devRewards : t.rewards) as unknown as Prisma.InputJsonValue,
+          rewards: [...(devRewards ? t.devRewards : t.rewards), ...(pools[t.key] ?? [])] as unknown as Prisma.InputJsonValue,
           requirements: (t.requirements ?? {}) as Prisma.InputJsonValue,
           entryOpensAt: args.opensAt,
           locksAt,
@@ -256,6 +257,7 @@ export async function currentGameweek() {
 export async function ensureStandardMatches() {
   const gws = await db.gameweek.findMany({ where: { status: { in: ["UPCOMING", "OPEN"] } }, include: { competitions: { select: { code: true, locksAt: true, entryOpensAt: true, status: true } } } });
   const devRewards = await isEnabled("DEV_TOOLS");
+  const pools = await prizePools();
   let added = 0;
   for (const gw of gws) {
     const ref = gw.competitions[0];
@@ -274,7 +276,7 @@ export async function ensureStandardMatches() {
             format: t.format,
             rosterRules: t.rosterRules,
             scoringRules: t.scoringRules,
-            rewards: (devRewards ? t.devRewards : t.rewards) as unknown as Prisma.InputJsonValue,
+            rewards: [...(devRewards ? t.devRewards : t.rewards), ...(pools[t.key] ?? [])] as unknown as Prisma.InputJsonValue,
             requirements: (t.requirements ?? {}) as Prisma.InputJsonValue,
             entryOpensAt: ref.entryOpensAt,
             locksAt: ref.locksAt,
@@ -287,4 +289,13 @@ export async function ensureStandardMatches() {
     }
   }
   return added;
+}
+
+/** Each tier cup's weekly £ prize pool from Admin → Settings, as reward rules by template key. */
+async function prizePools() {
+  const { getText } = await import("./settings");
+  const { parsePrizes } = await import("./competitions");
+  const out: Record<string, Array<{ rankFrom: number; rankTo: number; cashMinor: number }>> = {};
+  for (const t of FOOTBALL_COMPETITION_TEMPLATES) if (t.prizePool) out[t.key] = parsePrizes(await getText(t.prizePool));
+  return out;
 }

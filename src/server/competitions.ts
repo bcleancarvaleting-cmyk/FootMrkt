@@ -243,10 +243,23 @@ async function checkRequirements(
  * anyone bought (MX, packs, cards) can buy a better chance of real money. Matches with an MX entry
  * fee or open to bought cards pay in-game prizes only (MX, packs).
  */
-export function assertPrizeRules(feeMinor: number, req: Requirements, rewards: Array<{ cashMinor?: number }>) {
+export function assertPrizeRules(feeMinor: number, req: Requirements, rewards: Array<{ cashMinor?: number }>, anyCards = false) {
   if (!rewards.some((r) => (r.cashMinor ?? 0) > 0)) return;
   if (feeMinor > 0) throw new DomainError("PRIZE_RULES", "£ prizes are only allowed on free-entry matches. Matches with an MX entry fee can give MX or pack prizes.");
-  if (!req.freeCardsOnly) throw new DomainError("PRIZE_RULES", "£ prizes need the 'Free cards only' rule, so bought cards can't improve anyone's chances.");
+  if (!req.freeCardsOnly && !anyCards) throw new DomainError("PRIZE_RULES", "£ prizes need the 'Free cards only' rule, so bought cards can't improve anyone's chances. (Admin → Settings: 'Cash prizes with any cards'.)");
+}
+
+const cashAnyCards = async () => (await (await import("./settings")).getSetting("cashAnyCards")) === 1;
+
+/** Put a tier cup's weekly £ pool on this week's cup (if it hasn't locked); pack prizes are kept. */
+export async function applyPrizePool(templateKey: string, text: string) {
+  const cash = parsePrizes(text);
+  const comps = await db.competition.findMany({ where: { status: { in: ["UPCOMING", "OPEN"] }, code: { endsWith: `-${templateKey}` } } });
+  for (const c of comps) {
+    const keep = ((c.rewards as Array<{ cashMinor?: number }>) ?? []).filter((r) => !r.cashMinor);
+    await db.competition.update({ where: { id: c.id }, data: { rewards: [...keep, ...cash] as never } });
+  }
+  return comps.length;
 }
 
 /** Refer a friend: the first time a referred manager enters a match, their referrer gets a free pack. */
@@ -293,7 +306,7 @@ export async function updateCompetitionRules(adminId: string, competitionId: str
     if (!["UPCOMING", "OPEN"].includes(before.status)) throw new DomainError("LOCKED", "Rules can only change before the match locks.");
     const entries = await tx.competitionEntry.count({ where: { competitionId } });
     if (entries > 0 && fee !== before.entryFeeMinor) throw new DomainError("HAS_ENTRIES", "Managers have already entered — the entry fee can't change now.");
-    assertPrizeRules(fee, requirements, cashRules ?? ((before.rewards as Array<{ cashMinor?: number }>) ?? []));
+    assertPrizeRules(fee, requirements, cashRules ?? ((before.rewards as Array<{ cashMinor?: number }>) ?? []), await cashAnyCards());
     const keep = ((before.rewards as Array<{ cashMinor?: number }>) ?? []).filter((r) => !r.cashMinor);
     const rewards = cashRules ? [...keep, ...cashRules] : (before.rewards as never);
     const after = await tx.competition.update({ where: { id: competitionId }, data: { entryFeeMinor: fee, requirements, rewards } });
@@ -344,7 +357,7 @@ export async function createMatch(adminId: string, input: z.input<typeof NewMatc
     draftBudgetMx: m.kind === "DRAFT" ? (m.draftBudgetMx ?? 70) : undefined,
   });
   const cash = m.prizes?.trim() ? parsePrizes(m.prizes) : [];
-  assertPrizeRules(m.entryFeeMinor, requirements, cash);
+  assertPrizeRules(m.entryFeeMinor, requirements, cash, await cashAnyCards());
   const rewards = [
     ...(m.winnerPack ? [{ rankFrom: 1, rankTo: 1, packSkuCode: PRIZE_PACKS[m.winnerPack] }] : []),
     ...(m.top3Pack ? [{ rankFrom: m.winnerPack ? 2 : 1, rankTo: 3, packSkuCode: PRIZE_PACKS[m.top3Pack] }] : []),

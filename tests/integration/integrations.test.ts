@@ -46,6 +46,7 @@ describe("Rebuild from Sportmonks", () => {
   it("rebuilds the world from Sportmonks squads, keeps saved keys, and switches data on", async () => {
     await saveSecret("sportmonks", "token-kept-across-rebuilds-0001", null);
     const t = (developer_name: string) => ({ developer_name });
+    let transferWindow = false; // later: Arsenal's player 100 joins Gillingham, a new signing arrives, 115 leaves England
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: URL | string) => {
@@ -58,14 +59,15 @@ describe("Rebuild from Sportmonks", () => {
         const squad = url.pathname.match(/\/squads\/seasons\/\d+\/teams\/(\d+)$/);
         if (squad) {
           const team = Number(squad[1]);
-          return json(
-            Array.from({ length: 16 }, (_, i) => ({
-              player_id: team * 100 + i,
-              jersey_number: i + 1,
-              position_id: [24, 25, 25, 25, 25, 26, 26, 26, 26, 27, 27, 27, 24, 25, 26, 27][i],
-              player: { display_name: `Player ${team}-${i}`, nationality: { fifa_name: "ENG" } },
-            })),
-          );
+          const rows = Array.from({ length: 16 }, (_, i) => ({
+            player_id: team * 100 + i,
+            jersey_number: i + 1,
+            position_id: [24, 25, 25, 25, 25, 26, 26, 26, 26, 27, 27, 27, 24, 25, 26, 27][i],
+            player: { display_name: `Player ${team}-${i}`, nationality: { fifa_name: "ENG" } },
+          }));
+          if (!transferWindow) return json(rows);
+          if (team === 1) return json(rows.filter((r) => r.player_id !== 100 && r.player_id !== 115));
+          return json([...rows, { ...rows[0], player_id: 100, jersey_number: 77, player: { display_name: "Player 1-0" } }, { ...rows[5], player_id: 299, jersey_number: 30, player: { display_name: "New Signing" } }]);
         }
         void t;
         return json([]);
@@ -87,5 +89,29 @@ describe("Rebuild from Sportmonks", () => {
     await loadIntegrationState(true);
     expect(currentProvider()).toBe("sportmonks");
     expect(await db.user.count({ where: { role: "ADMIN" } })).toBe(1);
+
+    // Transfer window: a manager owns a card of Arsenal's player 100, who moves to Gillingham.
+    const { syncSquads, lastSquadSync } = await import("@/server/live-data");
+    const mover = await db.player.findFirstOrThrow({ where: { displayName: "Player 1-0" }, include: { templates: true } });
+    const owner = await db.user.findFirstOrThrow({ where: { role: "ADMIN" } });
+    const card = await db.cardInstance.findFirstOrThrow({ where: { templateId: mover.templates[0].id } });
+    await db.cardInstance.update({ where: { id: card.id }, data: { ownerId: owner.id, supplyState: "HELD" } });
+    transferWindow = true;
+    const r = await syncSquads(owner.id);
+    expect(r).toEqual({ moved: 1, added: 1, missing: 1 });
+    const moved = await db.player.findUniqueOrThrow({ where: { id: mover.id }, include: { club: true } });
+    expect(moved.club?.name).toBe("Gillingham");
+    expect(moved.squadNumber).toBe(77);
+    // The owner's card is the same card, now at the new club, and they were told.
+    expect((await db.cardInstance.findUniqueOrThrow({ where: { id: card.id } })).ownerId).toBe(owner.id);
+    expect(await db.notification.count({ where: { userId: owner.id, title: { contains: "has moved to Gillingham" } } })).toBe(1);
+    const signing = await db.player.findFirstOrThrow({ where: { displayName: "New Signing" }, include: { templates: true } });
+    expect(signing.templates).toHaveLength(1);
+    const report = await lastSquadSync();
+    expect(report?.moved).toEqual([{ name: "Player 1-0", from: "Arsenal", to: "Gillingham" }]);
+    expect(report?.missing.map((m) => m.name)).toEqual(["Player 1-15"]);
+    // Running it again changes nothing and tells nobody twice.
+    expect(await syncSquads(owner.id)).toEqual({ moved: 0, added: 0, missing: 1 });
+    expect(await db.notification.count({ where: { userId: owner.id, title: { contains: "has moved" } } })).toBe(1);
   });
 });

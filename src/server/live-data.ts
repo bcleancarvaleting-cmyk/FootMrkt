@@ -366,6 +366,26 @@ export async function importSeasonToDate(season: string, now = new Date(), weeks
  *  - leave alone anyone missing from every squad (injured, loaned abroad…) — they're listed for admin.
  * About 92 API calls. Runs once a day from the scheduled job.
  */
+export type SquadSyncReport = {
+  at: string;
+  by: string | null;
+  moved: Array<{ name: string; from: string; to: string }>;
+  added: Array<{ name: string; club: string; tier: string }>;
+  missing: Array<{ name: string; club: string }>;
+  numbers: number;
+  failedClubs: string[];
+};
+
+/**
+ * Squad sync from Sportmonks (nightly, or Admin → Players → "Run squad sync now"):
+ *  - a player who has moved between English clubs moves here too — every copy of their card then
+ *    shows the new club's name, badge and shirt, because a card always shows its player's club;
+ *  - a player new to the English leagues is added with a card design in their tier, so they can be
+ *    packed, dropped and valued like everyone else;
+ *  - shirt numbers are kept up to date;
+ *  - players no longer in any squad (left the English leagues) are listed for an admin to review.
+ * The report is saved for the admin page. Safe to run again: it only changes what's different.
+ */
 export async function syncSquads(actorId: string | null = null) {
   const src = await requireKey();
   if (src.name !== SPORTMONKS_NAME) return { moved: 0, added: 0, missing: 0 };
@@ -373,29 +393,39 @@ export async function syncSquads(actorId: string | null = null) {
   const { positionOf } = await import("@/providers/football/sportmonks");
   const sport = await footballSport();
   const clubs = await db.club.findMany({ include: { league: true } });
-  const players = await db.player.findMany({ select: { id: true, clubId: true, providerRefs: true, displayName: true } });
+  const clubName = new Map(clubs.map((c) => [c.id, c.name]));
+  const players = await db.player.findMany({ where: { active: true }, select: { id: true, clubId: true, providerRefs: true, displayName: true, squadNumber: true } });
   const byRef = new Map(players.flatMap((p) => (refOf(p.providerRefs, src.name) ? [[refOf(p.providerRefs, src.name)!, p] as const] : [])));
   const seen = new Set<string>();
-  let moved = 0;
-  let added = 0;
+  const report: SquadSyncReport = { at: new Date().toISOString(), by: actorId, moved: [], added: [], missing: [], numbers: 0, failedClubs: [] };
   for (const club of clubs) {
     const teamId = refOf(club.providerRefs, src.name);
     const leagueId = src.leagues[club.league.code];
     if (!teamId || !leagueId) continue;
-    const rows = await smGet<{ player_id: number; jersey_number?: number | null; position_id?: number | null; player?: { display_name?: string; common_name?: string; name?: string; position_id?: number | null } }>(
-      `/squads/seasons/${await sportmonksSeasonId(leagueId)}/teams/${teamId}`,
-      { include: "player" },
-    );
+    let rows: Array<{ player_id: number; jersey_number?: number | null; position_id?: number | null; player?: { display_name?: string; common_name?: string; name?: string; position_id?: number | null } }>;
+    try {
+      rows = await smGet(`/squads/seasons/${await sportmonksSeasonId(leagueId)}/teams/${teamId}`, { include: "player" });
+    } catch {
+      report.failedClubs.push(club.name);
+      continue;
+    }
     for (const r of rows) {
       const ref = String(r.player_id);
       seen.add(ref);
       const ours = byRef.get(ref);
       if (ours) {
-        if (ours.clubId !== club.id) {
-          await db.player.update({ where: { id: ours.id }, data: { clubId: club.id, active: true } });
+        const data: { clubId?: string; squadNumber?: number | null } = {};
+        if (ours.clubId !== club.id) data.clubId = club.id;
+        if (r.jersey_number != null && r.jersey_number !== ours.squadNumber) data.squadNumber = r.jersey_number;
+        if (!Object.keys(data).length) continue;
+        await db.player.update({ where: { id: ours.id }, data });
+        if (data.clubId) {
           await audit(db, { actorId, action: "player.move", entityType: "Player", entityId: ours.id, before: { clubId: ours.clubId }, after: { clubId: club.id, via: "sportmonks" } });
-          moved++;
-        }
+          const from = (ours.clubId && clubName.get(ours.clubId)) || "—";
+          report.moved.push({ name: ours.displayName, from, to: club.name });
+          await tellOwnersOfMove(ours.id, ours.displayName, from, club.name, club.id);
+          ours.clubId = club.id;
+        } else report.numbers++;
         continue;
       }
       const position = positionOf({ position_id: r.position_id ?? r.player?.position_id });
@@ -419,12 +449,48 @@ export async function syncSquads(actorId: string | null = null) {
       const category = tierFor(club.league.tier, r.jersey_number ?? null);
       await db.cardTemplate.create({ data: { playerId: player.id, category, maxSupply: MAX_SUPPLY[category] } });
       await audit(db, { actorId, action: "player.add", entityType: "Player", entityId: player.id, after: { name, club: club.code, via: "sportmonks" } });
-      added++;
+      report.added.push({ name, club: club.name, tier: category });
     }
   }
-  const missing = [...byRef.keys()].filter((ref) => !seen.has(ref)).length;
+  // Only call players "gone" when every squad loaded — a failed download mustn't look like an exodus.
+  if (!report.failedClubs.length) {
+    for (const [ref, p] of byRef) if (!seen.has(ref)) report.missing.push({ name: p.displayName, club: (p.clubId && clubName.get(p.clubId)) || "—" });
+  }
+  // New players get a value straight away, so they can be priced in drops and on the market.
+  if (report.added.length) {
+    const { revalueAll } = await import("./valuation");
+    await revalueAll().catch((e) => console.error("revalue after squad sync failed", e));
+  }
   await db.appSetting.upsert({ where: { key: "squads.lastSyncAt" }, create: { key: "squads.lastSyncAt", value: Date.now() }, update: { value: Date.now() } });
-  return { moved, added, missing };
+  const stored = { ...report, missing: report.missing.slice(0, 200), added: report.added.slice(0, 300), moved: report.moved.slice(0, 300) };
+  await db.appSetting.upsert({ where: { key: "squads.lastReport" }, create: { key: "squads.lastReport", value: stored }, update: { value: stored } });
+  return { moved: report.moved.length, added: report.added.length, missing: report.missing.length };
+}
+
+/**
+ * A player has moved club: everyone who owns one of their cards is told (in-app, and on their phone
+ * if they turned that on). The card itself now plays for the new club; its serial, finish and
+ * history stamps stay with it.
+ */
+async function tellOwnersOfMove(playerId: string, name: string, from: string, to: string, toClubId: string) {
+  const owners = await db.cardInstance.findMany({ where: { template: { playerId }, ownerId: { not: null } }, select: { ownerId: true, id: true }, distinct: ["ownerId"] });
+  if (!owners.length) return;
+  const { notify } = await import("./notifications");
+  for (const o of owners) {
+    await notify(o.ownerId!, {
+      kind: "TRANSFER",
+      title: `🔁 ${name} has moved to ${to}`,
+      body: `Real-life transfer from ${from}. Your ${name} card now plays for ${to} — same card, same number and history.`,
+      href: `/cards/${o.id}`,
+      dedupeKey: `move:${playerId}:${toClubId}:${o.ownerId}`,
+    }).catch(() => {});
+  }
+}
+
+/** The last squad sync's report (for the admin page). */
+export async function lastSquadSync(): Promise<SquadSyncReport | null> {
+  const row = await db.appSetting.findUnique({ where: { key: "squads.lastReport" } });
+  return (row?.value as SquadSyncReport | undefined) ?? null;
 }
 
 /** Scheduled job: the squad sync, at most once a day. */

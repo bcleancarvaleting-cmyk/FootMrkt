@@ -161,3 +161,14 @@ export async function sandboxPayAction(orderId: string): Promise<ActionResult> {
   done();
   return res.ok ? { ...res, data: undefined, message: `Payment ${res.data}` } : res;
 }
+
+export async function runSquadSyncAction(): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const { loadIntegrationState } = await import("@/server/integrations");
+  const { liveDataReady, liveSource, syncSquads } = await import("@/server/live-data");
+  await loadIntegrationState(true);
+  if (!liveDataReady() || liveSource().name !== "sportmonks") return { ok: false, error: "Squad sync needs Sportmonks switched on (Admin → Integrations)." };
+  const r = await attempt(() => syncSquads(admin.id));
+  revalidatePath("/", "layout");
+  return r.ok ? { ok: true, data: undefined, message: `Done: ${r.data.moved} moved · ${r.data.added} new players · ${r.data.missing} no longer in an English squad.` } : r;
+}

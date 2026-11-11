@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { cancelPlayerDropAction } from "@/app/actions/economy";
+import { runSquadSyncAction } from "@/app/actions/admin";
+import { lastSquadSync } from "@/server/live-data";
 import { ActionButton } from "@/components/action-button";
 import { DropScheduler } from "@/components/drop-scheduler";
 import { playerDatabase, upcomingDropsAdmin } from "@/server/player-drops";
@@ -16,7 +18,7 @@ export default async function PlayersAdmin({ searchParams }: { searchParams: Pro
   const sp = await searchParams;
   const window: PerformanceWindow = sp.form === "last" || sp.form === "season" ? sp.form : "5";
   const byPoints = sp.sort === "points";
-  const [dbRows, drops, perf] = await Promise.all([playerDatabase({ ...sp, take: byPoints ? 5000 : 150 }), upcomingDropsAdmin(), performanceTable({ window })]);
+  const [dbRows, drops, perf, sync] = await Promise.all([playerDatabase({ ...sp, take: byPoints ? 5000 : 150 }), upcomingDropsAdmin(), performanceTable({ window }), lastSquadSync()]);
   const points = new Map(perf.map((r) => [r.playerId, r.points]));
   // Top performer per league: the best scorer in the window who isn't already on a drop.
   const topIds = new Map<string, string>(); // league -> playerId
@@ -40,6 +42,33 @@ export default async function PlayersAdmin({ searchParams }: { searchParams: Pro
   return (
     <>
       <AdminTitle title="Player database & drops" intro="Every player's supply in their current tier. Tick players to release them as daily drops: one new copy each, a set price, live from a set time with no end." />
+      <section className="panel space-y-3 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-2xl">Squads &amp; transfers</h2>
+            <p className="text-sm text-muted">
+              Runs automatically every night. Players who&apos;ve moved club move here too — every copy of their card then shows the new club, and their owners are told. New players in the English leagues are
+              added with a card in their tier.
+            </p>
+            <p className="mt-1 text-xs text-faint">{sync ? `Last run ${fmtDate(new Date(sync.at))}${sync.by ? " (by an admin)" : " (nightly)"}` : "Not run yet."}</p>
+          </div>
+          <ActionButton action={runSquadSyncAction} className="btn-primary px-5 py-2.5 text-xs" confirm="Check every English squad on Sportmonks now? Takes about a minute.">
+            Run squad sync now
+          </ActionButton>
+        </div>
+        {sync && (
+          <div className="grid gap-3 md:grid-cols-3">
+            <SyncList title={`Moved club · ${sync.moved.length}`} empty="No moves" items={sync.moved.map((m) => `${m.name}: ${m.from} → ${m.to}`)} />
+            <SyncList title={`New players · ${sync.added.length}`} empty="None new" items={sync.added.map((a) => `${a.name} · ${a.club} · ${a.tier.toLowerCase()}`)} />
+            <SyncList
+              title={`Left the English leagues · ${sync.missing.length}`}
+              empty={sync.failedClubs.length ? `Not checked — ${sync.failedClubs.length} squads didn't load` : "Nobody"}
+              items={sync.missing.map((m) => `${m.name} (was ${m.club})`)}
+            />
+          </div>
+        )}
+        {sync && sync.failedClubs.length > 0 && <p className="text-xs text-warn">Couldn&apos;t load: {sync.failedClubs.join(", ")}. Run it again shortly.</p>}
+      </section>
       <form action="/admin/players" className="flex flex-wrap items-center gap-2">
         <input name="q" defaultValue={sp.q} placeholder="Search player or club" className="input max-w-xs" />
         {(["EPL", "CHA", "LG1", "LG2"] as const).map((l) => (
@@ -96,5 +125,22 @@ export default async function PlayersAdmin({ searchParams }: { searchParams: Pro
         </ul>
       </section>
     </>
+  );
+}
+
+function SyncList({ title, items, empty }: { title: string; items: string[]; empty: string }) {
+  return (
+    <div className="rounded-xl border border-ink-700 bg-ink-900 p-3">
+      <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-muted">{title}</p>
+      {items.length ? (
+        <ul className="max-h-48 space-y-0.5 overflow-y-auto text-xs">
+          {items.map((t, i) => (
+            <li key={i}>{t}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-xs text-faint">{empty}</p>
+      )}
+    </div>
   );
 }

@@ -158,7 +158,7 @@ export async function myTransfers(userId: string) {
       include: {
         card: { include: CARD_INCLUDE },
         seller: { select: { displayName: true } },
-        offers: { where: { status: "PENDING" }, orderBy: { amountMinor: "desc" }, select: { id: true, amountMinor: true, buyerId: true, buyer: { select: { displayName: true } }, createdAt: true } },
+        offers: { where: { status: { in: ["PENDING", "COUNTERED"] } }, orderBy: { amountMinor: "desc" }, select: { id: true, amountMinor: true, status: true, counterMinor: true, buyerId: true, buyer: { select: { displayName: true } }, createdAt: true } },
       },
       orderBy: { createdAt: "desc" },
     }),

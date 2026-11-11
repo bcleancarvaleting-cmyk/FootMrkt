@@ -983,6 +983,7 @@ enum OfferStatus {
   DECLINED
   WITHDRAWN
   LAPSED // listing sold, cancelled or expired first
+  COUNTERED // the seller replied with a counter-price; the buyer can accept or decline it
 }
 
 // An offer below the asking price. The buyer's MP is held when the offer is made and released if
@@ -995,6 +996,9 @@ model MarketOffer {
   buyer       User          @relation(fields: [buyerId], references: [id])
   amountMinor Int
   status      OfferStatus   @default(PENDING)
+  // Seller's counter-price (status COUNTERED). The buyer's original offer stays held meanwhile.
+  counterMinor Int?
+  counteredAt  DateTime?
   createdAt   DateTime      @default(now())
   respondedAt DateTime?
 

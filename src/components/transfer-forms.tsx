@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
-import { buyNowAuctionAction, makeOfferAction, placeBidAction } from "@/app/actions/transfers";
+import { buyNowAuctionAction, counterOfferAction, makeOfferAction, placeBidAction } from "@/app/actions/transfers";
 import type { ActionResult } from "@/app/actions/result";
 import { ResultText } from "./action-button";
 
@@ -75,5 +75,28 @@ export function AuctionBuyNowButton({ auctionId, priceMinor, enabled }: { auctio
       </button>
       {res && <ResultText result={res} />}
     </span>
+  );
+}
+
+/** Seller: reply to an offer with a counter-price (between their offer and your asking price). */
+export function CounterOfferForm({ offerId, offerMinor, askMinor, disabled }: { offerId: string; offerMinor: number; askMinor: number; disabled?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [state, action, pending] = useActionState(counterOfferAction.bind(null, offerId), null);
+  const mid = Math.round((offerMinor + askMinor) / 2) / 100;
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} disabled={disabled} className="btn-ghost px-3 py-1.5 text-[11px]">
+        Counter
+      </button>
+    );
+  }
+  return (
+    <form action={action} className="flex flex-wrap items-center gap-2">
+      <input name="counter" type="number" step="0.01" min={(offerMinor + 1) / 100} max={(askMinor - 1) / 100} defaultValue={mid.toFixed(2)} className="input w-24 py-1.5 text-sm" aria-label="Counter price in MX" />
+      <button className="btn-primary px-3 py-1.5 text-[11px]" disabled={pending}>
+        {pending ? "…" : "Send counter"}
+      </button>
+      {state && <ResultText result={state} />}
+    </form>
   );
 }

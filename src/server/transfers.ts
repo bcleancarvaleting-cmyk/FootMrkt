@@ -143,7 +143,7 @@ async function lockWallets(tx: Tx, ...userIds: Array<string | null>) {
 
 /** Release every pending offer on a listing (status → LAPSED unless one is being accepted). */
 async function lapseOffers(tx: Tx, listingId: string, exceptOfferId?: string) {
-  const pending = await tx.marketOffer.findMany({ where: { listingId, status: "PENDING", id: exceptOfferId ? { not: exceptOfferId } : undefined } });
+  const pending = await tx.marketOffer.findMany({ where: { listingId, status: { in: ["PENDING", "COUNTERED"] }, id: exceptOfferId ? { not: exceptOfferId } : undefined } });
   for (const o of pending) {
     await release(tx, { userId: o.buyerId, refId: `offer:${o.id}`, kind: "OFFER_RELEASE", note: "Offer lapsed — MX returned" });
     await tx.marketOffer.update({ where: { id: o.id }, data: { status: "LAPSED", respondedAt: new Date() } });
@@ -279,7 +279,7 @@ export async function makeOffer(buyerId: string, listingId: string, amountMinor:
     if (amountMinor >= l.askingPriceMinor) throw new DomainError("USE_BUY_NOW", "That's at or above the buy-now price — just buy it now.");
     await assertCanTrade(buyerId);
     await lockWallet(tx, buyerId);
-    const previous = await tx.marketOffer.findFirst({ where: { listingId, buyerId, status: "PENDING" } });
+    const previous = await tx.marketOffer.findFirst({ where: { listingId, buyerId, status: { in: ["PENDING", "COUNTERED"] } } });
     if (previous) {
       await release(tx, { userId: buyerId, refId: `offer:${previous.id}`, kind: "OFFER_RELEASE", note: "Offer replaced" });
       await tx.marketOffer.update({ where: { id: previous.id }, data: { status: "WITHDRAWN", respondedAt: new Date() } });
@@ -336,6 +336,65 @@ export async function respondToOffer(sellerId: string, offerId: string, accept: 
   });
   await alerts.offerAnswered(r.buyerId, r.cardId, r.accepted, offerId);
   if (r.listingId && r.price !== undefined) await alerts.cardSold(sellerId, r.cardId, r.price, r.listingId);
+  return { accepted: r.accepted };
+}
+
+/**
+ * Counter-offer (product decision 11 Nov 2026): the seller replies to an offer with a price between
+ * the offer and their asking price. The buyer's offer stays held; they can accept the counter
+ * (paying the difference) or decline it (their MX comes back). One counter per offer.
+ */
+export async function counterOffer(sellerId: string, offerId: string, counterMinor: number) {
+  await requireFlag("MARKET");
+  price.parse(counterMinor);
+  const r = await withTx(async (tx) => {
+    const found = await tx.marketOffer.findUnique({ where: { id: offerId }, select: { listingId: true } });
+    if (!found) throw new DomainError("NOT_FOUND", "Offer not found.");
+    const l = await lockListing(tx, found.listingId);
+    const o = await lockOffer(tx, offerId);
+    if (!l || l.sellerId !== sellerId) throw new DomainError("NOT_FOUND", "Offer not found.");
+    if (l.status !== "ACTIVE") throw new DomainError("NOT_AVAILABLE", "This listing is no longer active.");
+    if (o.status !== "PENDING") throw new DomainError("DONE", "You can only counter an offer that's waiting for your answer.");
+    if (counterMinor <= o.amountMinor) throw new DomainError("TOO_LOW", "Your counter must be more than their offer — or just accept it.");
+    if (counterMinor >= l.askingPriceMinor) throw new DomainError("TOO_HIGH", "Your counter must be below your asking price — they can buy it now at that.");
+    await tx.marketOffer.update({ where: { id: o.id }, data: { status: "COUNTERED", counterMinor, counteredAt: new Date() } });
+    return { buyerId: o.buyerId, cardId: l.cardId };
+  });
+  const { notify } = await import("./notifications");
+  await notify(r.buyerId, { kind: "MARKET", title: "↩️ Counter-offer", body: `The seller came back with ${fmtMp(counterMinor)}. Accept it or decline on My transfers.`, href: "/transfers/mine", dedupeKey: `counter:${offerId}` }).catch(() => {});
+}
+
+/** The buyer answers a counter-offer: accept (buys at the counter price) or decline (MX returned). */
+export async function answerCounter(buyerId: string, offerId: string, accept: boolean) {
+  await requireFlag("MARKET");
+  const r = await withTx(async (tx) => {
+    const found = await tx.marketOffer.findUnique({ where: { id: offerId }, select: { listingId: true } });
+    if (!found) throw new DomainError("NOT_FOUND", "Offer not found.");
+    const l = await lockListing(tx, found.listingId);
+    const o = await lockOffer(tx, offerId);
+    if (!l || o.buyerId !== buyerId) throw new DomainError("NOT_FOUND", "Offer not found.");
+    if (o.status !== "COUNTERED") throw new DomainError("DONE", "This counter-offer has already been answered.");
+    const counter = (await tx.marketOffer.findUniqueOrThrow({ where: { id: o.id }, select: { counterMinor: true } })).counterMinor!;
+    await lockWallets(tx, buyerId, l.sellerId);
+    if (!accept) {
+      await release(tx, { userId: buyerId, refId: `offer:${o.id}`, kind: "OFFER_RELEASE", note: "Counter-offer declined — MX returned" });
+      await tx.marketOffer.update({ where: { id: o.id }, data: { status: "DECLINED", respondedAt: new Date() } });
+      return { accepted: false as const, sellerId: l.sellerId, cardId: l.cardId };
+    }
+    if (l.status !== "ACTIVE") throw new DomainError("NOT_AVAILABLE", "This listing is no longer active.");
+    await assertCanTrade(buyerId);
+    await release(tx, { userId: buyerId, refId: `offer:${o.id}`, kind: "OFFER_RELEASE", note: "Counter-offer accepted" });
+    await debit(tx, { userId: buyerId, amountMinor: counter, kind: "MARKET_PURCHASE", refId: `listing:${l.id}:buy`, note: "Transfer — counter-offer accepted", earnedOnly: true });
+    await tx.marketOffer.update({ where: { id: o.id }, data: { status: "ACCEPTED", amountMinor: counter, respondedAt: new Date() } });
+    await lapseOffers(tx, l.id, o.id);
+    await settleSale(tx, l, buyerId, counter);
+    return { accepted: true as const, sellerId: l.sellerId, cardId: l.cardId, listingId: l.id, price: counter };
+  });
+  if (r.accepted) await alerts.cardSold(r.sellerId, r.cardId, r.price, r.listingId);
+  else {
+    const { notify } = await import("./notifications");
+    await notify(r.sellerId!, { kind: "MARKET", title: "Counter-offer declined", body: "The buyer declined your counter. Your card is still listed.", href: "/transfers/mine", dedupeKey: `counter-declined:${offerId}` }).catch(() => {});
+  }
   return { accepted: r.accepted };
 }
 

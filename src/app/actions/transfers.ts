@@ -118,3 +118,22 @@ export async function buyNowAuctionAction(auctionId: string): Promise<ActionResu
   refresh();
   return res;
 }
+
+export async function counterOfferAction(offerId: string, _prev: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const user = await requireUser();
+  const { counterOffer } = await import("@/server/transfers");
+  const minor = Math.round(Number(form.get("counter")) * 100);
+  const res = await attempt(() => counterOffer(user.id, offerId, minor), `Counter-offer of ${fmtMp(minor)} sent`);
+  refresh();
+  return res;
+}
+
+export async function answerCounterAction(offerId: string, accept: boolean): Promise<ActionResult> {
+  const user = await requireUser();
+  const { answerCounter } = await import("@/server/transfers");
+  const res = await attempt(async () => {
+    await answerCounter(user.id, offerId, accept);
+  }, accept ? "Signed! The player is in your club." : "Counter declined — your MX is back.");
+  refresh();
+  return res;
+}

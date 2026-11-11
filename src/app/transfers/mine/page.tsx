@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { respondToOfferAction, withdrawOfferAction } from "@/app/actions/transfers";
+import { answerCounterAction, respondToOfferAction, withdrawOfferAction } from "@/app/actions/transfers";
+import { CounterOfferForm } from "@/components/transfer-forms";
 import { ActionButton } from "@/components/action-button";
 import { CardRow, RowStat } from "@/components/card-row";
 import { EmptyState, PageHeader } from "@/components/page-header";
@@ -12,7 +13,7 @@ import { relativeTime } from "@/lib/view";
 
 export const metadata = { title: "My transfers" };
 
-const OFFER_TONE: Record<string, string> = { PENDING: "text-warn", ACCEPTED: "text-mint", DECLINED: "text-danger", WITHDRAWN: "text-faint", LAPSED: "text-faint" };
+const OFFER_TONE: Record<string, string> = { COUNTERED: "text-lime", PENDING: "text-warn", ACCEPTED: "text-mint", DECLINED: "text-danger", WITHDRAWN: "text-faint", LAPSED: "text-faint" };
 
 export default async function MyTransfersPage() {
   const user = await requireUser();
@@ -42,8 +43,13 @@ export default async function MyTransfersPage() {
                     <span>
                       <span className="font-semibold">{o.buyer.displayName}</span> offered <span className="font-bold tabular-nums">{fmtMp(o.amountMinor)}</span>
                       <span className="text-faint"> · {relativeTime(o.createdAt)} · you&apos;d get {fmtMp(o.amountMinor - feeFor(o.amountMinor))}</span>
+                      {o.status === "COUNTERED" && o.counterMinor && (
+                        <span className="block text-xs text-warn">You countered {fmtMp(o.counterMinor)} — waiting for {o.buyer.displayName}.</span>
+                      )}
                     </span>
-                    <span className="flex gap-2">
+                    {o.status === "PENDING" && (
+                    <span className="flex flex-wrap gap-2">
+                      <CounterOfferForm offerId={o.id} offerMinor={o.amountMinor} askMinor={l.priceMinor} disabled={!open} />
                       <ActionButton action={respondToOfferAction.bind(null, o.id, false)} className="btn-ghost px-3 py-1.5 text-[11px]" disabled={!open}>
                         Decline
                       </ActionButton>
@@ -51,6 +57,7 @@ export default async function MyTransfersPage() {
                         Accept
                       </ActionButton>
                     </span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -73,7 +80,20 @@ export default async function MyTransfersPage() {
                 </span>
                 <span className="flex items-center gap-3">
                   <span className="font-bold tabular-nums">{fmtMp(o.amountMinor)}</span>
-                  <span className={`text-xs font-bold uppercase tracking-wider ${OFFER_TONE[o.status]}`}>{o.status.toLowerCase()}</span>
+                  <span className={`text-xs font-bold uppercase tracking-wider ${OFFER_TONE[o.status]}`}>{o.status === "COUNTERED" ? "countered" : o.status.toLowerCase()}</span>
+                  {o.status === "COUNTERED" && o.counterMinor && (
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs">
+                        Seller wants <b className="tabular-nums">{fmtMp(o.counterMinor)}</b>
+                      </span>
+                      <ActionButton action={answerCounterAction.bind(null, o.id, false)} className="btn-ghost px-3 py-1.5 text-[11px]" disabled={!open}>
+                        Decline
+                      </ActionButton>
+                      <ActionButton action={answerCounterAction.bind(null, o.id, true)} className="btn-primary px-3 py-1.5 text-[11px]" disabled={!open} confirm={`Sign for ${fmtMp(o.counterMinor)}?`}>
+                        Accept {fmtMp(o.counterMinor)}
+                      </ActionButton>
+                    </span>
+                  )}
                   {o.status === "PENDING" && (
                     <ActionButton action={withdrawOfferAction.bind(null, o.id)} className="btn-ghost px-3 py-1.5 text-[11px]" disabled={!open}>
                       Withdraw

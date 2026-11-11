@@ -119,3 +119,39 @@ describe("silly amounts", () => {
     expect((await balancesFor(u.userId)).total).toBe(1000);
   });
 });
+
+describe("counter-offers", () => {
+  it("seller counters between offer and asking; buyer accepts (pays the counter) or declines (MX back); nobody else can answer", async () => {
+    const { counterOffer, answerCounter } = await import("@/server/transfers");
+    const seller = await makeTrader("cseller");
+    const buyer = await makeTrader("cbuyer");
+    const other = await makeTrader("cother");
+    for (const u of [buyer, other]) await withTx((tx) => credit(tx, { userId: u.userId, amountMinor: 2000, kind: "CHALLENGE_REWARD", bucket: "BONUS", refId: `c-fund-${u.userId}` }));
+    const ent = await withTx((tx) => grantPack(tx, { userId: seller.userId, skuCode: "football-bronze", source: "DEV", sourceRef: "c-pack" }));
+    const { cards } = await openPack(seller.userId, ent.id);
+    const listing = await createListing(seller.userId, { cardId: cards[0].cardId, askingPriceMinor: 1000 });
+    const offer = await makeOffer(buyer.userId, listing.id, 500);
+    await expect(counterOffer(seller.userId, offer.id, 400)).rejects.toMatchObject({ code: "TOO_LOW" });
+    await expect(counterOffer(seller.userId, offer.id, 1000)).rejects.toMatchObject({ code: "TOO_HIGH" });
+    await expect(counterOffer(other.userId, offer.id, 800)).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await counterOffer(seller.userId, offer.id, 800);
+    await expect(counterOffer(seller.userId, offer.id, 700)).rejects.toMatchObject({ code: "DONE" });
+    await expect(answerCounter(other.userId, offer.id, true)).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect((await balancesFor(buyer.userId)).total).toBe(1500); // the 5.00 offer still held
+    await answerCounter(buyer.userId, offer.id, true);
+    expect((await balancesFor(buyer.userId)).total).toBe(1200); // paid 8.00 in total
+    expect((await db.cardInstance.findUniqueOrThrow({ where: { id: cards[0].cardId } })).ownerId).toBe(buyer.userId);
+    expect((await db.marketListing.findUniqueOrThrow({ where: { id: listing.id } })).soldPriceMinor).toBe(800);
+    await expect(answerCounter(buyer.userId, offer.id, true)).rejects.toMatchObject({ code: "DONE" });
+
+    // Declining a counter gives the held MX back.
+    const listing2 = await createListing(buyer.userId, { cardId: cards[0].cardId, askingPriceMinor: 1500 }).catch(() => null);
+    if (listing2) {
+      const o2 = await makeOffer(other.userId, listing2.id, 600);
+      await counterOffer(buyer.userId, o2.id, 900);
+      await answerCounter(other.userId, o2.id, false);
+      expect((await balancesFor(other.userId)).total).toBe(2000);
+      expect((await db.marketListing.findUniqueOrThrow({ where: { id: listing2.id } })).status).toBe("ACTIVE");
+    }
+  });
+});

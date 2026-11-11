@@ -1,0 +1,2 @@
+ALTER TYPE "OfferStatus" ADD VALUE 'COUNTERED';
+ALTER TABLE "MarketOffer" ADD COLUMN "counterMinor" INTEGER, ADD COLUMN "counteredAt" TIMESTAMP(3);

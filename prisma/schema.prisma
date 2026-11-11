@@ -1413,3 +1413,15 @@ model BoosterPack {
   @@unique([userId, weekKey])
   @@index([userId, expiresAt])
 }
+
+// Basket for MATCHX player drops (11 Nov 2026): add players, then pay for them all at once.
+// Items aren't reserved — whoever pays first signs the player.
+model BasketItem {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  listingId String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
+  @@index([userId])
+}

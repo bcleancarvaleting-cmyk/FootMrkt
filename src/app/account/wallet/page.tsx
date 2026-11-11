@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ConvertXpForm, DepositForm, WithdrawForm } from "@/components/account-forms";
 import { GateNotice } from "@/components/page-header";
+import { basketCount } from "@/server/basket";
 import { requireUser } from "@/server/auth/session";
 import { db } from "@/server/db";
 import { isEnabled } from "@/server/flags";
@@ -30,9 +31,10 @@ const KIND_LABEL: Record<string, string> = {
 };
 const W_TONE: Record<string, string> = { REQUESTED: "text-warn", PAID: "text-mint", REJECTED: "text-danger" };
 
-export default async function WalletPage({ searchParams }: { searchParams: Promise<{ amount?: string }> }) {
+export default async function WalletPage({ searchParams }: { searchParams: Promise<{ bundle?: string; paid?: string }> }) {
   const user = await requireUser();
-  const { amount } = await searchParams;
+  const { bundle, paid } = await searchParams;
+  const inBasket = await basketCount(user.id);
   const XP_PER_MX = await xpPerMx();
   const [u, bal, ledger, withdrawals, depositsOn, withdrawalsOn] = await Promise.all([
     db.user.findUniqueOrThrow({ where: { id: user.id } }),
@@ -83,11 +85,17 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <div id="add" className="panel p-5">
+        <div id="add" className="panel p-5 lg:col-span-2">
+          {inBasket > 0 && (
+            <Link href="/transfers/basket" className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-accent/60 bg-accent/10 px-4 py-3 text-sm font-semibold">
+              <span>{paid ? "Payment received — " : ""}You have {inBasket} player{inBasket > 1 ? "s" : ""} waiting in your basket.</span>
+              <span className="text-lime">Pay for them now →</span>
+            </Link>
+          )}
           <h2 className="mb-1 text-2xl">Add funds</h2>
-          <p className="mb-4 text-sm text-muted">Top up by card — £1 buys 1 MX. Packs cost the same in £ or MX.</p>
+          <p className="mb-4 text-sm text-muted">Buy MX by card — the bigger bundles come with bonus MX. Packs cost the same in £ or MX; use MX for player drops too.</p>
           {!depositsOn && <GateNotice>Coming soon. Adding funds by card opens after the beta, once our payment provider is live.</GateNotice>}
-          <DepositForm enabled={depositsOn} initial={[10, 20, 50, 100].includes(Number(amount)) ? Number(amount) : 20} />
+          <DepositForm enabled={depositsOn} initial={bundle} />
         </div>
         <div id="withdraw" className="panel p-5">
           <h2 className="mb-1 text-2xl">Withdraw winnings</h2>

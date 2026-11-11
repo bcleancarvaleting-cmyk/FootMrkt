@@ -1,31 +1,47 @@
 "use client";
 
 import Link from "next/link";
+import { MX_BUNDLES, bonusPct } from "@/config/bundles";
 import { useActionState, useState } from "react";
 import { convertXpAction, depositAction, updateProfileAction, withdrawAction } from "@/app/actions/account";
 import { ResultText } from "./action-button";
 
-export function DepositForm({ enabled, initial = 20 }: { enabled: boolean; initial?: number }) {
+/** Buy an MX bundle by card (wallet, and the basket when MX is short). */
+export function DepositForm({ enabled, initial = "squad" }: { enabled: boolean; initial?: string }) {
   const [state, action, pending] = useActionState(depositAction, null);
   const [key] = useState(() => crypto.randomUUID());
-  const [amount, setAmount] = useState(String(initial));
+  const [pick, setPick] = useState(MX_BUNDLES.some((b) => b.code === initial) ? initial : "squad");
+  const chosen = MX_BUNDLES.find((b) => b.code === pick)!;
   return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="clientKey" value={key} />
-      <div>
-        <label className="label" htmlFor="dep-amount">Amount — £1 buys 1 MX</label>
-        <div className="flex flex-wrap gap-2">
-          {["10", "20", "50", "100"].map((v) => (
-            <button key={v} type="button" onClick={() => setAmount(v)} className={`chip px-3 py-1.5 text-sm ${amount === v ? "border-accent text-fg" : ""}`}>
-              £{v}
+      <input type="hidden" name="bundle" value={pick} />
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="MX bundles">
+        {MX_BUNDLES.map((b) => {
+          const on = pick === b.code;
+          const bonus = bonusPct(b);
+          return (
+            <button
+              key={b.code}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => setPick(b.code)}
+              className={`relative flex min-w-0 flex-col items-center rounded-2xl border-2 px-2 pb-3 pt-4 text-center transition ${on ? "border-accent bg-accent/10" : b.best ? "border-gold/70 bg-ink-900" : "border-ink-700 bg-ink-900 hover:border-ink-600"}`}
+            >
+              {b.best && <span className="absolute -top-2.5 rounded-full bg-gold px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.14em] text-ink-950">Best value</span>}
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">{b.name}</span>
+              <span className="mt-1 font-display text-3xl font-black italic tabular-nums">{b.mxMinor / 100} MX</span>
+              <span className="text-sm font-bold">£{(b.priceMinor / 100).toFixed(2)}</span>
+              <span className={`mt-1 text-[10px] font-semibold ${bonus > 0 ? "text-lime" : "text-faint"}`}>{bonus > 0 ? `+${bonus}% bonus MX` : "Entry bundle"}</span>
             </button>
-          ))}
-          <input id="dep-amount" name="amount" type="number" min="10" max="500" step="1" value={amount} onChange={(e) => setAmount(e.target.value)} className="input w-28" required />
-        </div>
+          );
+        })}
       </div>
+      <p className="text-center text-xs text-faint">{chosen.note}</p>
       <div className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-xs leading-relaxed text-fg">
-        <b>MX can&apos;t be withdrawn or refunded</b> — it&apos;s for buying packs and cards and entering matches. What you pull from a pack is random and
-        card values go down as well as up. Only add what you can afford to spend. Not an investment.
+        <b>MX can&apos;t be withdrawn or refunded</b> — it&apos;s for buying packs and players and entering matches. What you pull from a pack is random and
+        player values go down as well as up. Only add what you can afford to spend. Not an investment.
       </div>
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" name="acceptRisk" className="mt-1 accent-lime" required />
@@ -40,7 +56,7 @@ export function DepositForm({ enabled, initial = 20 }: { enabled: boolean; initi
         </span>
       </label>
       <button className="btn-primary w-full" disabled={!enabled || pending}>
-        {pending ? "Starting checkout…" : `Add £${amount || 0} → ${amount || 0} MX`}
+        {!enabled ? "Card top-ups coming soon" : pending ? "Starting checkout…" : `Pay £${(chosen.priceMinor / 100).toFixed(2)} by card → ${chosen.mxMinor / 100} MX`}
       </button>
       {state && <ResultText result={state} />}
     </form>

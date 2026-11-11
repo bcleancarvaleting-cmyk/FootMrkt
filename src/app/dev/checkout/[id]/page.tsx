@@ -16,6 +16,7 @@ export default async function SandboxCheckout({ params }: { params: Promise<{ id
   const { id } = await params;
   const order = await db.order.findUnique({ where: { id } });
   if (!order || order.userId !== user.id) notFound();
+  const basket = await db.basketItem.count({ where: { userId: user.id } });
   return (
     <div className="mx-auto max-w-sm space-y-4 pt-10 text-center">
       <p className="eyebrow">Sandbox payment provider</p>
@@ -31,8 +32,8 @@ export default async function SandboxCheckout({ params }: { params: Promise<{ id
         <>
           <p className="text-mint">This order is {order.status.toLowerCase()}.</p>
           {order.status === "PAID" && (
-            <Link href={order.kind === "DEPOSIT" ? "/account/wallet" : "/packs"} className="btn-primary inline-flex px-8 py-3">
-              {order.kind === "DEPOSIT" ? "Back to my wallet" : "Open my pack"}
+            <Link href={order.kind === "DEPOSIT" ? (basket ? "/transfers/basket" : "/account/wallet") : "/packs"} className="btn-primary inline-flex px-8 py-3">
+              {order.kind === "DEPOSIT" ? (basket ? "Back to my basket" : "Back to my wallet") : "Open my pack"}
             </Link>
           )}
         </>

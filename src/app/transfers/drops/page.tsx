@@ -1,4 +1,5 @@
-import { BuyButton } from "@/components/buy-button";
+import { AddToBasketButton } from "@/components/basket-buttons";
+import { basketIds } from "@/server/basket";
 import { CardRow, RowStat } from "@/components/card-row";
 import { Countdown } from "@/components/countdown";
 import { EmptyState, PageHeader } from "@/components/page-header";
@@ -12,8 +13,8 @@ import { fmtDate } from "@/lib/view";
 export const metadata = { title: "Player drops" };
 
 export default async function DropsPage() {
-  await requireUser();
-  const [open, board, tops] = await Promise.all([isEnabled("MARKET"), dropBoard(), topPerLeague("5")]);
+  const user = await requireUser();
+  const [open, board, tops, inBasket] = await Promise.all([isEnabled("MARKET"), dropBoard(), topPerLeague("5"), basketIds(user.id)]);
   const topIds = new Set([...tops.values()].flat().map((r) => r.playerId));
   const tag = (playerId: string) => (
     <>
@@ -27,7 +28,7 @@ export default async function DropsPage() {
       <PageHeader
         eyebrow="Released by MATCHX"
         title="Player drops"
-        intro="New players released by MATCHX every day. One copy each, never found in packs. You pay the price shown, with no fees, using any MX. First come, first served: once a drop is live it stays on sale until someone signs them. Any Gold you sign could turn out to be a Ruby or even a Diamond."
+        intro="New players released by MATCHX every day. One copy each, never found in packs. Add the ones you want to your basket, then pay for them all at once with MX — no fees. First come, first served: once a drop is live it stays on sale until someone signs them. Any Gold you sign could turn out to be a Ruby or even a Diamond."
       >
         {next && (
           <span className="rounded-xl border border-accent/40 bg-ink-900 px-3 py-2 text-sm">
@@ -47,7 +48,7 @@ export default async function DropsPage() {
                 <RowStat label="Dropped" className="hidden w-28 sm:block">
                   <span className="text-sm font-semibold">{fmtDate(d.liveAt, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
                 </RowStat>
-                <BuyButton listingId={d.id} label={fmtMp(d.priceMinor)} confirm={`Sign ${d.card.name} for ${fmtMp(d.priceMinor)}?`} disabled={!open} />
+                <AddToBasketButton listingId={d.id} price={fmtMp(d.priceMinor)} inBasket={inBasket.has(d.id)} disabled={!open} />
               </CardRow>
             ))}
           </ul>

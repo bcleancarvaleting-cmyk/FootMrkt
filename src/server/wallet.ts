@@ -1,3 +1,4 @@
+import { bundleFor } from "@/config/bundles";
 import type { WalletBucket, WalletEntryKind } from "@/generated/prisma/client";
 import { z } from "zod";
 import { audit } from "./audit";
@@ -175,30 +176,35 @@ export async function buyPackWithXp(userId: string, skuCode: string, clientKey: 
 // ───────────── Adding funds ─────────────
 
 export const DepositSchema = z.object({
-  amountMinor: z.number().int().min(MIN_DEPOSIT_MINOR, "The minimum top-up is £10").max(MAX_DEPOSIT_MINOR, "The maximum single top-up is £500"),
+  bundle: z.string().refine((c) => !!bundleFor(c), "Choose a bundle"),
   acceptTerms: z.literal(true, { message: "Please accept the terms to continue" }),
   acceptRisk: z.literal(true, { message: "Please confirm you understand card values can go down as well as up" }),
 });
 
-/** Start a card top-up (£ → MX, 1:1). Credited as MX when the payment provider confirms (verified webhook). */
+/** Start a card top-up: buy an MX bundle. Credited as MX when the payment provider confirms (verified webhook). */
 export async function startDeposit(userId: string, input: z.input<typeof DepositSchema>, clientKey: string, provider = paymentProvider()) {
   await requireFlag("DEPOSITS");
   const data = DepositSchema.parse(input);
+  const bundle = bundleFor(data.bundle)!;
   const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
   if (!isAdult(user.dateOfBirth)) throw new DomainError("AGE", "Add your date of birth in My Account → Profile. You must be 18 or over to add funds.");
-  await assertCanSpend(userId, data.amountMinor);
+  await assertCanSpend(userId, bundle.priceMinor);
   await db.user.update({ where: { id: userId }, data: { termsVersion: TERMS_VERSION, termsAcceptedAt: new Date(), fundsRiskAcceptedAt: new Date() } });
   const idempotencyKey = `deposit:${userId}:${clientKey}`;
   const existing = await db.order.findUnique({ where: { idempotencyKey } });
-  const order = existing ?? (await db.order.create({ data: { userId, kind: "DEPOSIT", refId: "wallet", amountMinor: data.amountMinor, provider: provider.name, idempotencyKey } }));
+  const order = existing ?? (await db.order.create({ data: { userId, kind: "DEPOSIT", refId: `bundle:${bundle.code}:${bundle.mxMinor}`, amountMinor: bundle.priceMinor, provider: provider.name, idempotencyKey } }));
   const checkout = await provider.createCheckout({ id: order.id, amountMinor: order.amountMinor, currency: order.currency });
   if (!order.providerRef) await db.order.update({ where: { id: order.id }, data: { providerRef: checkout.providerRef } });
   return { orderId: order.id, checkoutUrl: checkout.checkoutUrl };
 }
 
 /** Fulfil a paid deposit order (called from the verified payment webhook, inside its transaction). */
-export async function fulfilDeposit(tx: Tx, order: { id: string; userId: string; amountMinor: number }) {
-  await credit(tx, { userId: order.userId, amountMinor: order.amountMinor, kind: "DEPOSIT", bucket: "CASH", refId: `deposit:${order.id}`, note: `Added £${(order.amountMinor / 100).toFixed(2)} by card` });
+export async function fulfilDeposit(tx: Tx, order: { id: string; userId: string; amountMinor: number; refId?: string }) {
+  // Bundle orders carry the MX they buy ("bundle:<code>:<mx>"); older orders were £1 = 1 MX.
+  const m = /^bundle:([a-z]+):(\d+)$/.exec(order.refId ?? "");
+  const mx = m ? Number(m[2]) : order.amountMinor;
+  const name = m ? (bundleFor(m[1])?.name ?? "MX") : null;
+  await credit(tx, { userId: order.userId, amountMinor: mx, kind: "DEPOSIT", bucket: "CASH", refId: `deposit:${order.id}`, note: `${name ? `${name} bundle: ` : ""}${fmtMp(mx)} for £${(order.amountMinor / 100).toFixed(2)} by card` });
 }
 
 // ───────────── Withdrawals ─────────────

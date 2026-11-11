@@ -68,7 +68,7 @@ export async function depositAction(_: ActionResult | null, form: FormData): Pro
   const res = await attempt(() =>
     startDeposit(
       user.id,
-      { amountMinor: Math.round(Number(form.get("amount")) * 100), acceptTerms: form.get("acceptTerms") === "on", acceptRisk: form.get("acceptRisk") === "on" } as never,
+      { bundle: String(form.get("bundle") ?? ""), acceptTerms: form.get("acceptTerms") === "on", acceptRisk: form.get("acceptRisk") === "on" } as never,
       String(form.get("clientKey")),
     ),
   );

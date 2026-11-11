@@ -51,6 +51,8 @@ export interface CardView {
   lockRef: string | null;
   favourite?: boolean;
   duplicateCount?: number;
+  /** In the current Team of the Week (the badge lasts 7 days). */
+  totw?: boolean;
 }
 
 type CardLike = {
@@ -102,6 +104,7 @@ export function toCardView(
     issued?: number;
     stamps?: number;
     history?: number[];
+    totw?: boolean;
   } = {},
 ): CardView {
   const p = c.template.player;
@@ -122,6 +125,7 @@ export function toCardView(
     issued: extra.issued ?? null,
     stamps: extra.stamps ?? 0,
     history: extra.history,
+    totw: extra.totw || undefined,
     clubCode: p.club?.code ?? null,
     clubShort: p.club?.shortName ?? null,
     clubName: p.club?.name ?? null,

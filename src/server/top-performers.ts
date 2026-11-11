@@ -51,8 +51,8 @@ export async function windowGameweeks(window: PerformanceWindow) {
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
 /** Every player who played in the window, with their MATCHX points, best first. */
-export async function performanceTable(f: { window?: PerformanceWindow; league?: string; position?: Position } = {}): Promise<PerformerRow[]> {
-  const gws = await windowGameweeks(f.window ?? "5");
+export async function performanceTable(f: { window?: PerformanceWindow; league?: string; position?: Position; gameweekIds?: string[] } = {}): Promise<PerformerRow[]> {
+  const gws = f.gameweekIds ? f.gameweekIds.map((id) => ({ id })) : await windowGameweeks(f.window ?? "5");
   if (!gws.length) return [];
   const order = [...gws].reverse().map((g) => g.id); // oldest first
   const stats = await db.playerMatchStat.findMany({

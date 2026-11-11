@@ -1455,3 +1455,18 @@ model ErrorLog {
 
   @@index([lastAt])
 }
+
+// Team of the Week: the 7 best performers of a settled gameweek (1 GK, 2 DEF, 2 MID, 2 ATT).
+// Their cards wear a TOTW badge until expiresAt (7 days after it's picked).
+model TeamOfTheWeek {
+  id         String   @id @default(uuid()) @db.Uuid
+  gameweekId String   @unique @db.Uuid
+  number     Int
+  season     String
+  // [{ playerId, points, position }] best first
+  picks      Json
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+
+  @@index([expiresAt])
+}

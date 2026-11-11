@@ -121,6 +121,14 @@ export function PlayerCard({ card, size = "md", className = "", showcase = false
               <FinishPill finish={finish} id={`badge-${card.id}`} size="xs" />
             </div>
           )}
+          {card.totw && (
+            <span
+              title="Team of the Week — the badge lasts 7 days"
+              className={`pointer-events-none absolute bottom-1 right-1 rounded-md bg-gradient-to-r from-[#f2cf63] to-[#adfc07] font-black uppercase italic tracking-wider text-[#0a0d02] shadow-[0_2px_10px_rgba(242,207,99,0.55)] ${small ? "px-1 text-[8px]" : "px-1.5 py-0.5 text-[10px]"}`}
+            >
+              ★ TOTW
+            </span>
+          )}
           {(card.acquired || card.edition === "STARTER") && !card.loan && !small && !showcase && (
             <span className="absolute right-1 top-1 rounded bg-ink-950/85 px-1.5 text-[9px] font-semibold text-muted">
               {card.tradeable ? card.acquired : `${card.acquired ?? "Starter"} · locked`}

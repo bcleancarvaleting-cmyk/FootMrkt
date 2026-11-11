@@ -2,6 +2,8 @@ import Link from "next/link";
 import { ClubBadge } from "@/components/club-badge";
 import { KitShirt } from "@/components/kit-shirt";
 import { EmptyState, PageHeader } from "@/components/page-header";
+import { TeamOfTheWeek } from "@/components/totw";
+import { currentTeamOfTheWeek } from "@/server/totw";
 import type { Position } from "@/generated/prisma/client";
 import { type PerformanceWindow, type PerformerRow, WINDOW_LABEL, performanceTable, windowGameweeks } from "@/server/top-performers";
 
@@ -45,7 +47,7 @@ export default async function TopPerformersPage({ searchParams }: { searchParams
   const window: PerformanceWindow = sp.w === "last" || sp.w === "season" ? sp.w : "5";
   const league = LEAGUES.some(([c]) => c === sp.league) ? sp.league : undefined;
   const pos = POSITIONS.find((p) => p === sp.pos) as Position | undefined;
-  const [rows, gws] = await Promise.all([performanceTable({ window, league, position: pos }), windowGameweeks(window)]);
+  const [rows, gws, totw] = await Promise.all([performanceTable({ window, league, position: pos }), windowGameweeks(window), currentTeamOfTheWeek()]);
   const all = league || pos ? await performanceTable({ window }) : rows;
   // Search by player or club name (accents ignored: "odegaard" finds Ødegaard).
   const fold = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ø/gi, "o").toLowerCase();
@@ -98,6 +100,8 @@ export default async function TopPerformersPage({ searchParams }: { searchParams
           </Link>
         ))}
       </nav>
+
+      {totw && <TeamOfTheWeek totw={totw} />}
 
       {leaders.length > 0 && (
         <section>

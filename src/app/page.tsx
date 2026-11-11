@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { TeamOfTheWeek } from "@/components/totw";
+import { currentTeamOfTheWeek } from "@/server/totw";
 import { PredictionButtons } from "@/components/daily-panel";
 import { LevelBadge } from "@/components/level-badge";
 import { PREDICTION_XP, predictionPanel } from "@/server/predictions";
@@ -240,6 +242,7 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
     db.auction.count({ where: { status: "LIVE" } }),
     db.miniLeagueMember.count({ where: { userId } }),
   ]);
+  const totw = await currentTeamOfTheWeek();
   const [comps, heroImage, paidEntry] = await Promise.all([
     gw
       ? db.competition.findMany({ where: { gameweekId: gw.id }, include: { entries: { where: { userId } }, _count: { select: { entries: true } } }, orderBy: [{ entryFeeMinor: "asc" }, { name: "asc" }] })
@@ -400,6 +403,8 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
           </ul>
         </section>
       )}
+
+      {totw && <TeamOfTheWeek totw={totw} link />}
 
       {top.length > 0 && (
         <section>

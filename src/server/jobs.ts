@@ -26,6 +26,7 @@ export async function tick() {
     ["welcome packs", grantAllDueWelcomePacks],
     ["weekly reminders & results", weeklyRhythm],
     ["head-to-head", settleH2H],
+    ["team of the week", async () => (await import("./totw")).pickTeamOfTheWeek()],
     ["friday digest", async () => (await import("./digest")).sendWeeklyDigests()],
     ["mini-league winners", async () => (await import("./alerts")).announceLeagueWinners()],
     ["gift drop alerts", async () => (await import("./alerts")).announceGiftDrops()],

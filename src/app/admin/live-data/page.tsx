@@ -2,10 +2,9 @@ import { createLiveGameweekAction, linkClubsAction, linkPlayerAction, linkPlayer
 import { ActionButton } from "@/components/action-button";
 import { AdminForm, AdminInput } from "@/components/admin-forms";
 import { fmtDate } from "@/lib/view";
-import { API_FOOTBALL_NAME } from "@/providers/football/api-football";
 import { db } from "@/server/db";
 import { isEnabled } from "@/server/flags";
-import { liveCoverage, unlinkedPlayers } from "@/server/live-data";
+import { liveCoverage, liveSource, unlinkedPlayers } from "@/server/live-data";
 import { currentSeason, nextGameweekNumber } from "@/server/season";
 import { AdminTitle } from "../_parts/title";
 
@@ -16,7 +15,7 @@ export default async function LiveDataAdmin() {
     liveCoverage(),
     isEnabled("SIMULATED_DATA"),
     db.gameweek.findMany({
-      where: { status: { not: "SETTLED" }, fixtures: { some: { provider: API_FOOTBALL_NAME } } },
+      where: { status: { not: "SETTLED" }, fixtures: { some: { provider: liveSource().name } } },
       orderBy: [{ season: "asc" }, { number: "asc" }],
       include: { _count: { select: { fixtures: true } }, fixtures: { where: { finalisedAt: { not: null } }, select: { id: true } } },
     }),
@@ -30,16 +29,16 @@ export default async function LiveDataAdmin() {
     <>
       <AdminTitle
         title="Live match data"
-        intro="Real fixtures and player stats from API-Football. Points, prizes and card values then work exactly as they do with the simulator."
+        intro="Real fixtures and player stats from Sportmonks (the 92). Points, prizes and card values then work exactly as they do with the simulator."
       />
 
       <section className="panel space-y-2 p-5">
         <h2 className="font-display text-xl font-extrabold uppercase italic">Status</h2>
         {cov.configured ? (
-          <p className="text-sm text-mint">Connected — API_FOOTBALL_KEY is set.</p>
+          <p className="text-sm text-mint">Connected — {cov.provider} is switched on.</p>
         ) : (
           <p className="text-sm text-warn">
-            Not connected. Sign up at api-football.com (the Pro plan covers all five English leagues), then add <code>API_FOOTBALL_KEY</code> to the server&apos;s environment and restart.
+            Not connected. Save the Sportmonks API token (<code>SPORTMONKS_API_TOKEN</code>), run <code>npm run sportmonks:check</code>, then set <code>DATA_PROVIDER=sportmonks</code> and restart.
           </p>
         )}
         <p className="text-sm text-muted">
@@ -66,7 +65,7 @@ export default async function LiveDataAdmin() {
         {unlinked.length > 0 && (
           <details className="rounded-xl border border-ink-700 p-3">
             <summary className="cursor-pointer text-sm font-semibold">Not linked yet ({unlinked.length}{unlinked.length === 40 ? "+" : ""}, most valuable first) — link by hand</summary>
-            <p className="mt-2 text-xs text-faint">Find the player&apos;s id on api-football.com (it&apos;s in the player URL) and paste it here.</p>
+            <p className="mt-2 text-xs text-faint">Find the player&apos;s Sportmonks id (my.sportmonks.com → API Playground → Players → search by name) and paste it here.</p>
             <ul className="mt-2 divide-y divide-ink-800">
               {unlinked.map((p) => (
                 <li key={p.id} className="py-2">
@@ -75,7 +74,7 @@ export default async function LiveDataAdmin() {
                     <p className="self-center text-sm">
                       {p.displayName} <span className="text-faint">· {p.club}</span>
                     </p>
-                    <AdminInput name="providerId" label="API-Football id" inputMode="numeric" required />
+                    <AdminInput name="providerId" label="Provider player id" inputMode="numeric" required />
                   </AdminForm>
                 </li>
               ))}

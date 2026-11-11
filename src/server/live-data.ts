@@ -11,6 +11,8 @@ import {
   messagesForFixture,
   nameKey,
 } from "@/providers/football/api-football";
+import { FIXTURE_INCLUDES, SPORTMONKS_LEAGUES, SPORTMONKS_NAME, type SmFixture, smGet, smGetOne, sportmonksConfigured, toSharedFixture } from "@/providers/football/sportmonks";
+import type { FootballDataProvider } from "@/providers/football/types";
 import { audit } from "./audit";
 import { db } from "./db";
 import { DomainError } from "./errors";
@@ -18,27 +20,111 @@ import { footballSport, insertGameweek, lockGameweek, refreshProvisional } from 
 import { ingestMessages } from "./ingestion";
 
 /**
- * Live football data from API-Football. Nothing here runs until API_FOOTBALL_KEY is set.
+ * Live football data. Sportmonks when DATA_PROVIDER=sportmonks (the launch choice), otherwise
+ * API-Football when API_FOOTBALL_KEY is set. Nothing here runs until one is configured.
  *
- * Set-up, once per season (Admin → Matches → Live data):
+ * Set-up, once per season (Admin → Live match data):
  *   1. Link clubs   — match our clubs to the provider's teams for each league.
  *   2. Link players — match each club's squad by name; anyone unmatched is listed to fix by hand.
+ *      (A squad imported from Sportmonks is linked already.)
  * Then each week:
  *   3. Create the gameweek from real fixtures between two dates.
  *   4. The scheduled job polls live fixtures and scores them exactly like the simulator did.
  */
+interface LiveSource {
+  name: string;
+  label: string;
+  configured(): boolean;
+  provider: FootballDataProvider;
+  leagues: Record<string, number>;
+  teams(leagueId: number, season: string): Promise<Array<{ id: string; name: string }>>;
+  squad(teamId: string, season: string, leagueId?: number): Promise<Array<{ id: string; name: string }>>;
+  fixturesBetween(leagueId: number, season: string, from: string, to: string): Promise<Array<{ id: string; date: string; home: string; away: string }>>;
+  fullFixtures(ids: string[]): Promise<AfFixture[]>;
+  batch: number;
+}
+
+const apiFootballSource: LiveSource = {
+  name: API_FOOTBALL_NAME,
+  label: "API-Football",
+  configured: apiFootballConfigured,
+  provider: apiFootballProvider,
+  leagues: API_FOOTBALL_LEAGUES,
+  async teams(leagueId, season) {
+    return (await apiFootballGet<{ team: AfTeam }>("/teams", { league: leagueId, season: seasonYear(season) })).map((r) => ({ id: String(r.team.id), name: r.team.name }));
+  },
+  async squad(teamId) {
+    const [squad] = await apiFootballGet<{ players: Array<{ id: number; name: string }> }>("/players/squads", { team: teamId });
+    return (squad?.players ?? []).map((p) => ({ id: String(p.id), name: p.name }));
+  },
+  async fixturesBetween(leagueId, season, from, to) {
+    const rows = await apiFootballGet<AfFixture>("/fixtures", { league: leagueId, season: seasonYear(season), from, to });
+    return rows.map((f) => ({ id: String(f.fixture.id), date: f.fixture.date, home: String(f.teams.home.id), away: String(f.teams.away.id) }));
+  },
+  async fullFixtures(ids) {
+    return apiFootballGet<AfFixture>("/fixtures", { ids: ids.join("-") });
+  },
+  batch: 20,
+};
+
+/** Sportmonks' id for a league's current season (cached per process). */
+const seasonIds = new Map<number, number>();
+export async function sportmonksSeasonId(leagueId: number) {
+  if (seasonIds.has(leagueId)) return seasonIds.get(leagueId)!;
+  const league = await smGetOne<{ currentseason?: { id: number }; currentSeason?: { id: number } }>(`/leagues/${leagueId}`, { include: "currentSeason" });
+  const id = league?.currentseason?.id ?? league?.currentSeason?.id;
+  if (!id) throw new DomainError("NO_SEASON", `Sportmonks has no current season for league ${leagueId}.`);
+  seasonIds.set(leagueId, id);
+  return id;
+}
+
+const sportmonksSource: LiveSource = {
+  name: SPORTMONKS_NAME,
+  label: "Sportmonks",
+  configured: sportmonksConfigured,
+  provider: { ...apiFootballProvider, name: SPORTMONKS_NAME },
+  leagues: SPORTMONKS_LEAGUES,
+  async teams(leagueId) {
+    const rows = await smGet<{ id: number; name: string }>(`/teams/seasons/${await sportmonksSeasonId(leagueId)}`);
+    return rows.map((t) => ({ id: String(t.id), name: t.name }));
+  },
+  async squad(teamId, _season, leagueId) {
+    const path = leagueId ? `/squads/seasons/${await sportmonksSeasonId(leagueId)}/teams/${teamId}` : `/squads/teams/${teamId}`;
+    const rows = await smGet<{ player_id: number; player?: { display_name?: string; common_name?: string; name?: string } }>(path, { include: "player" });
+    return rows.map((r) => ({ id: String(r.player_id), name: r.player?.display_name ?? r.player?.common_name ?? r.player?.name ?? String(r.player_id) }));
+  },
+  async fixturesBetween(leagueId, _season, from, to) {
+    const rows = await smGet<SmFixture>(`/fixtures/between/${from}/${to}`, { include: "participants", filters: `fixtureLeagues:${leagueId}` });
+    return rows.map((f) => {
+      const s = toSharedFixture(f);
+      return { id: String(f.id), date: s.fixture.date, home: String(s.teams.home.id), away: String(s.teams.away.id) };
+    });
+  },
+  async fullFixtures(ids) {
+    return (await smGet<SmFixture>(`/fixtures/multi/${ids.join(",")}`, { include: FIXTURE_INCLUDES })).map(toSharedFixture);
+  },
+  batch: 25,
+};
+
+/** The provider in use: Sportmonks if switched on, else API-Football if its key is set. */
+export function liveSource(): LiveSource {
+  return process.env.DATA_PROVIDER === SPORTMONKS_NAME || (sportmonksConfigured() && !apiFootballConfigured()) ? sportmonksSource : apiFootballSource;
+}
+
 export function liveDataReady() {
-  return apiFootballConfigured();
+  return liveSource().configured();
 }
 
 function requireKey() {
-  if (!apiFootballConfigured()) throw new DomainError("NO_PROVIDER", "Add API_FOOTBALL_KEY to the server's environment to use live data.");
+  const src = liveSource();
+  if (!src.configured()) throw new DomainError("NO_PROVIDER", "Connect a football data provider first: set DATA_PROVIDER=sportmonks (with its API token saved), or API_FOOTBALL_KEY.");
+  return src;
 }
 
-const refOf = (refs: Prisma.JsonValue) => ((refs ?? {}) as Record<string, string>)[API_FOOTBALL_NAME] ?? null;
-const withRef = (refs: Prisma.JsonValue, id: string | number) => ({ ...((refs ?? {}) as Record<string, string>), [API_FOOTBALL_NAME]: String(id) }) as Prisma.InputJsonValue;
+const refOf = (refs: Prisma.JsonValue, name = liveSource().name) => ((refs ?? {}) as Record<string, string>)[name] ?? null;
+const withRef = (refs: Prisma.JsonValue, id: string | number, name = liveSource().name) => ({ ...((refs ?? {}) as Record<string, string>), [name]: String(id) }) as Prisma.InputJsonValue;
 
-/** The football season a date falls in, as API-Football numbers it (the starting year). */
+/** The football season's starting year (API-Football numbers seasons this way). */
 export function seasonYear(season: string) {
   return Number(season.slice(0, 4));
 }
@@ -51,14 +137,13 @@ const clubKey = (s: string) =>
 
 /** Step 1: link our clubs to the provider's teams, league by league. */
 export async function linkClubs(season: string, actorId: string | null) {
-  requireKey();
-  const year = seasonYear(season);
+  const src = requireKey();
   const leagues = await db.league.findMany({ include: { clubs: true } });
   const report: Array<{ league: string; linked: number; unmatched: string[] }> = [];
   for (const league of leagues) {
-    const afId = API_FOOTBALL_LEAGUES[league.code];
-    if (!afId) continue;
-    const teams = (await apiFootballGet<{ team: AfTeam }>("/teams", { league: afId, season: year })).map((r) => r.team);
+    const leagueId = src.leagues[league.code];
+    if (!leagueId) continue;
+    const teams = await src.teams(leagueId, season);
     let linked = 0;
     const unmatched: string[] = [];
     for (const club of league.clubs) {
@@ -81,16 +166,16 @@ export async function linkClubs(season: string, actorId: string | null) {
 
 /** Step 2: link players to the provider's squad lists, by name within each linked club. */
 export async function linkPlayers(actorId: string | null, onlyClubIds?: string[]) {
-  requireKey();
-  const clubs = await db.club.findMany({ where: onlyClubIds ? { id: { in: onlyClubIds } } : {}, include: { players: { where: { active: true } } } });
+  const src = requireKey();
+  const clubs = await db.club.findMany({ where: onlyClubIds ? { id: { in: onlyClubIds } } : {}, include: { league: true, players: { where: { active: true } } } });
   let linked = 0;
   const unmatched: Array<{ club: string; provider: string[] }> = [];
   for (const club of clubs) {
     const teamId = refOf(club.providerRefs);
     if (!teamId) continue;
-    const [squad] = await apiFootballGet<{ players: Array<{ id: number; name: string }> }>("/players/squads", { team: teamId });
+    const squad = await src.squad(teamId, "", src.leagues[club.league.code]);
     const missing: string[] = [];
-    for (const p of squad?.players ?? []) {
+    for (const p of squad) {
       const ours = matchPlayer(p.name, club.players);
       if (!ours) {
         missing.push(p.name);
@@ -114,58 +199,57 @@ export async function setPlayerProviderId(playerId: string, providerId: string, 
 
 /** Coverage: how much of the catalogue is linked. */
 export async function liveCoverage() {
+  const name = liveSource().name;
   const [row] = await db.$queryRaw<Array<{ clubs: bigint; linked_clubs: bigint; players: bigint; linked_players: bigint }>>`
     SELECT (SELECT count(*) FROM "Club") AS clubs,
-           (SELECT count(*) FROM "Club" WHERE "providerRefs" ? ${API_FOOTBALL_NAME}) AS linked_clubs,
+           (SELECT count(*) FROM "Club" WHERE "providerRefs" ? ${name}) AS linked_clubs,
            (SELECT count(*) FROM "Player" WHERE active) AS players,
-           (SELECT count(*) FROM "Player" WHERE active AND "providerRefs" ? ${API_FOOTBALL_NAME}) AS linked_players`;
-  return { configured: liveDataReady(), clubs: Number(row.clubs), linkedClubs: Number(row.linked_clubs), players: Number(row.players), linkedPlayers: Number(row.linked_players) };
+           (SELECT count(*) FROM "Player" WHERE active AND "providerRefs" ? ${name}) AS linked_players`;
+  return { provider: liveSource().label, configured: liveDataReady(), clubs: Number(row.clubs), linkedClubs: Number(row.linked_clubs), players: Number(row.players), linkedPlayers: Number(row.linked_players) };
 }
 
 /** Players at linked clubs who aren't linked themselves, most valuable first. */
 export async function unlinkedPlayers(take = 40) {
+  const name = liveSource().name;
   return db.$queryRaw<Array<{ id: string; displayName: string; club: string }>>`
     SELECT p.id, p."displayName", c.name AS club FROM "Player" p JOIN "Club" c ON c.id = p."clubId"
-    WHERE p.active AND c."providerRefs" ? ${API_FOOTBALL_NAME} AND NOT (p."providerRefs" ? ${API_FOOTBALL_NAME})
+    WHERE p.active AND c."providerRefs" ? ${name} AND NOT (p."providerRefs" ? ${name})
     ORDER BY p."marketValueGbp" DESC NULLS LAST LIMIT ${take}`;
 }
 
 /** Step 3: create a gameweek from every real fixture in our leagues between two dates. */
 export async function createLiveGameweek(args: { season: string; number: number; from: string; to: string; opensAt: Date; actorId: string | null }) {
-  requireKey();
-  const year = seasonYear(args.season);
+  const src = requireKey();
   const clubs = await db.club.findMany({ select: { id: true, providerRefs: true } });
   const clubByTeam = new Map(clubs.flatMap((c) => (refOf(c.providerRefs) ? [[refOf(c.providerRefs)!, c.id] as const] : [])));
   const fixtures: Array<{ providerFixtureId: string; homeClubId: string; awayClubId: string; kickoffAt: Date }> = [];
-  for (const afId of Object.values(API_FOOTBALL_LEAGUES)) {
-    const rows = await apiFootballGet<AfFixture>("/fixtures", { league: afId, season: year, from: args.from, to: args.to });
-    for (const f of rows) {
-      const home = clubByTeam.get(String(f.teams.home.id));
-      const away = clubByTeam.get(String(f.teams.away.id));
+  for (const leagueId of Object.values(src.leagues)) {
+    for (const f of await src.fixturesBetween(leagueId, args.season, args.from, args.to)) {
+      const home = clubByTeam.get(f.home);
+      const away = clubByTeam.get(f.away);
       if (!home || !away) continue; // a club we don't carry (e.g. a cup tie)
-      fixtures.push({ providerFixtureId: String(f.fixture.id), homeClubId: home, awayClubId: away, kickoffAt: new Date(f.fixture.date) });
+      fixtures.push({ providerFixtureId: f.id, homeClubId: home, awayClubId: away, kickoffAt: new Date(f.date) });
     }
   }
-  return insertGameweek({ season: args.season, number: args.number, opensAt: args.opensAt, actorId: args.actorId, provider: API_FOOTBALL_NAME, fixtures });
+  return insertGameweek({ season: args.season, number: args.number, opensAt: args.opensAt, actorId: args.actorId, provider: src.name, fixtures });
 }
 
 /** Step 4: poll every live-data fixture that has kicked off and isn't final yet, then rescore. */
 export async function syncLiveGameweek(gameweekId: string, actorId: string | null = null) {
-  requireKey();
+  const src = requireKey();
   const gw = await db.gameweek.findUniqueOrThrow({ where: { id: gameweekId } });
   const due = await db.fixture.findMany({
-    where: { gameweekId, provider: API_FOOTBALL_NAME, finalisedAt: null, kickoffAt: { lte: new Date() } },
+    where: { gameweekId, provider: src.name, finalisedAt: null, kickoffAt: { lte: new Date() } },
     select: { providerFixtureId: true },
   });
   if (!due.length) return { fixtures: 0, received: 0, applied: 0, duplicates: 0, stale: 0, unknown: 0 };
   if (gw.status === "OPEN" || gw.status === "UPCOMING") await lockGameweek(gameweekId, actorId);
   const messages = [];
-  for (let i = 0; i < due.length; i += 20) {
-    const ids = due.slice(i, i + 20).map((f) => f.providerFixtureId).join("-");
-    const rows = await apiFootballGet<AfFixture>("/fixtures", { ids });
+  for (let i = 0; i < due.length; i += src.batch) {
+    const rows = await src.fullFixtures(due.slice(i, i + src.batch).map((f) => f.providerFixtureId));
     for (const f of rows) messages.push(...messagesForFixture(f));
   }
-  const report = await ingestMessages(apiFootballProvider, messages);
+  const report = await ingestMessages(src.provider, messages);
   if (gw.status !== "SETTLED") await db.gameweek.update({ where: { id: gameweekId }, data: { status: "PROVISIONAL" } });
   await refreshProvisional(gameweekId);
   return { fixtures: due.length, ...report };
@@ -175,8 +259,95 @@ export async function syncLiveGameweek(gameweekId: string, actorId: string | nul
 export async function syncLiveData() {
   if (!liveDataReady()) return [];
   const sport = await footballSport();
-  const gws = await db.gameweek.findMany({ where: { sportId: sport.id, status: { not: "SETTLED" }, fixtures: { some: { provider: API_FOOTBALL_NAME } } } });
+  const gws = await db.gameweek.findMany({ where: { sportId: sport.id, status: { not: "SETTLED" }, fixtures: { some: { provider: liveSource().name } } } });
   const out = [];
   for (const gw of gws) out.push({ gameweek: gw.number, ...(await syncLiveGameweek(gw.id)) });
   return out;
+}
+
+/**
+ * Launch history (product decision 11 Nov 2026): import every match played so far this season as
+ * settled gameweeks — Friday-to-Thursday weeks — so player form, values and tiers start from real
+ * results. Matches not yet played in the current week are left out; the following week opens for
+ * entries. Uses about 40 API calls for a full season to mid-November.
+ */
+export async function importSeasonToDate(season: string, now = new Date()) {
+  const src = requireKey();
+  const { finaliseGameweek } = await import("./gameweeks");
+  const DAY = 86_400_000;
+  const clubs = await db.club.findMany({ select: { id: true, providerRefs: true } });
+  const clubByTeam = new Map(clubs.flatMap((c) => (refOf(c.providerRefs, src.name) ? [[refOf(c.providerRefs, src.name)!, c.id] as const] : [])));
+  if (!clubByTeam.size) throw new DomainError("NOT_LINKED", "No clubs are linked to the data provider yet.");
+
+  // Every league fixture from the start of the season to a fortnight ahead (in ≤ 90-day chunks).
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const start = new Date(Date.UTC(seasonYear(season), 6, 1));
+  const end = new Date(now.getTime() + 14 * DAY);
+  const all: Array<{ id: string; at: Date; home: string; away: string }> = [];
+  for (const leagueId of Object.values(src.leagues)) {
+    for (let from = start; from < end; from = new Date(from.getTime() + 90 * DAY)) {
+      const to = new Date(Math.min(from.getTime() + 89 * DAY, end.getTime()));
+      for (const f of await src.fixturesBetween(leagueId, season, iso(from), iso(to))) {
+        const home = clubByTeam.get(f.home);
+        const away = clubByTeam.get(f.away);
+        if (home && away && !all.some((x) => x.id === f.id)) all.push({ id: f.id, at: new Date(f.date), home, away });
+      }
+    }
+  }
+
+  // Friday-to-Thursday weeks.
+  const weekStart = (d: Date) => {
+    const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    return new Date(x.getTime() - ((x.getUTCDay() - 5 + 7) % 7) * DAY);
+  };
+  const playedBefore = new Date(now.getTime() - 4 * 3600_000); // finished by now
+  const weeks = new Map<number, typeof all>();
+  for (const f of all.filter((x) => x.at < playedBefore)) {
+    const k = weekStart(f.at).getTime();
+    weeks.set(k, [...(weeks.get(k) ?? []), f]);
+  }
+  let number = 0;
+  let fixtures = 0;
+  for (const [k, list] of [...weeks].sort((a, b) => a[0] - b[0])) {
+    number++;
+    const gw = await insertGameweek({
+      season,
+      number,
+      opensAt: new Date(k - 3 * DAY),
+      actorId: null,
+      provider: src.name,
+      fixtures: list.map((f) => ({ providerFixtureId: f.id, homeClubId: f.home, awayClubId: f.away, kickoffAt: f.at })),
+    });
+    await syncLiveGameweek(gw.id);
+    // A match the provider still shows as not played (e.g. postponed without a status) is dropped.
+    await db.fixture.deleteMany({ where: { gameweekId: gw.id, status: { in: ["SCHEDULED", "LIVE"] } } });
+    await finaliseGameweek(gw.id, null, new Date(Math.min(k + 7 * DAY, now.getTime())));
+    fixtures += list.length;
+  }
+
+  // The next week with matches that haven't started yet opens for entries — skipping international
+  // breaks, and including this week if none of its matches has kicked off.
+  const future = all.filter((f) => f.at.getTime() > now.getTime() + 3600_000).sort((a, b) => a.at.getTime() - b.at.getTime());
+  let upcoming: typeof all = [];
+  for (const f of future) {
+    const k = weekStart(f.at).getTime();
+    const week = all.filter((x) => weekStart(x.at).getTime() === k);
+    if (week.every((x) => x.at.getTime() > now.getTime() + 3600_000)) {
+      upcoming = week;
+      break;
+    }
+  }
+  let openGameweek: number | null = null;
+  if (upcoming.length) {
+    openGameweek = number + 1;
+    await insertGameweek({
+      season,
+      number: openGameweek,
+      opensAt: now,
+      actorId: null,
+      provider: src.name,
+      fixtures: upcoming.map((f) => ({ providerFixtureId: f.id, homeClubId: f.home, awayClubId: f.away, kickoffAt: f.at })),
+    });
+  }
+  return { gameweeks: number, fixtures, openGameweek };
 }

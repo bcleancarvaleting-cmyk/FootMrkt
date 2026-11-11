@@ -20,7 +20,9 @@
     "images:import": "tsx scripts/import-player-images.ts",
     "data:import": "python3 scripts/import_wikipedia.py",
     "values:import": "tsx scripts/import-market-values.ts",
-    "values:estimate": "tsx scripts/estimate-values.ts"
+    "values:estimate": "tsx scripts/estimate-values.ts",
+    "sportmonks:import": "NODE_USE_ENV_PROXY=1 NODE_NO_WARNINGS=1 tsx scripts/import-sportmonks.ts",
+    "sportmonks:check": "NODE_USE_ENV_PROXY=1 NODE_NO_WARNINGS=1 tsx scripts/sportmonks-check.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",

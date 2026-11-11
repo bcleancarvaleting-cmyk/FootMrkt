@@ -20,6 +20,7 @@ import { seededRandom } from "../src/domain/random";
 import { hashPassword } from "../src/server/auth/password";
 import { db } from "../src/server/db";
 import { createGameweek, finaliseGameweek, simulateFixturesNow } from "../src/server/gameweeks";
+import { importSeasonToDate } from "../src/server/live-data";
 import { executeRelease, scheduleRelease } from "../src/server/supply";
 import { revalueAll } from "../src/server/valuation";
 import { estimateAllValues } from "../src/server/value-estimates";
@@ -31,6 +32,8 @@ interface DataPlayer {
   nationality: string;
   squadNumber: number | null;
   onLoan: boolean;
+  /** Sportmonks player id, when the squads were imported from Sportmonks. */
+  smId?: number;
 }
 interface DataClub {
   article: string;
@@ -40,6 +43,8 @@ interface DataClub {
   secondaryColour: string;
   kit: Record<string, unknown>;
   revision: string;
+  /** Sportmonks team id, when imported from Sportmonks. */
+  smId?: number;
   players: DataPlayer[];
 }
 interface DataLeague {
@@ -99,7 +104,8 @@ async function main() {
           primaryColour: c.primaryColour,
           secondaryColour: c.secondaryColour,
           kit: c.kit as object,
-          sourceRef: `wikipedia:${c.article}@${c.revision}`,
+          sourceRef: c.smId ? `sportmonks:team:${c.smId}` : `wikipedia:${c.article}@${c.revision}`,
+          providerRefs: c.smId ? { sportmonks: String(c.smId) } : {},
           simStrength: Math.round(100 - lg.tier * 12 + rng.int(20)),
         },
       });
@@ -119,7 +125,7 @@ async function main() {
             squadNumber: p.squadNumber,
             nationality: p.nationality,
             rightsStatus: "PENDING",
-            providerRefs: { sim: `sim-pl-${seq}` },
+            providerRefs: p.smId ? { sim: `sim-pl-${seq}`, sportmonks: String(p.smId) } : { sim: `sim-pl-${seq}` },
           },
         });
         const category = tierFor(lg.tier, p.squadNumber);
@@ -183,16 +189,23 @@ async function main() {
   });
   console.log(`Admin account: ${adminEmail}`);
 
-  // Simulated history so form, results and value trends exist.
-  for (let n = 1; n <= HISTORY_GAMEWEEKS; n++) {
-    const locksAt = new Date(now - (HISTORY_GAMEWEEKS + 1 - n) * 7 * DAY);
-    const gw = await createGameweek({ season: data.season, number: n, opensAt: new Date(locksAt.getTime() - 3 * DAY), firstKickoffAt: locksAt, actorId: null });
-    await simulateFixturesNow(gw.id, "all", null);
-    await finaliseGameweek(gw.id, null, new Date(locksAt.getTime() + 3 * DAY));
-    console.log(`Gameweek ${n} simulated and settled`);
+  if (process.env.DATA_PROVIDER === "sportmonks") {
+    // Real history: every match played so far this season, scored and settled week by week, so
+    // launch values, tiers and form come from real results. Then the next week opens for entries.
+    const r = await importSeasonToDate(data.season, new Date(now));
+    console.log(`Real history: ${r.gameweeks} gameweeks settled from ${r.fixtures} matches; GW${r.openGameweek} open for entries`);
+  } else {
+    // Simulated history so form, results and value trends exist.
+    for (let n = 1; n <= HISTORY_GAMEWEEKS; n++) {
+      const locksAt = new Date(now - (HISTORY_GAMEWEEKS + 1 - n) * 7 * DAY);
+      const gw = await createGameweek({ season: data.season, number: n, opensAt: new Date(locksAt.getTime() - 3 * DAY), firstKickoffAt: locksAt, actorId: null });
+      await simulateFixturesNow(gw.id, "all", null);
+      await finaliseGameweek(gw.id, null, new Date(locksAt.getTime() + 3 * DAY));
+      console.log(`Gameweek ${n} simulated and settled`);
+    }
+    const gw = await createGameweek({ season: data.season, number: HISTORY_GAMEWEEKS + 1, opensAt: new Date(now), firstKickoffAt: new Date(now + 3 * DAY), actorId: null });
+    console.log(`Gameweek ${gw.number} open for entries`);
   }
-  const gw = await createGameweek({ season: data.season, number: HISTORY_GAMEWEEKS + 1, opensAt: new Date(now), firstKickoffAt: new Date(now + 3 * DAY), actorId: null });
-  console.log(`Gameweek ${gw.number} open for entries`);
   // Test sites: let brand-new testers use the Transfer list straight away.
   if (process.env.TEST_SITE === "true") {
     await db.appSetting.upsert({ where: { key: "newTraderDays" }, create: { key: "newTraderDays", value: 0 }, update: { value: 0 } });

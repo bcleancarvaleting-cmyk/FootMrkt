@@ -75,7 +75,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
         </div>
       </section>
 
-      <section id="xp" className="panel flex flex-wrap items-center gap-5 p-5">
+      <section id="xp" className="panel scroll-mt-24 flex flex-wrap items-center gap-5 p-5">
         <div className="min-w-0 flex-1">
           <p className="eyebrow">XP</p>
           <p className="mt-1 font-display text-4xl font-extrabold italic tabular-nums">{bal.xp.toLocaleString("en-GB")} XP</p>
@@ -85,7 +85,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <div id="add" className="panel p-5 lg:col-span-2">
+        <div id="add" className="panel scroll-mt-24 p-5 lg:col-span-2">
           {inBasket > 0 && (
             <Link href="/transfers/basket" className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-accent/60 bg-accent/10 px-4 py-3 text-sm font-semibold">
               <span>{paid ? "Payment received — " : ""}You have {inBasket} player{inBasket > 1 ? "s" : ""} waiting in your basket.</span>
@@ -97,7 +97,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
           {!depositsOn && <GateNotice>Coming soon. Adding funds by card opens after the beta, once our payment provider is live.</GateNotice>}
           <DepositForm enabled={depositsOn} initial={bundle} />
         </div>
-        <div id="withdraw" className="panel p-5">
+        <div id="withdraw" className="panel scroll-mt-24 p-5">
           <h2 className="mb-1 text-2xl">Withdraw winnings</h2>
           <p className="mb-4 text-sm text-muted">
             Cash out £ you&apos;ve won in matches — minimum £10. You can withdraw up to <b className="text-fg">{fmtGbp(bal.withdrawable)}</b>. MX can&apos;t be withdrawn.

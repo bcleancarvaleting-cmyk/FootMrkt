@@ -70,7 +70,9 @@ const GUEST: Section = {
  * Phone menu: a Menu button in the header that opens a full-screen sheet with every section of the
  * site — and, for admins, every admin page — so nothing is only reachable from the desktop header.
  */
-export function MobileMenu({ user, theme, unread = 0 }: { user: { name: string; isAdmin: boolean; isMod: boolean } | null; theme: Theme; unread?: number }) {
+type Wallet = { mx: string; earned: string; gbp: string; xp: string; basket: number };
+
+export function MobileMenu({ user, theme, unread = 0, wallet }: { user: { name: string; isAdmin: boolean; isMod: boolean } | null; theme: Theme; unread?: number; wallet?: Wallet | null }) {
   const [open, setOpen] = useState(false);
   const path = usePathname();
   // The header uses backdrop-filter, which traps fixed children — so the sheet is portalled to <body>.
@@ -139,12 +141,35 @@ export function MobileMenu({ user, theme, unread = 0 }: { user: { name: string; 
                 Join free — get 49 players
               </Link>
             )}
+            {user && wallet && (
+              <div className="grid grid-cols-3 gap-2 pt-3">
+                <Link href="/account/wallet" className="min-w-0 rounded-xl border border-accent/50 bg-accent/5 px-2 py-2 text-center">
+                  <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-muted">MX wallet</span>
+                  <span className="block truncate font-display text-lg font-black tabular-nums">{wallet.mx}</span>
+                  <span className="block truncate text-[10px] text-faint">{wallet.earned} earned</span>
+                </Link>
+                <Link href="/account/wallet#withdraw" className="min-w-0 rounded-xl border border-gold/50 bg-gold/5 px-2 py-2 text-center">
+                  <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-muted">£ wallet</span>
+                  <span className="block truncate font-display text-lg font-black tabular-nums">{wallet.gbp}</span>
+                  <span className="block truncate text-[10px] text-faint">prize winnings</span>
+                </Link>
+                <Link href="/account/wallet#xp" className="min-w-0 rounded-xl border border-ink-600 bg-ink-900 px-2 py-2 text-center">
+                  <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-muted">XP</span>
+                  <span className="block truncate font-display text-lg font-black tabular-nums">{wallet.xp}</span>
+                  <span className="block truncate text-[10px] text-faint">swap for MX</span>
+                </Link>
+              </div>
+            )}
             {user && (
-              <div className="grid grid-cols-2 gap-2 py-3">
-                <Link href="/account/club" className="btn-primary py-3">
+              <div className="grid grid-cols-3 gap-2 py-3">
+                <Link href="/account/club" className="btn-primary px-2 py-3">
                   My Club
                 </Link>
-                <Link href="/account/wallet" className="btn-gold py-3">
+                <Link href="/transfers/basket" className="btn-ghost relative px-2 py-3">
+                  Basket
+                  {wallet && wallet.basket > 0 && <span className="rounded-full bg-accent px-1.5 text-[10px] leading-4 text-accent-ink">{wallet.basket}</span>}
+                </Link>
+                <Link href="/account/wallet#add" className="btn-gold px-2 py-3">
                   Add Funds
                 </Link>
               </div>

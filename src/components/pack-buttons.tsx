@@ -44,13 +44,17 @@ export function DevPackButton({ skuCode }: { skuCode: string }) {
   );
 }
 
-export function BuyPackButton({ skuCode, price, enabled, gold }: { skuCode: string; price: string; enabled: boolean; gold?: boolean }) {
+/** The pay-by-card button takes the pack's colour: bronze, silver, gold, or diamond sparkle for Rare. */
+const PACK_BTN = (code: string) =>
+  code.includes("rare") ? "btn-diamond" : code.includes("gold") ? "btn-gold" : code.includes("silver") ? "btn-silver" : code.includes("bronze") ? "btn-bronze" : "btn-primary";
+
+export function BuyPackButton({ skuCode, price, enabled }: { skuCode: string; price: string; enabled: boolean }) {
   const [pending, start] = useTransition();
   const [res, setRes] = useState<ActionResult<unknown> | null>(null);
   return (
     <span className="inline-flex flex-col gap-1">
       <button
-        className={gold ? "btn-gold" : "btn-primary"}
+        className={PACK_BTN(skuCode)}
         disabled={!enabled || pending}
         title={enabled ? undefined : "Buying packs by card is coming soon"}
         onClick={() => start(async () => setRes(await buyPackAction(skuCode, crypto.randomUUID())))}

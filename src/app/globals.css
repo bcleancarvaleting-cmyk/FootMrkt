@@ -142,6 +142,36 @@ h2 {
   @apply btn text-[#1a1203];
   background: linear-gradient(135deg, #b8862b, #f9e08b 40%, #d9a93f 60%, #fff0b3);
 }
+/* Pay-by-card buttons in each pack's colour. */
+@utility btn-bronze {
+  @apply btn text-[#1f0f04];
+  background: linear-gradient(135deg, #8a4f22, #e0a46a 40%, #b06c35 60%, #f1c79a);
+}
+@utility btn-silver {
+  @apply btn text-[#14171b];
+  background: linear-gradient(135deg, #8d949c, #f2f4f6 40%, #b9c0c7 60%, #ffffff);
+}
+@utility btn-diamond {
+  @apply btn text-[#061722];
+  background: linear-gradient(110deg, #9be8ff, #e8fbff 18%, #c8a8ff 36%, #ffffff 54%, #a8f0ff 72%, #e3d4ff 86%, #9be8ff);
+  background-size: 200% 100%;
+  border: 2px solid #c9f3ff;
+  box-shadow: 0 0 0 1px rgba(155, 232, 255, 0.35), 0 0 18px rgba(155, 232, 255, 0.45);
+  animation: diamond-sparkle 4s linear infinite;
+}
+@keyframes diamond-sparkle {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 200% 50%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-diamond {
+    animation: none;
+  }
+}
 @utility btn-ghost {
   @apply btn border border-ink-600 text-fg hover:border-fg/60;
 }

@@ -230,7 +230,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
                               <XpPackButton skuCode={s.code} xp={xpPriceFor(s.priceMinor, xpRate)} affordable={bal.xp >= xpPriceFor(s.priceMinor, xpRate)} />
                               <CreditPackButton skuCode={s.code} price={fmtMp(s.priceMinor)} affordable={bal.total >= s.priceMinor} />
                               <div className="col-span-2 grid">
-                                <BuyPackButton skuCode={s.code} price={gbp(s.priceMinor)} enabled={flags.PAID_PACKS} gold={s.code.includes("gold")} />
+                                <BuyPackButton skuCode={s.code} price={gbp(s.priceMinor)} enabled={flags.PAID_PACKS} />
                               </div>
                             </>
                           ) : (

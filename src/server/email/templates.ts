@@ -162,6 +162,32 @@ export const EMAILS = {
       footnote: "Sent on Fridays. Turn it off in Profile or with the link below.",
       unsubscribe: d.unsubscribeUrl,
     }),
+  waitlistJoined: (d: { name: string; position: number; total: number; shareUrl: string; gift: string; perFriend: number; unsubscribeUrl: string }) =>
+    layout({
+      preheader: `You're #${d.position} on the MATCHX list.`,
+      title: `You're on the list — #${d.position.toLocaleString("en-GB")}`,
+      paragraphs: [
+        `Hi ${esc(d.name)} — you're in. We'll email you the moment MATCHX kicks off, and you'll get ${b(d.gift)} free when you create your club with this email.`,
+        `Want to move up? Every friend who joins with your link moves you up ${b(`${d.perFriend} places`)}:`,
+        `<a href="${d.shareUrl}" style="color:#adfc07;word-break:break-all">${esc(d.shareUrl)}</a>`,
+        `${d.total.toLocaleString("en-GB")} managers are waiting for kick-off.`,
+      ],
+      cta: { label: "Share my link", href: d.shareUrl },
+      footnote: "You asked to be told when MATCHX launches.",
+      unsubscribe: d.unsubscribeUrl,
+    }),
+  launchLive: (d: { name: string; url: string; gift: string; unsubscribeUrl: string }) =>
+    layout({
+      preheader: "MATCHX is open. Your free players are waiting.",
+      title: "MATCHX is live ⚽",
+      paragraphs: [
+        `Hi ${esc(d.name)} — the wait is over. Create your club now and open your 49 free players: a full squad for the Premier League, Championship, League One and League Two.`,
+        `Because you joined the waitlist, you also get ${b(d.gift)} — it's waiting in Packs when you sign up with this email.`,
+      ],
+      cta: { label: "Create my club", href: d.url },
+      footnote: "You joined the MATCHX waitlist.",
+      unsubscribe: d.unsubscribeUrl,
+    }),
   test: (d: { name: string }) =>
     layout({
       preheader: "Your MATCHX emails are working.",

@@ -123,6 +123,21 @@ export const TEXT_SETTINGS = {
     help: "Link to a photo for the homepage hero (e.g. Wembley at night), starting https:// and ending .jpg, .jpeg, .png or .webp — use one you have the rights to (Unsplash and Pexels photos are free to use). Leave blank for the built-in floodlit stadium with the arch.",
     default: "",
   },
+  waitlistRewardSku: {
+    label: "Waitlist launch gift",
+    help: "The free pack everyone on the waitlist gets when they create their account at launch (with the same email). Shown on the waitlist page.",
+    default: "football-gold-pick",
+  },
+  launchDate: {
+    label: "Launch date (waitlist countdown)",
+    help: "When MATCHX opens, as YYYY-MM-DD HH:MM in UK time (e.g. 2026-12-01 19:00). Shows a countdown on the waitlist page. Leave blank for 'Coming soon'.",
+    default: "",
+  },
+  earlyAccessCode: {
+    label: "Early-access code",
+    help: "While Pre-launch is on, sign-up only works from a link with this code: /register?code=YOURCODE (for testers and friends). Leave blank to close sign-up completely.",
+    default: "",
+  },
   referralRewardSku: {
     label: "Refer-a-friend reward",
     help: "The free pack a manager gets for each friend who joins with their link and plays a match.",
@@ -148,7 +163,9 @@ export async function setText(adminId: string, key: TextSettingKey, value: strin
   if (key === "homeHeroImage" && v && !/^https:\/\/[^\s"'<>]+$/i.test(v)) {
     throw new DomainError("URL", "Paste the full image link, starting https:// — e.g. a photo's direct link from Unsplash or Pexels.");
   }
-  if (key === "referralRewardSku" || key === "referralMonthlyPrizeSku") {
+  if (key === "launchDate" && v && !/^\d{4}-\d{2}-\d{2}( \d{2}:\d{2})?$/.test(v)) throw new DomainError("DATE", "Use YYYY-MM-DD HH:MM, e.g. 2026-12-01 19:00.");
+  if (key === "earlyAccessCode" && v && !/^[A-Za-z0-9-]{4,32}$/.test(v)) throw new DomainError("CODE", "4–32 letters, numbers or dashes.");
+  if (key === "referralRewardSku" || key === "referralMonthlyPrizeSku" || key === "waitlistRewardSku") {
     const { FOOTBALL_PACKS } = await import("@/config/packs");
     if (!FOOTBALL_PACKS.some((p) => p.code === v && p.kind === "WEEKLY")) throw new DomainError("PACK", "Choose a free pack.");
   }

@@ -2,12 +2,15 @@ import { redirect } from "next/navigation";
 import { RegisterForm } from "@/components/auth-forms";
 import { getCurrentUser } from "@/server/auth/session";
 import { db } from "@/server/db";
+import { signupOpen } from "@/server/launch-gate";
 
 export const metadata = { title: "Create account" };
 
-export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ ref?: string; club?: string }> }) {
-  const { ref, club } = await searchParams;
+export default async function RegisterPage({ searchParams }: { searchParams: Promise<{ ref?: string; club?: string; email?: string; code?: string }> }) {
+  const { ref, club, email, code } = await searchParams;
   if (await getCurrentUser()) redirect("/");
+  // Pre-launch: sign-up is closed except with the early-access code — everyone else joins the waitlist.
+  if (!(await signupOpen(code))) redirect(`/launch${club ? `?club=${encodeURIComponent(club)}` : ""}`);
   const leagues = await db.league.findMany({ orderBy: { tier: "asc" }, include: { clubs: { orderBy: { name: "asc" }, select: { code: true, name: true } } } });
   const clubs = leagues.map((l) => ({ league: l.name, clubs: l.clubs }));
   return (
@@ -30,7 +33,7 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
         </ul>
       </div>
       <div className="panel p-6">
-        <RegisterForm referrer={ref?.slice(0, 24)} clubs={clubs} club={clubs.some((l) => l.clubs.some((c) => c.code === club)) ? club : undefined} />
+        <RegisterForm referrer={ref?.slice(0, 24)} clubs={clubs} club={clubs.some((l) => l.clubs.some((c) => c.code === club)) ? club : undefined} email={email?.slice(0, 200)} code={code?.slice(0, 32)} />
       </div>
     </div>
   );

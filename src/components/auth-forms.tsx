@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { forgotPasswordAction, loginAction, registerAction, resetPasswordAction, verifyLoginCodeAction } from "@/app/actions/auth";
 
-export function RegisterForm({ referrer, clubs, club }: { referrer?: string; club?: string; clubs: Array<{ league: string; clubs: Array<{ code: string; name: string }> }> }) {
+export function RegisterForm({ referrer, clubs, club, email, code }: { referrer?: string; club?: string; email?: string; code?: string; clubs: Array<{ league: string; clubs: Array<{ code: string; name: string }> }> }) {
   const [state, action, pending] = useActionState(registerAction, null);
   return (
     <form action={action} className="space-y-4">
       {referrer && <input type="hidden" name="ref" value={referrer} />}
+      {code && <input type="hidden" name="code" value={code} />}
       {referrer && <p className="rounded-xl border border-accent/40 bg-accent/5 px-3 py-2 text-sm">Invited by <b>{referrer}</b> — welcome to MATCHX!</p>}
       <div>
         <label className="label" htmlFor="displayName">
@@ -47,7 +48,7 @@ export function RegisterForm({ referrer, clubs, club }: { referrer?: string; clu
         <label className="label" htmlFor="email">
           Email
         </label>
-        <input className="input" id="email" name="email" type="email" required autoComplete="email" />
+        <input className="input" id="email" name="email" type="email" required autoComplete="email" defaultValue={email} />
       </div>
       <div>
         <label className="label" htmlFor="password">

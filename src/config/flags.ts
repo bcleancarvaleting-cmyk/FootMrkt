@@ -52,6 +52,12 @@ export const FLAG_DEFINITIONS = {
     legalGate: false,
     description: "House auctions open for bidding (also needs Transfers/MARKET). Shown as 'Coming soon' while off.",
   },
+  PRELAUNCH: {
+    env: "FLAG_PRELAUNCH",
+    default: false,
+    legalGate: false,
+    description: "Pre-launch: visitors see the 'Join the waitlist' page instead of the homepage, and sign-up is closed (except with the early-access code). Logged-in managers and Log in are unaffected.",
+  },
   FOUNDING_SIGNUPS: {
     env: "FLAG_FOUNDING_SIGNUPS",
     default: true,

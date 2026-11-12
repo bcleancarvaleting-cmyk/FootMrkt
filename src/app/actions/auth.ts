@@ -27,6 +27,8 @@ export async function registerAction(_: ActionResult | null, form: FormData): Pr
     return { ok: false, error: "Too many sign-ups from this connection. Please wait a minute." };
   }
   if (form.get("terms") !== "on") return { ok: false, error: "Please accept the terms of use to continue." };
+  const { signupOpen } = await import("@/server/launch-gate");
+  if (!(await signupOpen(String(form.get("code") ?? "")))) return { ok: false, error: "Sign-up opens at launch — join the waitlist on the home page and we'll email you." };
   const res = await attempt(() =>
     registerUser({
       email: String(form.get("email") ?? ""),

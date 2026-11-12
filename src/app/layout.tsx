@@ -40,6 +40,8 @@ export const viewport: Viewport = { themeColor: "#07080a", width: "device-width"
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const theme: Theme = (await cookies()).get("matchx_theme")?.value === "light" ? "light" : "dark";
   const [user, stats] = await Promise.all([getCurrentUser(), liveStats()]);
+  // Pre-launch: visitors don't see the live game numbers (tiny before launch).
+  const hideTicker = !user && (await (await import("@/server/launch-gate")).prelaunch());
   if (user) {
     await grantDueWelcomePacks(user.id);
     // Streak, achievements, level rewards and predictions — after the page has been sent.
@@ -57,7 +59,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     >
       <body className="flex min-h-full flex-col">
         <a href="#main" className="skip-link">Skip to content</a>
-        <StatsTicker initial={stats} />
+        {!hideTicker && <StatsTicker initial={stats} />}
         <Header theme={theme} unopenedPacks={unopened} />
         <main id="main" tabIndex={-1} className={`mx-auto outline-none w-full max-w-6xl flex-1 px-4 pt-6 sm:px-6 ${user ? "pb-32 md:pb-16" : "pb-16"}`}>{children}</main>
         <SiteFooter loggedIn={!!user} credit={await dataCredit()} />

@@ -1487,3 +1487,29 @@ model AppGiveaway {
   createdAt   DateTime  @default(now())
   cancelledAt DateTime?
 }
+
+// Pre-launch waitlist: people who want to hear when MATCHX opens. Converted when they register
+// with the same email (and get the waitlist launch gift).
+model WaitlistEntry {
+  id              String    @id @default(uuid()) @db.Uuid
+  email           String    @unique
+  firstName       String?
+  clubCode        String?
+  over18          Boolean
+  marketingOptIn  Boolean   @default(false)
+  refCode         String    @unique
+  referredBy      String?
+  referrals       Int       @default(0)
+  utmSource       String?
+  utmMedium       String?
+  utmCampaign     String?
+  referrerHost    String?
+  createdAt       DateTime  @default(now())
+  launchEmailedAt DateTime?
+  unsubscribedAt  DateTime?
+  convertedUserId String?   @db.Uuid
+  convertedAt     DateTime?
+
+  @@index([createdAt])
+  @@index([referredBy])
+}

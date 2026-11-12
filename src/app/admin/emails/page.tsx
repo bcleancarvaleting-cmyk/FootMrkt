@@ -21,6 +21,8 @@ const SAMPLES: { [K in EmailTemplate]: Parameters<(typeof EMAILS)[K]>[0] } = {
   passwordReset: { name: "DemoManager", url: "https://playmatchx.com/reset-password?token=example" },
   supportReceived: { name: "DemoManager", ref: "A1B2C3" },
   test: { name: "DemoManager" },
+  waitlistJoined: { name: "Sam", position: 128, total: 2410, shareUrl: "https://playmatchx.com/launch?ref=ab12cd3", gift: "Choice of Gold", perFriend: 10, unsubscribeUrl: "https://playmatchx.com/api/unsubscribe?w=example" },
+  launchLive: { name: "Sam", url: "https://playmatchx.com/register?email=sam%40example.com", gift: "Choice of Gold", unsubscribeUrl: "https://playmatchx.com/api/unsubscribe?w=example" },
   weeklyDigest: { name: "DemoManager", players: [{ name: "E. Haaland", vs: "MCI v ARS", when: "Sat 17:30" }, { name: "C. Palmer", vs: "CHE v LIV", when: "Sun 14:00" }], playing: 6, value: 84.5, changePct: 3.2, deadline: "Sat 11:00", openMatches: 4, entered: 1, drops: 5, unsubscribeUrl: "https://playmatchx.com/api/unsubscribe?u=example" },
   errorAlert: { name: "DemoManager", title: "Server error", message: "Something went wrong", path: "/packs", source: "SERVER" },
 };

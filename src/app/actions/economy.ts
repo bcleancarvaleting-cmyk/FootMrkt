@@ -311,3 +311,10 @@ export async function closeAppGiveawayAction(id: string): Promise<ActionResult> 
   done();
   return res;
 }
+
+export async function startLaunchEmailsAction(): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const res = await attempt(async () => (await import("@/server/waitlist")).startLaunchEmails(admin.id));
+  done();
+  return res.ok ? { ok: true, data: undefined, message: "Launch emails are going out — 200 now, the rest every 5 minutes." } : res;
+}

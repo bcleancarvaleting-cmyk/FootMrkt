@@ -76,6 +76,8 @@ export async function registerUser(input: z.input<typeof RegisterSchema>) {
       await grantStarterLoans(tx, user.id);
       return { user, starterEntitlementId: starter.id, emailVerificationToken };
     });
+    // On the waitlist with this email: mark them converted and give the launch gift.
+    await (await import("../waitlist")).convertWaitlist(made.user.id, made.user.email).catch(() => false);
     if (referrer) {
       const { notify } = await import("../notifications");
       await notify(referrer.id, { kind: "REFERRAL", title: `👋 ${made.user.displayName} joined with your link`, body: "Your free pack arrives as soon as they play their first match.", href: "/account", dedupeKey: `referral-joined:${made.user.id}` }).catch(() => {});

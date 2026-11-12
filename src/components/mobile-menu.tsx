@@ -80,7 +80,7 @@ const GUEST: Section = {
  */
 type Wallet = { mx: string; earned: string; gbp: string; xp: string; basket: number };
 
-export function MobileMenu({ user, theme, unread = 0, wallet }: { user: { name: string; isAdmin: boolean; isMod: boolean } | null; theme: Theme; unread?: number; wallet?: Wallet | null }) {
+export function MobileMenu({ user, theme, unread = 0, wallet, waitlist = false }: { user: { name: string; isAdmin: boolean; isMod: boolean } | null; theme: Theme; unread?: number; wallet?: Wallet | null; waitlist?: boolean }) {
   const [open, setOpen] = useState(false);
   const path = usePathname();
   // The header uses backdrop-filter, which traps fixed children — so the sheet is portalled to <body>.
@@ -145,8 +145,8 @@ export function MobileMenu({ user, theme, unread = 0, wallet }: { user: { name: 
           </div>
           <nav className="flex-1 overflow-y-auto px-4 pb-10 pt-2" aria-label="All pages" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 2.5rem)" }}>
             {!user && (
-              <Link href="/register" className="btn-primary my-3 w-full py-3">
-                Join free — get 49 players
+              <Link href={waitlist ? "/launch#join" : "/register"} onClick={() => setOpen(false)} className="btn-primary my-3 w-full py-3">
+                {waitlist ? "Join the waitlist" : "Join free — get 49 players"}
               </Link>
             )}
             {user && wallet && (

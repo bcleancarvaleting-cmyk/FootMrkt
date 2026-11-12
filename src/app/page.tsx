@@ -13,6 +13,8 @@ import { KitShirt } from "@/components/kit-shirt";
 import { MatchCard } from "@/components/match-card";
 import { Sparkline } from "@/components/card-row";
 import { getText } from "@/server/settings";
+import { HeroBackground } from "@/components/hero-background";
+import { LaunchPage, type LaunchParams } from "@/components/launch-page";
 import { HeroCarousel } from "@/components/hero-carousel";
 import { TakeItOnTheGo } from "@/components/app-install";
 import { CommunityLinks } from "@/components/community-links";
@@ -29,9 +31,12 @@ import { cardViews } from "@/server/views";
 import { balancesFor, fmtMp } from "@/server/wallet";
 import { fmtDate } from "@/lib/view";
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<LaunchParams> }) {
   const user = await getCurrentUser();
-  return user ? <Hub userId={user.id} name={user.displayName} /> : <Landing />;
+  if (user) return <Hub userId={user.id} name={user.displayName} />;
+  // Pre-launch: logged-out visitors get the waitlist page.
+  if (await isEnabled("PRELAUNCH")) return <LaunchPage sp={await searchParams} />;
+  return <Landing />;
 }
 
 async function Landing() {
@@ -482,32 +487,6 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
  * Hero photo: the one set in Admin → Settings, else Wembley's arch at night (Martin Pettitt,
  * CC BY 2.0 — credited on the photo and in Legal → credits).
  */
-const WEMBLEY = { src: "/hero/wembley-night.webp", fallback: "/hero/wembley-night.jpg", credit: "Photo: Martin Pettitt, CC BY 2.0", href: "https://commons.wikimedia.org/wiki/File:WembleyStadiumNight.jpg" };
-
-function HeroBackground({ image }: { image: string }) {
-  return (
-    <>
-      {image ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
-      ) : (
-        <picture>
-          <source srcSet={WEMBLEY.src} type="image/webp" />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={WEMBLEY.fallback} alt="Wembley Stadium's arch lit up at night" className="absolute inset-0 h-full w-full object-cover object-[50%_30%]" fetchPriority="high" />
-        </picture>
-      )}
-      <div className="absolute inset-0 bg-gradient-to-t from-[#060708] via-[#060708]/35 to-transparent" aria-hidden="true" />
-      <div className="absolute inset-0 hidden bg-gradient-to-r from-[#060708]/75 via-[#060708]/10 to-transparent sm:block" aria-hidden="true" />
-      {!image && (
-        <a href={WEMBLEY.href} target="_blank" rel="noreferrer" className="absolute right-3 top-3 z-10 rounded bg-black/40 px-1.5 py-0.5 text-[9px] text-white/55 hover:text-white">
-          {WEMBLEY.credit}
-        </a>
-      )}
-    </>
-  );
-}
-
 function SectionHead({ eyebrow, title, href, cta }: { eyebrow: string; title: string; href: string; cta: string }) {
   return (
     <div className="mb-4 flex items-end justify-between gap-3">

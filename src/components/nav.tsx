@@ -24,6 +24,7 @@ export function Logo({ height = 26 }: { height?: number }) {
 
 export async function Header({ theme, unopenedPacks }: { theme: Theme; unopenedPacks: number }) {
   const user = await getCurrentUser();
+  const waitlist = !user && (await (await import("@/server/launch-gate")).prelaunch());
   const [bal, beta, unread, basket] = await Promise.all([
     user ? balancesFor(user.id) : null,
     isEnabled("BETA"),
@@ -91,12 +92,13 @@ export async function Header({ theme, unopenedPacks }: { theme: Theme; unopenedP
               <Link href="/login" className="btn-ghost whitespace-nowrap px-2.5 py-2 text-[11px] sm:px-4 sm:text-xs">
                 Log in
               </Link>
-              <Link href="/register" className="btn-primary whitespace-nowrap px-2.5 py-2 text-[11px] sm:px-4 sm:text-xs">
-                Join free
+              <Link href={waitlist ? "/launch#join" : "/register"} className="btn-primary whitespace-nowrap px-2.5 py-2 text-[11px] sm:px-4 sm:text-xs">
+                {waitlist ? "Join waitlist" : "Join free"}
               </Link>
             </>
           )}
           <MobileMenu
+            waitlist={waitlist}
             theme={theme}
             unread={unread}
             user={user ? { name: user.displayName, isAdmin: user.role === "ADMIN", isMod: canModerate(user.role) } : null}

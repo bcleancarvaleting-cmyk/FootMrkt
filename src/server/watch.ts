@@ -1,7 +1,7 @@
 import { leaderboard, prizesSummary } from "./competitions";
 import { db } from "./db";
 import { currentGameweek } from "./gameweeks";
-import { REAL_TIME_HALF, simClock } from "./sim-matchday";
+import { simAt, simPlan } from "./sim-matchday";
 
 /**
  * "Watch live": one gameweek on one screen — every fixture's score, a vidiprinter of what's just
@@ -25,7 +25,7 @@ export interface WatchLine {
   minute: number;
   text: string;
   score: string;
-  kind: "goal" | "own_goal" | "yellow" | "red" | "pen_miss";
+  kind: "goal" | "own_goal" | "yellow" | "red" | "pen_miss" | "time";
 }
 
 export interface WatchTable {
@@ -41,6 +41,8 @@ export interface WatchBoard {
   title: string;
   phase: "none" | "pre" | "live" | "ft";
   clock: string | null;
+  /** Minutes of added time while it's being played (the fourth official's board). */
+  added: number | null;
   kickoffAt: string | null;
   fixtures: WatchFixture[];
   feed: WatchLine[];
@@ -72,7 +74,7 @@ export async function watchable(now = new Date()) {
 
 export async function watchBoard(scope: WatchScope, userId: string | null, now = new Date()): Promise<WatchBoard> {
   const gw = await pickGameweek(scope, now);
-  const empty: WatchBoard = { scope, title: scope === "sim" ? "Simulated matchday" : "Gameweek", phase: "none", clock: null, kickoffAt: null, fixtures: [], feed: [], tables: [], generatedAt: now.toISOString() };
+  const empty: WatchBoard = { scope, title: scope === "sim" ? "Simulated matchday" : "Gameweek", phase: "none", clock: null, added: null, kickoffAt: null, fixtures: [], feed: [], tables: [], generatedAt: now.toISOString() };
   if (!gw) return empty;
   const rows = await db.fixture.findMany({
     where: { gameweekId: gw.id },
@@ -126,7 +128,20 @@ export async function watchBoard(scope: WatchScope, userId: string | null, now =
   const live = fixtures.some((f) => f.status === "LIVE");
   const done = fixtures.length > 0 && fixtures.every((f) => f.status === "FINISHED" || f.status === "POSTPONED");
   const phase: WatchBoard["phase"] = live ? "live" : done ? "ft" : now < kickoff ? "pre" : "live";
-  const clock = gw.simulated ? (phase === "ft" ? "FT" : phase === "live" ? simClock(kickoff, now, gw.simHalfSeconds ?? REAL_TIME_HALF) : null) : live ? "LIVE" : done ? "FT" : null;
+  const at = gw.simulated ? simAt(simPlan(gw.id, gw.simHalfSeconds), kickoff, now) : null;
+  const clock = at ? (phase === "ft" ? "FT" : phase === "live" ? at.clock : null) : live ? "LIVE" : done ? "FT" : null;
+  // The match's own moments in the vidiprinter: added time, half time, full time.
+  if (gw.simulated) {
+    const plan = simPlan(gw.id, gw.simHalfSeconds);
+    const e = (now.getTime() - kickoff.getTime()) / 1000;
+    const timeLine = (key: string, minute: number, text: string) => feed.push({ key: `t:${key}`, minute, text: "", score: text.toUpperCase(), kind: "time" });
+    if (e >= plan.half) timeLine("a1", 45.1, `${plan.added1} minute${plan.added1 === 1 ? "" : "s"} added time`);
+    if (e >= plan.firstEnd) timeLine("ht", 45.2, "Half time");
+    if (e >= plan.secondStart) timeLine("2h", 45.3, "Second half under way");
+    if (e >= plan.secondStart + plan.half) timeLine("a2", 90.1, `${plan.added2} minutes added time`);
+    if (phase === "ft" || e >= plan.end) timeLine("ft", 90.2, "Full time");
+    feed.sort((x, y) => y.minute - x.minute || x.key.localeCompare(y.key));
+  }
 
   const comps = await db.competition.findMany({ where: { gameweekId: gw.id, status: { not: "CANCELLED" } }, orderBy: [{ entryFeeMinor: "asc" }, { name: "asc" }], select: { id: true, name: true, rewards: true, status: true } });
   const tables: WatchTable[] = [];
@@ -149,6 +164,7 @@ export async function watchBoard(scope: WatchScope, userId: string | null, now =
     title: gw.simulated ? `SIM Matchday ${gw.number}` : `Gameweek ${gw.number}`,
     phase,
     clock,
+    added: at?.added ?? null,
     kickoffAt: kickoff.toISOString(),
     fixtures,
     feed: feed.slice(0, 40),

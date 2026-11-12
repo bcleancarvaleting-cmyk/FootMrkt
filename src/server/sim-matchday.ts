@@ -27,32 +27,67 @@ export async function simSeason() {
   return `${await currentSeason()}${SIM_SEASON_SUFFIX}`;
 }
 
+/** Real seconds per half: quick sims (the default) play 2½-minute halves with a 10-second break. */
+export const QUICK_HALF = 150;
 export const REAL_TIME_HALF = 45 * 60;
-export const QUICK_HALF = 120;
-export type SimSpeed = "quick" | "real";
 
-/** Real seconds from kick-off to full time: two halves and a break a third as long. */
-export const simDurationMs = (halfSeconds: number) => Math.round(halfSeconds * (2 + 1 / 3) * 1000);
-
-/** Match minute at `now` for a game that kicked off at `ko`: null before kick-off, 45 at half time, 90 at full time. */
-export function simMinute(ko: Date, now: Date, halfSeconds = REAL_TIME_HALF): number | null {
-  const e = (now.getTime() - ko.getTime()) / 1000;
-  const h = halfSeconds;
-  const ht = h / 3;
-  if (e < 0) return null;
-  if (e < h) return Math.max(1, Math.ceil((e / h) * 45));
-  if (e < h + ht) return 45; // half time
-  if (e < 2 * h + ht) return Math.min(89, 45 + Math.ceil(((e - h - ht) / h) * 45));
-  return 90;
+export interface SimPlan {
+  /** Real seconds for 45 match minutes. */
+  half: number;
+  /** Real seconds of half time. */
+  brk: number;
+  /** Minutes added on at the end of each half (1–4 and 3–7), the same for every game that day. */
+  added1: number;
+  added2: number;
+  /** Real seconds from kick-off: end of the first half (with added time), second-half kick-off, full time. */
+  firstEnd: number;
+  secondStart: number;
+  end: number;
 }
 
-/** The clock to show: "37'", "HT" or "FT". */
-export function simClock(ko: Date, now: Date, halfSeconds = REAL_TIME_HALF): string | null {
+/** The timings of a simulated matchday (fixed per matchday, so the clock never jumps). */
+export function simPlan(gameweekId: string, halfSeconds: number | null | undefined): SimPlan {
+  const half = halfSeconds ?? QUICK_HALF;
+  const h = seedOf(gameweekId);
+  const added1 = 1 + (h % 4);
+  const added2 = 3 + ((h >>> 3) % 5);
+  const perMin = half / 45;
+  const brk = half <= 600 ? 10 : half / 3;
+  const firstEnd = half + added1 * perMin;
+  const secondStart = firstEnd + brk;
+  return { half, brk, added1, added2, firstEnd, secondStart, end: secondStart + half + added2 * perMin };
+}
+
+export const simDurationMs = (plan: SimPlan) => Math.round(plan.end * 1000);
+
+/**
+ * Where a simulated game is at `now`: the match minute the simulation plays to (null before
+ * kick-off, 90 at full time), the clock to show ("37'", "45+2'", "HT", "90+5'", "FT"), and the
+ * added time once it's been announced.
+ */
+export function simAt(plan: SimPlan, ko: Date, now: Date) {
   const e = (now.getTime() - ko.getTime()) / 1000;
-  if (e < 0) return null;
-  if (e >= halfSeconds && e < halfSeconds * (1 + 1 / 3)) return "HT";
-  const m = simMinute(ko, now, halfSeconds)!;
-  return m >= 90 ? "FT" : `${m}'`;
+  const perMin = plan.half / 45;
+  if (e < 0) return { minute: null, clock: null, added: null, phase: "pre" as const };
+  if (e < plan.half) {
+    const m = Math.max(1, Math.ceil(e / perMin));
+    return { minute: m, clock: `${m}'`, added: null, phase: "first" as const };
+  }
+  if (e < plan.firstEnd) {
+    const x = Math.min(plan.added1, Math.max(1, Math.ceil((e - plan.half) / perMin)));
+    return { minute: 45, clock: `45+${x}'`, added: plan.added1, phase: "first" as const };
+  }
+  if (e < plan.secondStart) return { minute: 45, clock: "HT", added: null, phase: "ht" as const };
+  const s = e - plan.secondStart;
+  if (s < plan.half) {
+    const m = Math.min(90, 45 + Math.max(1, Math.ceil(s / perMin)));
+    return { minute: Math.min(89, m), clock: `${m}'`, added: null, phase: "second" as const };
+  }
+  if (e < plan.end) {
+    const x = Math.min(plan.added2, Math.max(1, Math.ceil((s - plan.half) / perMin)));
+    return { minute: 89, clock: `90+${x}'`, added: plan.added2, phase: "second" as const };
+  }
+  return { minute: 90, clock: "FT", added: null, phase: "ft" as const };
 }
 
 /** "2026-11-14T19:00" typed by an admin in the UK → the right instant (GMT or BST). */
@@ -106,7 +141,7 @@ export const SIM_LOCK_LEAD_MS = MIN;
 
 export async function createSimMatchday(
   adminId: string | null,
-  input: { kickoffAt: Date; copyFrom?: string | "latest" | null; speed?: SimSpeed; match?: SimMatchSpec | null },
+  input: { kickoffAt: Date; copyFrom?: string | "latest" | null; speed?: "quick" | "real"; match?: SimMatchSpec | null },
   now = new Date(),
 ) {
   if (input.kickoffAt.getTime() < now.getTime() + 3 * MIN) throw new DomainError("TIME", "Pick a kick-off at least 3 minutes from now, so managers have time to pick a team.");
@@ -133,8 +168,8 @@ export async function createSimMatchday(
     // Every game kicks off together, like a full Saturday 3pm.
     fixtures: fixtures.map((f) => ({ providerFixtureId: f.providerFixtureId, homeClubId: clubByCode.get(f.homeClubRef)!, awayClubId: clubByCode.get(f.awayClubRef)!, kickoffAt: input.kickoffAt })),
   });
-  const halfSeconds = (input.speed ?? "quick") === "quick" ? QUICK_HALF : REAL_TIME_HALF;
-  await db.gameweek.update({ where: { id: gw.id }, data: { simHalfSeconds: halfSeconds, endsAt: new Date(input.kickoffAt.getTime() + simDurationMs(halfSeconds)) } });
+  const halfSeconds = input.speed === "real" ? REAL_TIME_HALF : QUICK_HALF;
+  await db.gameweek.update({ where: { id: gw.id }, data: { simHalfSeconds: halfSeconds, endsAt: new Date(input.kickoffAt.getTime() + simDurationMs(simPlan(gw.id, halfSeconds))) } });
   let copied = 0;
   if (input.copyFrom) {
     const src =
@@ -218,7 +253,7 @@ async function playOnce(now: Date) {
   {
     const gws = await db.gameweek.findMany({ where: { simulated: true, status: { not: "SETTLED" }, startsAt: { lte: now } }, select: { id: true, status: true, simHalfSeconds: true } });
     for (const gw of gws) {
-      const half = gw.simHalfSeconds ?? REAL_TIME_HALF;
+      const plan = simPlan(gw.id, gw.simHalfSeconds);
       const fixtures = await db.fixture.findMany({
         where: { gameweekId: gw.id, status: { in: ["SCHEDULED", "LIVE"] }, kickoffAt: { lte: now } },
         include: { homeClub: true, awayClub: true },
@@ -244,7 +279,7 @@ async function playOnce(now: Date) {
               { club: { ref: f.homeClub.code, strengthHint: f.homeClub.simStrength }, squad: squad(f.homeClubId) },
               { club: { ref: f.awayClub.code, strengthHint: f.awayClub.simStrength }, squad: squad(f.awayClubId) },
               seedOf(f.providerFixtureId),
-              { atMinute: simMinute(f.kickoffAt, now, half) ?? 0, noPostponements: true, feed, stepMinutes: 15 },
+              { atMinute: simAt(plan, f.kickoffAt, now).minute ?? 0, noPostponements: true, feed, stepMinutes: 15 },
             ),
           );
           const events = feed.map((e) => ({
@@ -266,8 +301,8 @@ async function playOnce(now: Date) {
       // Every game over: settle (a few seconds' grace on quick sims, 5 minutes in real time).
       const pending = await db.fixture.count({ where: { gameweekId: gw.id, status: { in: ["SCHEDULED", "LIVE"] } } });
       const last = await db.fixture.findFirst({ where: { gameweekId: gw.id }, orderBy: { kickoffAt: "desc" }, select: { kickoffAt: true } });
-      const grace = half <= QUICK_HALF * 2 ? 5_000 : 5 * MIN;
-      if (!pending && last && now.getTime() >= last.kickoffAt.getTime() + simDurationMs(half) + grace) {
+      const grace = plan.half <= 600 ? 5_000 : 5 * MIN;
+      if (!pending && last && now.getTime() >= last.kickoffAt.getTime() + simDurationMs(plan) + grace) {
         await finaliseGameweek(gw.id, null, now);
         out.settled++;
       }

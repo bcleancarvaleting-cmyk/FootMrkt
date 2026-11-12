@@ -357,15 +357,6 @@ export function SimMatchdayForm({ suggested, canCopy }: { suggested: string; can
   return (
     <Form action={createSimMatchdayAction} submit="Create simulated matchday">
       <I name="kickoffAt" label="Kick-off (UK time)" type="datetime-local" defaultValue={suggested} required />
-      <S
-        name="speed"
-        label="Speed"
-        options={[
-          { value: "quick", label: "Quick — 2-minute halves (~5 min)" },
-          { value: "real", label: "Real time — 45-minute halves" },
-        ]}
-        defaultValue="quick"
-      />
       <I name="name" label="Match name (players enter this)" placeholder="e.g. Sim Night Cup" maxLength={40} />
       <S name="tier" label="Cards" options={[{ value: "", label: "Any cards" }, ...TIERS.slice(1)]} />
       <I name="fee" label="Entry fee (£, 0 = free)" type="number" min={0} step="0.01" defaultValue="0" />

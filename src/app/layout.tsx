@@ -67,7 +67,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {!hideTicker && <StatsTicker initial={stats} />}
         <Header theme={theme} unopenedPacks={unopened} />
         {/* Real football only; simulated-matchday pages switch it to their sim games. */}
-        {!hideTicker && <ScoresTicker initial={await liveBoard(user?.id ?? null, new Date(), "real")} />}
+        {!hideTicker && <ScoresTicker initial={{ ...(await liveBoard(user?.id ?? null, new Date(), "real")), extras: await (await import("@/server/ticker")).tickerItems("home") }} />}
         {user && <MomentOverlay moment={await nextMoment(user.id)} />}
         <main id="main" tabIndex={-1} className={`mx-auto outline-none w-full max-w-6xl flex-1 px-4 pt-6 sm:px-6 ${user ? "pb-32 md:pb-16" : "pb-16"}`}>{children}</main>
         <SiteFooter loggedIn={!!user} credit={await dataCredit()} />

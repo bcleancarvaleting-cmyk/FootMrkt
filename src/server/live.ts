@@ -1,7 +1,7 @@
 import { CURRENT_SCORING_RULES, getScoringRules, scorePlayer, toStatLine } from "@/domain/football/scoring";
 import { db } from "./db";
 import { notify } from "./notifications";
-import { QUICK_HALF, REAL_TIME_HALF, simClock } from "./sim-matchday";
+import { simAt, simPlan } from "./sim-matchday";
 
 /**
  * Matchday live: scores for the scores ticker, and — for a signed-in manager — the live points of
@@ -121,7 +121,7 @@ async function tickerFixtures(now: Date, scope: LiveScope) {
   }
   const motmIds = rows.map((r) => r.motmPlayerId).filter((x): x is string => !!x);
   const names = new Map((motmIds.length ? await db.player.findMany({ where: { id: { in: motmIds } }, select: { id: true, displayName: true } }) : []).map((p) => [p.id, p.displayName]));
-  const quick = rows.some((f) => f.gameweek.simulated && (f.gameweek.simHalfSeconds ?? REAL_TIME_HALF) <= QUICK_HALF * 2 && f.status !== "FINISHED" && f.kickoffAt.getTime() - now.getTime() < 3 * 60_000);
+  const quick = rows.some((f) => f.gameweek.simulated && simPlan(f.gameweekId, f.gameweek.simHalfSeconds).half <= 600 && f.status !== "FINISHED" && f.kickoffAt.getTime() - now.getTime() < 3 * 60_000);
   const fixtures = rows.map(
     (f): LiveFixture => ({
       motm: f.motmPlayerId ? (names.get(f.motmPlayerId) ?? null) : null,
@@ -134,7 +134,7 @@ async function tickerFixtures(now: Date, scope: LiveScope) {
       homeGoals: f.homeGoals,
       awayGoals: f.awayGoals,
       status: f.status === "ABANDONED" ? "POSTPONED" : (f.status as LiveFixture["status"]),
-      clock: f.gameweek.simulated ? (f.status === "LIVE" ? simClock(f.kickoffAt, now, f.gameweek.simHalfSeconds ?? REAL_TIME_HALF) : null) : matchClock(f.status, f.kickoffAt, f.minute, now),
+      clock: f.gameweek.simulated ? (f.status === "LIVE" ? simAt(simPlan(f.gameweekId, f.gameweek.simHalfSeconds), f.kickoffAt, now).clock : null) : matchClock(f.status, f.kickoffAt, f.minute, now),
       kickoffAt: f.kickoffAt.toISOString(),
     }),
   );

@@ -3,7 +3,7 @@ import { submitEntry } from "@/server/competitions";
 import { db } from "@/server/db";
 import { createGameweek } from "@/server/gameweeks";
 import { openPack } from "@/server/packs";
-import { createSimMatchday, playSimMatchdays, simClock, simMinute, ukLocalToDate } from "@/server/sim-matchday";
+import { createSimMatchday, playSimMatchdays, simAt, simPlan, ukLocalToDate } from "@/server/sim-matchday";
 import { performanceTable } from "@/server/top-performers";
 import { pickTeamOfTheWeek } from "@/server/totw";
 import { buildWorld, makeUser, resetDb } from "./fixtures";
@@ -16,25 +16,27 @@ beforeEach(async () => {
 });
 
 describe("simulated matchdays", () => {
-  it("maps real time to a match clock with half time", () => {
+  it("short games by default: 2½-minute halves, a 10-second break and added time", () => {
     const ko = new Date("2026-11-14T19:00:00Z");
-    const at = (m: number) => simMinute(ko, new Date(ko.getTime() + m * MIN));
-    expect(at(-1)).toBeNull();
-    expect(at(0.5)).toBe(1);
-    expect(at(30)).toBe(30);
-    expect(at(50)).toBe(45); // half time
-    expect(at(75)).toBe(60);
-    expect(at(104)).toBe(89);
-    expect(at(106)).toBe(90);
-    // Quick: 2-minute halves, 40 seconds of half time.
-    const q = (sec: number) => simMinute(ko, new Date(ko.getTime() + sec * 1000), 120);
-    expect(q(60)).toBe(23);
-    expect(q(120)).toBe(45);
-    expect(q(150)).toBe(45);
-    expect(q(220)).toBe(68);
-    expect(q(281)).toBe(90);
-    expect(simClock(ko, new Date(ko.getTime() + 140_000), 120)).toBe("HT");
-    expect(simClock(ko, new Date(ko.getTime() + 290_000), 120)).toBe("FT");
+    const plan = simPlan("gw-1", undefined);
+    expect(plan.half).toBe(150);
+    expect(plan.brk).toBe(10);
+    expect(plan.added1).toBeGreaterThanOrEqual(1);
+    expect(plan.added1).toBeLessThanOrEqual(4);
+    expect(plan.added2).toBeGreaterThanOrEqual(3);
+    expect(plan.added2).toBeLessThanOrEqual(7);
+    expect(simPlan("gw-1", null)).toEqual(plan); // fixed per matchday
+    const at = (sec: number) => simAt(plan, ko, new Date(ko.getTime() + sec * 1000));
+    expect(at(-1).clock).toBeNull();
+    expect(at(75)).toMatchObject({ minute: 23, clock: "23'" });
+    expect(at(150.5)).toMatchObject({ minute: 45, clock: "45+1'", added: plan.added1 });
+    expect(at(plan.firstEnd + 5).clock).toBe("HT");
+    expect(at(plan.secondStart + 75)).toMatchObject({ clock: "68'" });
+    expect(at(plan.secondStart + 150.5)).toMatchObject({ minute: 89, clock: "90+1'", added: plan.added2 });
+    expect(at(plan.end + 1)).toMatchObject({ minute: 90, clock: "FT" });
+    // Real time is still available: 45-minute halves.
+    const real = simPlan("gw-1", 2700);
+    expect(simAt(real, ko, new Date(ko.getTime() + 30 * MIN)).clock).toBe("30'");
   });
 
   it("reads admin times as UK time, GMT or BST", () => {
@@ -80,18 +82,19 @@ describe("simulated matchdays", () => {
     expect(mid.every(([s]) => s === "LIVE")).toBe(true);
     expect((await db.gameweek.findUniqueOrThrow({ where: { id: gameweekId } })).status).toBe("PROVISIONAL");
 
-    await playSimMatchdays(at(106));
+    const endMin = simPlan(gameweekId, 2700).end / 60;
+    await playSimMatchdays(at(endMin + 0.1));
     const ft = await goals();
     expect(ft.every(([s]) => s === "FINISHED")).toBe(true);
     ft.forEach(([, g], i) => expect(g).toBeGreaterThanOrEqual(mid[i][1])); // goals only ever go up
     expect((await db.gameweek.findUniqueOrThrow({ where: { id: gameweekId } })).status).toBe("PROVISIONAL");
 
-    await playSimMatchdays(at(111));
+    await playSimMatchdays(at(endMin + 6));
     expect((await db.gameweek.findUniqueOrThrow({ where: { id: gameweekId } })).status).toBe("SETTLED");
 
     // Simulated results stay out of real-world stats.
     expect(await performanceTable({ window: "last" })).toHaveLength(0);
-    expect((await pickTeamOfTheWeek(at(112))).picked).toHaveLength(0);
+    expect((await pickTeamOfTheWeek(at(endMin + 7))).picked).toHaveLength(0);
   });
 
   it("quick sims: managers enter with cards already in a real squad, watch a live feed, and get paid out in ~5 minutes", async () => {
@@ -129,7 +132,8 @@ describe("simulated matchdays", () => {
     await playSimMatchdays(at(100));
     const mid = await db.fixture.findMany({ where: { gameweekId: sim.gameweekId } });
     expect(mid.every((f) => f.status === "LIVE")).toBe(true);
-    await playSimMatchdays(at(285));
+    const end = simPlan(sim.gameweekId, null).end;
+    await playSimMatchdays(at(end + 1));
     const ft = await db.fixture.findMany({ where: { gameweekId: sim.gameweekId } });
     expect(ft.every((f) => f.status === "FINISHED")).toBe(true);
     // The feed matches the score: one goal event per goal.
@@ -140,7 +144,7 @@ describe("simulated matchdays", () => {
       expect(goals("away")).toBe(f.awayGoals);
       expect(ev.every((e) => e.player && e.minute >= 1 && e.minute <= 90)).toBe(true);
     }
-    await playSimMatchdays(at(300));
+    await playSimMatchdays(at(end + 8));
     expect((await db.competition.findUniqueOrThrow({ where: { id: comp.id } })).status).toBe("SETTLED");
     const entry = await db.competitionEntry.findFirstOrThrow({ where: { competitionId: comp.id } });
     expect(entry.rank).toBe(1);

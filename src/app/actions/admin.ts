@@ -229,7 +229,6 @@ export async function createSimMatchdayAction(_: ActionResult | null, f: FormDat
     if (!Number.isFinite(fee) || fee < 0) throw new DomainError("FEE", "Entry fee must be £0 or more.");
     return sim.createSimMatchday(admin.id, {
       kickoffAt,
-      speed: s("speed") === "real" ? "real" : "quick",
       copyFrom: f.get("copy") === "on" ? "latest" : null,
       match: s("name")
         ? { name: s("name"), tier: tier("tier"), freeCardsOnly: f.get("freeOnly") === "on", entryFeeMinor: Math.round(fee * 100), prizes: s("prizes") || undefined, winnerPack: tier("winnerPack") }

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { WatchBoard, WatchFixture, WatchLine, WatchTable } from "@/server/watch";
 
 const ROW = 52; // px per table row (rows slide to their new place)
-const ICON: Record<WatchLine["kind"], string> = { goal: "⚽", own_goal: "⚽", yellow: "🟨", red: "🟥", pen_miss: "❌" };
+const ICON: Record<WatchLine["kind"], string> = { goal: "⚽", own_goal: "⚽", yellow: "🟨", red: "🟥", pen_miss: "❌", time: "⏱" };
 
 /**
  * Watch live: a broadcast-style screen. Vidiprinter of every goal and card as it happens, every
@@ -113,9 +113,16 @@ export function WatchLive({ initial }: { initial: WatchBoard }) {
                 </p>
               </>
             ) : (
-              <p key={board.clock} className={`watch-clock font-display text-6xl font-black italic leading-none tabular-nums sm:text-8xl ${live ? "text-lime" : "text-fg"}`}>
-                {board.clock ?? "—"}
-              </p>
+              <>
+                <p key={board.clock} className={`watch-clock font-display text-6xl font-black italic leading-none tabular-nums sm:text-8xl ${live ? "text-lime" : "text-fg"}`}>
+                  {board.clock ?? "—"}
+                </p>
+                {board.added && (
+                  <p className="watch-board mt-2 inline-flex items-center gap-2 rounded-lg border-2 border-[#ff3b3b] bg-black px-3 py-1 font-mono text-lg font-black text-[#ff3b3b] shadow-[0_0_20px_rgba(255,59,59,0.35)]">
+                    +{board.added} <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/80">mins added time</span>
+                  </p>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -131,8 +138,8 @@ export function WatchLive({ initial }: { initial: WatchBoard }) {
           <ol className="max-h-[420px] space-y-0 overflow-y-auto p-3 font-mono text-[13px] leading-relaxed" aria-live="polite">
             {board.feed.length === 0 && <li className="px-1 py-2 text-white/40">{board.phase === "pre" ? "Waiting for kick-off…" : "No goals or cards yet…"}</li>}
             {board.feed.map((l) => (
-              <li key={l.key} className={`flex gap-2 rounded px-1 py-1 ${fresh.has(l.key) ? "vidi-in bg-lime/10" : ""} ${l.kind === "goal" || l.kind === "own_goal" ? "text-lime" : l.kind === "red" ? "text-danger" : "text-white/70"}`}>
-                <span className="w-8 shrink-0 text-right text-white/40">{l.minute}&apos;</span>
+              <li key={l.key} className={`flex gap-2 rounded px-1 py-1 ${fresh.has(l.key) ? "vidi-in bg-lime/10" : ""} ${l.kind === "goal" || l.kind === "own_goal" ? "text-lime" : l.kind === "red" ? "text-danger" : l.kind === "time" ? "text-[#8fe3ff]" : "text-white/70"}`}>
+                <span className="w-8 shrink-0 text-right text-white/40">{Math.floor(l.minute)}&apos;</span>
                 <span aria-hidden="true">{ICON[l.kind]}</span>
                 <span className="min-w-0">
                   <span className="block font-bold uppercase">{l.score}</span>

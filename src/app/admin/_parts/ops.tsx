@@ -107,7 +107,7 @@ export async function OpsSections({ only }: { only: string[] }) {
           <h3 className="font-bold">Simulated matchdays</h3>
           <p className="mb-3 mt-1 text-xs text-muted">
             Every real club plays once, all kicking off together, clearly labelled <b>SIM</b> for players. Results are simulated from each player&apos;s real form and value.
-            <b> Quick</b> speed plays 2-minute halves: goals, assists and cards appear live on Matchday Live, and the matchday settles and pays prizes about 5 minutes after kick-off.
+            Each game is short: a 2½-minute first half, a 10-second break and a 2½-minute second half, each with a few minutes of added time. Goals, assists and cards appear live on the Watch screen, and it settles and pays prizes about 6 minutes after kick-off.
             Name a match below and it&apos;s open for entries straight away (squads lock 1 minute before kick-off). Players can use cards that are already in a real-gameweek squad.
             Sim results never touch real stats, values, Top performers, Team of the Week or the Mega League.
           </p>

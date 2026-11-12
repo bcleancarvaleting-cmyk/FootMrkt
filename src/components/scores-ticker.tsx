@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { LiveBoard, LiveFixture } from "@/server/live";
+import type { TickerItem as TItem, TickerMode } from "@/server/ticker";
 
 /**
  * The scores ticker: a broadcast-style strip under the header with today's live scores, results
@@ -10,32 +11,43 @@ import type { LiveBoard, LiveFixture } from "@/server/live";
  * it flashes GOAL!, and when one of your players scores you get a "+6 for you" pop-up.
  */
 /**
- * Which games the ticker shows. Real football everywhere; a simulated-matchday page (and Matchday
- * Live while a sim is on) switches it to that sim's games by rendering <SimTickerScope />.
+ * What the strip shows depends on the page: home (and pages without their own) = games coming up
+ * in the next 6 hours, real scores, then top performers; transfers = recent transfers; matches =
+ * every score, real and sim; sim pages = the sim games while they're played. A page picks its
+ * mode by rendering <TickerMode mode="…" /> (or <SimTickerScope />).
  */
-type Scope = "real" | "sim";
-const ScopeContext = createContext<{ scope: Scope; setScope: (s: Scope) => void }>({ scope: "real", setScope: () => {} });
+type Mode = TickerMode;
+const SCOPE: Record<Mode, "real" | "sim" | "all"> = { home: "real", transfers: "real", matches: "all", sim: "sim" };
+const ModeContext = createContext<{ mode: Mode; setMode: (m: Mode) => void }>({ mode: "home", setMode: () => {} });
 
 export function TickerScopeProvider({ children }: { children: React.ReactNode }) {
-  const [scope, setScope] = useState<Scope>("real");
-  return <ScopeContext.Provider value={{ scope, setScope }}>{children}</ScopeContext.Provider>;
+  const [mode, setMode] = useState<Mode>("home");
+  return <ModeContext.Provider value={{ mode, setMode }}>{children}</ModeContext.Provider>;
 }
 
-/** Put on a sim page: the ticker shows the sim games while this page is open. */
-export function SimTickerScope() {
-  const { setScope } = useContext(ScopeContext);
+/** Put on a page to choose what the strip shows while that page is open. */
+export function TickerMode({ mode }: { mode: Mode }) {
+  const { setMode } = useContext(ModeContext);
   useEffect(() => {
-    setScope("sim");
-    return () => setScope("real");
-  }, [setScope]);
+    setMode(mode);
+    return () => setMode("home");
+  }, [mode, setMode]);
   return null;
 }
 
-export function ScoresTicker({ initial }: { initial: LiveBoard }) {
-  const { scope } = useContext(ScopeContext);
-  const [board, setBoard] = useState(initial);
-  // Which scope the board on screen belongs to (hide the real games while a sim page loads its own).
-  const [shown, setShown] = useState<Scope>("real");
+/** Sim pages: the strip shows the sim games while they're being played. */
+export function SimTickerScope() {
+  return <TickerMode mode="sim" />;
+}
+
+type Board = LiveBoard & { extras?: { before: TItem[]; after: TItem[] } };
+
+export function ScoresTicker({ initial }: { initial: Board }) {
+  const { mode } = useContext(ModeContext);
+  const scope = SCOPE[mode];
+  const [board, setBoard] = useState<Board>(initial);
+  // Which mode the board on screen belongs to (hide the home strip while another page loads its own).
+  const [shown, setShown] = useState<Mode>("home");
   const [flash, setFlash] = useState<{ key: number; title: string; line: string; who: string | null } | null>(null);
   const [toasts, setToasts] = useState<Array<{ key: number; text: string }>>([]);
   const prev = useRef(initial);
@@ -43,12 +55,12 @@ export function ScoresTicker({ initial }: { initial: LiveBoard }) {
   useEffect(() => {
     let stop = false;
     let timer: ReturnType<typeof setTimeout>;
-    let switched = scope !== "real";
+    let switched = mode !== "home";
     const poll = async () => {
       try {
-        const r = await fetch(`/api/live?scope=${scope}`, { cache: "no-store" });
+        const r = await fetch(`/api/live?scope=${scope}&mode=${mode}`, { cache: "no-store" });
         if (r.ok && !stop) {
-          const next = (await r.json()) as LiveBoard;
+          const next = (await r.json()) as Board;
           // Switching between real and sim games isn't a goal.
           const { flash: f, gains } = switched ? { flash: null, gains: [] } : changesBetween(prev.current, next);
           switched = false;
@@ -62,40 +74,51 @@ export function ScoresTicker({ initial }: { initial: LiveBoard }) {
           }
           prev.current = next;
           setBoard(next);
-          setShown(scope);
+          setShown(mode);
         }
       } catch {
         /* keep the last scores */
       }
       if (!stop) timer = setTimeout(poll, prev.current.fast ? 4_000 : prev.current.liveCount > 0 ? 15_000 : 30_000);
     };
-    // A sim page loads its games straight away; the real board starts from the server's copy.
-    timer = setTimeout(poll, scope === "sim" ? 0 : initial.fast ? 4_000 : initial.liveCount > 0 ? 15_000 : 30_000);
+    // Another page loads its own strip straight away; home starts from the server's copy.
+    timer = setTimeout(poll, mode !== "home" ? 0 : initial.fast ? 4_000 : initial.liveCount > 0 ? 15_000 : 30_000);
     return () => {
       stop = true;
       clearTimeout(timer);
     };
-  }, [initial.liveCount, initial.fast, scope]);
+  }, [initial.liveCount, initial.fast, scope, mode]);
 
-  if (!board.fixtures.length || shown !== scope) return null;
-  const live = board.liveCount > 0;
-  const items = board.fixtures;
-  // Long enough to read: ~3.5s per match on screen.
-  const duration = Math.max(30, items.length * 3.5);
+  if (shown !== mode) return null;
+  const before = board.extras?.before ?? [];
+  const after = board.extras?.after ?? [];
+  const items = mode === "transfers" ? [] : board.fixtures;
+  if (!items.length && !before.length && !after.length) return null;
+  const live = board.liveCount > 0 && mode !== "transfers";
+  // Long enough to read: ~3.5s per item on screen.
+  const duration = Math.max(30, (items.length + before.length + after.length) * 3.5);
+  const href = mode === "transfers" ? "/transfers" : mode === "sim" ? "/watch" : "/live";
+  const label = mode === "transfers" ? "Transfers" : live ? `Live · ${board.liveCount}` : mode === "home" && before.length ? "Up next" : "Scores";
 
   return (
     <>
       <div className="scores-ticker relative z-30 flex h-9 items-stretch overflow-hidden border-b border-ink-700 bg-[#050607] text-[#f4f5f2]" role="region" aria-label={live ? "Live scores" : "Latest scores"}>
-        <Link href="/live" className="ticker-label relative z-10 flex shrink-0 items-center gap-2 bg-[#adfc07] pl-3 pr-6 text-[11px] font-black uppercase italic tracking-[0.14em] text-[#0a0d02]">
+        <Link href={href} className="ticker-label relative z-10 flex shrink-0 items-center gap-2 bg-[#adfc07] pl-3 pr-6 text-[11px] font-black uppercase italic tracking-[0.14em] text-[#0a0d02]">
           {live && <span className="h-2 w-2 animate-pulse rounded-full bg-[#e5173f]" aria-hidden="true" />}
-          {live ? `Live · ${board.liveCount}` : "Scores"}
+          {label}
         </Link>
-        <Link href="/live" className="ticker-viewport relative min-w-0 flex-1 overflow-hidden" aria-label="Open Matchday Live">
+        <Link href={href} className="ticker-viewport relative min-w-0 flex-1 overflow-hidden" aria-label={mode === "transfers" ? "Open Transfers" : "Open Matchday Live"}>
           <div className="ticker-track flex h-full w-max items-center" style={{ animationDuration: `${duration}s` }}>
             {[0, 1].map((copy) => (
               <ul key={copy} className="flex h-full items-center" aria-hidden={copy === 1}>
+                {before.map((t) => (
+                  <ExtraItem key={`${copy}-${t.key}`} t={t} />
+                ))}
                 {items.map((f) => (
                   <TickerItem key={`${copy}-${f.id}`} f={f} />
+                ))}
+                {after.map((t) => (
+                  <ExtraItem key={`${copy}-${t.key}`} t={t} />
                 ))}
               </ul>
             ))}
@@ -123,6 +146,19 @@ export function ScoresTicker({ initial }: { initial: LiveBoard }) {
         </div>
       )}
     </>
+  );
+}
+
+const TONE: Record<NonNullable<TItem["tone"]>, string> = { lime: "text-[#adfc07]", gold: "text-[#f0cb5a]", silver: "text-[#c9d1d9]", bronze: "text-[#d79a62]", sim: "text-[#8fe3ff]" };
+
+function ExtraItem({ t }: { t: TItem }) {
+  return (
+    <li className="flex h-full items-center gap-2 whitespace-nowrap border-r border-white/10 px-4 text-[12px] font-bold uppercase tracking-wide">
+      <span className={`text-[9px] font-extrabold tracking-[0.16em] ${t.kind === "upcoming" && t.tone === "sim" ? "rounded bg-[#8fe3ff] px-1 text-[#04121a]" : "text-white/40"}`}>{t.tag}</span>
+      <span className={t.kind === "transfer" ? TONE[t.tone ?? "lime"] : ""}>{t.title}</span>
+      {t.sub && <span className="text-white/50">{t.sub}</span>}
+      {t.value && <span className={`rounded bg-white/10 px-1.5 py-0.5 tabular-nums ${t.kind === "transfer" ? "text-[#adfc07]" : TONE[t.tone ?? "lime"]}`}>{t.value}</span>}
+    </li>
   );
 }
 

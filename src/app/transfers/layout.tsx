@@ -1,6 +1,6 @@
 import { requireUser } from "@/server/auth/session";
 import { db } from "@/server/db";
-import { TransferTicker } from "@/components/transfer-ticker";
+import { TickerMode } from "@/components/scores-ticker";
 import { TransfersTabs } from "./tabs";
 
 export default async function TransfersLayout({ children }: { children: React.ReactNode }) {
@@ -14,7 +14,7 @@ export default async function TransfersLayout({ children }: { children: React.Re
   return (
     <div>
       <TransfersTabs drops={drops} offers={offers} auctions={auctions} basket={basket} />
-      <TransferTicker />
+      <TickerMode mode="transfers" />
       {children}
     </div>
   );

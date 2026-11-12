@@ -83,7 +83,9 @@ export async function debit(
     );
   }
   if (fromCash > Math.max(0, bal.cash)) {
-    throw new DomainError("INSUFFICIENT_FUNDS", `Not enough credit — this needs ${fmtMp(args.amountMinor)} and your balance is ${fmtMp(Math.max(0, bal.total))}.`);
+    throw new DomainError("INSUFFICIENT_FUNDS", `Not enough credit — this needs ${fmtMp(args.amountMinor)} and your balance is ${fmtMp(Math.max(0, bal.total))}.`, {
+      shortMinor: args.amountMinor - Math.max(0, bal.total),
+    });
   }
   const rows = [];
   if (fromBonus > 0) rows.push({ userId: args.userId, kind: args.kind, bucket: "BONUS" as const, amountMinor: -fromBonus, refId: `${args.refId}:b`, note: args.note });

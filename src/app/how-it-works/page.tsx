@@ -19,6 +19,7 @@ export default function HowItWorks() {
     ["Own goal", s.ownGoal],
     ["Missed penalty", s.penaltyMissed],
     [`Every ${s.goalsConceded.per} goals conceded (GK/DEF)`, s.goalsConceded.points],
+    ...(s.motm ? ([["Man of the Match (top MATCHX scorer in the game)", s.motm]] as Array<[string, number]>) : []),
   ];
   return (
     <div className="mx-auto max-w-3xl space-y-10">

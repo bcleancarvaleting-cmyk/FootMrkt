@@ -768,6 +768,8 @@ model Fixture {
   awayGoals         Int?
   // Match clock while LIVE, when the provider sends it.
   minute            Int?
+  // Man of the Match: the top MATCHX scorer once the game is finished (+3 from scoring v3).
+  motmPlayerId      String?       @db.Uuid
   finalisedAt       DateTime?
 
   stats PlayerMatchStat[]

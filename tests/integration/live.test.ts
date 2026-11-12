@@ -3,7 +3,8 @@ import { toStatLine } from "@/domain/football/scoring";
 import { submitEntry } from "@/server/competitions";
 import { db } from "@/server/db";
 import { createGameweek, simulateFixturesNow } from "@/server/gameweeks";
-import { alertGoals, liveBoard, matchClock } from "@/server/live";
+import { alertGoals, awardMotm, liveBoard, matchClock } from "@/server/live";
+import { CURRENT_SCORING_RULES, getScoringRules, scorePlayer } from "@/domain/football/scoring";
 import { openPack } from "@/server/packs";
 import { buildWorld, makeUser, resetDb } from "./fixtures";
 
@@ -57,5 +58,39 @@ describe("matchday live", () => {
       expect(goals).toHaveLength(2);
       expect(goals.some((g) => g.title.includes("brace"))).toBe(true);
     }
+  });
+
+  it("Man of the Match: the top scorer of each finished game gets +3 in squads, once", async () => {
+    const rules = getScoringRules(CURRENT_SCORING_RULES);
+    const line = toStatLine({ minutes: 90, goals: 1 });
+    expect(scorePlayer(rules, "MID", [line], 1).points - scorePlayer(rules, "MID", [line]).points).toBe(3);
+    expect(scorePlayer(rules, "MID", [toStatLine({ minutes: 0 })], 1).points).toBe(0); // must have played
+
+    const now = new Date();
+    const gw = await createGameweek({ season: "T", number: 1, opensAt: new Date(now.getTime() - 1000), firstKickoffAt: new Date(now.getTime() + 3600_000), actorId: null });
+    const open = await db.competition.findFirstOrThrow({ where: { gameweekId: gw.id, code: { endsWith: "-open" } } });
+    expect(open.scoringRules).toBe("football-scoring-v3-draft");
+    const a = await makeUser("motma");
+    await submitEntry(a.userId, open.id, await squad(a.userId, a.starterEntitlementId));
+    await simulateFixturesNow(gw.id, "all", null);
+    const before = (await db.competitionEntry.findFirstOrThrow({ where: { userId: a.userId } })).provisionalPoints ?? 0;
+
+    // Make one of their starters the standout in their game.
+    const starters = await db.competitionSelection.findMany({ where: { entry: { userId: a.userId }, slot: "STARTER", isCaptain: false } });
+    const stat = await db.playerMatchStat.findFirstOrThrow({ where: { playerId: { in: starters.map((x) => x.playerId) }, isCurrent: true } });
+    const pick = starters.find((x) => x.playerId === stat.playerId)!;
+    await db.playerMatchStat.update({ where: { id: stat.id }, data: { stats: { ...(stat.stats as object), minutes: 90, goals: 4 } } });
+    await db.fixture.updateMany({ where: { gameweekId: gw.id }, data: { finalisedAt: new Date() } });
+    const { refreshProvisional } = await import("@/server/gameweeks");
+    await refreshProvisional(gw.id);
+    const withGoals = (await db.competitionEntry.findFirstOrThrow({ where: { userId: a.userId } })).provisionalPoints ?? 0;
+    expect(withGoals).toBeGreaterThan(before);
+
+    expect(await awardMotm()).toBeGreaterThan(0);
+    expect((await db.fixture.findUniqueOrThrow({ where: { id: stat.fixtureId } })).motmPlayerId).toBe(pick.playerId);
+    const after = (await db.competitionEntry.findFirstOrThrow({ where: { userId: a.userId } })).provisionalPoints ?? 0;
+    expect(after - withGoals).toBe(3);
+    expect(await db.notification.count({ where: { userId: a.userId, kind: "MOTM" } })).toBeGreaterThanOrEqual(1);
+    expect(await awardMotm()).toBe(0); // unchanged on the next run
   });
 });

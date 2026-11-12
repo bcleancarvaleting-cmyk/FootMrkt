@@ -218,6 +218,8 @@ export async function refreshProvisional(gameweekId: string) {
 export async function finaliseGameweek(gameweekId: string, actorId: string | null, valuationAt = new Date()) {
   const pending = await db.fixture.count({ where: { gameweekId, status: { in: ["SCHEDULED", "LIVE"] } } });
   if (pending) throw new DomainError("FIXTURES_PENDING", `${pending} fixture(s) still to be played.`);
+  // Man of the Match is decided for every finished game before anything settles.
+  await (await import("./live")).awardMotm(valuationAt);
   const comps = await db.competition.findMany({ where: { gameweekId, status: { in: ["LOCKED", "PROVISIONAL"] } } });
   for (const c of comps) await settleCompetition(c.id, actorId);
   await db.gameweek.update({ where: { id: gameweekId }, data: { status: "SETTLED" } });

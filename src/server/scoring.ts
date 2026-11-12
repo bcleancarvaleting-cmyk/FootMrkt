@@ -41,7 +41,8 @@ export async function loadGameweekData(tx: Tx | typeof db, gameweekId: string, p
     if (minutes > 0) appearance = "PLAYED";
     else if (clubFixtures.every((f) => TERMINAL.has(f.status))) appearance = "DID_NOT_PLAY";
     else appearance = "PENDING";
-    data.set(p.id, { appearance, lines });
+    const motm = fixtures.filter((f) => f.motmPlayerId === p.id).length;
+    data.set(p.id, { appearance, lines, ...(motm ? { motm } : {}) });
   }
   return data;
 }
@@ -232,9 +233,12 @@ export async function reproduceCalculation(calculationId: string) {
   const stats = await db.playerMatchStat.findMany({ where: { id: { in: statIds } }, orderBy: { id: "asc" } });
   const data = new Map<string, PlayerGameweekData>();
   for (const sel of breakdown.selections) {
+    // Man of the Match awards were an input too: recorded as a line in the breakdown.
+    const motm = sel.items.find((i) => i.event === "Man of the Match")?.count ?? 0;
     data.set(sel.playerId, {
       appearance: sel.appearance,
       lines: stats.filter((s) => s.playerId === sel.playerId).map((s) => ({ statId: s.id, line: toStatLine(s.stats) })),
+      ...(motm ? { motm } : {}),
     });
   }
   const recomputed = scoreSquad(

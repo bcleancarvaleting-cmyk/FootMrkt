@@ -171,6 +171,7 @@ function Fixture({ f, flash }: { f: LiveFixture; flash: boolean }) {
         {side(f.home, f.homeGoals)}
         {side(f.away, f.awayGoals)}
       </div>
+      {f.motm && <p className="mt-2 border-t border-ink-700 pt-2 text-xs text-muted">🏅 Man of the Match: <b className="text-gold">{f.motm}</b> <span className="text-faint">+3</span></p>}
     </li>
   );
 }

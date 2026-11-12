@@ -20,6 +20,8 @@ export interface LiveFixture {
   /** Clock while live: the provider's minute, or an estimate from kick-off ("HT" at the break). */
   clock: string | null;
   kickoffAt: string;
+  /** Man of the Match, once the game is over. */
+  motm: string | null;
 }
 
 export interface LivePlayer {
@@ -67,6 +69,7 @@ async function tickerFixtures(now: Date) {
     homeGoals: true,
     awayGoals: true,
     minute: true,
+    motmPlayerId: true,
     kickoffAt: true,
     homeClub: { select: { code: true, name: true, primaryColour: true, league: { select: { code: true } } } },
     awayClub: { select: { code: true, name: true, primaryColour: true } },
@@ -82,8 +85,11 @@ async function tickerFixtures(now: Date) {
   if (!rows.length) {
     rows = (await db.fixture.findMany({ where: { status: "FINISHED", kickoffAt: { gte: new Date(now.getTime() - 4 * 24 * HOUR) } }, orderBy: { kickoffAt: "desc" }, take: 24, select })).reverse();
   }
+  const motmIds = rows.map((r) => r.motmPlayerId).filter((x): x is string => !!x);
+  const names = new Map((motmIds.length ? await db.player.findMany({ where: { id: { in: motmIds } }, select: { id: true, displayName: true } }) : []).map((p) => [p.id, p.displayName]));
   return rows.map(
     (f): LiveFixture => ({
+      motm: f.motmPlayerId ? (names.get(f.motmPlayerId) ?? null) : null,
       id: f.id,
       home: { code: f.homeClub.code, name: f.homeClub.name, colour: f.homeClub.primaryColour },
       away: { code: f.awayClub.code, name: f.awayClub.name, colour: f.awayClub.primaryColour },
@@ -188,4 +194,57 @@ export async function alertGoals(now = new Date()) {
     }
   }
   return sent;
+}
+
+/**
+ * Man of the Match: for every finished game, the player with the most MATCHX points (before any
+ * bonus; ties go to goals, then assists, then minutes). Re-checked for a week so provider
+ * corrections can change it; when it changes, that gameweek's live scores are recalculated and
+ * managers with him in a locked squad are told.
+ */
+export async function awardMotm(now = new Date()) {
+  const fixtures = await db.fixture.findMany({
+    where: { status: "FINISHED", OR: [{ finalisedAt: { gte: new Date(now.getTime() - 7 * 24 * HOUR) } }, { motmPlayerId: null, finalisedAt: { not: null } }] },
+    select: { id: true, gameweekId: true, motmPlayerId: true, homeGoals: true, awayGoals: true, homeClub: { select: { code: true } }, awayClub: { select: { code: true } } },
+    take: 300,
+  });
+  if (!fixtures.length) return 0;
+  const stats = await db.playerMatchStat.findMany({
+    where: { isCurrent: true, fixtureId: { in: fixtures.map((f) => f.id) } },
+    select: { fixtureId: true, playerId: true, stats: true, player: { select: { position: true, displayName: true } } },
+  });
+  const rules = getScoringRules(CURRENT_SCORING_RULES);
+  const changedGws = new Set<string>();
+  let changed = 0;
+  for (const f of fixtures) {
+    const ranked = stats
+      .filter((s) => s.fixtureId === f.id)
+      .map((s) => ({ s, line: toStatLine(s.stats) }))
+      .filter((x) => x.line.minutes > 0)
+      .map((x) => ({ ...x, pts: scorePlayer(rules, x.s.player.position, [x.line]).points }))
+      .sort((a, b) => b.pts - a.pts || b.line.goals - a.line.goals || b.line.assists - a.line.assists || b.line.minutes - a.line.minutes || a.s.playerId.localeCompare(b.s.playerId));
+    const best = ranked[0];
+    if (!best || best.s.playerId === f.motmPlayerId) continue;
+    await db.fixture.update({ where: { id: f.id }, data: { motmPlayerId: best.s.playerId } });
+    changedGws.add(f.gameweekId);
+    changed++;
+    const owners = await db.competitionSelection.findMany({
+      where: { playerId: best.s.playerId, entry: { status: "ACTIVE", competition: { gameweekId: f.gameweekId, status: { in: ["LOCKED", "PROVISIONAL"] } } } },
+      select: { entry: { select: { userId: true } } },
+    });
+    for (const userId of new Set(owners.map((o) => o.entry.userId))) {
+      await notify(userId, {
+        kind: "MOTM",
+        title: `🏅 ${best.s.player.displayName} is Man of the Match`,
+        body: `${f.homeClub.code} ${f.homeGoals ?? 0}–${f.awayGoals ?? 0} ${f.awayClub.code} — +${rules.motm ?? 3} bonus points for your squad.`,
+        href: "/live",
+        dedupeKey: `motm:${f.id}:${best.s.playerId}:${userId}`,
+      });
+    }
+  }
+  if (changedGws.size) {
+    const { refreshProvisional } = await import("./gameweeks");
+    for (const gw of changedGws) await refreshProvisional(gw);
+  }
+  return changed;
 }

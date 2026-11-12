@@ -67,6 +67,8 @@ export interface ScoringRules {
   ownGoal: number;
   penaltyMissed: number;
   goalsConceded: { per: number; points: number; positions: Position[] };
+  /** Bonus for Man of the Match: the top MATCHX scorer in each finished game (v3+). */
+  motm?: number;
 }
 
 export const SCORING_RULES: Record<string, ScoringRules> = {
@@ -108,10 +110,30 @@ export const SCORING_RULES: Record<string, ScoringRules> = {
     penaltyMissed: -5,
     goalsConceded: { per: 2, points: -1, positions: ["GK", "DEF"] },
   },
+  // v3 (product decision 12 Nov 2026): +3 for Man of the Match.
+  "football-scoring-v3-draft": {
+    id: "football-scoring-v3-draft",
+    status: "DRAFT",
+    appearance: 2,
+    played60: 2,
+    goal: 10,
+    assist: 6,
+    cleanSheet: { points: 5, positions: ["GK", "DEF"], minMinutes: 60 },
+    penaltySave: 8,
+    saves: { per: 3, points: 2 },
+    tackles: { per: 3, points: 1 },
+    yellowCard: -3,
+    redCard: -10,
+    ownGoal: -5,
+    penaltyMissed: -5,
+    goalsConceded: { per: 2, points: -1, positions: ["GK", "DEF"] },
+    motm: 3,
+  },
 };
 
 /** Rule set used for new competitions, form and valuations. */
-export const CURRENT_SCORING_RULES = "football-scoring-v2-draft";
+export const CURRENT_SCORING_RULES = "football-scoring-v3-draft";
+export const MOTM_BONUS = 3;
 
 export function getScoringRules(id: string): ScoringRules {
   const r = SCORING_RULES[id];
@@ -132,7 +154,7 @@ export function sumStatLines(lines: StatLine[]): StatLine {
 }
 
 /** Points for one player's line(s) in a gameweek. Each fixture is scored independently. */
-export function scorePlayer(rules: ScoringRules, position: Position, lines: StatLine[]): { points: number; items: ScoreItem[] } {
+export function scorePlayer(rules: ScoringRules, position: Position, lines: StatLine[], motm = 0): { points: number; items: ScoreItem[] } {
   const items: ScoreItem[] = [];
   const add = (event: string, count: number, each: number) => {
     if (count > 0 && each !== 0) items.push({ event, count, points: count * each });
@@ -165,6 +187,7 @@ export function scorePlayer(rules: ScoringRules, position: Position, lines: Stat
       );
     }
   }
+  if (motm > 0 && rules.motm && lines.some((l) => l.minutes > 0)) add("Man of the Match", motm, rules.motm);
   // Merge identical events across fixtures (double gameweeks) for a tidy breakdown.
   const merged = new Map<string, ScoreItem>();
   for (const it of items) {
@@ -200,6 +223,8 @@ export interface ScoringSelection {
 export interface PlayerGameweekData {
   appearance: AppearanceStatus;
   lines: Array<{ statId: string; line: StatLine }>;
+  /** Man of the Match awards this gameweek (one per finished game). */
+  motm?: number;
 }
 
 export interface SelectionResult {
@@ -280,6 +305,7 @@ export function scoreSquad(
       scoring,
       s.position,
       d.lines.map((l) => l.line),
+      d.motm ?? 0,
     );
     const captainCounts = !!s.captain && s.slot === "STARTER" && d.appearance === "PLAYED";
     const viceCounts = !s.captain && !!s.viceCaptain && captainOut && s.slot === "STARTER" && d.appearance === "PLAYED";
@@ -377,7 +403,9 @@ function hashInputs(
       .map((s) => [s.cardId, s.playerId, s.position, s.slot, s.order]),
     data: [...new Set(selections.map((s) => s.playerId))].sort().map((pid) => {
       const d = data.get(pid);
-      return [pid, d?.appearance ?? "PENDING", [...(d?.lines ?? [])].sort((a, b) => a.statId.localeCompare(b.statId)).map((l) => [l.statId, STAT_KEYS.map((k) => l.line[k] ?? 0)])];
+      const row = [pid, d?.appearance ?? "PENDING", [...(d?.lines ?? [])].sort((a, b) => a.statId.localeCompare(b.statId)).map((l) => [l.statId, STAT_KEYS.map((k) => l.line[k] ?? 0)])];
+      // Only added when awarded, so earlier calculations keep their hashes.
+      return d?.motm ? [...row, { motm: d.motm }] : row;
     }),
   };
   return createHash("sha256").update(JSON.stringify(canonical)).digest("hex");

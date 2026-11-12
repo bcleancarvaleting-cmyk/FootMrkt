@@ -388,7 +388,7 @@ export async function createMatch(adminId: string, input: z.input<typeof NewMatc
         name: `${name} · GW${gw.number}`,
         format: m.tier ? (`${m.tier}_ONLY` as "BRONZE_ONLY" | "SILVER_ONLY" | "GOLD_ONLY") : "OPEN",
         rosterRules: ref?.rosterRules ?? "football-roster-v4",
-        scoringRules: ref?.scoringRules ?? "football-scoring-v2-draft",
+        scoringRules: ref?.scoringRules ?? "football-scoring-v3-draft",
         rewards: rewards as never,
         requirements: requirements as never,
         entryFeeMinor: m.entryFeeMinor,

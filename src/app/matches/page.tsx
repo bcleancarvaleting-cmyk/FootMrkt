@@ -82,6 +82,7 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
           </p>
         </div>
         <span className="flex gap-2">
+          <Link href={gw.status === "SETTLED" ? `/results/${gw.id}` : "/results"} className="btn-ghost px-4 py-2 text-xs">Results</Link>
           <Link href="/leagues" className="btn-ghost px-4 py-2 text-xs">Mini-leagues</Link>
           <Link href="/top-performers" className="btn-ghost px-4 py-2 text-xs">Top performers</Link>
         </span>

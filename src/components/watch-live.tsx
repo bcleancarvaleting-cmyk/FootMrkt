@@ -17,7 +17,7 @@ const ICON: Record<WatchLine["kind"], string> = { goal: "⚽", own_goal: "⚽", 
 type Replay = ReplayData & { viewerId: string | null };
 type View = Pick<WatchBoard, "title" | "phase" | "clock" | "added" | "fixtures" | "feed" | "tables" | "mine" | "scope"> & { progress: number };
 
-export function WatchLive({ initial, gw = null }: { initial: WatchBoard; gw?: string | null }) {
+export function WatchLive({ initial, gw = null, autoReplay = false }: { initial: WatchBoard; gw?: string | null; autoReplay?: boolean }) {
   const [board, setBoard] = useState(initial);
   const [replay, setReplay] = useState<Replay | null>(null);
   const [replayT, setReplayT] = useState(0);
@@ -90,6 +90,13 @@ export function WatchLive({ initial, gw = null }: { initial: WatchBoard; gw?: st
       setLoadingReplay(false);
     }
   }, [board.gameweekId]);
+
+  // Opened from Results → "Watch game": start the replay straight away.
+  useEffect(() => {
+    if (!autoReplay || !initial.replay) return;
+    const t = setTimeout(() => void startReplay(), 0);
+    return () => clearTimeout(t);
+  }, [autoReplay, initial.replay, startReplay]);
 
   const view: View = useMemo(() => (replay ? replayView(replay, replayT, board) : { ...board, progress: liveProgress(board) }), [replay, replayT, board]);
 
@@ -330,7 +337,7 @@ function MyTeams({ teams, enterHref }: { teams: WatchTeam[]; enterHref: string |
   );
 }
 
-function TeamCard({ team, mine = false }: { team: WatchTeam; mine?: boolean }) {
+export function TeamCard({ team, mine = false, label }: { team: WatchTeam; mine?: boolean; label?: string }) {
   const prevRank = useRef(team.rank);
   const [rankMove, setRankMove] = useState(0);
   useEffect(() => {
@@ -348,7 +355,7 @@ function TeamCard({ team, mine = false }: { team: WatchTeam; mine?: boolean }) {
     <div className={`overflow-hidden rounded-3xl border ${mine ? "border-lime/50" : "border-ink-700"} bg-ink-900`}>
       <div className="flex items-end justify-between gap-3 px-4 pb-3 pt-4">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-faint">{mine ? "Your team" : team.manager}</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-faint">{label ?? (mine ? "Your team" : team.manager)}</p>
           <p className="truncate font-display text-xl font-black uppercase italic leading-tight">{team.competition.replace(/ · (SIM|GW) ?\d+$/, "")}</p>
           <p className="mt-1 flex items-center gap-1.5 text-sm">
             <span className="text-muted">Position</span>

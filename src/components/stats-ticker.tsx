@@ -27,14 +27,15 @@ export function StatsTicker({ initial }: { initial: LiveStats }) {
 
   useEffect(() => {
     const tick = setInterval(() => setNow(Date.now()), 1000);
-    const poll = setInterval(async () => {
+    const load = async () => {
       try {
         const r = await fetch("/api/stats", { cache: "no-store" });
         if (r.ok) setStats(await r.json());
       } catch {
         /* keep last good numbers */
       }
-    }, 30_000);
+    };
+    const poll = setInterval(load, 30_000);
     return () => {
       clearInterval(tick);
       clearInterval(poll);
@@ -42,17 +43,36 @@ export function StatsTicker({ initial }: { initial: LiveStats }) {
   }, []);
 
   const gw = stats.gameweek;
-  const left = countdown(gw?.deadline ?? null, now);
-  const deadlineCell = gw
+  const next = stats.next;
+  // The next game or games to lock (real or sim); once it locks, move on to the one after.
+  const left = countdown(next?.deadline ?? null, now);
+  const passed = !!next && !left;
+  useEffect(() => {
+    if (!passed) return;
+    const t = setTimeout(async () => {
+      try {
+        const r = await fetch(`/api/stats?t=${Date.now()}`, { cache: "no-store" });
+        if (r.ok) setStats(await r.json());
+      } catch {
+        /* try again on the next poll */
+      }
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [passed]);
+  const deadlineCell = next
     ? left
-      ? { label: `GW${gw.number} deadline`, value: left, hot: new Date(gw.deadline!).getTime() - now < 3600_000 }
-      : { label: `GW${gw.number}`, value: gw.status === "SETTLED" ? "Final" : "Squads locked", hot: false }
-    : null;
+      ? { label: `${next.label} deadline`, value: left, hot: new Date(next.deadline).getTime() - now < 3600_000 }
+      : { label: next.label, value: "Squads locked", hot: false }
+    : gw
+      ? { label: `GW${gw.number}`, value: gw.status === "SETTLED" ? "Final" : "Squads locked", hot: false }
+      : null;
 
   const cells = [
     ...(deadlineCell ? [deadlineCell] : []),
     { label: "Online now", value: fmt(stats.onlineNow), hot: false },
-    { label: gw ? `In GW${gw.number}` : "Entered", value: fmt(stats.enteredThisGameweek), hot: false },
+    next
+      ? { label: next.sim ? "Entered · next sim" : "Entered · next game", value: fmt(next.entered), hot: false }
+      : { label: gw ? `In GW${gw.number}` : "Entered", value: fmt(stats.enteredThisGameweek), hot: false },
     { label: "Managers", value: fmt(stats.managers), hot: false },
     { label: "Cards in circulation", value: fmt(stats.cardsInCirculation), hot: false },
     { label: "Packs opened today", value: fmt(stats.packsOpenedToday), hot: false },

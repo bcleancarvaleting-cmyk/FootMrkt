@@ -10,6 +10,8 @@ export interface LiveStats {
   cardsInCirculation: number;
   packsOpenedToday: number;
   gameweek: { number: number; status: string; deadline: string | null; firstKickoff: string | null } | null;
+  /** The next game(s) to lock — real or simulated — named as the admin titled them. */
+  next: { label: string; deadline: string; sim: boolean; entered: number } | null;
   generatedAt: string;
 }
 
@@ -28,7 +30,28 @@ export async function liveStats(): Promise<LiveStats> {
     gw ? db.competition.findFirst({ where: { gameweekId: gw.id }, orderBy: { locksAt: "asc" } }) : null,
     gw ? db.fixture.findFirst({ where: { gameweekId: gw.id }, orderBy: { kickoffAt: "asc" } }) : null,
   ]);
+  // Next game(s): the soonest open match deadline, plus any others locking at the same moment.
+  const soon = await db.competition.findMany({
+    where: { status: { in: ["OPEN", "UPCOMING"] }, locksAt: { gt: new Date(now) } },
+    orderBy: [{ locksAt: "asc" }, { name: "asc" }],
+    take: 20,
+    select: { id: true, name: true, locksAt: true, gameweek: { select: { simulated: true, number: true } } },
+  });
+  const firstLock = soon[0]?.locksAt.getTime();
+  const group = soon.filter((c) => c.locksAt.getTime() === firstLock);
+  const nextEntered = group.length
+    ? (await db.competitionEntry.findMany({ where: { status: "ACTIVE", competitionId: { in: group.map((c) => c.id) } }, distinct: ["userId"], select: { userId: true } })).length
+    : 0;
+  const next = group.length
+    ? {
+        label: group.length === 1 ? group[0].name : `${group[0].gameweek.simulated ? `SIM ${group[0].gameweek.number}` : `GW${group[0].gameweek.number}`} · ${group.length} games`,
+        deadline: group[0].locksAt.toISOString(),
+        sim: group[0].gameweek.simulated,
+        entered: nextEntered,
+      }
+    : null;
   return {
+    next,
     onlineNow,
     managers,
     enteredThisGameweek: entered.length,

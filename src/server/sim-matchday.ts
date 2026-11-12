@@ -14,9 +14,9 @@ import { getText } from "./settings";
  * gameweek. Entrants know it's simulated. Simulated results never feed real-world stats: values,
  * Top performers, the form guide, Team of the Week and the Mega League only use real football.
  *
- * Two speeds. Quick (default): every game kicks off together and each half lasts 2 real minutes,
- * with 40 seconds of half time — the whole matchday is over in under 5 minutes, ticking forward
- * every few seconds while anyone is watching. Real time: 45-minute halves and a 15-minute break.
+ * Default: every game kicks off together and each half lasts 5 real minutes (plus added time),
+ * with a 10-second break — the whole matchday takes about 11 minutes, ticking forward every few
+ * seconds while anyone is watching. Real time: 45-minute halves and a 15-minute break.
  * Settled automatically as soon as the last game ends.
  */
 const MIN = 60_000;
@@ -27,8 +27,8 @@ export async function simSeason() {
   return `${await currentSeason()}${SIM_SEASON_SUFFIX}`;
 }
 
-/** Real seconds per half: quick sims (the default) play 2½-minute halves with a 10-second break. */
-export const QUICK_HALF = 150;
+/** Real seconds per half: sims (the default) play 5-minute halves with a 10-second break. */
+export const QUICK_HALF = 300;
 export const REAL_TIME_HALF = 45 * 60;
 
 export interface SimPlan {

@@ -16,10 +16,10 @@ beforeEach(async () => {
 });
 
 describe("simulated matchdays", () => {
-  it("short games by default: 2½-minute halves, a 10-second break and added time", () => {
+  it("short games by default: 5-minute halves, a 10-second break and added time", () => {
     const ko = new Date("2026-11-14T19:00:00Z");
     const plan = simPlan("gw-1", undefined);
-    expect(plan.half).toBe(150);
+    expect(plan.half).toBe(300);
     expect(plan.brk).toBe(10);
     expect(plan.added1).toBeGreaterThanOrEqual(1);
     expect(plan.added1).toBeLessThanOrEqual(4);
@@ -28,11 +28,11 @@ describe("simulated matchdays", () => {
     expect(simPlan("gw-1", null)).toEqual(plan); // fixed per matchday
     const at = (sec: number) => simAt(plan, ko, new Date(ko.getTime() + sec * 1000));
     expect(at(-1).clock).toBeNull();
-    expect(at(75)).toMatchObject({ minute: 23, clock: "23'" });
-    expect(at(150.5)).toMatchObject({ minute: 45, clock: "45+1'", added: plan.added1 });
+    expect(at(150)).toMatchObject({ minute: 23, clock: "23'" });
+    expect(at(300.5)).toMatchObject({ minute: 45, clock: "45+1'", added: plan.added1 });
     expect(at(plan.firstEnd + 5).clock).toBe("HT");
-    expect(at(plan.secondStart + 75)).toMatchObject({ clock: "68'" });
-    expect(at(plan.secondStart + 150.5)).toMatchObject({ minute: 89, clock: "90+1'", added: plan.added2 });
+    expect(at(plan.secondStart + 150)).toMatchObject({ clock: "68'" });
+    expect(at(plan.secondStart + 300.5)).toMatchObject({ minute: 89, clock: "90+1'", added: plan.added2 });
     expect(at(plan.end + 1)).toMatchObject({ minute: 90, clock: "FT" });
     // Real time is still available: 45-minute halves.
     const real = simPlan("gw-1", 2700);

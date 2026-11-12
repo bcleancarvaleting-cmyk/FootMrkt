@@ -222,7 +222,7 @@ export async function createSimMatchday(
 }
 
 /** How good each player is for the simulator: from their current £ value (1 = average). */
-async function weights(playerIds: string[], asOf: Date) {
+export async function weights(playerIds: string[], asOf: Date) {
   if (!playerIds.length) return new Map<string, number>();
   // Values as they stood at kick-off, so a revaluation mid-game can't change what already happened.
   const rows = await db.$queryRaw<Array<{ playerId: string; valueMp: number }>>`
@@ -376,7 +376,7 @@ export async function tickSims(now = new Date()) {
   if (due) await playSimMatchdays(now).catch(() => null);
 }
 
-function seedOf(s: string) {
+export function seedOf(s: string) {
   let h = 2166136261;
   for (const ch of s) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
   return h >>> 0;

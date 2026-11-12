@@ -57,6 +57,11 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
             </p>
           )}
           {gw.simulated ? <SimTickerScope /> : <TickerMode mode="matches" />}
+          {gw.simulated && gw.status === "SETTLED" && (
+            <Link href={`/watch?gw=${gw.id}`} className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#8fe3ff] px-5 py-2.5 text-xs font-black uppercase tracking-wide text-[#04121a]">
+              ▶ Watch the replay
+            </Link>
+          )}
           {gw.simulated && gw.status !== "SETTLED" && (
             <Link href="/watch" className="watch-btn mt-3 inline-flex items-center gap-2 rounded-full bg-[#8fe3ff] px-5 py-2.5 text-xs font-black uppercase tracking-wide text-[#04121a]">
               <span className="live-dot" aria-hidden="true" /> {gw.status === "OPEN" || gw.status === "UPCOMING" ? "Watch the sim live" : "Watch live sim now"}

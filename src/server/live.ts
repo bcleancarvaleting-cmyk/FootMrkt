@@ -115,8 +115,8 @@ async function tickerFixtures(now: Date, scope: LiveScope) {
   // The sim ticker runs only while the games are being played — no "coming up", no old results.
   if (scope === "sim") rows = rows.filter((r) => r.status === "LIVE");
   rows.sort((a, b) => a.kickoffAt.getTime() - b.kickoffAt.getTime());
-  // Quiet day: the latest results instead.
-  if (!rows.length) {
+  // Quiet day: the latest results instead (never for the sim strip, which only runs during play).
+  if (!rows.length && scope !== "sim") {
     rows = (await db.fixture.findMany({ where: { status: "FINISHED", ...scopeWhere(scope), kickoffAt: { gte: new Date(now.getTime() - 4 * 24 * HOUR) } }, orderBy: { kickoffAt: "desc" }, take: 24, select })).reverse();
   }
   const motmIds = rows.map((r) => r.motmPlayerId).filter((x): x is string => !!x);

@@ -149,6 +149,15 @@ describe("simulated matchdays", () => {
     const entry = await db.competitionEntry.findFirstOrThrow({ where: { competitionId: comp.id } });
     expect(entry.rank).toBe(1);
     expect(await db.walletEntry.count({ where: { userId: a.userId, kind: "PRIZE" } })).toBe(1);
+    // Watch again: the replay rebuilds the same results minute by minute.
+    const { simReplay } = await import("@/server/sim-replay");
+    const replay = (await simReplay(sim.gameweekId))!;
+    const fts = await db.fixture.findMany({ where: { gameweekId: sim.gameweekId }, orderBy: [{ kickoffAt: "asc" }, { providerFixtureId: "asc" }] });
+    const lastFrame = replay.frames[replay.frames.length - 1];
+    expect(lastFrame.clock).toBe("FT");
+    fts.forEach((f, i) => expect([lastFrame.s[2 * i], lastFrame.s[2 * i + 1]]).toEqual([f.homeGoals, f.awayGoals]));
+    expect(lastFrame.e[entry.id]).toBe(entry.finalPoints);
+    expect(replay.frames.some((f) => f.clock === "HT")).toBe(true);
     // The real squad is untouched and its cards are still locked to it.
     expect((await db.cardInstance.findUniqueOrThrow({ where: { id: starters[0].cardId } })).lock).toBe("COMPETITION");
   });

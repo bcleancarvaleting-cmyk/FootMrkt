@@ -1,6 +1,8 @@
 "use client";
 
+import { payExactAction } from "@/app/actions/basket";
 import { MX_BUNDLES, bonusPct, bundleForShortfall } from "@/config/bundles";
+import type { ExactTarget } from "@/server/exact-pay";
 import { useState, useTransition } from "react";
 import type { ActionResult } from "@/app/actions/result";
 
@@ -38,10 +40,10 @@ export function ActionButton({
   );
 }
 
-export function ResultText({ result }: { result: ActionResult<unknown> }) {
+export function ResultText({ result, exact }: { result: ActionResult<unknown>; /** What's being bought, so the add-funds pop-up can offer "Pay exactly £x by card". */ exact?: ExactTarget }) {
   if (result.ok) return result.message ? <span className="text-xs text-mint">{result.message}</span> : null;
   // Not enough money: pop up "Add funds to buy" with one tap to the top-up bundles.
-  if (result.code === "INSUFFICIENT_FUNDS" || result.code === "EARNED_ONLY") return <AddFundsPopup message={result.error} shortMinor={result.shortMinor ?? 0} />;
+  if (result.code === "INSUFFICIENT_FUNDS" || result.code === "EARNED_ONLY") return <AddFundsPopup message={result.error} shortMinor={result.shortMinor ?? 0} needMinor={result.needMinor ?? 0} exact={exact} />;
   return (
     <span className="text-xs text-danger">
       {result.error}
@@ -60,8 +62,11 @@ export function ResultText({ result }: { result: ActionResult<unknown> }) {
  * "Add funds to buy": a bottom sheet over the page when a purchase, bid or offer needs more money,
  * with the same top-up bundles as everywhere else — the smallest one that covers it highlighted.
  */
-function AddFundsPopup({ message, shortMinor }: { message: string; shortMinor: number }) {
+function AddFundsPopup({ message, shortMinor, needMinor, exact }: { message: string; shortMinor: number; needMinor: number; exact?: ExactTarget }) {
   const [open, setOpen] = useState(true);
+  const [paying, startPay] = useTransition();
+  const [payError, setPayError] = useState<string | null>(null);
+  const [key] = useState(() => crypto.randomUUID());
   if (!open) return <span className="text-xs text-danger">{message}</span>;
   const best = bundleForShortfall(Math.max(1, shortMinor)).code;
   const gbp = (m: number) => `£${(m / 100).toFixed(2)}`;
@@ -71,7 +76,28 @@ function AddFundsPopup({ message, shortMinor }: { message: string; shortMinor: n
         <p className="eyebrow text-lime">Not enough in your balance</p>
         <h2 id="add-funds-title" className="mt-1 text-3xl leading-none">Add funds to buy</h2>
         <p className="mt-2 text-sm text-muted">{message.replace(/^Not enough credit — this/, "This")}</p>
-        <ul className="mt-4 grid grid-cols-2 gap-2">
+        {exact && needMinor > 0 && (
+          <>
+            <button
+              type="button"
+              disabled={paying}
+              onClick={() =>
+                startPay(async () => {
+                  const r = await payExactAction(exact, key);
+                  if (r.ok) window.location.href = r.data.checkoutUrl;
+                  else setPayError(r.error);
+                })
+              }
+              className="btn-primary mt-4 w-full flex-col gap-0 py-3"
+            >
+              <span>{paying ? "Opening card payment…" : `Pay exactly ${gbp(needMinor)} by card`}</span>
+              <span className="text-[10px] font-semibold normal-case tracking-normal opacity-75">It completes straight away — no bundle needed</span>
+            </button>
+            {payError && <p className="mt-1 text-xs text-danger">{payError}</p>}
+            <p className="mt-3 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-faint">or add funds</p>
+          </>
+        )}
+        <ul className={`${exact && needMinor > 0 ? "mt-2" : "mt-4"} grid grid-cols-2 gap-2`}>
           {MX_BUNDLES.map((b) => {
             const on = b.code === best;
             const pct = bonusPct(b);

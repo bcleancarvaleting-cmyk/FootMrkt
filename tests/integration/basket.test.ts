@@ -68,7 +68,7 @@ describe("drops basket", () => {
 
     // Short of MX: nothing is bought.
     if (v.shortMinor > 0) {
-      await expect(checkoutBasket(u.userId)).rejects.toMatchObject({ code: "NEED_MX" });
+      await expect(checkoutBasket(u.userId)).rejects.toMatchObject({ code: "INSUFFICIENT_FUNDS" });
       expect(await db.marketListing.count({ where: { status: "SOLD" } })).toBe(0);
     }
     await withTx((tx) => credit(tx, { userId: u.userId, amountMinor: 1000, kind: "DEPOSIT", bucket: "CASH", refId: "topup-basket" }));

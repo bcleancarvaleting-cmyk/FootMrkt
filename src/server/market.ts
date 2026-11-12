@@ -118,13 +118,15 @@ async function processPaymentEvent(event: PaymentWebhookEvent, provider: Payment
     }
     if (o.kind === "DEPOSIT") {
       await fulfilDeposit(tx, o);
-      return { status: "fulfilled" as const };
+      // "Pay exactly £x by card": once the money's in, the purchase it was for completes (below).
+      return { status: "fulfilled" as const, exact: o.refId.startsWith("buy:") ? o : null };
     }
     // Transfers are MX-only now: a legacy card-paid market order is refunded, never fulfilled.
     await tx.order.update({ where: { id: o.id }, data: { status: "REFUNDED" } });
     return { status: "refund_required" as const, refund: true, providerRef: event.providerRef, amountMinor: o.amountMinor };
   });
   if ("refund" in result && result.refund) await provider.refund(result.providerRef, result.amountMinor);
+  if ("exact" in result && result.exact) await (await import("./exact-pay")).completeExactPurchase(result.exact);
   return result;
 }
 

@@ -577,3 +577,45 @@ describe("Stripe: confirm with Stripe when the webhook doesn't arrive", () => {
     }
   });
 });
+
+describe("pay exactly £x by card", () => {
+  it("pays the exact price, signs the player, and credits the seller the price minus 5%", async () => {
+    enableLegalGates();
+    process.env.LEGAL_GATES_CLEARED = "MARKET,PAID_PACKS,DEPOSITS";
+    process.env.FLAG_DEPOSITS = "true";
+    const { startExactPayment } = await import("@/server/exact-pay");
+    const seller = await makeTrader("exs1");
+    const buyer = await makeTrader("exb1");
+    await db.user.update({ where: { id: buyer.userId }, data: { dateOfBirth: new Date("1990-01-01") } });
+    const listing = await createListing(seller.userId, { cardId: await tradeableCard(seller.userId), askingPriceMinor: 124 });
+    const sellerBefore = (await balancesFor(seller.userId)).total;
+    const buyerBefore = (await balancesFor(buyer.userId)).total;
+    const { orderId } = await startExactPayment(buyer.userId, { kind: "listing", id: listing.id }, "x1");
+    expect((await db.order.findUniqueOrThrow({ where: { id: orderId } })).amountMinor).toBe(124);
+    await pay(orderId);
+    await pay(orderId); // a replayed webhook does nothing
+    const l = await db.marketListing.findUniqueOrThrow({ where: { id: listing.id } });
+    expect(l).toMatchObject({ status: "SOLD", buyerId: buyer.userId });
+    expect((await balancesFor(buyer.userId)).total).toBe(buyerBefore); // paid by card, not from the balance
+    expect((await balancesFor(seller.userId)).total - sellerBefore).toBe(124 - Math.round(124 * 0.05));
+  });
+
+  it("if someone else signs the player first, the card money stays in the buyer's balance", async () => {
+    enableLegalGates();
+    process.env.LEGAL_GATES_CLEARED = "MARKET,PAID_PACKS,DEPOSITS";
+    process.env.FLAG_DEPOSITS = "true";
+    const { startExactPayment } = await import("@/server/exact-pay");
+    const seller = await makeTrader("exs2");
+    const buyer = await makeTrader("exb2");
+    const rival = await makeTrader("exr2");
+    await db.user.update({ where: { id: buyer.userId }, data: { dateOfBirth: new Date("1990-01-01") } });
+    const listing = await createListing(seller.userId, { cardId: await tradeableCard(seller.userId), askingPriceMinor: 1799 });
+    const { orderId } = await startExactPayment(buyer.userId, { kind: "listing", id: listing.id }, "x2");
+    await fund(rival.userId, 5000);
+    await buyNow(rival.userId, listing.id);
+    const before = (await balancesFor(buyer.userId)).total;
+    await pay(orderId);
+    expect((await balancesFor(buyer.userId)).total - before).toBe(1799);
+    expect((await db.marketListing.findUniqueOrThrow({ where: { id: listing.id } })).buyerId).toBe(rival.userId);
+  });
+});

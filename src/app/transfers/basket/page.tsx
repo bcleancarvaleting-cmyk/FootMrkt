@@ -2,7 +2,7 @@ import { confirmOrderWithProvider } from "@/server/market";
 import Link from "next/link";
 import { cardPaymentsReady } from "@/server/payments/config";
 import { DepositForm } from "@/components/account-forms";
-import { CheckoutButton, RemoveFromBasketButton } from "@/components/basket-buttons";
+import { CheckoutButton, PayExactButton, RemoveFromBasketButton } from "@/components/basket-buttons";
 import { CardRow } from "@/components/card-row";
 import { EmptyState, PageHeader } from "@/components/page-header";
 import { requireUser } from "@/server/auth/session";
@@ -74,11 +74,13 @@ export default async function BasketPage({ searchParams }: { searchParams: Promi
             ) : (
               <div className="space-y-3">
                 <div className="rounded-xl border border-accent/60 bg-accent/10 p-3 text-center">
-                  <p className="font-display text-2xl font-black uppercase italic">Top up to enter</p>
+                  <p className="font-display text-2xl font-black uppercase italic">Add funds to buy</p>
                   <p className="text-sm">
-                    You&apos;re <b>{fmtMp(v.shortMinor)}</b> short. Top up below, then come back and pay for all.
+                    You&apos;re <b>{fmtMp(v.shortMinor)}</b> short.
                   </p>
                 </div>
+                <PayExactButton target={{ kind: "basket" }} label={`Pay exactly ${fmtMp(v.totalMinor)} by card`} disabled={!(depositsOn && pay.ready)} />
+                <p className="text-center text-[10px] font-bold uppercase tracking-[0.16em] text-faint">or add funds</p>
                 <DepositForm enabled={depositsOn && pay.ready} initial={v.bundle?.code} returnTo="/transfers/basket" />
                 <p className="text-center text-xs text-faint">
                   Or earn credit free: swap XP in your <Link href="/account/wallet#xp" className="underline">wallet</Link>, or sell a player.

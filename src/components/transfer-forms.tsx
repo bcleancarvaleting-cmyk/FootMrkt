@@ -74,7 +74,7 @@ export function AuctionBuyNowButton({ auctionId, priceMinor, enabled }: { auctio
       <button type="button" className="btn-gold px-3 py-2 text-[11px]" disabled={pending || !enabled} onClick={() => start(async () => setRes(await buyNowAuctionAction(auctionId)))}>
         {pending ? "…" : `Buy now £${mp(priceMinor)}`}
       </button>
-      {res && <ResultText result={res} />}
+      {res && <ResultText result={res} exact={{ kind: "auction", id: auctionId }} />}
     </span>
   );
 }

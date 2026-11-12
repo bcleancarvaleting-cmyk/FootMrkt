@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { addToBasketAction, checkoutBasketAction, removeFromBasketAction } from "@/app/actions/basket";
+import { addToBasketAction, checkoutBasketAction, payExactAction, removeFromBasketAction } from "@/app/actions/basket";
 import type { ActionResult } from "@/app/actions/result";
 import { ResultText } from "./action-button";
 
@@ -78,7 +78,34 @@ export function CheckoutButton({ total, count }: { total: string; count: number 
       >
         {pending ? "Signing your players…" : `Pay for all · ${total}`}
       </button>
-      {result && <ResultText result={result} />}
+      {result && <ResultText result={result} exact={{ kind: "basket" }} />}
+    </div>
+  );
+}
+
+/** "Pay exactly £x by card" — card payment for this exact amount; the purchase completes once it's paid. */
+export function PayExactButton({ target, label, disabled }: { target: { kind: "listing" | "auction" | "basket"; id?: string }; label: string; disabled?: boolean }) {
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [key] = useState(() => crypto.randomUUID());
+  return (
+    <div className="space-y-1">
+      <button
+        type="button"
+        disabled={disabled || pending}
+        onClick={() =>
+          start(async () => {
+            const r = await payExactAction(target, key);
+            if (r.ok) window.location.href = r.data.checkoutUrl;
+            else setError(r.error);
+          })
+        }
+        className="btn-primary w-full flex-col gap-0 py-3"
+      >
+        <span>{pending ? "Opening card payment…" : label}</span>
+        <span className="text-[10px] font-semibold normal-case tracking-normal opacity-75">Signs your players straight away — no bundle needed</span>
+      </button>
+      {error && <p className="text-xs text-danger">{error}</p>}
     </div>
   );
 }

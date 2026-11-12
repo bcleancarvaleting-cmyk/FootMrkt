@@ -32,3 +32,14 @@ export async function checkoutBasketAction(): Promise<ActionResult> {
   const q = new URLSearchParams({ signed: signed.join("|").slice(0, 1500), missed: missed.join("|").slice(0, 600) });
   redirect(`/transfers/basket?${q}`);
 }
+
+/** "Pay exactly £x by card" for one listing, an auction's buy-it-now, or the whole basket. */
+export async function payExactAction(target: { kind: "listing" | "auction" | "basket"; id?: string }, clientKey: string): Promise<ActionResult<{ checkoutUrl: string }>> {
+  const user = await requireUser();
+  const kind = target.kind === "listing" || target.kind === "auction" || target.kind === "basket" ? target.kind : null;
+  if (!kind) return { ok: false, error: "Unknown purchase." };
+  return attempt(async () => {
+    const r = await (await import("@/server/exact-pay")).startExactPayment(user.id, { kind, id: typeof target.id === "string" ? target.id.slice(0, 40) : undefined }, String(clientKey).slice(0, 64));
+    return { checkoutUrl: r.checkoutUrl };
+  });
+}

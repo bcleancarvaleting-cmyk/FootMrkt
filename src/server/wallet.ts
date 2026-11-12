@@ -85,6 +85,7 @@ export async function debit(
   if (fromCash > Math.max(0, bal.cash)) {
     throw new DomainError("INSUFFICIENT_FUNDS", `Not enough credit — this needs ${fmtMp(args.amountMinor)} and your balance is ${fmtMp(Math.max(0, bal.total))}.`, {
       shortMinor: args.amountMinor - Math.max(0, bal.total),
+      needMinor: args.amountMinor,
     });
   }
   const rows = [];
@@ -230,7 +231,7 @@ export async function fulfilDeposit(tx: Tx, order: { id: string; userId: string;
   const name = m ? (bundleFor(m[1])?.name ?? "MX") : null;
   // What was paid for is bought credit; a bundle's bonus is credited as earned (reward) MX.
   const bought = Math.min(mx, order.amountMinor);
-  const label = `${name ? `${name} bundle: ` : ""}${fmtMp(mx)} for £${(order.amountMinor / 100).toFixed(2)} by card`;
+  const label = (order.refId ?? "").startsWith("buy:") ? `Paid ${fmtMp(order.amountMinor)} by card for your signing` : `${name ? `${name} bundle: ` : ""}${fmtMp(mx)} for £${(order.amountMinor / 100).toFixed(2)} by card`;
   await credit(tx, { userId: order.userId, amountMinor: bought, kind: "DEPOSIT", bucket: "CASH", refId: `deposit:${order.id}`, note: label });
   if (mx > bought) await credit(tx, { userId: order.userId, amountMinor: mx - bought, kind: "DEPOSIT", bucket: "BONUS", refId: `deposit:${order.id}:bonus`, note: `${name ?? "Bundle"} bonus credit` });
 }

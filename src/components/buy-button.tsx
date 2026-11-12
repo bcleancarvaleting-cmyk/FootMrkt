@@ -28,7 +28,7 @@ export function BuyButton({ listingId, label, confirm, disabled, className = "bt
       >
         {pending ? "Signing…" : label}
       </button>
-      {res && <ResultText result={res} />}
+      {res && <ResultText result={res} exact={{ kind: "listing", id: listingId }} />}
     </span>
   );
 }

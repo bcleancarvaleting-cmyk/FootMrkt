@@ -60,7 +60,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="space-y-10">
-      <PromoBanner code={promo.code} headline={promo.headline} status={promo.status} />
+      <PromoBanner code={promo.code} headline={promo.headline} status={promo.status} left={promo.left} />
       {paid && /^[0-9a-f-]{36}$/.test(paid) && <PaymentReveal orderId={paid} />}
       {!paid && cancelled && /^[0-9a-f-]{36}$/.test(cancelled) && <PaymentReveal orderId={cancelled} cancelled />}
       {drop && !drop.opened && (

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { projectedWins } from "@/domain/football/prizes";
 import type { ReplayData } from "@/server/sim-replay";
 import type { WatchBoard, WatchFixture, WatchLine, WatchPlayer, WatchTable, WatchTeam } from "@/server/watch";
 
@@ -500,6 +501,9 @@ function Table({ t, replay, replayView }: { t: WatchTable; replay: Replay | null
 
   const canOpen = t.locked || !!replay;
   const rows = t.rows;
+  // What each manager would win if it ended now (ties split the £, everyone tied on a pack place gets one).
+  const wins = t.locked && rows.some((r) => r.points > 0) ? projectedWins(rows, t.prizes ?? []) : new Map<string, { cashMinor: number; packs: string[] }>();
+  const settled = t.status === "SETTLED";
   return (
     <div className="p-3">
       {t.pot && <p className="mb-2 text-xs font-black text-lime">{t.pot.replace(" pot", " Pot")} — winner takes it, ties split</p>}
@@ -526,6 +530,7 @@ function Table({ t, replay, replayView }: { t: WatchTable; replay: Replay | null
                   </span>
                   {r.club && <span className="block truncate text-[11px] text-faint">{r.club}</span>}
                 </span>
+                {wins.get(r.userId) && <WinChip w={wins.get(r.userId)!} settled={settled} />}
                 <span key={r.points} className="pts-pop font-display text-2xl font-black italic tabular-nums text-lime">{r.points}</span>
               </button>
             );
@@ -543,6 +548,16 @@ function Table({ t, replay, replayView }: { t: WatchTable; replay: Replay | null
         </div>
       )}
     </div>
+  );
+}
+
+/** "Wins £10" / "Wins £5 + Gold pack" next to a manager on the live table — if it ended now. */
+function WinChip({ w, settled }: { w: { cashMinor: number; packs: string[] }; settled: boolean }) {
+  const parts = [w.cashMinor > 0 ? `£${(w.cashMinor / 100).toFixed(w.cashMinor % 100 ? 2 : 0)}` : null, ...w.packs.map((p) => (/pack/i.test(p) ? p : `${p} pack`))].filter(Boolean);
+  return (
+    <span className="shrink-0 rounded-full border border-[#f0cb5a]/60 bg-[#f0cb5a]/10 px-2 py-0.5 text-right text-[10px] font-black uppercase leading-tight tracking-wide text-[#f0cb5a]" title={settled ? "Won" : "What they'd win if it ended now — ties split the £, everyone tied gets the pack"}>
+      {settled ? "Won" : "Wins"} {parts.join(" + ")}
+    </span>
   );
 }
 
@@ -650,7 +665,7 @@ function replayView(r: Replay, t: number, board: WatchBoard): View {
       if (k === 0 || row.points !== sorted[k - 1].points) rank = k + 1;
       return { ...row, rank, me: row.userId === r.viewerId };
     });
-    return { id: tb.id, name: tb.name, pot: tb.pot, status: done ? "SETTLED" : "PROVISIONAL", locked: true, rows };
+    return { id: tb.id, name: tb.name, pot: tb.pot, prizes: tb.prizes ?? [], status: done ? "SETTLED" : "PROVISIONAL", locked: true, rows };
   });
   const view: View = { scope: "sim", title: r.title, phase: done ? "ft" : "live", clock: f.clock, added: f.added, fixtures, feed, tables, mine: [], progress: Math.min(1, t / r.duration) };
   view.mine = Object.entries(r.teams)

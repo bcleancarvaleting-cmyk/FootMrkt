@@ -1552,8 +1552,10 @@ model PromoClaim {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   code      String
   claimedAt DateTime  @default(now())
-  usedAt    DateTime?
+  usedAt    DateTime? // set once every use is spent
   usedRef   String?
+  uses      Int       @default(0) // packs bought with it so far
+  usedRefs  String[]  @default([]) // the orders it was used on (a failed card payment gives that use back)
 
   @@unique([userId, code])
 }

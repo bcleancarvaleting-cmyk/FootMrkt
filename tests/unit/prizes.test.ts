@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { potTotal, splitPrizePot } from "@/domain/football/prizes";
+import { potTotal, splitPrizePot, projectedWins } from "@/domain/football/prizes";
 
 const rules = [
   { rankFrom: 1, rankTo: 1, cashMinor: 1000 },
@@ -28,5 +28,18 @@ describe("prize pots", () => {
   it("rounds down to the penny and never pays more than the pot", () => {
     const out = splitPrizePot(s(9, 9, 9), [{ rankFrom: 1, rankTo: 1, cashMinor: 1000 }]);
     expect([...out.values()]).toEqual([333, 333, 333]);
+  });
+});
+
+describe("projectedWins (live table: if it ended now)", () => {
+  it("shows the whole pot on the leader, split evenly when tied, and a pack for everyone tied on a pack place", () => {
+    const rules = [{ rankFrom: 1, rankTo: 1, cashMinor: 2000 }, { rankFrom: 1, rankTo: 1, pack: "Gold pack" }];
+    const solo = projectedWins([{ userId: "a", points: 30, rank: 1 }, { userId: "b", points: 20, rank: 2 }], rules);
+    expect(solo.get("a")).toEqual({ cashMinor: 2000, packs: ["Gold pack"] });
+    expect(solo.has("b")).toBe(false);
+    const tied = projectedWins([{ userId: "a", points: 30, rank: 1 }, { userId: "b", points: 30, rank: 1 }, { userId: "c", points: 10, rank: 3 }], rules);
+    expect(tied.get("a")).toEqual({ cashMinor: 1000, packs: ["Gold pack"] });
+    expect(tied.get("b")).toEqual({ cashMinor: 1000, packs: ["Gold pack"] });
+    expect(tied.has("c")).toBe(false);
   });
 });

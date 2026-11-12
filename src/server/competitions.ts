@@ -544,3 +544,13 @@ export async function removeAutoMatches(adminId: string) {
   }
   return removed;
 }
+
+/** A match's prize rules for the live tables, with pack prizes by name (e.g. "Gold pack"). */
+export async function prizeRules(rewards: unknown): Promise<import("@/domain/football/prizes").PrizeRule[]> {
+  const rules = (rewards as Array<{ rankFrom: number; rankTo: number; cashMinor?: number; packSkuCode?: string }>) ?? [];
+  const codes = [...new Set(rules.map((r) => r.packSkuCode).filter((c): c is string => !!c))];
+  const skus = codes.length ? await db.packSku.findMany({ where: { code: { in: codes } }, select: { code: true, name: true } }) : [];
+  return rules
+    .filter((r) => (r.cashMinor ?? 0) > 0 || r.packSkuCode)
+    .map((r) => ({ rankFrom: r.rankFrom, rankTo: r.rankTo, cashMinor: r.cashMinor, pack: r.packSkuCode ? (skus.find((k) => k.code === r.packSkuCode)?.name ?? "Pack") : undefined }));
+}

@@ -44,3 +44,25 @@ export function splitPrizePot<T extends { userId: string; total: number }>(stand
   }
   return out;
 }
+
+/** A prize rule as shown to managers: £ for a range of positions, and/or a pack (by name). */
+export interface PrizeRule extends CashRule {
+  pack?: string;
+}
+
+/**
+ * "If it ended now": what each manager would win from the live table — the £ pot split by the
+ * dead-heat rule (exactly as at settlement), and a pack for everyone whose rank earns one (managers
+ * tied on a pack position all get one). `rows` must be sorted best first.
+ */
+export function projectedWins(rows: Array<{ userId: string; points: number; rank: number }>, rules: PrizeRule[]): Map<string, { cashMinor: number; packs: string[] }> {
+  const out = new Map<string, { cashMinor: number; packs: string[] }>();
+  if (!rules.length || !rows.length) return out;
+  const cash = splitPrizePot(rows.map((r) => ({ userId: r.userId, total: r.points })), rules);
+  for (const r of rows) {
+    const packs = rules.filter((x) => x.pack && r.rank >= x.rankFrom && r.rank <= x.rankTo).map((x) => x.pack!);
+    const c = cash.get(r.userId) ?? 0;
+    if (c > 0 || packs.length) out.set(r.userId, { cashMinor: c, packs });
+  }
+  return out;
+}

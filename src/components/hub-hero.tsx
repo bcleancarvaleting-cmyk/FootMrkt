@@ -100,8 +100,8 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
         <HeroSlide
           background={<PhotoBackground src={HERO_PHOTOS.ballBoots} position="60% 50%" />}
           eyebrow="Buy packs"
-          title="Rip packs,"
-          accent="pull Golds."
+          title="Pack"
+          accent="Luck."
           body={unopened ? <>You&apos;ve got <b className="text-[#f0cb5a]">{unopened} pack{unopened === 1 ? "" : "s"}</b> waiting to open.</> : "Bronze, Silver and Gold England packs — every card a numbered copy of a real player."}
           points={["England Bronze, Silver and Gold packs", "Published odds on every pack", "A free booster every week"]}
           visual={
@@ -122,8 +122,8 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
         <HeroSlide
           background={<PhotoBackground src={HERO_PHOTOS.bootBall} position="50% 45%" />}
           eyebrow="Transfer list"
-          title="Buy, sell,"
-          accent="make offers."
+          title="Buy, Sell &"
+          accent="Make Offers."
           body={marketOn ? <>{market?.total ?? 0} players on the MATCHX market · {buyNows} buy-nows · {auctions} auction{auctions === 1 ? "" : "s"} live.</> : "Trade players with other managers and see every player's value graph before you buy."}
           points={market?.rows.slice(0, 3).map((r) => `${r.card.name} · ${fmtMp(r.priceMinor)} · ${r.copies} left`) ?? ["Buy now, offers and auctions", "Every player's value graph", "Opening soon"]}
           visual={marketFan.length ? fan(marketFan) : undefined}
@@ -133,8 +133,8 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
         <HeroSlide
           background={<PhotoBackground src={HERO_PHOTOS.nightStadium} />}
           eyebrow="Matches"
-          title={liveGames.length ? "Matchday" : "Pick your"}
-          accent={liveGames.length ? "is live." : "seven."}
+          title="Team"
+          accent="Sheets."
           body={games.length ? (toEnter ? <>{toEnter} match{toEnter === 1 ? "" : "es"} still to enter — pick your seven before entries close.</> : liveGames.length ? "Your teams are playing — watch your points go up live." : "You're in every open match. Good luck.") : "No matches right now — the next ones are coming soon."}
           points={games.map(gameLine)}
           visual={
@@ -164,8 +164,8 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
         <HeroSlide
           background={<PhotoBackground src={HERO_PHOTOS.floodlight} position="50% 40%" />}
           eyebrow="Challenges"
-          title="Hand in,"
-          accent="cash in."
+          title="Challenge"
+          accent="Yourself."
           body="Trade in players you don't need for £ credit and packs."
           points={openChallenges.length ? openChallenges.slice(0, 3).map((c) => `${c.name} · ${c.eligible >= c.criteria.count ? "ready to hand in" : `${c.eligible}/${c.criteria.count} cards`}`) : ["New challenges every week"]}
           ctas={[{ href: "/account/challenges", label: "Challenges" }]}

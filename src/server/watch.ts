@@ -1,5 +1,6 @@
 import { getScoringRules, scorePlayer, toStatLine, type StatLine } from "@/domain/football/scoring";
-import { leaderboard, prizesSummary } from "./competitions";
+import type { PrizeRule } from "@/domain/football/prizes";
+import { leaderboard, prizeRules, prizesSummary } from "./competitions";
 import { db } from "./db";
 import { currentGameweek } from "./gameweeks";
 import { simAt, simPlan } from "./sim-matchday";
@@ -33,6 +34,8 @@ export interface WatchTable {
   id: string;
   name: string;
   pot: string | null;
+  /** Prize rules, so the table can show what each manager would win if it ended now. */
+  prizes: PrizeRule[];
   status: string;
   /** Entries are closed: managers can open each other's teams. */
   locked: boolean;
@@ -196,6 +199,7 @@ export async function watchBoard(scope: WatchScope, userId: string | null, now =
       id: c.id,
       name: c.name,
       pot,
+      prizes: await prizeRules(c.rewards),
       status: c.status,
       locked: !["OPEN", "UPCOMING"].includes(c.status) || c.locksAt <= now,
       rows: lb.map((r) => ({ entryId: r.entryId, userId: r.userId, name: r.displayName, club: r.clubName, points: Math.round(r.points * 10) / 10, rank: r.rank, me: r.userId === userId })),

@@ -6,10 +6,10 @@ import { claimPromoAction } from "@/app/actions/game";
 import type { ActionResult } from "@/app/actions/result";
 
 /**
- * The MATCHX welcome offer. Keeps flashing until it's used: "50% off a pack with code MATCHX" →
- * tap to apply (or type it) → "applied, your next pack is half price" → gone once used.
+ * The MATCHX welcome offer. Keeps flashing until it's used up: "50% off 3 packs with code MATCHX" →
+ * tap to apply (or type it) → "applied, your next 3 packs are half price" → gone once all are used.
  */
-export function PromoBanner({ code, headline, status, slim = false }: { code: string; headline: string; status: "none" | "claimed" | "used"; slim?: boolean }) {
+export function PromoBanner({ code, headline, status, left = 1, slim = false }: { code: string; headline: string; status: "none" | "claimed" | "used"; left?: number; slim?: boolean }) {
   const [state, run, pending] = useActionState<ActionResult | null, FormData>(claimPromoAction, null);
   if (status === "used") return null;
   if (status === "claimed" || state?.ok) {
@@ -17,7 +17,7 @@ export function PromoBanner({ code, headline, status, slim = false }: { code: st
       <Link href="/packs" className={`promo-glow flex items-center gap-3 rounded-2xl border border-[#adfc07]/70 bg-[#0e1206] px-4 ${slim ? "py-2 text-xs" : "py-3 text-sm"}`}>
         <span className="text-lg" aria-hidden="true">✅</span>
         <span className="min-w-0 flex-1">
-          <b className="text-[#adfc07]">{code} applied</b> — your next pack is half price
+          <b className="text-[#adfc07]">{code} applied</b> — {left > 1 ? `your next ${left} packs are half price` : "your next pack is half price"}
         </span>
         <span className="shrink-0 font-black text-[#adfc07]">Packs →</span>
       </Link>

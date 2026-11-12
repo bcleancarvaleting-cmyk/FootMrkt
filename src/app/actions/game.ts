@@ -158,10 +158,10 @@ export async function packOrderStatusAction(orderId: string) {
   return packOrderStatus(user.id, orderId);
 }
 
-/** Use a promo code (e.g. MATCHX): it comes off your next pack. */
+/** Use a promo code (e.g. MATCHX): it comes off your next packs. */
 export async function claimPromoAction(_: ActionResult | null, f: FormData): Promise<ActionResult> {
   const user = await requireUser();
   const res = await attempt(async () => (await import("@/server/promo")).claimPromo(user.id, String(f.get("code") ?? "")));
   revalidatePath("/", "layout");
-  return res.ok ? { ok: true, data: undefined, message: `${res.data.code} applied — ${res.data.headline.toLowerCase()} on your next pack` } : res;
+  return res.ok ? { ok: true, data: undefined, message: `${res.data.code} applied — ${res.data.headline}` } : res;
 }

@@ -1,6 +1,7 @@
 import { getScoringRules, scorePlayer, type StatLine } from "@/domain/football/scoring";
 import { SIMULATED_PROVIDER_NAME, type SimFeedEvent, simulateMatch, simulatedProvider } from "@/providers/football/simulated";
-import { prizesSummary } from "./competitions";
+import type { PrizeRule } from "@/domain/football/prizes";
+import { prizeRules, prizesSummary } from "./competitions";
 import { db } from "./db";
 import { seedOf, simPlan, weights } from "./sim-matchday";
 import type { WatchPlayer } from "./watch";
@@ -45,7 +46,7 @@ export interface ReplayData {
   fixtures: Array<{ id: string; home: { code: string; name: string; colour: string }; away: { code: string; name: string; colour: string }; league: string }>;
   frames: ReplayFrame[];
   events: ReplayEvent[];
-  tables: Array<{ id: string; name: string; pot: string | null; rows: Array<{ entryId: string; userId: string; name: string; club: string | null }> }>;
+  tables: Array<{ id: string; name: string; pot: string | null; prizes: PrizeRule[]; rows: Array<{ entryId: string; userId: string; name: string; club: string | null }> }>;
   teams: Record<string, { competitionId: string; competition: string; manager: string; club: string | null; userId: string; formation: string; players: Array<Omit<WatchPlayer, "points" | "goals" | "assists" | "yellow" | "red" | "minutes" | "playing">> }>;
 }
 
@@ -182,12 +183,13 @@ export async function simReplay(gameweekId: string): Promise<ReplayData | null> 
     })),
     frames,
     events: (stateAt(90).feed ?? []).sort((a, b) => a.minute - b.minute),
-    tables: comps.map((c) => ({
+    tables: await Promise.all(comps.map(async (c) => ({
       id: c.id,
       name: c.name,
       pot: prizesSummary(c.rewards).split(" · ")[0] || null,
+      prizes: await prizeRules(c.rewards),
       rows: c.entries.map((e) => ({ entryId: e.id, userId: e.userId, name: e.user.displayName, club: e.user.clubName })),
-    })),
+    }))),
     teams: Object.fromEntries(
       comps.flatMap((c) =>
         c.entries.map((e) => [

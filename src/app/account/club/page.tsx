@@ -95,6 +95,10 @@ export default async function MyClubPage({ searchParams }: { searchParams: Promi
           <p className="mt-1 text-sm text-muted">
             at today&apos;s prices <span className="text-faint">· your £ balance is spend-only and can&apos;t be withdrawn</span>
           </p>
+          <div className="mt-3 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-ink-700 bg-ink-700">
+            <ValueSplit label="Tradeable" sub="Can be sold on Transfers" v={pf.tradeable} />
+            <ValueSplit label="Untradeable" sub="Free, starter and gift cards" v={pf.untradeable} />
+          </div>
           <div className="mt-3">{pf.series.length > 1 ? <Sparkline points={pf.series} width={280} height={44} /> : <span className="text-xs text-faint">The graph fills in as the market revalues your players.</span>}</div>
         </div>
         <Tile label="Playing in the next 7 days" value={`${pf.playingSoon} player${pf.playingSoon === 1 ? "" : "s"}`} sub={pf.firstKick ? `First kick-off ${fmtDate(pf.firstKick, { weekday: "short", hour: "2-digit", minute: "2-digit" })}` : "No fixtures this week"} href="/matches" tone="text-lime" />
@@ -188,5 +192,26 @@ function Tile({ label, value, sub, href, tone = "" }: { label: string; value: st
       <p className={`mt-1 truncate font-display text-2xl font-black uppercase italic leading-none ${tone}`}>{value}</p>
       <p className="mt-1 truncate text-xs text-muted">{sub}</p>
     </Link>
+  );
+}
+
+function ValueSplit({ label, sub, v }: { label: string; sub: string; v: { value: number; changePct: number | null; count: number } }) {
+  const up = (v.changePct ?? 0) > 0;
+  const down = (v.changePct ?? 0) < 0;
+  return (
+    <div className="bg-ink-900 p-3">
+      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-faint">
+        {label} · {v.count} card{v.count === 1 ? "" : "s"}
+      </p>
+      <p className="mt-0.5 flex flex-wrap items-baseline gap-x-2">
+        <span className="font-display text-2xl font-black tabular-nums">£{v.value.toFixed(2)}</span>
+        {v.changePct !== null && (
+          <span className={`text-xs font-bold tabular-nums ${up ? "text-mint" : down ? "text-danger" : "text-faint"}`}>
+            {up ? "▲" : down ? "▼" : "–"} {Math.abs(v.changePct)}%
+          </span>
+        )}
+      </p>
+      <p className="text-[11px] text-faint">{sub}</p>
+    </div>
   );
 }

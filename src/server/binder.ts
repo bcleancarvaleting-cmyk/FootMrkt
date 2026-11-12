@@ -121,10 +121,10 @@ export async function playerProfile(playerId: string) {
  * how many players have a real match in the next 7 days, the most valuable and rarest cards, and
  * the points they've earned for this manager.
  */
-export async function portfolio(userId: string, now = new Date()) {
-  const cards = await binder(userId);
+/** A set of cards' value now, its history (oldest first) and the % change over that history. */
+function valueOf(cards: Awaited<ReturnType<typeof binder>>) {
   const value = cards.reduce((s, c) => s + (c.valueMp ?? 0), 0);
-  // Portfolio value over the last valuations: line each card's history up from the most recent.
+  // Line each card's history up from the most recent valuation.
   const len = Math.max(0, ...cards.map((c) => c.history?.length ?? 0));
   const series = Array.from({ length: len }, (_, i) =>
     Math.round(
@@ -138,6 +138,15 @@ export async function portfolio(userId: string, now = new Date()) {
   );
   const first = series[0] ?? value;
   const changePct = series.length > 1 && first ? Math.round(((series[series.length - 1] - first) / first) * 1000) / 10 : null;
+  return { value: Math.round(value * 100) / 100, series, changePct, count: cards.length };
+}
+
+export async function portfolio(userId: string, now = new Date()) {
+  const cards = await binder(userId);
+  const { value, series, changePct } = valueOf(cards);
+  // Loan players have no value, so they're left out of both.
+  const tradeable = valueOf(cards.filter((c) => c.tradeable && !c.loan));
+  const untradeable = valueOf(cards.filter((c) => !c.tradeable && !c.loan));
 
   const soon = await db.fixture.findMany({
     where: { status: "SCHEDULED", kickoffAt: { gt: now, lt: new Date(now.getTime() + 7 * 86_400_000) } },
@@ -153,9 +162,11 @@ export async function portfolio(userId: string, now = new Date()) {
   for (const c of cards) if (c.finish) finishes[c.finish.kind]++;
   return {
     cards: cards.length,
-    value: Math.round(value * 100) / 100,
+    value,
     series,
     changePct,
+    tradeable: { value: tradeable.value, changePct: tradeable.changePct, count: tradeable.count },
+    untradeable: { value: untradeable.value, changePct: untradeable.changePct, count: untradeable.count },
     playingSoon: playingIds.size,
     firstKick,
     top: top ? { id: top.id, name: top.name, valueMp: top.valueMp, finish: top.finish?.kind ?? null } : null,

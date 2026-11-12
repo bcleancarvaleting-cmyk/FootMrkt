@@ -204,6 +204,7 @@ export const EMAILS = {
     marketSold: { count: number; total: string };
     transfers: { count: number; total: string; fees: string };
     entries: number;
+    watchedGaps?: { total: number; top: string[] };
   }) =>
     layout({
       preheader: `${d.revenue} taken · ${d.signups} new managers · ${d.marketSold.count + d.transfers.count} players sold`,
@@ -213,6 +214,9 @@ export const EMAILS = {
         `<span style="font-size:13px;color:#9aa096;text-transform:uppercase;letter-spacing:.12em">Managers</span><br>New sign-ups: ${b(String(d.signups))} · Waitlist: ${b(String(d.waitlist))} · Total managers: ${b(d.users.toLocaleString("en-GB"))} · Match entries: ${b(String(d.entries))}${d.signupList.length ? `<br><span style="font-size:13px;color:#9aa096">${d.signupList.map(esc).join("<br>")}${d.signups > d.signupList.length ? `<br>+${d.signups - d.signupList.length} more` : ""}</span>` : ""}`,
         `<span style="font-size:13px;color:#9aa096;text-transform:uppercase;letter-spacing:.12em">Packs bought</span><br>By card: ${b(String(d.cardPacks.count))} · With credit: ${b(String(d.packsCredit))} · With XP: ${b(String(d.packsXp))}`,
         `<span style="font-size:13px;color:#9aa096;text-transform:uppercase;letter-spacing:.12em">Players sold</span><br>MATCHX market &amp; drops: ${b(String(d.marketSold.count))} (${esc(d.marketSold.total)} credit) · Between managers: ${b(String(d.transfers.count))} (${esc(d.transfers.total)}, 5% fees ${esc(d.transfers.fees)})`,
+        ...(d.watchedGaps && d.watchedGaps.total
+          ? [`<span style="font-size:13px;color:#9aa096;text-transform:uppercase;letter-spacing:.12em">Watched, not for sale</span><br>${b(String(d.watchedGaps.total))} player${d.watchedGaps.total === 1 ? "" : "s"} managers are watching that no one is selling: ${esc(d.watchedGaps.top.join(", "))}. Add them to the market or an auction from the admin dashboard.`]
+          : []),
         `<span style="font-size:12px;color:#6c726a">Card takings are real money paid through Stripe. Credit figures are spend-only in-game credit, not cash.</span>`,
       ],
       cta: { label: "Open Admin → Money", href: `${APP_URL}/admin/money` },

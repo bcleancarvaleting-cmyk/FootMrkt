@@ -276,6 +276,14 @@ export async function createGameAction(_: ActionResult | null, f: FormData): Pro
   return res.ok ? { ok: true, data: undefined, message: res.data as string } : res;
 }
 
+/** Dashboard → "Watched, not for sale": put one copy on the MATCHX market or up for a 24h auction. */
+export async function supplyWatchedAction(playerId: string, category: "GOLD" | "SILVER" | "BRONZE", mode: "market" | "auction"): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const res = await attempt(() => import("@/server/rare-demand").then((m) => m.supplyWatchedPlayer(admin.id, playerId, category, mode)));
+  done();
+  return res.ok ? { ok: true, data: undefined, message: mode === "market" ? "On the MATCHX market — watchers are being told" : "24-hour auction started — watchers are being told" } : res;
+}
+
 export async function removeAutoMatchesAction(): Promise<ActionResult> {
   const admin = await requireAdmin();
   const res = await attempt(async () => (await import("@/server/competitions")).removeAutoMatches(admin.id));

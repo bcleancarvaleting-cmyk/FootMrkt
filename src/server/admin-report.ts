@@ -34,7 +34,9 @@ export async function dailyReport(from: Date, to: Date) {
   const cardPacks = orders.filter((o) => o.kind === "PACK_PURCHASE");
   const topUps = orders.filter((o) => o.kind === "DEPOSIT");
   const revenueMinor = orders.reduce((s, o) => s + o.amountMinor, 0);
+  const gaps = await (await import("./rare-demand")).watchedNotForSale(5).catch(() => ({ total: 0, rows: [] }));
   return {
+    watchedGaps: { total: gaps.total, top: gaps.rows.map((g) => `${g.name} (${g.watchers} watching)`) },
     day: from.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/London" }),
     revenue: gbp(revenueMinor),
     revenueMinor,

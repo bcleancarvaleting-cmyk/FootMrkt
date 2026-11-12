@@ -203,7 +203,7 @@ export function CreateMatchForm({ gameweeks, leagues, fixtures }: { gameweeks: O
       <S name="winnerPack" label="Winner's pack" options={PACK} />
       <S name="top3Pack" label={"Top 3's pack"} options={PACK} />
       <S name="everyonePack" label="Everyone else's pack" options={PACK} />
-      <I name="prizes" label="£ prizes (optional, e.g. 1=10, 2=5)" placeholder="1=10" />
+      <I name="prizes" label="Total £ pot (optional) — winner takes it, ties split it" placeholder="e.g. 20" />
       <FixturePicker fixtures={fixtures} />
     </Form>
   );
@@ -219,7 +219,7 @@ export function MatchRulesForm({ id, fee, req, prizes, leagues }: { id: string; 
       <I name="clubs" label="Clubs only (e.g. CHE,MUN)" placeholder="CHE,MUN" defaultValue={req.clubs?.join(",")} />
       <S name="maxPerClub" label="Players per club" options={PER_CLUB} defaultValue={req.maxPerClub ? String(req.maxPerClub) : ""} />
       <I name="maxValue" label="Max starters value (£)" type="number" min="1" defaultValue={req.maxSquadValueMp} />
-      <I name="prizes" label="£ prize pot by position (e.g. 1=10, 2=5, 3=3) — ties split" placeholder="1=10, 2=5, 3=3" defaultValue={prizes} />
+      <I name="prizes" label="Total £ pot — winner takes it, ties split it" placeholder="e.g. 20" defaultValue={prizes} />
       <label className="flex items-center gap-2 self-end pb-2.5 text-sm">
         <input type="checkbox" name="freeCardsOnly" defaultChecked={req.freeCardsOnly} className="accent-lime" /> Free cards only
       </label>
@@ -369,7 +369,7 @@ export function SimMatchdayForm({ suggested, canCopy }: { suggested: string; can
       <I name="name" label="Match name (players enter this)" placeholder="e.g. Sim Night Cup" maxLength={40} />
       <S name="tier" label="Cards" options={[{ value: "", label: "Any cards" }, ...TIERS.slice(1)]} />
       <I name="fee" label="Entry fee (£, 0 = free)" type="number" min={0} step="0.01" defaultValue="0" />
-      <I name="prizes" label="£ prizes (e.g. 1=10, 2-3=5)" placeholder="1=10, 2-3=5" />
+      <I name="prizes" label="Total £ pot — winner takes it, ties split it" placeholder="e.g. 20" />
       <S name="winnerPack" label="Winner's pack" options={PACK} />
       <div className="flex flex-col justify-end gap-2 pb-2 text-sm">
         <label className="flex items-center gap-2">

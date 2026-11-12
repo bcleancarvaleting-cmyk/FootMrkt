@@ -219,7 +219,11 @@ export async function EconomySections({ only }: { only: string[] }) {
                 fee={c.entryFeeMinor}
                 req={(c.requirements ?? {}) as Requirements}
                 leagues={leagueOpts}
-                prizes={((c.rewards as Array<{ rankFrom: number; rankTo: number; cashMinor?: number }>) ?? []).filter((r) => r.cashMinor).map((r) => `${r.rankFrom === r.rankTo ? r.rankFrom : `${r.rankFrom}-${r.rankTo}`}=${r.cashMinor! / 100}`).join(", ")}
+                prizes={(() => {
+                  const cash = ((c.rewards as Array<{ rankFrom: number; rankTo: number; cashMinor?: number }>) ?? []).filter((r) => r.cashMinor);
+                  if (cash.length === 1 && cash[0].rankFrom === 1 && cash[0].rankTo === 1) return String(cash[0].cashMinor! / 100);
+                  return cash.map((r) => `${r.rankFrom === r.rankTo ? r.rankFrom : `${r.rankFrom}-${r.rankTo}`}=${r.cashMinor! / 100}`).join(", ");
+                })()}
               />
             </div>
           ))}

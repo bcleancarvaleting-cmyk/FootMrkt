@@ -81,7 +81,7 @@ export const EMAILS = {
     layout({
       preheader: `${d.points} points in ${d.match}.`,
       title: `${d.match}: you finished #${d.rank}`,
-      paragraphs: [`${esc(d.name)}, your squad scored ${b(`${d.points} points`)} and finished ${b(`#${d.rank}`)} of ${d.entries}. You earned ${b(`${d.xp} XP`)}.`],
+      paragraphs: [`${esc(d.name)}, your squad scored ${b(`${d.points} points`)} and finished ${b(`#${d.rank}`)} of ${d.entries}.${d.xp > 0 ? ` You earned ${b(`${d.xp} XP`)}.` : ""}`],
       cta: { label: "See the table", href: `${APP_URL}/matches` },
     }),
   prizeWon: (d: { name: string; match: string; amount: string; rank: string }) =>

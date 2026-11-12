@@ -1029,3 +1029,27 @@ h2 {
 @keyframes event-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 .event-in { animation: event-in 0.5s ease-out; }
 @media (prefers-reduced-motion: reduce) { .event-in { animation: none; } }
+
+/* Watch live */
+@keyframes watch-sweep { from { transform: translateX(-60%); } to { transform: translateX(160%); } }
+.watch-sweep { background: linear-gradient(100deg, transparent 30%, rgba(173, 252, 7, 0.07) 50%, transparent 70%); animation: watch-sweep 4s linear infinite; }
+@keyframes watch-clock { from { transform: scale(1.12); opacity: 0.6; } to { transform: none; opacity: 1; } }
+.watch-clock { animation: watch-clock 0.4s ease-out; }
+@keyframes watch-goal { 0%, 100% { background: rgba(173, 252, 7, 0); } 15%, 60% { background: rgba(173, 252, 7, 0.18); box-shadow: 0 0 30px rgba(173, 252, 7, 0.35); } }
+.watch-goal { animation: watch-goal 4.5s ease-out; }
+@keyframes watch-goal-tag { 0% { transform: scale(2.2); opacity: 0; } 20% { transform: scale(1); opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; } }
+.watch-goal-tag { animation: watch-goal-tag 4.5s ease-out forwards; }
+@keyframes watch-digit { from { transform: translateY(-70%) scale(1.5); opacity: 0; } to { transform: none; opacity: 1; } }
+.watch-digit { animation: watch-digit 0.5s cubic-bezier(0.2, 1.4, 0.4, 1); }
+@keyframes vidi-in { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+.vidi-in { animation: vidi-in 0.9s steps(28, end); }
+@keyframes watch-up { 0%, 100% { box-shadow: none; } 30% { box-shadow: 0 0 0 2px rgba(173, 252, 7, 0.8); } }
+.watch-up { animation: watch-up 1.6s ease-out; }
+@keyframes watch-down { 0%, 100% { box-shadow: none; } 30% { box-shadow: 0 0 0 2px rgba(229, 23, 63, 0.7); } }
+.watch-down { animation: watch-down 1.6s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .watch-sweep, .watch-clock, .watch-goal, .watch-goal-tag, .watch-digit, .vidi-in, .watch-up, .watch-down { animation: none; }
+}
+@keyframes watch-btn { 0%, 100% { box-shadow: 0 0 0 0 rgba(143, 227, 255, 0.55); } 50% { box-shadow: 0 0 0 10px rgba(143, 227, 255, 0); } }
+.watch-btn { animation: watch-btn 2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .watch-btn { animation: none; } }

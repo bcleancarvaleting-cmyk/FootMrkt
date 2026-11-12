@@ -164,8 +164,9 @@ export async function settleCompetition(competitionId: string, actorId: string |
         }
       }
     }
-    // XP: every manager earns their match points as XP (converts to earned credit).
-    for (const t of totals) await creditXp(tx, { userId: t.userId, xp: t.total, refId: `xp:${competitionId}:${t.userId}`, note: `${t.total} pts` });
+    // XP: every manager earns their match points as XP (converts to earned credit). Not on simulated matchdays.
+    const sim = (await tx.gameweek.findUnique({ where: { id: comp.gameweekId }, select: { simulated: true } }))?.simulated ?? false;
+    if (!sim) for (const t of totals) await creditXp(tx, { userId: t.userId, xp: t.total, refId: `xp:${competitionId}:${t.userId}`, note: `${t.total} pts` });
     // £ prize pot: dead-heat rule — tied managers split the prizes for the positions they share.
     const shares = splitPrizePot(totals, rewards);
     for (const t of totals) {
@@ -210,12 +211,12 @@ export async function settleCompetition(competitionId: string, actorId: string |
 /** After settling: a results email to every entrant and a prize email to winners (once each). */
 async function settlementEmails(competitionId: string) {
   const { emailUser } = await import("./email/send");
-  const comp = await db.competition.findUniqueOrThrow({ where: { id: competitionId }, select: { name: true } });
+  const comp = await db.competition.findUniqueOrThrow({ where: { id: competitionId }, select: { name: true, gameweek: { select: { simulated: true } } } });
   const entries = await db.competitionEntry.findMany({ where: { competitionId, status: "ACTIVE" }, select: { userId: true, finalPoints: true, rank: true } });
   const prizes = await db.walletEntry.findMany({ where: { kind: "PRIZE", refId: { startsWith: `prize:${competitionId}:` } }, select: { userId: true, amountMinor: true } });
   for (const e of entries) {
     const pts = Math.round(e.finalPoints ?? 0);
-    await emailUser(e.userId, "results", { match: comp.name, points: pts, rank: e.rank ?? 0, entries: entries.length, xp: Math.max(0, pts) }, `results:${competitionId}:${e.userId}`);
+    await emailUser(e.userId, "results", { match: comp.name, points: pts, rank: e.rank ?? 0, entries: entries.length, xp: comp.gameweek.simulated ? 0 : Math.max(0, pts) }, `results:${competitionId}:${e.userId}`);
     const p = prizes.find((x) => x.userId === e.userId);
     if (p) {
       const tied = entries.filter((x) => x.rank === e.rank).length;

@@ -260,6 +260,7 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
   const lock = comps[0]?.locksAt;
   const open = gw && (gw.status === "OPEN" || gw.status === "UPCOMING");
   const entered = comps.filter((c) => c.entries.length).length;
+  const watch = await (await import("@/server/watch")).watchable();
 
   return (
     <div className="space-y-8">
@@ -317,6 +318,16 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
             </div>
           )}
           <div className="flex flex-wrap gap-3">
+            {watch.real && (
+              <Link href="/watch?scope=real" className="watch-btn btn-primary flex items-center gap-2 px-7 py-4 text-sm">
+                <span className="live-dot" aria-hidden="true" /> Watch live table
+              </Link>
+            )}
+            {watch.sim && (
+              <Link href="/watch" className="watch-btn flex items-center gap-2 rounded-full bg-[#8fe3ff] px-7 py-4 text-sm font-black uppercase tracking-wide text-[#04121a]">
+                <span className="live-dot" aria-hidden="true" /> Watch live sim
+              </Link>
+            )}
             <Link href="/matches" className="btn-primary px-7 py-4 text-sm shadow-[0_8px_30px_-6px_rgba(173,252,7,0.55)]">
               {open ? (entered ? `Entered ${entered}/${comps.length} — edit` : "Pick my squad") : "Live scores"}
             </Link>

@@ -52,7 +52,7 @@ export function MatchCard({ c, entry, paidEntry, results, sim = false }: { c: Co
         </Stat>
         <Stat label="Entry">{c.entryFeeMinor > 0 ? fmtMp(c.entryFeeMinor) : <span className="text-lime">Free</span>}</Stat>
         <Stat label="Prize pot">
-          <span className={pot.cash ? "text-gold" : ""}>{pot.label}</span>
+          <span className={pot.cash ? "font-black text-lime" : ""}>{pot.label}</span>
         </Stat>
         <Stat label="Teams">{c._count.entries.toLocaleString("en-GB")}</Stat>
       </span>
@@ -124,7 +124,7 @@ export function prizeLabel(rewards: unknown) {
   const detail = prizesSummary(rewards).replace(/^£[\d.]+ pot · /, "");
   if (cash.length) {
     const t = potTotal(cash as never);
-    return { label: `£${(t / 100).toFixed(t % 100 ? 2 : 0)}`, cash: true, detail };
+    return { label: `£${(t / 100).toFixed(t % 100 ? 2 : 0)} Pot`, cash: true, detail };
   }
   const packs = all.filter((r) => r.packSkuCode);
   if (packs.length) {

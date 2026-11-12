@@ -56,6 +56,11 @@ export default async function CompetitionPage({ params, searchParams }: { params
           {comp.gameweek.simulated && (
             <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
               <SimBadge /> Simulated games — results generated from each player&apos;s real form and value, played out live.
+              {comp.status !== "SETTLED" && (
+                <Link href="/watch" className="watch-btn ml-1 inline-flex items-center gap-1.5 rounded-full bg-[#8fe3ff] px-3 py-1 text-[11px] font-black uppercase text-[#04121a]">
+                  <span className="live-dot" aria-hidden="true" /> Watch live sim
+                </Link>
+              )}
             </p>
           )}
           <h1 className="mt-1 text-5xl font-extrabold">{comp.name}</h1>

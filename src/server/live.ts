@@ -112,6 +112,8 @@ async function tickerFixtures(now: Date, scope: LiveScope) {
   const next = sims.filter((r) => r.kickoffAt > now).sort((a, b) => a.kickoffAt.getTime() - b.kickoffAt.getTime())[0];
   const simGw = (started ?? next)?.gameweekId;
   if (simGw) rows = rows.filter((r) => !r.gameweek.simulated || r.gameweekId === simGw);
+  // The sim ticker runs only while the games are being played — no "coming up", no old results.
+  if (scope === "sim") rows = rows.filter((r) => r.status === "LIVE");
   rows.sort((a, b) => a.kickoffAt.getTime() - b.kickoffAt.getTime());
   // Quiet day: the latest results instead.
   if (!rows.length) {

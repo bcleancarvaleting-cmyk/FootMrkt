@@ -292,6 +292,9 @@ async function rewardReferrer(tx: Parameters<Parameters<typeof withTx>[0]>[0], u
 /** "1=10, 2-3=5" → £ prizes by finishing position. */
 export function parsePrizes(text: string) {
   const rules: Array<{ rankFrom: number; rankTo: number; cashMinor: number }> = [];
+  // Just an amount ("20" or "£20"): a total pot for the winner — managers tied on top split it equally.
+  const pot = /^\s*£?\s*(\d+(?:\.\d{1,2})?)\s*$/.exec(text);
+  if (pot) return Number(pot[1]) > 0 ? [{ rankFrom: 1, rankTo: 1, cashMinor: Math.round(Number(pot[1]) * 100) }] : [];
   for (const part of text.split(/[,\n]/).map((p) => p.trim()).filter(Boolean)) {
     const m = /^(\d+)(?:\s*-\s*(\d+))?\s*=\s*£?\s*(\d+(?:\.\d{1,2})?)$/.exec(part);
     if (!m) throw new DomainError("PRIZES", `Couldn't read “${part}” — use e.g. 1=10, 2-3=5`);
@@ -308,6 +311,7 @@ export function prizesSummary(rewards: unknown) {
   if (!cash.length) return "";
   const gbp = (m: number) => `£${(m / 100).toFixed(m % 100 ? 2 : 0)}`;
   const ord = (n: number) => `${n}${n % 10 === 1 && n % 100 !== 11 ? "st" : n % 10 === 2 && n % 100 !== 12 ? "nd" : n % 10 === 3 && n % 100 !== 13 ? "rd" : "th"}`;
+  if (cash.length === 1 && cash[0].rankFrom === 1 && cash[0].rankTo === 1) return `${gbp(cash[0].cashMinor!)} pot · the winner takes it — managers tied on top split it equally`;
   const parts = cash.map((r) => `${r.rankFrom === r.rankTo ? ord(r.rankFrom) : `${ord(r.rankFrom)}–${ord(r.rankTo)}`} ${gbp(r.cashMinor!)}${r.rankFrom === r.rankTo ? "" : " each"}`);
   return `${gbp(potTotal(cash))} pot · ${parts.join(" · ")} · ties split`;
 }

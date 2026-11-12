@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { WatchButton } from "@/components/watch-button";
 import { isWatching, watcherCounts } from "@/server/watchlist";
@@ -34,6 +35,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
         </p>
         {player.rightsStatus === "PLACEHOLDER" && <p className="mt-1 text-xs text-warn">Placeholder player for development — not a real person.</p>}
         <div className="mt-3 flex flex-wrap items-center gap-3">
+          <Link href={`/transfers/find/${player.id}`} className="btn-primary px-4 py-2 text-xs">🔍 Find to buy</Link>
           <WatchButton playerId={player.id} initial={await isWatching(user.id, player.id)} />
           <WatchedBy count={(await watcherCounts([player.id])).get(player.id) ?? 0} />
         </div>

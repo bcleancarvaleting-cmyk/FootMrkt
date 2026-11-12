@@ -3,6 +3,7 @@ import { FinishPill } from "./finish-art";
 import type { CardView } from "@/lib/view";
 import { ClubBadge } from "./club-badge";
 import { KitShirt } from "./kit-shirt";
+import { FindPlayer } from "./find-player";
 import { Trend } from "./player-card";
 
 const TIER_TEXT = { GOLD: "text-gold", SILVER: "text-silver", BRONZE: "text-bronze" } as const;
@@ -12,7 +13,7 @@ export const POS_ORDER = { GK: 0, DEF: 1, MID: 2, ATT: 3 } as const;
  * One card as a full-width row: tier border · shirt · name/club · position · value. Pages put their
  * own columns (price, offers, actions) in `children`, which sit on the right.
  */
-export function CardRow({ card, href, children, sub, below, showValue = false }: { card: CardView; href?: string; children?: React.ReactNode; sub?: React.ReactNode; below?: React.ReactNode; showValue?: boolean }) {
+export function CardRow({ card, href, children, sub, below, showValue = false, find = true }: { card: CardView; href?: string; children?: React.ReactNode; sub?: React.ReactNode; below?: React.ReactNode; showValue?: boolean; /** 🔍 find this player to buy (off where the row is already for sale). */ find?: boolean }) {
   const body = (
     <>
       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-ink-850">
@@ -62,6 +63,7 @@ export function CardRow({ card, href, children, sub, below, showValue = false }:
       ) : (
         <span className="flex min-w-0 flex-1 items-center gap-3">{body}</span>
       )}
+      {find && <FindPlayer playerId={card.playerId} name={card.name} inline />}
       {showValue && !card.loan && (
         <span className="hidden w-28 shrink-0 flex-col items-end md:flex">
           {card.history && card.history.length > 1 ? <Sparkline points={card.history} width={96} height={24} /> : <span className="text-[10px] text-faint">No history yet</span>}

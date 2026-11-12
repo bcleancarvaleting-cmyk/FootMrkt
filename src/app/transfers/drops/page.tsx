@@ -46,7 +46,7 @@ export default async function DropsPage() {
         ) : (
           <ul className="space-y-2">
             {board.live.map((d) => (
-              <CardRow key={d.id} card={d.card} href={`/cards/${d.card.id}`} sub={tag(d.card.playerId)} below={form.has(d.card.playerId) && <FormGuide form={form.get(d.card.playerId)!} />}>
+              <CardRow find={false} key={d.id} card={d.card} href={`/cards/${d.card.id}`} sub={tag(d.card.playerId)} below={form.has(d.card.playerId) && <FormGuide form={form.get(d.card.playerId)!} />}>
                 <RowStat label="Dropped" className="hidden w-28 sm:block">
                   <span className="text-sm font-semibold">{fmtDate(d.liveAt, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
                 </RowStat>

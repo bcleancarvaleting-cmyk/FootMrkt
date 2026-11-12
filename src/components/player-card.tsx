@@ -2,6 +2,7 @@ import type { CardView } from "@/lib/view";
 import { FINISH_STYLE, FinishPill, Gem, GemFacets, GemSparkles, RainbowChant } from "./finish-art";
 import { mpLabel } from "@/lib/view";
 import { ClubBadge } from "./club-badge";
+import { FindPlayer } from "./find-player";
 import { KitShirt } from "./kit-shirt";
 
 const TIER = {
@@ -126,6 +127,7 @@ export function PlayerCard({ card, size = "md", className = "", showcase = false
             {card.loan && (card.loan.ended ? <Badge tone="warn">Loan ended</Badge> : <Badge tone="muted">On loan</Badge>)}
           </div>
           )}
+          {!showcase && <FindPlayer playerId={card.playerId} name={card.name} small={small} />}
           {showcase && finish && (
             <div className="pointer-events-none absolute left-1 top-1">
               <FinishPill finish={finish} id={`badge-${card.id}`} size="xs" />

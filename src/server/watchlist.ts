@@ -78,7 +78,7 @@ export async function alertNewListing(listing: { id: string; sellerId: string | 
       kind: "listing",
       title: `${listing.playerName} listed for ${fmtMp(listing.askingPriceMinor)}`,
       body: (w.maxPriceMinor != null ? `At or under your alert price of ${fmtMp(w.maxPriceMinor)}.` : "A player on your watchlist is on the Transfer list.") + watching(n),
-      href: "/transfers",
+      href: `/transfers/find/${listing.playerId}`,
       dedupeKey: `listing:${listing.id}:${w.userId}`,
     });
   }
@@ -207,7 +207,7 @@ export async function announceWatchedMarket(now = new Date()) {
         kind: "listing",
         title: `👀 ${l.card.template.player.displayName} is available — ${fmtMp(l.askingPriceMinor)}`,
         body: `${l.house ? "MATCHX has one on buy now." : "A manager has listed one on the Transfer list."}${watching(counts.get(pid) ?? 0)}`,
-        href: "/transfers",
+        href: `/transfers/find/${pid}`,
         dedupeKey: `listing:${l.id}:${w.userId}`,
       });
       sent++;

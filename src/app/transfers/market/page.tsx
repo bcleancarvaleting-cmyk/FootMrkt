@@ -89,7 +89,7 @@ export default async function MarketPage({ searchParams }: { searchParams: Promi
           <p className="text-xs text-faint">{board.total.toLocaleString("en-GB")} players on sale · page {board.page} of {board.pages}</p>
           <ul className="space-y-2">
             {board.rows.map((r) => (
-              <CardRow
+              <CardRow find={false}
                 key={r.listingId}
                 card={r.card}
                 href={`/players/${r.card.playerId}`}

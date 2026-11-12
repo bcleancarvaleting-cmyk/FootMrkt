@@ -4,7 +4,7 @@ import { useActionState, useState, useTransition } from "react";
 import { setAlertPriceAction, toggleWatchAction } from "@/app/actions/social";
 
 /** Follow a player: alerts when they drop, get listed, or change tier. */
-export function WatchButton({ playerId, initial, className = "" }: { playerId: string; initial: boolean; className?: string }) {
+export function WatchButton({ playerId, initial, className = "", big = false }: { playerId: string; initial: boolean; className?: string; /** The "rare player" call to action. */ big?: boolean }) {
   const [on, setOn] = useState(initial);
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
@@ -21,9 +21,9 @@ export function WatchButton({ playerId, initial, className = "" }: { playerId: s
             setMsg(r.ok ? (r.message ?? null) : r.error);
           })
         }
-        className={`btn-ghost px-4 py-2 text-xs ${on ? "border-accent text-lime" : ""}`}
+        className={big ? (on ? "btn-ghost border-accent px-6 py-3 text-sm text-lime" : "btn-primary px-6 py-3 text-sm") : `btn-ghost px-4 py-2 text-xs ${on ? "border-accent text-lime" : ""}`}
       >
-        {on ? "👁 Watching" : "👁 Watch player"}
+        {big ? (on ? "✓ On your watchlist — we'll tell you" : "👁 Add to watchlist") : on ? "👁 Watching" : "👁 Watch player"}
       </button>
       {msg && <span className="text-[11px] text-faint">{msg}</span>}
     </span>

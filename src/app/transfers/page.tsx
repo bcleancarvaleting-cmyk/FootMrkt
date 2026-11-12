@@ -117,7 +117,7 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
           {rows.map((r) => {
             const mine = !r.house && r.sellerId === user.id;
             return (
-              <CardRow
+              <CardRow find={false}
                 key={r.id}
                 card={r.card}
                 href={`/cards/${r.card.id}`}

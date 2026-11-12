@@ -171,6 +171,18 @@ export function AppBackButton() {
     if (trail[trail.length - 2] === path) trail.pop(); // went back
     else trail.push(path);
   }, [path]);
+  // Out of the way while reading: slides off as you scroll down, back as you scroll up or reach the top.
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    let last = window.scrollY;
+    const on = () => {
+      const y = window.scrollY;
+      if (Math.abs(y - last) > 6) setHidden(y > last && y > 120);
+      last = y;
+    };
+    window.addEventListener("scroll", on, { passive: true });
+    return () => window.removeEventListener("scroll", on);
+  }, []);
   if (path === "/" || path === "/login" || path === "/register") return null;
   const back = () => {
     if (trail.length > 1) router.back();
@@ -181,7 +193,7 @@ export function AppBackButton() {
       type="button"
       onClick={back}
       aria-label="Go back"
-      className="fixed left-3 z-40 flex h-11 w-11 items-center justify-center gap-1 rounded-full border border-ink-600 bg-ink-900/90 text-sm font-bold text-fg shadow-[0_8px_24px_-8px_rgba(0,0,0,0.7)] backdrop-blur-md transition hover:border-fg/50 md:left-6 md:w-auto md:pl-2.5 md:pr-3.5"
+      className={`fixed left-3 z-40 flex h-10 w-10 items-center justify-center gap-1 rounded-full border border-ink-600 bg-ink-900/90 text-sm font-bold text-fg shadow-[0_8px_24px_-8px_rgba(0,0,0,0.7)] backdrop-blur-md transition duration-300 hover:border-fg/50 md:left-6 md:h-11 md:w-auto md:pl-2.5 md:pr-3.5 ${hidden ? "pointer-events-none -translate-x-16 opacity-0 md:translate-x-0 md:opacity-100 md:pointer-events-auto" : ""}`}
       style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + var(--back-offset, 88px))" }}
     >
       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

@@ -106,7 +106,17 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
               ))}
             </div>
           )}
-          <div className="mt-5 grid gap-3 lg:grid-cols-2">
+          {cards.length === 0 && (
+            <Link href="/packs" className="mt-5 flex items-center gap-4 rounded-2xl border border-[#f0cb5a]/60 bg-gradient-to-r from-[#1d1606] to-black/40 p-4">
+              <span className="text-4xl" aria-hidden="true">🎁</span>
+              <span className="min-w-0 flex-1">
+                <b className="block font-display text-2xl font-black uppercase italic leading-none">{unopened ? `${unopened} pack${unopened === 1 ? "" : "s"} to open` : "Build your squad"}</b>
+                <span className="mt-1 block text-sm text-white/70">{unopened ? "Your starter players are waiting — open them to fill your club." : "Get players from packs, player drops and the market."}</span>
+              </span>
+              <span className="btn-gold shrink-0 px-4 py-2 text-xs">{unopened ? "Open" : "Packs"}</span>
+            </Link>
+          )}
+          <div className={`mt-5 grid gap-3 lg:grid-cols-2 ${cards.length === 0 ? "hidden" : ""}`}>
             <ValueGraph series={pf.series} />
             <div className="rounded-2xl border border-white/10 bg-black/35 p-3">
               <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/55">New signings</p>

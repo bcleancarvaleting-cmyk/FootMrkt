@@ -247,7 +247,7 @@ async function DraftBuilder({
   return (
     <div className="space-y-4">
       <p className="rounded-xl border border-accent/40 bg-accent/5 px-4 py-3 text-sm">
-        <b>Free draft:</b> pick any {req.leagues?.join("/") ?? ""} players — no cards needed. Your 11 must cost {req.draftBudgetMx} MX or less in total
+        <b>Free draft:</b> pick any {req.leagues?.join("/") ?? ""} players — no cards needed. Your 11 must cost £{req.draftBudgetMx} or less in total
         {req.maxPerClub ? `, with no more than ${req.maxPerClub} from one club` : ""}. Points earn XP like any match. Like a player? Collect their card in a pack.
       </p>
       <SquadBuilder

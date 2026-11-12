@@ -62,7 +62,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
           {fact("Friends invited", u._count.referrals)}
           {fact("Matches entered", u._count.entries)}
           {fact("Cards", d.cards)}
-          {fact("MX", `${fmtMp(b.total)} (bought ${fmtMp(b.total - b.earned)} · earned ${fmtMp(b.earned)})`)}
+          {fact("£ balance", `${fmtMp(b.total)} (bought ${fmtMp(b.total - b.earned)} · earned ${fmtMp(b.earned)})`)}
           {fact("XP", b.xp.toLocaleString("en-GB"))}
         </section>
 

@@ -57,7 +57,7 @@ export function LiveCentre({ initial, signedIn }: { initial: LiveBoard; signedIn
             Simulated matchday <span className="rounded bg-[#8fe3ff] px-1.5 text-xs font-black text-[#04121a]">SIM</span>
           </h2>
           <p className="mb-3 text-xs text-muted">Every game kicks off together. Results are simulated from each player&apos;s real form and value — goals, assists and cards land as they happen.</p>
-          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {board.fixtures
               .filter((f) => f.sim)
               .sort((a, b) => Number(mineIn(b)) - Number(mineIn(a)) || Number(b.status === "LIVE") - Number(a.status === "LIVE") || b.events.length - a.events.length)
@@ -150,7 +150,7 @@ export function LiveCentre({ initial, signedIn }: { initial: LiveBoard; signedIn
           return (
             <section key={code}>
               <h2 className="mb-2 text-2xl">{name}</h2>
-              <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {games.map((f) => (
                   <Fixture key={f.id} f={f} flash={changed.has(f.id)} />
                 ))}
@@ -176,7 +176,7 @@ function Fixture({ f, flash }: { f: LiveFixture; flash: boolean }) {
     </span>
   );
   return (
-    <li className={`rounded-2xl border bg-ink-900 p-4 transition-colors duration-700 ${live ? "border-danger/50" : "border-ink-700"} ${flash ? "!border-accent bg-accent/10" : ""}`}>
+    <li className={`min-w-0 rounded-2xl border bg-ink-900 p-4 transition-colors duration-700 ${live ? "border-danger/50" : "border-ink-700"} ${flash ? "!border-accent bg-accent/10" : ""}`}>
       <div className="mb-2 flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.14em]">
         {live ? (
           <span className="flex items-center gap-1.5 text-danger">

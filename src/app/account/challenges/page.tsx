@@ -54,22 +54,22 @@ export default async function ChallengesPage({ searchParams }: { searchParams: P
               const ready = c.eligible >= c.criteria.count && !c.maxed;
               return (
                 <li key={c.id} className={`row-item flex-wrap sm:flex-nowrap ${ready ? "border-l-4 border-l-accent" : ""}`}>
-                  <span className="min-w-0 flex-1">
+                  <span className="min-w-0 flex-1 basis-full sm:basis-auto">
                     <span className="block font-display text-xl font-bold uppercase italic leading-tight">{c.name}</span>
                     <span className="block text-sm text-muted">{c.description}</span>
                     <span className="mt-1 block text-[11px] font-semibold uppercase tracking-[0.12em] text-faint">{c.summary}</span>
                   </span>
-                  <span className="w-28 shrink-0 text-right">
+                  <span className="flex-1 text-left sm:w-28 sm:flex-none sm:shrink-0 sm:text-right">
                     <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">Reward</span>
                     <span className="font-bold text-lime">
                       {[c.rewardMinor > 0 ? fmtMp(c.rewardMinor) : null, packName(c.rewardPackSku)].filter(Boolean).join(" + ")}
                     </span>
                   </span>
-                  <span className="w-28 shrink-0 text-right text-xs text-muted">
+                  <span className="flex-1 text-center text-xs text-muted sm:w-28 sm:flex-none sm:shrink-0 sm:text-right">
                     {c.eligible}/{c.criteria.count} eligible
                     {c.maxPerUser !== null && <span className="block text-faint">{c.completed}/{c.maxPerUser} done</span>}
                   </span>
-                  <span className="w-28 shrink-0 text-right">
+                  <span className="shrink-0 text-right sm:w-28">
                     {c.maxed ? (
                       <span className="tag text-faint">Maxed</span>
                     ) : (

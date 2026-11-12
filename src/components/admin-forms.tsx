@@ -52,7 +52,7 @@ export function DropForm({ packs }: { packs: Array<{ code: string; name: string 
           </optgroup>
           <optgroup label="Credit">
             <option value="XP">XP credit</option>
-            <option value="MX">Earned credit credit</option>
+            <option value="MX">£ earned credit</option>
           </optgroup>
         </select>
       </div>

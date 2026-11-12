@@ -19,6 +19,7 @@ import { StatsTicker } from "@/components/stats-ticker";
 import { ScoresTicker, TickerScopeProvider } from "@/components/scores-ticker";
 import { liveBoard } from "@/server/live";
 import { MomentOverlay } from "@/components/moment-overlay";
+import { SigningToasts } from "@/components/signing-toasts";
 import { nextMoment } from "@/server/moments";
 import type { Theme } from "@/components/theme-toggle";
 import { getCurrentUser } from "@/server/auth/session";
@@ -69,6 +70,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {/* Real football only; simulated-matchday pages switch it to their sim games. */}
         {!hideTicker && <ScoresTicker initial={{ ...(await liveBoard(user?.id ?? null, new Date(), "real")), extras: await (await import("@/server/ticker")).tickerItems("home") }} />}
         {user && <MomentOverlay moment={await nextMoment(user.id)} />}
+        {!hideTicker && <SigningToasts />}
         <main id="main" tabIndex={-1} className={`mx-auto outline-none w-full max-w-6xl flex-1 px-4 pt-6 sm:px-6 ${user ? "pb-32 md:pb-16" : "pb-16"}`}>{children}</main>
         <SiteFooter loggedIn={!!user} credit={await dataCredit()} />
         {user && <BottomNav unopenedPacks={unopened} />}

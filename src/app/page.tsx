@@ -6,29 +6,26 @@ import { LevelBadge } from "@/components/level-badge";
 import { PREDICTION_XP, predictionPanel } from "@/server/predictions";
 import { managerLevel } from "@/server/progression";
 import { CardRow } from "@/components/card-row";
-import { Countdown, CountdownBlocks } from "@/components/countdown";
+import { Countdown } from "@/components/countdown";
 import { PlayerCard } from "@/components/player-card";
 import { ClubBadge } from "@/components/club-badge";
 import { KitShirt } from "@/components/kit-shirt";
 import { MatchCard } from "@/components/match-card";
 import { Sparkline } from "@/components/card-row";
-import { getText } from "@/server/settings";
-import { HeroBackground } from "@/components/hero-background";
 import { LaunchPage, type LaunchParams } from "@/components/launch-page";
 import { HeroCarousel } from "@/components/hero-carousel";
+import { HubHero } from "@/components/hub-hero";
 import { TakeItOnTheGo } from "@/components/app-install";
 import { CommunityLinks } from "@/components/community-links";
 import { EndedLoansBanner } from "@/components/loan-banner";
 import { RowStat } from "@/components/card-row";
 import { getCurrentUser } from "@/server/auth/session";
-import { binderTotals } from "@/server/binder";
 import { db } from "@/server/db";
 import { activeDrop, giftLabel } from "@/server/drops";
 import { isEnabled } from "@/server/flags";
 import { currentGameweek } from "@/server/gameweeks";
 import { performanceTable } from "@/server/top-performers";
 import { cardViews } from "@/server/views";
-import { balancesFor, fmtMp } from "@/server/wallet";
 import { fmtDate } from "@/lib/view";
 
 export default async function Home({ searchParams }: { searchParams: Promise<LaunchParams> }) {
@@ -41,13 +38,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<Lau
 
 async function Landing() {
   const showcase = await cardViews(
-    { template: { category: "GOLD", edition: "STANDARD", player: { club: { league: { isTopFlight: true } } } }, supplyState: { in: ["AVAILABLE", "RECIRCULATING"] }, serial: 1 },
+    // Showcase: the No. 1 Gold of top-flight players (wherever the card is now).
+    { template: { category: "GOLD", edition: "STANDARD", player: { club: { league: { isTopFlight: true } } } }, serial: 1 },
     [{ template: { player: { squadNumber: "asc" } } }],
     40,
   );
   const picks = [showcase[3], showcase[0], showcase[11]].filter(Boolean);
   const market = [showcase[5], showcase[8], showcase[14], showcase[20]].filter(Boolean);
-  const [players, clubs, heroImage] = await Promise.all([db.player.count({ where: { active: true } }), db.club.count(), getText("homeHeroImage")]);
+  const [players, clubs] = await Promise.all([db.player.count({ where: { active: true } }), db.club.count()]);
 
   return (
     <div className="-mt-6 space-y-20">
@@ -55,7 +53,6 @@ async function Landing() {
       <div className="-mx-4 sm:-mx-6 lg:mx-0">
         <HeroCarousel labels={["Manage your team", "Transfer market", "Buy packs"]}>
           <Slide
-            background={<HeroBackground image={heroImage} />}
             eyebrow="Manage your team"
             title={
               <>
@@ -67,7 +64,7 @@ async function Landing() {
             body="Pick seven real English footballers from your club, choose a formation and score points from what they do on the pitch every weekend."
             points={["2-2-2, 2-3-1, 3-2-1 or 3-1-2", "A sub comes on if a starter doesn't play", "Free matches every gameweek, with prizes"]}
             visual={
-              <div className="relative flex h-[380px] items-center justify-center">
+              <div className="relative flex h-[330px] items-center justify-center sm:h-[380px]">
                 {picks.map((c, i) => (
                   <div key={c.id} className="absolute" style={{ transform: `translateX(${(i - 1) * 130}px) translateY(${i === 1 ? -10 : 18}px) rotate(${(i - 1) * 8}deg)`, zIndex: i === 1 ? 2 : 1 }}>
                     <PlayerCard card={c} size={i === 1 ? "lg" : "md"} />
@@ -86,7 +83,7 @@ async function Landing() {
               </>
             }
             body="Trade players with other managers using credit you've earned from XP, challenges and sales. See every player's value graph before you buy."
-            points={["Earn XP from every point your players score", "1,000 XP = £5 to spend", "Opening soon"]}
+            points={["Earn XP from every point your players score", "Turn XP into £ credit to spend", "See every player's value graph"]}
             visual={
               <ul className="w-full max-w-lg space-y-2 text-left">
                 {market.map((c) => (
@@ -190,7 +187,7 @@ function Slide({ background, eyebrow, title, body, points, visual }: { backgroun
   return (
     <div className="relative h-full overflow-hidden bg-[#0b0e0c] lg:rounded-[28px]">
       {background ?? <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_80%_20%,rgb(173_252_7/0.14),transparent_60%)]" aria-hidden="true" />}
-      <div className="relative grid min-h-[600px] items-center gap-10 px-5 pb-10 pt-20 sm:px-10 lg:grid-cols-[1.05fr_1fr] lg:pt-14">
+      <div className="relative grid min-h-[600px] items-center gap-4 px-5 pb-10 pt-8 sm:gap-10 sm:px-10 sm:pt-20 lg:grid-cols-[1.05fr_1fr] lg:pt-14">
         <div className="max-w-xl space-y-5 text-[#f4f5f2]">
           <span className="tag border-white/25 text-white/80">{eyebrow}</span>
           <h1 className="text-[56px] leading-[0.86] sm:text-7xl">{title}</h1>
@@ -204,14 +201,14 @@ function Slide({ background, eyebrow, title, body, points, visual }: { backgroun
           </ul>
           <div className="flex flex-col gap-3 pt-1 sm:flex-row">
             <Link href="/register" className="btn-primary px-7 py-4 text-sm">
-              Play free — get 32 players
+              Play free — 32 players + 4 app picks
             </Link>
             <Link href="/how-it-works" className="btn border border-white/30 px-7 py-4 text-sm text-white hover:border-white/70">
               How it works
             </Link>
           </div>
         </div>
-        <div className="flex justify-center">{visual}</div>
+        <div className="order-first flex origin-top scale-[0.8] justify-center sm:scale-100 lg:order-last">{visual}</div>
       </div>
     </div>
   );
@@ -231,12 +228,10 @@ function Feature({ eyebrow, title, body, href, cta }: { eyebrow: string; title: 
 }
 
 async function Hub({ userId, name }: { userId: string; name: string }) {
-  const [gw, totals, unopened, recent, bal, drop, playerDrops, marketOn, top, level, streak, prediction, auctions, leagues] = await Promise.all([
+  const [gw, unopened, recent, drop, playerDrops, marketOn, top, level, streak, prediction, auctions] = await Promise.all([
     currentGameweek(),
-    binderTotals(userId),
     db.packEntitlement.count({ where: { userId, status: "UNOPENED" } }),
     cardViews({ ownerId: userId, supplyState: "HELD" }, [{ updatedAt: "desc" }], 5),
-    balancesFor(userId),
     activeDrop(),
     db.marketListing.count({ where: { house: true, status: "ACTIVE", liveAt: { lte: new Date() }, card: { packable: false } } }),
     isEnabled("MARKET"),
@@ -245,123 +240,19 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
     db.user.findUniqueOrThrow({ where: { id: userId }, select: { loginStreak: true, bestStreak: true } }),
     predictionPanel(userId),
     db.auction.count({ where: { status: "LIVE" } }),
-    db.miniLeagueMember.count({ where: { userId } }),
   ]);
   const totw = await currentTeamOfTheWeek();
-  const [comps, heroImage, paidEntry] = await Promise.all([
+  const [comps, paidEntry] = await Promise.all([
     gw
       ? db.competition.findMany({ where: { gameweekId: gw.id }, include: { entries: { where: { userId } }, _count: { select: { entries: true } } }, orderBy: [{ entryFeeMinor: "asc" }, { name: "asc" }] })
       : [],
-    getText("homeHeroImage"),
     isEnabled("PAID_ENTRY"),
   ]);
-  const potTotalGbp =
-    comps.reduce((s, c) => s + ((c.rewards as Array<{ rankFrom: number; rankTo: number; cashMinor?: number }>) ?? []).filter((r) => r.cashMinor).reduce((k, r) => k + r.cashMinor! * (r.rankTo - r.rankFrom + 1), 0), 0) / 100;
-  const lock = comps[0]?.locksAt;
-  const open = gw && (gw.status === "OPEN" || gw.status === "UPCOMING");
-  const entered = comps.filter((c) => c.entries.length).length;
   const watch = await (await import("@/server/watch")).watchable();
 
   return (
     <div className="space-y-8">
-      <section className="relative -mx-4 overflow-hidden border-y border-ink-700 sm:mx-0 sm:rounded-[28px] sm:border">
-        <HeroBackground image={heroImage} />
-        <div className="relative flex min-h-[560px] flex-col justify-end gap-5 p-5 pt-44 text-[#f4f5f2] sm:min-h-[540px] sm:p-10">
-          <span className="flex flex-wrap items-center gap-2">
-            {gw && gw.status === "PROVISIONAL" ? (
-              <span className="flex items-center gap-1.5 rounded-full bg-danger px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.18em] text-white">
-                <span className="live-dot" aria-hidden="true" /> Live
-              </span>
-            ) : null}
-            <span className="rounded-full border border-white/25 bg-black/30 px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.18em] text-white/85 backdrop-blur">
-              {gw ? `Gameweek ${gw.number} · ${gw.season}` : "Welcome"}
-            </span>
-          </span>
-          <div>
-            <p className="text-sm font-semibold text-white/70">Welcome back, {name}</p>
-            <h1 className="mt-1 text-[52px] leading-[0.86] drop-shadow-[0_4px_24px_rgba(0,0,0,0.6)] sm:text-8xl">
-              {open ? (
-                <>
-                  Pick your <span className="text-[#adfc07]">squad</span>
-                </>
-              ) : gw?.status === "SETTLED" ? (
-                <>
-                  Results are <span className="text-[#adfc07]">in</span>
-                </>
-              ) : (
-                <>
-                  Matchday is <span className="text-[#adfc07]">live</span>
-                </>
-              )}
-            </h1>
-          </div>
-          {open && lock && (
-            <div className="space-y-1.5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/60">Squads lock in</p>
-              <CountdownBlocks to={lock.toISOString()} />
-            </div>
-          )}
-          {comps.length > 0 && (
-            <div className="grid max-w-xl grid-cols-3 overflow-hidden rounded-2xl border border-white/15 bg-black/35 backdrop-blur-md">
-              {(
-                [
-                  ["Matches", String(comps.length)],
-                  ["You're in", `${entered}/${comps.length}`],
-                  ["Prize pots", potTotalGbp > 0 ? `£${potTotalGbp % 1 ? potTotalGbp.toFixed(2) : potTotalGbp}` : "Packs & XP"],
-                ] as const
-              ).map(([l, v], i) => (
-                <span key={l} className={`px-3 py-2.5 ${i ? "border-l border-white/10" : ""}`}>
-                  <span className="block text-[9px] font-bold uppercase tracking-[0.16em] text-white/55">{l}</span>
-                  <span className={`block font-display text-xl font-black tabular-nums sm:text-2xl ${l === "Prize pots" ? "text-[#f0cb5a]" : ""}`}>{v}</span>
-                </span>
-              ))}
-            </div>
-          )}
-          {/* Side by side on phones (two per row; an odd last one spans the row). */}
-          <div className="grid max-w-xl grid-cols-2 gap-2 sm:flex sm:max-w-none sm:flex-wrap sm:gap-3 [&>*:last-child:nth-child(odd)]:col-span-2">
-            {watch.real && (
-              <Link href="/watch?scope=real" className="watch-btn btn-primary px-3 py-3.5 text-center text-[12px] leading-tight sm:px-7 sm:py-4 sm:text-sm">
-                <span className="live-dot" aria-hidden="true" /> Watch live table
-              </Link>
-            )}
-            {watch.sim && (
-              <Link href="/watch" className="watch-btn btn bg-[#8fe3ff] px-3 py-3.5 text-center text-[12px] leading-tight text-[#04121a] sm:px-7 sm:py-4 sm:text-sm">
-                <span className="live-dot" aria-hidden="true" /> Watch live sim
-              </Link>
-            )}
-            <Link href="/matches" className="btn-primary px-3 py-3.5 text-center text-[12px] leading-tight shadow-[0_8px_30px_-6px_rgba(173,252,7,0.55)] sm:px-7 sm:py-4 sm:text-sm">
-              {open ? (entered ? `Entered ${entered}/${comps.length} — edit` : "Pick my squad") : "Live scores"}
-            </Link>
-            {unopened > 0 && (
-              <Link href="/packs" className="btn-gold px-3 py-3.5 text-center text-[12px] leading-tight sm:px-7 sm:py-4 sm:text-sm">
-                Open {unopened} pack{unopened > 1 ? "s" : ""}
-              </Link>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* The hub: every part of the game one tap away. */}
-      <nav aria-label="Your game" className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {(
-          [
-            ["My Club", `${totals.total} players`, `${totals.byCategory.GOLD} Gold · ${totals.byCategory.SILVER} Silver · ${totals.byCategory.BRONZE} Bronze`, "/account/club", "text-lime"],
-            ["Transfers", marketOn ? "Buy · sell · bid" : "Opens soon", marketOn ? `${playerDrops} MATCHX buy-nows · ${auctions} auction${auctions === 1 ? "" : "s"} live` : "MATCHX buy-nows and auctions", "/transfers", "text-gold"],
-            ["Packs", unopened ? `${unopened} to open` : "Pack shop", "Starters, boosters, gifts and the shop", "/packs", ""],
-            ["Matches", comps.length ? `${entered}/${comps.length} entered` : "No matches yet", comps.length ? (entered === comps.length ? "All entered ✓" : `${comps.length - entered} still to enter`) : "Next gameweek coming", "/matches", comps.length && entered === comps.length ? "text-mint" : "text-danger"],
-            ["Wallet", fmtMp(bal.total), "Balance and £ winnings", "/account/wallet", ""],
-            ["Leagues", leagues ? `${leagues} league${leagues === 1 ? "" : "s"}` : "Start one", "Private leagues with friends", "/leagues", ""],
-            ["Challenges", "Hand in", "Earn £ credit and packs", "/account/challenges", ""],
-            ["Chat", "Managers", "Talk tactics and pack pulls", "/chat", ""],
-          ] as const
-        ).map(([k, v, s, href, tone]) => (
-          <Link key={k} href={href} className={`rounded-2xl border bg-ink-900 p-4 transition hover:bg-ink-850 ${k === "Matches" && comps.length ? (entered === comps.length ? "border-mint/70" : "border-danger/60") : "border-ink-700"}`}>
-            <p className={`eyebrow ${tone}`}>{k}</p>
-            <p className="mt-1 font-display text-2xl font-extrabold uppercase italic leading-none">{v}</p>
-            <p className="mt-1 text-xs text-faint">{s}</p>
-          </Link>
-        ))}
-      </nav>
+      <HubHero userId={userId} name={name} unopened={unopened} marketOn={marketOn} buyNows={playerDrops} auctions={auctions} watch={watch} />
 
       <EndedLoansBanner userId={userId} />
 

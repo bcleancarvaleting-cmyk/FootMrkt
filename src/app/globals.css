@@ -1067,3 +1067,6 @@ h2 {
 @keyframes rank-pop { 0% { transform: scale(1.8); opacity: 0; } 30% { transform: scale(1); opacity: 1; } 100% { opacity: 1; } }
 .rank-pop { animation: rank-pop 0.8s ease-out; }
 @media (prefers-reduced-motion: reduce) { .pts-pop, .pts-float, .token-glow, .rank-pop { animation: none; } }
+@keyframes signing-pop { 0% { transform: translateY(24px) scale(0.95); opacity: 0; } 12% { transform: none; opacity: 1; } 88% { transform: none; opacity: 1; } 100% { transform: translateY(12px); opacity: 0; } }
+.signing-pop { animation: signing-pop 6s ease-out forwards; }
+@media (prefers-reduced-motion: reduce) { .signing-pop { animation: none; } }

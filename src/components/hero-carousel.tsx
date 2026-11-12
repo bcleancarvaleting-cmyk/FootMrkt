@@ -53,11 +53,11 @@ export function HeroCarousel({ labels, children }: { labels: string[]; children:
           </div>
         ))}
       </div>
-      <div className="mt-4 flex items-center justify-center gap-3">
-        <button type="button" onClick={() => go(index - 1)} className="btn-ghost h-9 w-9 rounded-full p-0" aria-label="Previous slide">
+      <div className="mt-4 flex items-center justify-center gap-3 px-4">
+        <button type="button" onClick={() => go(index - 1)} className="btn-ghost hidden h-9 w-9 shrink-0 rounded-full p-0 sm:inline-flex" aria-label="Previous slide">
           ‹
         </button>
-        <div className="flex gap-2" role="tablist" aria-label="Slides">
+        <div className="flex min-w-0 gap-1 overflow-x-auto [scrollbar-width:none] sm:gap-2 [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="Slides">
           {labels.map((l, i) => (
             <button
               key={l}
@@ -65,13 +65,13 @@ export function HeroCarousel({ labels, children }: { labels: string[]; children:
               role="tab"
               aria-selected={i === index}
               onClick={() => go(i)}
-              className={`rounded-full px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.12em] transition ${i === index ? "bg-accent text-accent-ink" : "text-muted hover:text-fg"}`}
+              className={`shrink-0 whitespace-nowrap rounded-full px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.1em] transition sm:px-3 sm:text-[11px] sm:tracking-[0.12em] ${i === index ? "bg-accent text-accent-ink" : "text-muted hover:text-fg"}`}
             >
               {l}
             </button>
           ))}
         </div>
-        <button type="button" onClick={() => go(index + 1)} className="btn-ghost h-9 w-9 rounded-full p-0" aria-label="Next slide">
+        <button type="button" onClick={() => go(index + 1)} className="btn-ghost hidden h-9 w-9 shrink-0 rounded-full p-0 sm:inline-flex" aria-label="Next slide">
           ›
         </button>
       </div>

@@ -18,7 +18,7 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
       <div className="space-y-4">
         <p className="eyebrow">One account · every world</p>
         <h1 className="text-4xl font-black leading-tight">
-          Your club starts with <span className="text-lime">32 free players.</span>
+          Your club starts with <span className="text-lime">32 free players</span> — plus 4 picks in the app.
         </h1>
         <p className="text-muted">
           Every new manager gets 32 free players to start their MatchX journey, enough to enter this week&apos;s matches straight away, then a

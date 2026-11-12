@@ -15,7 +15,7 @@ import { FORMATIONS, categoriesForFormat, getRosterRules } from "@/domain/footba
 import type { SelectionResult } from "@/domain/football/scoring";
 import { getScoringRules } from "@/domain/football/scoring";
 import { requireUser } from "@/server/auth/session";
-import { leaderboard } from "@/server/competitions";
+import { leaderboard, simCardsInUse } from "@/server/competitions";
 import { db } from "@/server/db";
 import { recentForm } from "@/server/form";
 import { cardViews } from "@/server/views";
@@ -137,6 +137,8 @@ async function Builder({
   const form = await recentForm([...new Set(cards.map((c) => c.playerId))]);
   // A loan with no gameweeks left can still play in a gameweek this manager has already entered.
   const enteredThisGw = (await db.competitionEntry.count({ where: { userId, status: "ACTIVE", competition: { gameweekId: competition.gameweekId } } })) > 0;
+  const sim = (await db.gameweek.findUnique({ where: { id: competition.gameweekId }, select: { simulated: true } }))?.simulated ?? false;
+  const simTaken = sim ? await simCardsInUse(db, userId, competition.gameweekId, competition.id) : new Set<string>();
   const fixtures = await db.fixture.findMany({
     where: { gameweekId: competition.gameweekId },
     include: { homeClub: true, awayClub: true },
@@ -151,12 +153,14 @@ async function Builder({
     const req = (competition.requirements ?? {}) as Requirements;
     const notFree = !!req.freeCardsOnly && c.edition !== "STARTER" && c.edition !== "LOAN";
     const wrongClub = !!req.clubs && !req.clubs.includes(c.clubCode ?? "");
-    const loanEnded = !!c.loan && c.loan.left === 0 && !enteredThisGw;
-    const available = (c.lock === "NONE" || !!mine) && !notFree && !wrongClub && !loanEnded;
+    // Sim matchdays: cards in real squads can play too (and loans don't use up a gameweek).
+    const loanEnded = !sim && !!c.loan && c.loan.left === 0 && !enteredThisGw;
+    const free = sim ? c.lock !== "LISTED" && !simTaken.has(c.id) : c.lock === "NONE" || !!mine;
+    const available = free && !notFree && !wrongClub && !loanEnded;
     return {
       ...c,
       available,
-      unavailableReason: available ? undefined : loanEnded ? "loan ended" : wrongClub ? "not in this match" : notFree ? "not a free card" : c.lock === "LISTED" ? "listed on market" : "in another squad",
+      unavailableReason: available ? undefined : loanEnded ? "loan ended" : wrongClub ? "not in this match" : notFree ? "not a free card" : c.lock === "LISTED" ? "listed on market" : sim ? "in another sim match" : "in another squad",
       form: form.get(c.playerId) ?? [],
       fixture: fixtureFor(c.clubCode),
     };

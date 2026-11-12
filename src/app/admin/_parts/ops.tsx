@@ -106,9 +106,10 @@ export async function OpsSections({ only }: { only: string[] }) {
         <div className="mb-5 rounded-xl border border-[#8fe3ff]/40 bg-[#8fe3ff]/5 p-4">
           <h3 className="font-bold">Simulated matchdays</h3>
           <p className="mb-3 mt-1 text-xs text-muted">
-            A matchday between the real clubs, clearly labelled <b>SIM</b> for players, with results simulated from each player&apos;s real form and value. It plays out live —
-            goals minute by minute, half time, full time — and settles automatically ~2 hours after kick-off. Results never touch real stats, values, Top performers, Team of the Week or the Mega League.
-            Add your matches to it like any gameweek (or copy the last sim day&apos;s).
+            Every real club plays once, all kicking off together, clearly labelled <b>SIM</b> for players. Results are simulated from each player&apos;s real form and value.
+            <b> Quick</b> speed plays 2-minute halves: goals, assists and cards appear live on Matchday Live, and the matchday settles and pays prizes about 5 minutes after kick-off.
+            Name a match below and it&apos;s open for entries straight away (squads lock 1 minute before kick-off). Players can use cards that are already in a real-gameweek squad.
+            Sim results never touch real stats, values, Top performers, Team of the Week or the Mega League.
           </p>
           <SimMatchdayForm suggested={simSuggest} canCopy={(lastSim?._count.competitions ?? 0) > 0} />
           <TextSettingForm settingKey="simDailyTime" label={TEXT_SETTINGS.simDailyTime.label} help={TEXT_SETTINGS.simDailyTime.help} value={simDaily} placeholder="19:00" />

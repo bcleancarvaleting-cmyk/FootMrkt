@@ -83,8 +83,9 @@ export async function submitEntry(userId: string, competitionId: string, input: 
   const submission = SquadSubmissionSchema.parse(input);
   return withTx(async (tx) => {
     const [comp] = await tx.$queryRaw<
-      Array<{ id: string; status: string; locksAt: Date; format: string; rosterRules: string; entryFeeMinor: number; requirements: unknown; gameweekId: string; rewards: unknown }>
-    >`SELECT id, status, "locksAt", format, "rosterRules", "entryFeeMinor", requirements, "gameweekId", rewards FROM "Competition" WHERE id = ${competitionId}::uuid FOR SHARE`;
+      Array<{ id: string; status: string; locksAt: Date; format: string; rosterRules: string; entryFeeMinor: number; requirements: unknown; gameweekId: string; rewards: unknown; simulated: boolean }>
+    >`SELECT c.id, c.status, c."locksAt", c.format, c."rosterRules", c."entryFeeMinor", c.requirements, c."gameweekId", c.rewards, g.simulated
+      FROM "Competition" c JOIN "Gameweek" g ON g.id = c."gameweekId" WHERE c.id = ${competitionId}::uuid FOR SHARE OF c`;
     if (!comp) throw new DomainError("NOT_FOUND", "Competition not found.");
     if (comp.status !== "OPEN" || comp.locksAt <= new Date()) {
       throw new DomainError("LOCKED", "Entries for this competition are closed.");
@@ -110,12 +111,17 @@ export async function submitEntry(userId: string, competitionId: string, input: 
       FOR UPDATE OF ci`;
     const cards = new Map<string, SquadCard>();
     const unavailable: SquadIssue[] = [];
+    // Simulated matchdays don't lock cards: the same card can play in a real squad and a sim squad,
+    // but only in one match per simulated matchday.
+    const simTaken = comp.simulated ? await simCardsInUse(tx, userId, comp.gameweekId, competitionId) : new Set<string>();
     for (const r of rows) {
-      const lockedElsewhere = r.lock !== "NONE" && !(r.lock === "COMPETITION" && existing && r.lockRef === existing.id);
+      const lockedElsewhere = comp.simulated
+        ? r.lock === "LISTED" || simTaken.has(r.id)
+        : r.lock !== "NONE" && !(r.lock === "COMPETITION" && existing && r.lockRef === existing.id);
       if (lockedElsewhere) {
         unavailable.push({
           code: "UNKNOWN_CARD",
-          message: r.lock === "LISTED" ? "A selected card is listed on the market" : "A selected card is already in another competition",
+          message: r.lock === "LISTED" ? "A selected card is listed on the market" : comp.simulated ? "A selected card is already in another match on this sim matchday" : "A selected card is already in another competition",
           cardId: r.id,
         });
         continue;
@@ -137,7 +143,7 @@ export async function submitEntry(userId: string, competitionId: string, input: 
     }
     if (issues.length) throw new SquadInvalidError(issues);
     // Loan players only play in the first gameweeks the manager enters.
-    await assertLoansUsable(tx, userId, comp.gameweekId, rows.filter((r) => r.edition === "LOAN").map((r) => r.id));
+    if (!comp.simulated) await assertLoansUsable(tx, userId, comp.gameweekId, rows.filter((r) => r.edition === "LOAN").map((r) => r.id));
 
     if (!existing) await rewardReferrer(tx, userId);
     const entry = existing
@@ -156,7 +162,7 @@ export async function submitEntry(userId: string, competitionId: string, input: 
       where: { lock: "COMPETITION", lockRef: entry.id, id: { notIn: cardIds } },
       data: { lock: "NONE", lockRef: null },
     });
-    await tx.cardInstance.updateMany({ where: { id: { in: cardIds } }, data: { lock: "COMPETITION", lockRef: entry.id } });
+    if (!comp.simulated) await tx.cardInstance.updateMany({ where: { id: { in: cardIds } }, data: { lock: "COMPETITION", lockRef: entry.id } });
     await tx.competitionSelection.deleteMany({ where: { entryId: entry.id } });
     await tx.competitionSelection.createMany({
       data: [
@@ -183,6 +189,15 @@ export async function submitEntry(userId: string, competitionId: string, input: 
     await attachBooster(tx, userId, entry.id, submission.boosterId, submission.boostedOn);
     return entry;
   });
+}
+
+/** Cards this manager already has in another match on the same simulated matchday. */
+export async function simCardsInUse(client: Pick<typeof db, "competitionSelection">, userId: string, gameweekId: string, exceptCompetitionId: string) {
+  const rows = await client.competitionSelection.findMany({
+    where: { cardId: { not: null }, entry: { userId, status: "ACTIVE", competition: { gameweekId, id: { not: exceptCompetitionId } } } },
+    select: { cardId: true },
+  });
+  return new Set(rows.map((r) => r.cardId!));
 }
 
 export async function withdrawEntry(userId: string, competitionId: string) {
@@ -378,7 +393,9 @@ export async function createMatch(adminId: string, input: z.input<typeof NewMatc
   // With fixtures picked, squads lock 10 minutes before the first of them kicks off (so a midweek
   // match can still be entered after the weekend games have started).
   const firstKick = picked.length ? Math.min(...picked.map((f) => f.kickoffAt.getTime())) : null;
-  const locksAt = firstKick ? new Date(firstKick - 10 * 60_000) : (ref?.locksAt ?? new Date(gw.startsAt.getTime() - 10 * 60_000));
+  const locksAt = gw.simulated
+    ? new Date(gw.startsAt.getTime() - 60_000) // simulated matchdays: squads lock a minute before kick-off
+    : firstKick ? new Date(firstKick - 10 * 60_000) : (ref?.locksAt ?? new Date(gw.startsAt.getTime() - 10 * 60_000));
   if (locksAt <= new Date()) throw new DomainError("LOCKED", "Those fixtures have already kicked off (or are about to).");
   const opensAt = ref?.entryOpensAt ?? new Date();
   const key = ref?.code.split("-").slice(0, -1).join("-") || `gw-${gw.season}-${gw.number}`;

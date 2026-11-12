@@ -223,12 +223,23 @@ export async function createSimMatchdayAction(_: ActionResult | null, f: FormDat
   const res = await attempt(async () => {
     const sim = await import("@/server/sim-matchday");
     const kickoffAt = sim.ukLocalToDate(String(f.get("kickoffAt") ?? ""));
-    return sim.createSimMatchday(admin.id, { kickoffAt, copyFrom: f.get("copy") === "on" ? "latest" : null });
+    const s = (k: string) => String(f.get(k) ?? "").trim();
+    const tier = (k: string) => (["BRONZE", "SILVER", "GOLD"].includes(s(k)) ? (s(k) as "BRONZE" | "SILVER" | "GOLD") : undefined);
+    const fee = Number(s("fee") || 0);
+    if (!Number.isFinite(fee) || fee < 0) throw new DomainError("FEE", "Entry fee must be £0 or more.");
+    return sim.createSimMatchday(admin.id, {
+      kickoffAt,
+      speed: s("speed") === "real" ? "real" : "quick",
+      copyFrom: f.get("copy") === "on" ? "latest" : null,
+      match: s("name")
+        ? { name: s("name"), tier: tier("tier"), freeCardsOnly: f.get("freeOnly") === "on", entryFeeMinor: Math.round(fee * 100), prizes: s("prizes") || undefined, winnerPack: tier("winnerPack") }
+        : null,
+    });
   });
   done();
   if (!res.ok) return res;
   const r = res.data as { number: number; fixtures: number; copied: number };
-  return { ok: true, data: undefined, message: `SIM ${r.number} created: ${r.fixtures} games${r.copied ? `, ${r.copied} matches copied` : " — now add your matches to it"}` };
+  return { ok: true, data: undefined, message: `SIM ${r.number} created: ${r.fixtures} games${r.copied ? `, ${r.copied} match${r.copied === 1 ? "" : "es"} open for entries` : " — now add your matches to it"}` };
 }
 
 export async function removeAutoMatchesAction(): Promise<ActionResult> {

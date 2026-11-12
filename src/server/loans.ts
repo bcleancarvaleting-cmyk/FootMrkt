@@ -21,8 +21,8 @@ type Client = Tx | typeof db;
 async function enteredGameweeks(client: Client, userId: string, since: Date) {
   const rows = await client.$queryRaw<Array<{ gameweekId: string; settled: boolean }>>`
     SELECT c."gameweekId", bool_and(c.status = 'SETTLED') AS settled
-    FROM "CompetitionEntry" e JOIN "Competition" c ON c.id = e."competitionId"
-    WHERE e."userId" = ${userId}::uuid AND e.status = 'ACTIVE' AND e."createdAt" >= ${since} AND c.status <> 'CANCELLED'
+    FROM "CompetitionEntry" e JOIN "Competition" c ON c.id = e."competitionId" JOIN "Gameweek" g ON g.id = c."gameweekId"
+    WHERE e."userId" = ${userId}::uuid AND e.status = 'ACTIVE' AND e."createdAt" >= ${since} AND c.status <> 'CANCELLED' AND NOT g.simulated
     GROUP BY c."gameweekId"`;
   return { all: new Set(rows.map((r) => r.gameweekId)), settled: rows.filter((r) => r.settled).length };
 }

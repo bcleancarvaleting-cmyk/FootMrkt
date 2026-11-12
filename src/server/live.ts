@@ -1,6 +1,7 @@
 import { CURRENT_SCORING_RULES, getScoringRules, scorePlayer, toStatLine } from "@/domain/football/scoring";
 import { db } from "./db";
 import { notify } from "./notifications";
+import { QUICK_HALF, REAL_TIME_HALF, simClock } from "./sim-matchday";
 
 /**
  * Matchday live: scores for the scores ticker, and — for a signed-in manager — the live points of
@@ -24,6 +25,17 @@ export interface LiveFixture {
   motm: string | null;
   /** A simulated matchday game (results generated from real form). */
   sim: boolean;
+  /** Simulated games: the feed so far — goals (with assists), cards, missed penalties — newest first. */
+  events: LiveEvent[];
+}
+
+export interface LiveEvent {
+  minute: number;
+  type: "goal" | "own_goal" | "yellow" | "red" | "pen_miss";
+  side: "home" | "away";
+  player: string;
+  assist?: string | null;
+  saved?: boolean;
 }
 
 export interface LivePlayer {
@@ -51,6 +63,8 @@ export interface LiveBoard {
   liveCount: number;
   mine: { entries: LiveEntry[]; players: LivePlayer[] } | null;
   generatedAt: string;
+  /** A quick simulated matchday is on (or about to kick off): refresh every few seconds. */
+  fast: boolean;
 }
 
 /** Match clock: the provider's minute, else estimated from kick-off (45' + a 15-minute break). */
@@ -73,27 +87,37 @@ async function tickerFixtures(now: Date) {
     minute: true,
     motmPlayerId: true,
     kickoffAt: true,
-    gameweek: { select: { simulated: true } },
+    gameweekId: true,
+    simEvents: true,
+    gameweek: { select: { simulated: true, simHalfSeconds: true } },
     homeClub: { select: { code: true, name: true, primaryColour: true, league: { select: { code: true } } } },
     awayClub: { select: { code: true, name: true, primaryColour: true } },
   } as const;
   // Today's football: anything live, plus results and kick-offs within the day around now.
-  let rows = await db.fixture.findMany({
-    where: { OR: [{ status: "LIVE" }, { kickoffAt: { gte: new Date(now.getTime() - 14 * HOUR), lte: new Date(now.getTime() + 14 * HOUR) } }] },
-    orderBy: { kickoffAt: "asc" },
-    take: 80,
-    select,
-  });
+  // Live games first, then the next kick-offs and the latest results (a busy sim day can have hundreds).
+  const [liveRows, nextRows, recentRows] = await Promise.all([
+    db.fixture.findMany({ where: { status: "LIVE" }, orderBy: { kickoffAt: "desc" }, take: 120, select }),
+    db.fixture.findMany({ where: { status: { not: "LIVE" }, kickoffAt: { gte: now, lte: new Date(now.getTime() + 14 * HOUR) } }, orderBy: { kickoffAt: "asc" }, take: 60, select }),
+    db.fixture.findMany({ where: { status: { not: "LIVE" }, kickoffAt: { gte: new Date(now.getTime() - 14 * HOUR), lt: now } }, orderBy: { kickoffAt: "desc" }, take: 60, select }),
+  ]);
+  const seen = new Set<string>();
+  let rows = [...liveRows, ...nextRows, ...recentRows].filter((r) => !seen.has(r.id) && seen.add(r.id));
+  // Simulated games: only the latest simulated matchday (older sim days' results drop off).
+  const latestSim = rows.filter((r) => r.gameweek.simulated).reduce<(typeof rows)[number] | null>((a, r) => (!a || r.kickoffAt > a.kickoffAt ? r : a), null);
+  if (latestSim) rows = rows.filter((r) => !r.gameweek.simulated || r.gameweekId === latestSim.gameweekId || r.status === "LIVE");
+  rows.sort((a, b) => a.kickoffAt.getTime() - b.kickoffAt.getTime());
   // Quiet day: the latest results instead.
   if (!rows.length) {
     rows = (await db.fixture.findMany({ where: { status: "FINISHED", kickoffAt: { gte: new Date(now.getTime() - 4 * 24 * HOUR) } }, orderBy: { kickoffAt: "desc" }, take: 24, select })).reverse();
   }
   const motmIds = rows.map((r) => r.motmPlayerId).filter((x): x is string => !!x);
   const names = new Map((motmIds.length ? await db.player.findMany({ where: { id: { in: motmIds } }, select: { id: true, displayName: true } }) : []).map((p) => [p.id, p.displayName]));
-  return rows.map(
+  const quick = rows.some((f) => f.gameweek.simulated && (f.gameweek.simHalfSeconds ?? REAL_TIME_HALF) <= QUICK_HALF * 2 && f.status !== "FINISHED" && f.kickoffAt.getTime() - now.getTime() < 3 * 60_000);
+  const fixtures = rows.map(
     (f): LiveFixture => ({
       motm: f.motmPlayerId ? (names.get(f.motmPlayerId) ?? null) : null,
       sim: f.gameweek.simulated,
+      events: f.gameweek.simulated ? [...((f.simEvents as LiveEvent[] | null) ?? [])].reverse() : [],
       id: f.id,
       home: { code: f.homeClub.code, name: f.homeClub.name, colour: f.homeClub.primaryColour },
       away: { code: f.awayClub.code, name: f.awayClub.name, colour: f.awayClub.primaryColour },
@@ -101,10 +125,11 @@ async function tickerFixtures(now: Date) {
       homeGoals: f.homeGoals,
       awayGoals: f.awayGoals,
       status: f.status === "ABANDONED" ? "POSTPONED" : (f.status as LiveFixture["status"]),
-      clock: matchClock(f.status, f.kickoffAt, f.minute, now),
+      clock: f.gameweek.simulated ? (f.status === "LIVE" ? simClock(f.kickoffAt, now, f.gameweek.simHalfSeconds ?? REAL_TIME_HALF) : null) : matchClock(f.status, f.kickoffAt, f.minute, now),
       kickoffAt: f.kickoffAt.toISOString(),
     }),
   );
+  return { fixtures, quick };
 }
 
 /** The manager's locked entries this gameweek: points, live rank, and each player's live points. */
@@ -161,8 +186,8 @@ async function myLive(userId: string) {
 }
 
 export async function liveBoard(userId?: string | null, now = new Date()): Promise<LiveBoard> {
-  const [fixtures, mine] = await Promise.all([tickerFixtures(now), userId ? myLive(userId) : Promise.resolve(null)]);
-  return { fixtures, liveCount: fixtures.filter((f) => f.status === "LIVE").length, mine, generatedAt: now.toISOString() };
+  const [{ fixtures, quick }, mine] = await Promise.all([tickerFixtures(now), userId ? myLive(userId) : Promise.resolve(null)]);
+  return { fixtures, liveCount: fixtures.filter((f) => f.status === "LIVE").length, mine, generatedAt: now.toISOString(), fast: quick };
 }
 
 /**

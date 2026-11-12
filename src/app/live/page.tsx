@@ -7,5 +7,6 @@ export const dynamic = "force-dynamic";
 
 export default async function LivePage() {
   const user = await getCurrentUser();
+  await (await import("@/server/sim-matchday")).tickSims().catch(() => null);
   return <LiveCentre initial={await liveBoard(user?.id ?? null)} signedIn={!!user} />;
 }

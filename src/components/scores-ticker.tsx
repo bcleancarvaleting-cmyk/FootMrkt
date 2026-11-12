@@ -11,7 +11,7 @@ import type { LiveBoard, LiveFixture } from "@/server/live";
  */
 export function ScoresTicker({ initial }: { initial: LiveBoard }) {
   const [board, setBoard] = useState(initial);
-  const [flash, setFlash] = useState<{ key: number; title: string; line: string } | null>(null);
+  const [flash, setFlash] = useState<{ key: number; title: string; line: string; who: string | null } | null>(null);
   const [toasts, setToasts] = useState<Array<{ key: number; text: string }>>([]);
   const prev = useRef(initial);
 
@@ -38,14 +38,14 @@ export function ScoresTicker({ initial }: { initial: LiveBoard }) {
       } catch {
         /* keep the last scores */
       }
-      if (!stop) timer = setTimeout(poll, prev.current.liveCount > 0 ? 15_000 : 30_000);
+      if (!stop) timer = setTimeout(poll, prev.current.fast ? 4_000 : prev.current.liveCount > 0 ? 15_000 : 30_000);
     };
-    timer = setTimeout(poll, initial.liveCount > 0 ? 15_000 : 30_000);
+    timer = setTimeout(poll, initial.fast ? 4_000 : initial.liveCount > 0 ? 15_000 : 30_000);
     return () => {
       stop = true;
       clearTimeout(timer);
     };
-  }, [initial.liveCount]);
+  }, [initial.liveCount, initial.fast]);
 
   if (!board.fixtures.length) return null;
   const live = board.liveCount > 0;
@@ -78,6 +78,7 @@ export function ScoresTicker({ initial }: { initial: LiveBoard }) {
           <div className="goal-flash-card rounded-2xl border border-[#adfc07] bg-[#07080a]/95 px-8 py-4 text-center shadow-[0_0_60px_rgba(173,252,7,0.45)]">
             <p className="font-display text-6xl font-black uppercase italic leading-none text-[#adfc07]">{flash.title}</p>
             <p className="mt-1 font-display text-2xl font-bold uppercase italic tabular-nums text-white">{flash.line}</p>
+            {flash.who && <p className="mt-1 text-sm font-semibold text-white/80">⚽ {flash.who}</p>}
           </div>
         </div>
       )}
@@ -128,7 +129,15 @@ function changesBetween(a: LiveBoard, b: LiveBoard) {
   const before = new Map(a.fixtures.map((f) => [f.id, (f.homeGoals ?? 0) + (f.awayGoals ?? 0)]));
   const scored = b.fixtures.find((f) => f.status === "LIVE" && before.has(f.id) && (f.homeGoals ?? 0) + (f.awayGoals ?? 0) > before.get(f.id)!);
   const stamp = Date.now();
-  const flash = scored ? { key: stamp, title: "GOAL!", line: `${scored.home.code} ${scored.homeGoals}–${scored.awayGoals} ${scored.away.code}${scored.clock ? ` · ${scored.clock}` : ""}` } : null;
+  const scorer = scored?.events.find((e) => e.type === "goal" || e.type === "own_goal");
+  const flash = scored
+    ? {
+        key: stamp,
+        title: "GOAL!",
+        line: `${scored.home.code} ${scored.homeGoals}–${scored.awayGoals} ${scored.away.code}${scored.clock ? ` · ${scored.clock}` : ""}`,
+        who: scorer ? `${scorer.type === "own_goal" ? `${scorer.player} (og)` : scorer.player}${scorer.assist ? ` · assist ${scorer.assist}` : ""}` : null,
+      }
+    : null;
   const old = new Map((a.mine?.players ?? []).map((p) => [p.playerId, p]));
   const gains = (b.mine?.players ?? []).flatMap((p, i) => {
     const o = old.get(p.playerId);

@@ -741,6 +741,8 @@ model Gameweek {
   // A simulated matchday (results generated from real form, clearly labelled): kept out of
   // real-world stats, values, Top performers, Team of the Week and the Mega League.
   simulated Boolean       @default(false)
+  /// Simulated matchdays only: real seconds per half (2700 = real time, 120 = quick 2-minute halves).
+  simHalfSeconds Int?
 
   fixtures     Fixture[]
   competitions Competition[]
@@ -772,6 +774,8 @@ model Fixture {
   awayGoals         Int?
   // Match clock while LIVE, when the provider sends it.
   minute            Int?
+  /// Simulated games: the live feed so far (goals with assists, cards, missed penalties), newest last.
+  simEvents         Json?
   // Man of the Match: the top MATCHX scorer once the game is finished (+3 from scoring v3).
   motmPlayerId      String?       @db.Uuid
   finalisedAt       DateTime?

@@ -357,11 +357,30 @@ export function SimMatchdayForm({ suggested, canCopy }: { suggested: string; can
   return (
     <Form action={createSimMatchdayAction} submit="Create simulated matchday">
       <I name="kickoffAt" label="Kick-off (UK time)" type="datetime-local" defaultValue={suggested} required />
-      {canCopy && (
-        <label className="flex items-center gap-2 self-end pb-2 text-sm">
-          <input type="checkbox" name="copy" defaultChecked /> Copy matches from the last sim day
+      <S
+        name="speed"
+        label="Speed"
+        options={[
+          { value: "quick", label: "Quick — 2-minute halves (~5 min)" },
+          { value: "real", label: "Real time — 45-minute halves" },
+        ]}
+        defaultValue="quick"
+      />
+      <I name="name" label="Match name (players enter this)" placeholder="e.g. Sim Night Cup" maxLength={40} />
+      <S name="tier" label="Cards" options={[{ value: "", label: "Any cards" }, ...TIERS.slice(1)]} />
+      <I name="fee" label="Entry fee (£, 0 = free)" type="number" min={0} step="0.01" defaultValue="0" />
+      <I name="prizes" label="£ prizes (e.g. 1=10, 2-3=5)" placeholder="1=10, 2-3=5" />
+      <S name="winnerPack" label="Winner's pack" options={PACK} />
+      <div className="flex flex-col justify-end gap-2 pb-2 text-sm">
+        <label className="flex items-center gap-2">
+          <input type="checkbox" name="freeOnly" /> Free cards only
         </label>
-      )}
+        {canCopy && (
+          <label className="flex items-center gap-2">
+            <input type="checkbox" name="copy" /> Also copy the last sim day&apos;s matches
+          </label>
+        )}
+      </div>
     </Form>
   );
 }

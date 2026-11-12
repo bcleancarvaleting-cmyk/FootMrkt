@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { LiveBoard, LiveFixture } from "@/server/live";
+import type { LiveBoard, LiveEvent, LiveFixture } from "@/server/live";
 
 const LEAGUES: Array<[string, string]> = [
   ["EPL", "Premier League"],
@@ -38,9 +38,9 @@ export function LiveCentre({ initial, signedIn }: { initial: LiveBoard; signedIn
       } catch {
         /* keep the last numbers */
       }
-      if (!stop) timer = setTimeout(poll, last.liveCount > 0 ? 15_000 : 30_000);
+      if (!stop) timer = setTimeout(poll, last.fast ? 3_000 : last.liveCount > 0 ? 15_000 : 30_000);
     };
-    timer = setTimeout(poll, 15_000);
+    timer = setTimeout(poll, initial.fast ? 3_000 : 15_000);
     return () => {
       stop = true;
       clearTimeout(timer);
@@ -48,6 +48,25 @@ export function LiveCentre({ initial, signedIn }: { initial: LiveBoard; signedIn
   }, [initial]);
 
   const live = board.liveCount > 0;
+  // Games with your players in come first.
+  const myClubs = new Set((board.mine?.players ?? []).map((p) => p.club));
+  const mineIn = (f: LiveFixture) => myClubs.has(f.home.code) || myClubs.has(f.away.code);
+  const simSection = board.fixtures.some((f) => f.sim) ? (
+    <section>
+          <h2 className="mb-1 flex items-center gap-2 text-2xl">
+            Simulated matchday <span className="rounded bg-[#8fe3ff] px-1.5 text-xs font-black text-[#04121a]">SIM</span>
+          </h2>
+          <p className="mb-3 text-xs text-muted">Every game kicks off together. Results are simulated from each player&apos;s real form and value — goals, assists and cards land as they happen.</p>
+          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {board.fixtures
+              .filter((f) => f.sim)
+              .sort((a, b) => Number(mineIn(b)) - Number(mineIn(a)) || Number(b.status === "LIVE") - Number(a.status === "LIVE") || b.events.length - a.events.length)
+              .map((f) => (
+                <Fixture key={f.id} f={f} flash={changed.has(f.id)} />
+              ))}
+          </ul>
+        </section>
+  ) : null;
   const updated = new Date(board.generatedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Europe/London" });
   return (
     <div className="space-y-8">
@@ -120,11 +139,13 @@ export function LiveCentre({ initial, signedIn }: { initial: LiveBoard; signedIn
         </section>
       )}
 
+      {simSection}
+
       {board.fixtures.length === 0 ? (
         <p className="panel p-5 text-sm text-muted">No matches today. Scores appear here the moment games kick off.</p>
       ) : (
         LEAGUES.map(([code, name]) => {
-          const games = board.fixtures.filter((f) => f.league === code);
+          const games = board.fixtures.filter((f) => f.league === code && !f.sim);
           if (!games.length) return null;
           return (
             <section key={code}>
@@ -175,7 +196,46 @@ function Fixture({ f, flash }: { f: LiveFixture; flash: boolean }) {
         {side(f.home, f.homeGoals)}
         {side(f.away, f.awayGoals)}
       </div>
+      {f.events.length > 0 && (
+        <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto border-t border-ink-700 pt-2 text-xs" aria-label="Match events">
+          {f.events.map((e, i) => (
+            <EventRow key={`${e.minute}-${e.type}-${e.player}-${i}`} e={e} home={f.home.code} away={f.away.code} fresh={i === 0 && flash} />
+          ))}
+        </ul>
+      )}
       {f.motm && <p className="mt-2 border-t border-ink-700 pt-2 text-xs text-muted">🏅 Man of the Match: <b className="text-gold">{f.motm}</b> <span className="text-faint">+3</span></p>}
+    </li>
+  );
+}
+
+const ICON: Record<LiveEvent["type"], string> = { goal: "⚽", own_goal: "⚽", yellow: "🟨", red: "🟥", pen_miss: "❌" };
+
+function EventRow({ e, home, away, fresh }: { e: LiveEvent; home: string; away: string; fresh: boolean }) {
+  const what =
+    e.type === "goal" ? (
+      <>
+        <b className="text-fg">{e.player}</b>
+        {e.assist && <span className="text-muted"> · assisted by {e.assist}</span>}
+      </>
+    ) : e.type === "own_goal" ? (
+      <>
+        <b className="text-fg">{e.player}</b> <span className="text-muted">(own goal)</span>
+      </>
+    ) : e.type === "pen_miss" ? (
+      <>
+        <b className="text-fg">{e.player}</b> <span className="text-muted">· penalty {e.saved ? "saved" : "missed"}</span>
+      </>
+    ) : (
+      <>
+        <b className="text-fg">{e.player}</b> <span className="text-muted">· {e.type === "red" ? "sent off" : "yellow card"}</span>
+      </>
+    );
+  return (
+    <li className={`flex items-baseline gap-2 rounded px-1 ${fresh ? "event-in bg-accent/10" : ""}`}>
+      <span className="w-7 shrink-0 text-right font-bold tabular-nums text-faint">{e.minute}&apos;</span>
+      <span aria-hidden="true">{ICON[e.type]}</span>
+      <span className="min-w-0 flex-1 truncate">{what}</span>
+      <span className="shrink-0 text-[10px] font-bold text-faint">{e.side === "home" ? home : away}</span>
     </li>
   );
 }

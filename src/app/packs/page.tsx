@@ -136,14 +136,14 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
             {unopened.map((e) => {
               const cfg = parsePackConfig(e.packSku.config);
               return (
-                <li key={e.id} className="row-item">
+                <li key={e.id} className={`row-item ${isPick(e.packSku.code) ? "flex-wrap sm:flex-nowrap" : ""}`}>
                   <PackArt code={e.packSku.code} small />
                   <span className="min-w-0 flex-1">
                     <span className="block font-display text-xl font-bold uppercase italic">{e.packSku.name}</span>
                     <span className="block text-xs text-muted">{e.packSku.code === LOAN_PICK_CODE ? "2 Gold players on loan · first 4 gameweeks" : PICK_CODES.includes(e.packSku.code as (typeof PICK_CODES)[number]) ? (meta(e.packSku.code)?.blurb ?? "Choose 1 player to keep") : <>{cardCount(cfg)} cards · {e.source === "WEEKLY" ? "free drop" : e.sourceRef?.startsWith("welcome:") ? "welcome gift · untradeable" : e.source.toLowerCase().replace("_", " ")}</>}</span>
                   </span>
                   {isPick(e.packSku.code) ? (
-                    <Link href={`/packs/pick/${e.id}`} className="btn-gold">
+                    <Link href={`/packs/pick/${e.id}`} className="btn-gold w-full shrink-0 justify-center whitespace-nowrap sm:w-auto">
                       {e.packSku.code === LOAN_PICK_CODE ? "Choose your loans" : "Choose your player"}
                     </Link>
                   ) : (
@@ -305,6 +305,17 @@ function PackArt({ code, name, small }: { code: string; name?: string; small?: b
   const foil = tier ? `foil-${tier}` : "bg-gradient-to-br from-[#d8ff6a] via-accent to-[#5f8f00]";
   const m = meta(code);
   const england = m?.region === "England";
+  // App-only league picks: a dark "phone" pack with the league's short code.
+  const app = code.startsWith("football-app-pick-");
+  if (app && small) {
+    const league = code.replace("football-app-pick-", "").toUpperCase();
+    return (
+      <div className="relative flex h-14 w-11 shrink-0 flex-col items-center justify-center overflow-hidden rounded-lg border border-accent/70 bg-[#0b0e0c] shadow-[0_0_14px_rgba(173,252,7,0.35)]" aria-hidden="true">
+        <span className="text-base leading-none">📱</span>
+        <span className="mt-1 font-display text-[11px] font-black italic leading-none text-lime">{league}</span>
+      </div>
+    );
+  }
   return (
     <div className={`card-premium ${tier === "gold" || rare ? "is-gold" : ""} ${rare ? "rainbow-halo" : ""} relative flex shrink-0 overflow-hidden ${small ? "h-14 w-11 rounded-lg" : "h-44 w-full items-end p-5"} ${foil}`}>
       {england && <EnglandCross />}

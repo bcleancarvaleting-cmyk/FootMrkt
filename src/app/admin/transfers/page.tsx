@@ -60,15 +60,15 @@ export default async function Page() {
         <div>
           <h2 className="text-2xl">MATCHX market</h2>
           <p className="mt-1 text-sm text-muted">
-            Up to 5 copies of every player at their base tier, on sale from MATCHX at their £ value for 14 days. Each sale makes that player&apos;s remaining copies 2% dearer.
+            Up to 3 copies of every player at their base tier, on sale from MATCHX at their £ value for 14 days. Each sale makes that player&apos;s remaining copies 2% dearer.
             Unsold copies go back into packs when the batch ends. <b className="text-fg">{legacy.toLocaleString("en-GB")}</b> copies on sale now.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <ActionButton action={releaseMarketAction.bind(null, true)} className="btn-primary" confirm="Launch the market? Every player is re-priced from scratch (form this season, real-world value, demand and sales; £0.50–£20) and up to 5 copies of each go on sale.">
+          <ActionButton action={releaseMarketAction.bind(null, true)} className="btn-primary" confirm="Launch the market? Every player is re-priced from scratch (form this season, real-world value, demand and sales; £0.50–£20) and up to 3 copies of each go on sale.">
             Launch market (fresh prices)
           </ActionButton>
-          <ActionButton action={releaseMarketAction.bind(null, false)} className="btn-ghost" confirm="Release a new batch? Copies still on sale are re-priced to current values and every player is topped back up to 5.">
+          <ActionButton action={releaseMarketAction.bind(null, false)} className="btn-ghost" confirm="Release a new batch? Copies still on sale are re-priced to current values and every player is topped back up to 3.">
             Release a new batch (current prices)
           </ActionButton>
         </div>

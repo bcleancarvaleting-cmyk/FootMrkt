@@ -299,7 +299,7 @@ export async function resetForLaunchAction(_: ActionResult | null, f: FormData):
   const admin = await requireAdmin();
   const res = await attempt(async () => {
     const r = await (await import("@/server/launch-reset")).resetForLaunch(admin.id, String(f.get("phrase") ?? ""));
-    return `Reset done: ${r.playersRemoved} test account${r.playersRemoved === 1 ? "" : "s"} removed, ${r.cardsInPool.toLocaleString("en-GB")} cards back in the pool. Admins have a fresh starter pack.`;
+    return `Reset done: ${r.playersRemoved} test account${r.playersRemoved === 1 ? "" : "s"} removed, ${r.cardsInPool.toLocaleString("en-GB")} cards back in the pool, ${r.marketListed.toLocaleString("en-GB")} on the MATCHX market (3 of each). Admins have a fresh starter pack.`;
   });
   revalidatePath("/", "layout");
   return res.ok ? { ok: true, data: undefined, message: res.data } : res;

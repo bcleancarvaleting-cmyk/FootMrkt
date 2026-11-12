@@ -26,12 +26,13 @@ describe("reset for launch", () => {
     await db.cardInstance.update({ where: { id: std.id }, data: { ownerId: a.userId, supplyState: "HELD" } });
     const t = await db.cardTemplate.findUniqueOrThrow({ where: { id: std.templateId } });
     await db.cardFinish.create({ data: { kind: "RAINBOW", playerId: t.playerId, serial: 1, cardId: std.id } });
-    // A sim matchday, and a MATCHX listing still on sale.
+    // A sim matchday, and a player drop still on sale.
     await createSimMatchday(admin.userId, { kickoffAt: new Date(Date.now() + 60 * 60_000) }, new Date());
     const pool = await db.cardInstance.findFirstOrThrow({ where: { supplyState: "AVAILABLE", template: { edition: "STANDARD" } } });
-    await db.cardInstance.update({ where: { id: pool.id }, data: { supplyState: "RESERVED" } });
+    await db.cardInstance.update({ where: { id: pool.id }, data: { supplyState: "RESERVED", packable: false } });
     await db.marketListing.create({ data: { cardId: pool.id, house: true, askingPriceMinor: 200, currency: "MX", expiresAt: new Date(Date.now() + 86_400_000) } });
     const players = await db.player.count();
+    await (await import("@/server/valuation")).revalueAll();
 
     await expect(resetForLaunch(admin.userId, "nope")).rejects.toMatchObject({ code: "CONFIRM" });
     const r = await resetForLaunch(admin.userId, "reset for launch");
@@ -43,11 +44,20 @@ describe("reset for launch", () => {
     expect(await db.cardOwnership.count()).toBe(0);
     expect(await db.cardInstance.count({ where: { template: { edition: { in: ["STARTER", "LOAN"] } } } })).toBe(0);
     expect(await db.cardInstance.count({ where: { ownerId: { not: null } } })).toBe(0);
-    expect(await db.cardInstance.findUniqueOrThrow({ where: { id: std.id } })).toMatchObject({ supplyState: "AVAILABLE", ownerId: null });
+    // Back to MATCHX: in the pool, or picked straight back onto the MATCHX market.
+    const back = await db.cardInstance.findUniqueOrThrow({ where: { id: std.id } });
+    expect(back.ownerId).toBeNull();
+    expect(["AVAILABLE", "RESERVED"]).toContain(back.supplyState);
     expect(await db.gameweek.count({ where: { simulated: true } })).toBe(0);
-    // Kept: the data and MATCHX's own listing.
+    // Kept: the data and the player drop.
     expect(await db.player.count()).toBe(players);
     expect(await db.marketListing.findFirstOrThrow({ where: { cardId: pool.id } })).toMatchObject({ status: "ACTIVE", house: true });
+    // The MATCHX market: at most 3 copies of each player on sale.
+    const perTemplate = await db.$queryRaw<Array<{ n: number }>>`
+      SELECT COUNT(*)::int AS n FROM "MarketListing" ml JOIN "CardInstance" c ON c.id = ml."cardId" WHERE ml.house AND ml.status = 'ACTIVE' AND c.packable GROUP BY c."templateId"`;
+    expect(perTemplate.length).toBeGreaterThan(0);
+    expect(Math.max(...perTemplate.map((r) => r.n))).toBeLessThanOrEqual(3);
+    expect(r.marketListed).toBeGreaterThan(0);
     // The admin starts again with a starter pack to open.
     expect(await db.packEntitlement.count({ where: { userId: admin.userId, status: "UNOPENED" } })).toBeGreaterThan(0);
   });

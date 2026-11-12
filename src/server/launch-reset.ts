@@ -8,8 +8,8 @@ import { grantStarterPack } from "./packs";
  * everyone registers and starts again — keeping all the data.
  *
  * KEPT: leagues, clubs, players, card designs, values and price history, real gameweeks, fixtures
- *   and stats, pack setup and supply, challenges and sets, the MATCHX market and player drops still
- *   on sale, settings, keys and switches, the waitlist and the audit log.
+ *   and stats, pack setup and supply, challenges and sets, player drops still on sale, settings, keys
+ *   and switches, the waitlist and the audit log. The MATCHX market is restocked: 3 of every player.
  * CLEARED: every account except admins; every card anyone owned goes back into the pool (rare
  *   Ruby / Diamond / Rainbow finds included, so they can be found again); balances, XP, orders,
  *   packs, entries, transfers, auctions, offers, leagues, chat, notifications, achievements and
@@ -38,8 +38,10 @@ export async function resetForLaunch(actorId: string, phrase: string) {
 
       // 1. Everything players did.
       await tx.$executeRawUnsafe(`TRUNCATE ${WIPE.map((t) => `"${t}"`).join(", ")}`);
-      // Transfer-list history goes; MATCHX market and player drops still on sale stay.
-      await tx.$executeRaw`DELETE FROM "MarketListing" WHERE NOT (house AND status = 'ACTIVE')`;
+      // Transfer-list history and the old MATCHX market go (restocked with 3 of each below);
+      // player drops still on sale stay.
+      await tx.$executeRaw`
+        DELETE FROM "MarketListing" ml WHERE NOT (ml.house AND ml.status = 'ACTIVE' AND EXISTS (SELECT 1 FROM "CardInstance" c WHERE c.id = ml."cardId" AND NOT c.packable))`;
 
       // 2. Cards: free starter and loan copies go; every other card back into the pool, unowned.
       await tx.$executeRaw`DELETE FROM "CardInstance" c USING "CardTemplate" t WHERE t.id = c."templateId" AND t.edition IN ('STARTER', 'LOAN')`;
@@ -74,5 +76,8 @@ export async function resetForLaunch(actorId: string, phrase: string) {
     },
     { timeout: 300_000, maxWait: 30_000 },
   );
-  return result;
+  // The MATCHX market, fresh: 3 copies of every player at their current value.
+  const { MARKET_COPIES, releaseMarketBatch } = await import("./transfers");
+  const market = await releaseMarketBatch(actorId, { perPlayer: MARKET_COPIES, days: 14 });
+  return { ...result, marketListed: market.listed };
 }

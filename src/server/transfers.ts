@@ -213,8 +213,11 @@ export const MARKET_STEP_PCT = 2;
  * batch) re-prices the copies still on sale to the current value and tops each player back up.
  * Unsold copies go back into packs when the listing ends.
  */
+/** Copies of each player on the MATCHX market (product decision 13 Nov 2026: 3 of each). */
+export const MARKET_COPIES = 3;
+
 export async function releaseMarketBatch(adminId: string, opts: { perPlayer?: number; days?: number; resetValues?: boolean } = {}) {
-  const perPlayer = Math.min(20, Math.max(1, Math.round(opts.perPlayer ?? 5)));
+  const perPlayer = Math.min(20, Math.max(1, Math.round(opts.perPlayer ?? MARKET_COPIES)));
   const days = Math.min(60, Math.max(1, Math.round(opts.days ?? 14)));
   if (opts.resetValues) await (await import("./valuation")).revalueAll(new Date(), { reset: true });
   const values = await db.$queryRaw<Array<{ templateId: string; valueMp: number }>>`

@@ -43,8 +43,8 @@ export default async function SettingsPage() {
         <p className="text-sm text-muted">
           Clears the beta test so everyone registers and starts again. <b className="text-fg">Deletes</b> every account except admins, and every card anyone owns goes back into the pool (rare Ruby,
           Diamond and Rainbow finds included), with all balances, XP, orders, packs, entries, transfers, auctions, leagues, chat, notifications and sim matchdays.{" "}
-          <b className="text-fg">Keeps</b> leagues, clubs, players, values and price history, real gameweeks and results, pack setup, the MATCHX market and drops on sale, challenges, settings, keys and
-          switches, and the waitlist. Admins keep their login and get a fresh starter pack. It can&apos;t be undone — take a database backup first.
+          <b className="text-fg">Keeps</b> leagues, clubs, players, values and price history, real gameweeks and results, pack setup, player drops on sale, challenges, settings, keys and
+          switches, and the waitlist. <b className="text-fg">Restocks</b> the MATCHX market with 3 copies of every player. Admins keep their login and get a fresh starter pack. It can&apos;t be undone — take a database backup first.
         </p>
         <LaunchResetForm phrase={RESET_PHRASE} />
       </section>

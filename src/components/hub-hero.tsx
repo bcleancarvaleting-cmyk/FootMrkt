@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { ClubCrest } from "@/components/club-crest";
 import { HERO_PHOTOS, PhotoBackground } from "@/components/hero-background";
 import { HeroCarousel } from "@/components/hero-carousel";
+import { HeroSlide } from "@/components/hero-slide";
 import { PlayerCard } from "@/components/player-card";
-import { SimBadge } from "@/components/sim-badge";
 import { toCrest } from "@/lib/crest";
+import type { CardView } from "@/lib/view";
 import { binder, portfolio } from "@/server/binder";
 import { challengeBoard } from "@/server/challenges";
 import { db } from "@/server/db";
@@ -45,152 +45,133 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
   const openChallenges = challenges.filter((c) => !c.maxed);
   const change = pf.changePct;
 
-  const labels = ["My Club", "Packs", "Transfers", "Matches", "Challenges"];
+  const labels = ["My Club", "Packs", "Transfer list", "Matches", "Challenges"];
+  const pct = change !== null && change !== undefined ? `${change >= 0 ? "▲" : "▼"} ${Math.abs(change)}%` : null;
+  const fan = (list: CardView[]) => (
+    <div className="relative flex h-[330px] items-center justify-center sm:h-[380px]">
+      {list.map((c, i) => (
+        <div key={c.id} className="absolute" style={{ transform: `translateX(${(i - 1) * 130}px) translateY(${i === 1 ? -10 : 18}px) rotate(${(i - 1) * 8}deg)`, zIndex: i === 1 ? 2 : 1 }}>
+          <PlayerCard card={c} size={i === 1 ? "lg" : "md"} showcase />
+        </div>
+      ))}
+    </div>
+  );
+  // Best player in the middle of the fan.
+  const club3 = top3.length === 3 ? [top3[1], top3[0], top3[2]] : top3;
+  const market3 = market?.rows.slice(0, 3).map((r) => r.card) ?? [];
+  const marketFan = market3.length === 3 ? [market3[1], market3[0], market3[2]] : market3;
+  const nextGame = games.find((g) => g.entries[0]) ?? games[0];
+  const openGames = games.filter((g) => (g.status === "OPEN" || g.status === "UPCOMING") && g.locksAt > now);
+  const liveGames = games.filter((g) => g.status === "PROVISIONAL" || g.status === "LOCKED");
+  const toEnter = openGames.filter((g) => !g.entries[0]).length;
+  const gameLine = (g: (typeof games)[number]) => {
+    const ko = g.gameweek.simulated ? g.gameweek.startsAt : new Date(g.locksAt.getTime() + 10 * 60_000);
+    const live = g.status === "PROVISIONAL" || g.status === "LOCKED";
+    return `${g.gameweek.simulated ? "SIM · " : ""}${g.name.replace(/ · (SIM|GW) ?\d+$/, "")} — ${live ? "in play" : g.entries[0] ? `you're in · KO ${ukWhen(ko)}` : `KO ${ukWhen(ko)}`}`;
+  };
+
   return (
-    <div className="-mx-4 sm:mx-0">
+    <div className="-mx-4 sm:-mx-6 lg:mx-0">
       <HeroCarousel labels={labels}>
-        {/* My Club */}
-        <Frame photo={HERO_PHOTOS.nightStadium} tone="lime" href="/account/club" cta="My Club">
-          <div className="flex items-center gap-4">
-            {crest ? <ClubCrest crest={crest} id="hub-crest" size={72} /> : <Link href="/account/club/crest" className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl border border-dashed border-white/30 text-center text-[10px] font-bold text-white/60">Design crest</Link>}
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">Welcome back, {name}</p>
-              <h2 className="truncate font-display text-4xl font-black uppercase italic leading-none sm:text-5xl">{user.clubName ?? `${name}'s club`}</h2>
+        <HeroSlide
+          background={<PhotoBackground src={HERO_PHOTOS.nightStadium} />}
+          eyebrow="My Club"
+          title={user.clubName ?? `${name}'s club`}
+          accent={`£${pf.value.toFixed(2)}.`}
+          body={
+            <>
+              {cards.length} players in your club{pct ? <> · value <b className={change! >= 0 ? "text-mint" : "text-danger"}>{pct}</b></> : null}. Welcome back, {name}.
+            </>
+          }
+          points={top3.map((c) => `${c.name} · ${c.valueMp !== null && c.valueMp !== undefined ? `£${c.valueMp.toFixed(2)}` : "—"}`)}
+          visual={
+            <div className="relative">
+              {crest && (
+                <div className="absolute -top-2 left-1/2 z-10 -translate-x-1/2 drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)]">
+                  <ClubCrest crest={crest} id="hub-crest" size={64} />
+                </div>
+              )}
+              {club3.length ? fan(club3) : null}
             </div>
-          </div>
-          <div className="mt-4 flex flex-wrap items-end gap-x-6 gap-y-2">
-            <span>
-              <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-white/55">Club value</span>
-              <span className="font-display text-4xl font-black italic tabular-nums text-[#adfc07]">£{pf.value.toFixed(2)}</span>
-              {change !== null && change !== undefined && <span className={`ml-2 text-sm font-bold ${change >= 0 ? "text-mint" : "text-danger"}`}>{change >= 0 ? "▲" : "▼"} {Math.abs(change)}%</span>}
-            </span>
-            <span className="text-sm text-white/70">{cards.length} players</span>
-          </div>
-          {top3.length > 0 && (
-            <div className="mt-4 flex justify-center gap-2 sm:justify-start">
-              {top3.map((c) => (
-                <PlayerCard key={c.id} card={c} size="sm" showcase />
+          }
+          ctas={[{ href: "/account/club", label: "My Club" }, crest ? { href: "/transfers/market", label: "Sign players", tone: "ghost" } : { href: "/account/club/crest", label: "Design your crest", tone: "ghost" }]}
+        />
+
+        <HeroSlide
+          background={<PhotoBackground src={HERO_PHOTOS.ballBoots} position="60% 50%" />}
+          eyebrow="Buy packs"
+          title="Rip packs,"
+          accent="pull Golds."
+          body={unopened ? <>You&apos;ve got <b className="text-[#f0cb5a]">{unopened} pack{unopened === 1 ? "" : "s"}</b> waiting to open.</> : "Bronze, Silver and Gold England packs — every card a numbered copy of a real player."}
+          points={["England Bronze, Silver and Gold packs", "Published odds on every pack", "A free booster every week"]}
+          visual={
+            <div className="flex items-end justify-center gap-4">
+              {(["bronze", "silver", "gold"] as const).map((t, i) => (
+                <div key={t} className={`card-premium ${t === "gold" ? "is-gold" : ""} foil-${t} relative flex h-48 w-32 items-end overflow-hidden rounded-2xl p-3 shadow-2xl sm:h-60 sm:w-40`} style={{ transform: `translateY(${i === 2 ? -16 : 0}px)` }}>
+                  <span className="sheen" aria-hidden="true" />
+                  {t === "gold" && <span className="holo" aria-hidden="true" />}
+                  <span className="absolute left-3 top-3 text-[10px] font-extrabold uppercase italic tracking-[0.2em] text-black/60">England</span>
+                  <span className="relative font-display text-3xl font-extrabold uppercase italic leading-none text-black/75 sm:text-4xl">{t}</span>
+                </div>
               ))}
             </div>
-          )}
-        </Frame>
+          }
+          ctas={[{ href: "/packs", label: unopened ? `Open ${unopened} pack${unopened === 1 ? "" : "s"}` : "Pack shop", tone: "gold" }]}
+        />
 
-        {/* Packs */}
-        <Frame photo={HERO_PHOTOS.ballBoots} tone="gold" href="/packs" cta={unopened ? `Open ${unopened} pack${unopened === 1 ? "" : "s"}` : "Pack shop"}>
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">Packs</p>
-          <h2 className="font-display text-5xl font-black uppercase italic leading-none">{unopened ? <>{unopened} to <span className="text-[#f0cb5a]">open</span></> : <>Rip a <span className="text-[#f0cb5a]">pack</span></>}</h2>
-          <p className="mt-2 max-w-sm text-sm text-white/70">Starters, weekly boosters, gifts and the shop — Bronze, Silver and Gold, with published odds.</p>
-          <div className="mt-5 flex items-end justify-center gap-3">
-            {(["bronze", "silver", "gold"] as const).map((t, i) => (
-              <div key={t} className={`card-premium ${t === "gold" ? "is-gold" : ""} foil-${t} relative flex h-36 w-24 items-end overflow-hidden rounded-2xl p-2.5 shadow-2xl sm:h-44 sm:w-28`} style={{ transform: `translateY(${i === 2 ? -12 : 0}px) rotate(${(i - 1) * 4}deg)` }}>
-                <span className="sheen" aria-hidden="true" />
-                {t === "gold" && <span className="holo" aria-hidden="true" />}
-                <span className="relative font-display text-2xl font-extrabold uppercase italic leading-none text-black/75">{t}</span>
+        <HeroSlide
+          background={<PhotoBackground src={HERO_PHOTOS.bootBall} position="50% 40%" />}
+          eyebrow="Transfer list"
+          title="Buy, sell,"
+          accent="make offers."
+          body={marketOn ? <>{market?.total ?? 0} players on the MATCHX market · {buyNows} buy-nows · {auctions} auction{auctions === 1 ? "" : "s"} live.</> : "Trade players with other managers and see every player's value graph before you buy."}
+          points={market?.rows.slice(0, 3).map((r) => `${r.card.name} · ${fmtMp(r.priceMinor)} · ${r.copies} left`) ?? ["Buy now, offers and auctions", "Every player's value graph", "Opening soon"]}
+          visual={marketFan.length ? fan(marketFan) : undefined}
+          ctas={[{ href: "/transfers/market", label: "MATCHX market" }, { href: "/transfers", label: "Transfer list", tone: "ghost" }]}
+        />
+
+        <HeroSlide
+          background={<PhotoBackground src={HERO_PHOTOS.floodlight} position="50% 40%" />}
+          eyebrow="Matches"
+          title={liveGames.length ? "Matchday" : "Pick your"}
+          accent={liveGames.length ? "is live." : "seven."}
+          body={games.length ? (toEnter ? <>{toEnter} match{toEnter === 1 ? "" : "es"} still to enter — pick your seven before entries close.</> : liveGames.length ? "Your teams are playing — watch your points go up live." : "You're in every open match. Good luck.") : "No matches right now — the next ones are coming soon."}
+          points={games.map(gameLine)}
+          visual={
+            nextGame?.entries[0] ? (
+              <div className="w-full max-w-xs rounded-2xl border border-white/15 bg-black/55 p-4 backdrop-blur">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#adfc07]">Your team sheet</p>
+                <p className="mt-0.5 truncate font-display text-xl font-black uppercase italic">{nextGame.name.replace(/ · (SIM|GW) ?\d+$/, "")}</p>
+                <ol className="mt-2 space-y-1 text-sm">
+                  {nextGame.entries[0].selections.map((s, i) => (
+                    <li key={i} className="flex items-center gap-2">
+                      <span className="w-4 text-right text-[11px] text-white/40">{i + 1}</span>
+                      <span className="min-w-0 flex-1 truncate">{s.player.displayName}</span>
+                      {s.isCaptain && <span className="rounded bg-[#adfc07] px-1 text-[10px] font-black text-[#0a0d02]">C</span>}
+                    </li>
+                  ))}
+                </ol>
               </div>
-            ))}
-          </div>
-        </Frame>
+            ) : undefined
+          }
+          ctas={[
+            ...(watch.sim ? [{ href: "/watch", label: "● Watch live sim", tone: "sim" as const }] : []),
+            ...(watch.real ? [{ href: "/watch?scope=real", label: "● Watch live table" }] : []),
+            { href: "/matches", label: toEnter ? "Pick my squad" : "All matches", tone: watch.sim || watch.real ? ("ghost" as const) : ("primary" as const) },
+          ]}
+        />
 
-        {/* Transfers */}
-        <Frame photo={HERO_PHOTOS.bootBall} tone="gold" href="/transfers/market" cta="Transfers">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">Transfers</p>
-          <h2 className="font-display text-5xl font-black uppercase italic leading-none">Buy · sell · <span className="text-[#adfc07]">bid</span></h2>
-          <p className="mt-2 text-sm text-white/70">{marketOn ? `${market?.total ?? 0} players on the MATCHX market · ${buyNows} buy-nows · ${auctions} auction${auctions === 1 ? "" : "s"} live` : "Opening soon"}</p>
-          {market && market.rows.length > 0 && (
-            <ul className="mt-4 space-y-2">
-              {market.rows.slice(0, 3).map((r) => (
-                <li key={r.listingId} className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/35 px-3 py-2">
-                  <span className="min-w-0 flex-1">
-                    <b className="block truncate">{r.card.name}</b>
-                    <span className="text-[11px] text-white/55">{r.card.clubName} · {r.card.category.toLowerCase()} · {r.copies} left</span>
-                  </span>
-                  <span className="font-display text-xl font-black italic tabular-nums text-[#adfc07]">{fmtMp(r.priceMinor)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Frame>
-
-        {/* Matches */}
-        <Frame photo={HERO_PHOTOS.floodlight} tone="lime" href="/matches" cta="All matches">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">Upcoming matches</p>
-            <span className="flex gap-2">
-              {watch.real && <Link href="/watch?scope=real" className="watch-btn rounded-full bg-[#adfc07] px-3 py-1 text-[10px] font-black uppercase text-[#0a0d02]">● Live table</Link>}
-              {watch.sim && <Link href="/watch" className="watch-btn rounded-full bg-[#8fe3ff] px-3 py-1 text-[10px] font-black uppercase text-[#04121a]">● Live sim</Link>}
-            </span>
-          </div>
-          {games.length === 0 ? (
-            <p className="mt-6 font-display text-3xl font-black uppercase italic">No matches yet — next ones coming soon</p>
-          ) : (
-            <ul className="mt-3 space-y-2">
-              {games.map((g) => {
-                const mine = g.entries[0];
-                const ko = g.gameweek.simulated ? g.gameweek.startsAt : new Date(g.locksAt.getTime() + 10 * 60_000);
-                const open = (g.status === "OPEN" || g.status === "UPCOMING") && g.locksAt > now;
-                const playing = g.status === "PROVISIONAL" || g.status === "LOCKED";
-                return (
-                  <li key={g.id} className="rounded-xl border border-white/10 bg-black/40 px-3 py-2.5">
-                    <div className="flex items-center gap-2">
-                      {g.gameweek.simulated && <SimBadge />}
-                      <b className="min-w-0 flex-1 truncate">{g.name.replace(/ · (SIM|GW) ?\d+$/, "")}</b>
-                      {playing ? (
-                        <Link href={g.gameweek.simulated ? `/watch?gw=${g.gameweek.id}` : "/watch?scope=real"} className="rounded-full bg-danger px-2.5 py-1 text-[10px] font-black uppercase text-white">● In play</Link>
-                      ) : open ? (
-                        <Link href={`/competitions/${g.id}`} className={`rounded-full px-2.5 py-1 text-[10px] font-black uppercase ${mine ? "border border-white/30 text-white" : "bg-[#adfc07] text-[#0a0d02]"}`}>{mine ? "Edit" : "Pick team"}</Link>
-                      ) : null}
-                    </div>
-                    <p className="mt-1 text-[11px] text-white/55">
-                      KO {ukWhen(ko)} · {g._count.entries} manager{g._count.entries === 1 ? "" : "s"}
-                      {mine && playing && mine.provisionalPoints != null && <b className="ml-2 text-[#adfc07]">{Math.round(mine.provisionalPoints * 10) / 10} pts</b>}
-                    </p>
-                    {mine && (
-                      <p className="mt-1 truncate text-[11px] text-white/80">
-                        {mine.selections.map((s) => `${s.player.displayName.split(" ").slice(-1)[0]}${s.isCaptain ? " (C)" : ""}`).join(" · ")}
-                      </p>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Frame>
-
-        {/* Challenges */}
-        <Frame photo={HERO_PHOTOS.ballBoots} tone="lime" href="/account/challenges" cta="Challenges">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">Challenges</p>
-          <h2 className="font-display text-5xl font-black uppercase italic leading-none">Hand <span className="text-[#adfc07]">in</span></h2>
-          <p className="mt-2 text-sm text-white/70">Trade in players you don&apos;t need for £ credit and packs.</p>
-          {openChallenges.length ? (
-            <ul className="mt-4 space-y-2">
-              {openChallenges.slice(0, 3).map((c) => (
-                <li key={c.id} className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/35 px-3 py-2">
-                  <span className="min-w-0 flex-1">
-                    <b className="block truncate">{c.name}</b>
-                    <span className="block truncate text-[11px] text-white/55">{c.summary}</span>
-                  </span>
-                  <span className={`shrink-0 text-xs font-bold ${c.eligible >= c.criteria.count ? "text-[#adfc07]" : "text-white/50"}`}>{c.eligible >= c.criteria.count ? "Ready ✓" : `${c.eligible}/${c.criteria.count}`}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-6 text-sm text-white/60">No challenges running right now.</p>
-          )}
-        </Frame>
+        <HeroSlide
+          background={<PhotoBackground src={HERO_PHOTOS.ballBoots} position="30% 60%" />}
+          eyebrow="Challenges"
+          title="Hand in,"
+          accent="cash in."
+          body="Trade in players you don't need for £ credit and packs."
+          points={openChallenges.length ? openChallenges.slice(0, 3).map((c) => `${c.name} · ${c.eligible >= c.criteria.count ? "ready to hand in" : `${c.eligible}/${c.criteria.count} cards`}`) : ["New challenges every week"]}
+          ctas={[{ href: "/account/challenges", label: "Challenges" }]}
+        />
       </HeroCarousel>
     </div>
   );
 }
 
-function Frame({ tone, href, cta, photo, children }: { tone: "lime" | "gold"; href: string; cta: string; photo: string; children: React.ReactNode }) {
-  return (
-    <div className={`relative flex h-full min-h-[520px] flex-col overflow-hidden border-y border-ink-700 bg-[#0b0e0c] p-5 text-[#f4f5f2] sm:rounded-[28px] sm:border sm:p-8`}>
-      <PhotoBackground src={photo} />
-      <div className={`pointer-events-none absolute inset-0 ${tone === "gold" ? "bg-[radial-gradient(120%_80%_at_85%_10%,rgb(240_203_90/0.18),transparent_60%)]" : "bg-[radial-gradient(120%_80%_at_85%_10%,rgb(173_252_7/0.16),transparent_60%)]"}`} aria-hidden="true" />
-      <div className="relative flex-1">{children}</div>
-      <Link href={href} className={`relative mt-5 self-start px-6 py-3 text-sm ${tone === "gold" ? "btn-gold" : "btn-primary"}`}>
-        {cta} →
-      </Link>
-    </div>
-  );
-}

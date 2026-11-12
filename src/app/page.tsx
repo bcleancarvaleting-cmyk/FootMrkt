@@ -15,6 +15,7 @@ import { Sparkline } from "@/components/card-row";
 import { LaunchPage, type LaunchParams } from "@/components/launch-page";
 import { HeroCarousel } from "@/components/hero-carousel";
 import { HubHero } from "@/components/hub-hero";
+import { LiveGamesList } from "@/components/live-games-list";
 import { PromoBanner } from "@/components/promo-banner";
 import { HERO_PHOTOS, PhotoBackground } from "@/components/hero-background";
 import { TakeItOnTheGo } from "@/components/app-install";
@@ -260,6 +261,8 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
     <div className="space-y-8">
       <PromoBanner {...promo} />
       <HubHero userId={userId} name={name} unopened={unopened} marketOn={marketOn} buyNows={playerDrops} auctions={auctions} watch={watch} />
+
+      <LiveGamesList userId={userId} />
 
       <EndedLoansBanner userId={userId} />
 

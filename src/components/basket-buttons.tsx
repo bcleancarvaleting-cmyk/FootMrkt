@@ -39,7 +39,7 @@ export function AddToBasketButton({ listingId, price, inBasket, disabled }: { li
           }
           className="btn-primary whitespace-nowrap px-3 py-2 text-[11px]"
         >
-          {pending ? "Adding…" : `Add · ${price}`}
+          {pending ? "Adding…" : price ? `Add · ${price}` : "+ Add"}
         </button>
       )}
       {error && <span className="max-w-[14rem] text-right text-[11px] text-danger">{error}</span>}

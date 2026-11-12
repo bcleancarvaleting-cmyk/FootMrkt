@@ -127,7 +127,12 @@ export const XI_SLOTS = { GK: 1, DEF: 4, MID: 4, ATT: 2 } as const;
  * others rarely — with rotation noise (`noise` in 0–1), and better players (by form and value,
  * `weight`) more likely to start. Shared with the "likely to start" guide so it matches the sim.
  */
-export function startPriority(p: { squadNumber?: number | null; weight?: number }, noise: number) {
+export function startPriority(p: { squadNumber?: number | null; weight?: number; startScore?: number }, noise: number) {
+  // Real appearances × form: 1 always starts (no rotation), lower scores rotate in and out.
+  if (p.startScore !== undefined) {
+    const miss = 1 - Math.min(1, Math.max(0, p.startScore));
+    return miss * 3 + noise * 1.5 * miss;
+  }
   const n = p.squadNumber ?? 99;
   const base = n >= 1 && n <= 11 ? 0 : n <= 25 ? 1.2 : 2.4;
   return base + noise * 1.6 - ((p.weight ?? 1) - 1) * 0.8;

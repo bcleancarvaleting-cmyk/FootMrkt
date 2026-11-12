@@ -13,8 +13,8 @@ export interface BuilderCard extends CardView {
   unavailableReason?: string;
   form: number[];
   fixture: string | null; // "vs ABC (H)"
-  /** Sim games: chance of starting (0–100) and recent sim starts. */
-  start?: { pct: number; started: number; of: number };
+  /** Sim games: chance of starting (0–100), from real appearances × form. */
+  start?: { pct: number; apps: number; games: number; form: number };
 }
 
 /** Green "likely to start" / red "unlikely to start" for sim games. */
@@ -23,8 +23,9 @@ export function StartChip({ s, compact = false }: { s: NonNullable<BuilderCard["
   const tone = likely ? "border-mint/60 bg-mint/10 text-mint" : "border-danger/60 bg-danger/10 text-danger";
   if (compact) return <span className={`inline-block h-2 w-2 rounded-full ${likely ? "bg-mint" : "bg-danger"}`} title={`${s.pct}% likely to start`} aria-label={likely ? "Likely to start" : "Unlikely to start"} />;
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-[9px] font-black uppercase tracking-wide ${tone}`} title={s.of ? `Started ${s.started} of their club's last ${s.of} sim games` : "No sim games yet"}>
-      {likely ? "Likely to start" : "Unlikely to start"} {s.pct}%{s.of ? <span className="font-bold normal-case opacity-80">· {s.started}/{s.of}</span> : null}
+    <span className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-[9px] font-black uppercase tracking-wide ${tone}`} title={s.games ? `Played in ${s.apps} of their club's last ${s.games} real games · ${s.form} pts a game` : "No real games on record yet"}>
+      {s.pct >= 100 ? "Starts" : likely ? "Likely to start" : "Unlikely to start"} {s.pct}%
+      {s.games ? <span className="font-bold normal-case opacity-80">· {s.apps}/{s.games} apps · {s.form} form</span> : null}
     </span>
   );
 }
@@ -185,7 +186,8 @@ export function SquadBuilder({
   /** Fill empty slots with the best available players by recent form, then MX. */
   function autoPick() {
     // Sims: weight by how likely they are to start, so auto-pick doesn't fill the team with benchwarmers.
-    const score = (c: BuilderCard) => ((avg(c.form) ?? 0) * 10 + (c.valueMp ?? 0)) * (c.start ? 0.2 + c.start.pct / 100 : 1);
+    // Sims: start chance first (a player who won't play scores nothing), then form and value.
+    const score = (c: BuilderCard) => (c.start ? c.start.pct * 1000 : 0) + (avg(c.form) ?? 0) * 10 + (c.valueMp ?? 0);
     const pool = cards.filter((c) => c.available && allowedCategories.includes(c.category)).sort((a, b) => score(b) - score(a));
     setAssign((a) => {
       const n = { ...a };
@@ -539,7 +541,7 @@ export function SquadBuilder({
           {!picker.length && <li className="p-4 text-sm text-faint">{draft || q ? "No players match." : "No players for this position. Open more packs!"}</li>}
         </ul>
         <div className="border-t border-ink-700 p-2 text-[10px] text-faint">
-          Form = avg points over recent gameweeks{cards.some((c) => c.start) ? " · Start chance from the sim's team selection (shirt number, form and value) · x/y = sim games started recently" : ""}
+          Form = avg points over recent gameweeks{cards.some((c) => c.start) ? " · Start chance = real appearances × form (100% always starts) · apps = games played of their club's last 6" : ""}
         </div>
       </aside>
     </div>

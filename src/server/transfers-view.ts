@@ -47,6 +47,8 @@ export interface ListingRow {
   sellerId: string | null;
   house: boolean;
   sellerFounding: number | null;
+  /** The seller's MATCHX club name (or "MATCHX"). */
+  sellerClub: string;
   expiresAt: Date;
   avgMinor: number | null;
   sales: number;
@@ -68,7 +70,7 @@ export async function transferBoard(f: BoardFilters, viewerId: string | null, ta
     where: { status: "ACTIVE", house: false, expiresAt: { gt: new Date() }, card: { template: { category: f.tier, player }, ...(f.finish ? { finish: { kind: f.finish } } : {}) } },
     include: {
       card: { include: CARD_INCLUDE },
-      seller: { select: { displayName: true, foundingNumber: true } },
+      seller: { select: { displayName: true, foundingNumber: true, clubName: true } },
       offers: { where: { status: "PENDING" }, select: { id: true, amountMinor: true, buyerId: true } },
     },
     orderBy,
@@ -80,7 +82,7 @@ export async function transferBoard(f: BoardFilters, viewerId: string | null, ta
 async function buildRows(
   listings: Array<
     Prisma.MarketListingGetPayload<{ include: { card: { include: typeof CARD_INCLUDE } } }> & {
-      seller: { displayName: string; foundingNumber?: number | null } | null;
+      seller: { displayName: string; foundingNumber?: number | null; clubName?: string | null } | null;
       offers: Array<{ id: string; amountMinor: number; buyerId: string }>;
     }
   >,
@@ -99,6 +101,7 @@ async function buildRows(
       sellerId: l.sellerId,
       house: l.house,
       sellerFounding: l.seller?.foundingNumber ?? null,
+      sellerClub: l.house || !l.seller ? "MATCHX" : (l.seller.clubName ?? `${l.seller.displayName}'s club`),
       expiresAt: l.expiresAt,
       avgMinor: avgs.get(k)?.avgMinor ?? null,
       sales: avgs.get(k)?.sales ?? 0,
@@ -116,7 +119,7 @@ export async function auctionBoard(viewerId: string | null) {
     include: {
       card: { include: CARD_INCLUDE },
       bids: { orderBy: { amountMinor: "desc" }, take: 1, include: { user: { select: { displayName: true } } } },
-      seller: { select: { displayName: true } },
+      seller: { select: { displayName: true, clubName: true } },
       _count: { select: { bids: true } },
     },
     orderBy: { endsAt: "asc" },
@@ -138,6 +141,7 @@ export async function auctionBoard(viewerId: string | null) {
       minNextMinor: top ? top.amountMinor + a.minIncrementMinor : a.startPriceMinor,
       reserveMet: a.reserveMinor === null || (top?.amountMinor ?? 0) >= a.reserveMinor,
       seller: a.seller?.displayName ?? null,
+      sellerClub: a.seller ? (a.seller.clubName ?? `${a.seller.displayName}'s club`) : "MATCHX",
       mine: !!viewerId && a.sellerId === viewerId,
       buyNowMinor: a.buyNowMinor,
       history: hist.get(key(keys[i].playerId, keys[i].category)) ?? [],

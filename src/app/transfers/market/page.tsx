@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { AddToBasketButton } from "@/components/basket-buttons";
-import { CardRow } from "@/components/card-row";
-import { FormGuide } from "@/components/form-guide";
+import { TradeRow } from "@/components/trade-row";
 import { MarketFilters } from "@/components/market-filters";
 import { MoversPanel } from "@/components/movers-panel";
 import { EmptyState, PageHeader } from "@/components/page-header";
@@ -9,9 +8,7 @@ import { requireUser } from "@/server/auth/session";
 import { basketIds } from "@/server/basket";
 import { isEnabled } from "@/server/flags";
 import { type MarketSort, marketBoard } from "@/server/market-board";
-import { formGuide } from "@/server/top-performers";
 import { listedFinishes } from "@/server/transfers-view";
-import { fmtMp } from "@/server/wallet";
 
 export const metadata = { title: "MATCHX market" };
 export const dynamic = "force-dynamic";
@@ -35,7 +32,6 @@ export default async function MarketPage({ searchParams }: { searchParams: Promi
   const q = sp.q?.trim().slice(0, 40) || undefined;
   const [open, board, inBasket] = await Promise.all([isEnabled("MARKET"), marketBoard({ q, tier, finish, pos, league, sort, page: Number(sp.page) || 1 }), basketIds(user.id)]);
   const rare = await listedFinishes(true);
-  const form = await formGuide(board.rows.map((r) => r.card.playerId));
   const qs = (patch: Partial<SP>) => {
     const p = new URLSearchParams();
     for (const [k, v] of Object.entries({ q, tier: tier ?? finish, pos, league, sort: sort === "value" ? undefined : sort, ...patch })) if (v) p.set(k, v);
@@ -46,7 +42,7 @@ export default async function MarketPage({ searchParams }: { searchParams: Promi
       <PageHeader
         eyebrow="Sold by MATCHX"
         title="MATCHX market"
-        intro="Every player in the game, on sale now at their market value — set by their form this season, real-world value and how much managers want them. Only a few copies of each: every one sold makes the rest 2% dearer. New batches are released at the latest prices."
+        intro="Every player at market value. Few copies — each sale makes the next 2% dearer."
       />
 
       <MarketFilters
@@ -69,17 +65,18 @@ export default async function MarketPage({ searchParams }: { searchParams: Promi
       ) : (
         <>
           <p className="text-xs text-faint">{board.total.toLocaleString("en-GB")} players on sale · page {board.page} of {board.pages}</p>
-          <ul className="space-y-2">
+          <ul className="space-y-1.5">
             {board.rows.map((r) => (
-              <CardRow find={false}
+              <TradeRow
                 key={r.listingId}
                 card={r.card}
                 href={`/players/${r.card.playerId}`}
-                sub={<span className={`rounded px-1.5 text-[10px] font-extrabold uppercase tracking-wider ${r.copies <= 2 ? "bg-danger/15 text-danger" : "bg-ink-700 text-muted"}`}>{r.copies} left</span>}
-                below={form.has(r.card.playerId) && <FormGuide form={form.get(r.card.playerId)!} />}
-              >
-                <AddToBasketButton listingId={r.listingId} price={fmtMp(r.priceMinor)} inBasket={inBasket.has(r.listingId)} disabled={!open} />
-              </CardRow>
+                priceLabel="Buy now"
+                priceMinor={r.priceMinor}
+                seller="Sold by MATCHX"
+                extra={<span className={r.copies <= 2 ? "font-bold text-danger" : ""}>{r.copies} left</span>}
+                actions={<AddToBasketButton listingId={r.listingId} price="" inBasket={inBasket.has(r.listingId)} disabled={!open} />}
+              />
             ))}
           </ul>
           {board.pages > 1 && (

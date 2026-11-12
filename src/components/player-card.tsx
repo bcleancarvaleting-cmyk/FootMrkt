@@ -1,6 +1,6 @@
 import type { CardView } from "@/lib/view";
-import { FINISH_STYLE, FinishPill, Gem, GemFacets, GemSparkles, RainbowChant } from "./finish-art";
-import { mpLabel } from "@/lib/view";
+import { FINISH_STYLE, Gem, GemFacets, GemSparkles, RainbowChant } from "./finish-art";
+import { leagueShort, mpLabel } from "@/lib/view";
 import { ClubBadge } from "./club-badge";
 import { FindPlayer } from "./find-player";
 import { KitShirt } from "./kit-shirt";
@@ -49,8 +49,9 @@ export function tierStyle(c: CardView["category"]) {
 }
 
 /**
- * A MATCHX card face: position, player image, name, MX value (with trend) and the points this
- * card has won for its owner. No FIFA-style ratings (spec §4.1).
+ * A MATCHX card face, the same everywhere: position (top left) and card number (top right), the kit,
+ * the name, then Type | Club | League, one line of status, and £ value · Find · points for you.
+ * Nothing sits on the kit. No FIFA-style ratings (spec §4.1).
  * The image is the licensed headshot when one is set (Player.imageUrl); until image rights are
  * in place it shows the player's shirt in club colours with their squad number.
  */
@@ -77,111 +78,85 @@ export function PlayerCard({ card, size = "md", className = "", showcase = false
         {finish && <GemFacets kind={finish.kind} />}
         {(card.category === "GOLD" || gem) && <span className={`holo ${gem ? "!opacity-60" : ""}`} aria-hidden="true" />}
         {finish && <GemSparkles kind={finish.kind} />}
-        {/* Position · club · tier */}
-        <div className="flex items-center justify-between px-2.5 pt-2.5">
-          <span className={`rounded-md bg-ink-950/75 px-1.5 py-0.5 font-black tracking-wider ${small ? "text-[10px]" : "text-xs"} ${t.text}`}>
-            {card.position}
-          </span>
-          <ClubBadge
-            short={card.clubShort}
-            primary={card.clubPrimary}
-            secondary={card.clubSecondary}
-            kit={card.kit}
-            crestUrl={card.crestUrl}
-            size={small ? 16 : size === "lg" ? 26 : 20}
-            title={card.clubName ?? undefined}
-          />
-          {finish ? (
-            <span className="flex items-center gap-1">
-              <Gem kind={finish.kind} id={`tier-${card.id}`} size={small ? 14 : 18} />
-              {!small && <span className={`${FINISH_STYLE[finish.kind].name} text-[9px] font-black uppercase tracking-[0.18em]`}>{t.label}</span>}
-            </span>
-          ) : (
-            <span className={`text-[9px] font-bold uppercase tracking-[0.18em] ${t.text}`}>{t.label}</span>
-          )}
+
+        {/* Top: position (left) · card number (right) */}
+        <div className={`relative flex items-center justify-between gap-1 ${small ? "px-2 pt-2" : "px-2.5 pt-2.5"}`}>
+          <span className={`rounded-md bg-ink-950/75 px-1.5 py-0.5 font-black tracking-wider ${small ? "text-[10px]" : "text-xs"} ${t.text}`}>{card.position}</span>
+          <CardNumber card={card} small={small} />
         </div>
 
-        {/* Player image */}
-        <div className={`relative mx-2.5 mt-1.5 flex flex-1 items-end justify-center overflow-hidden rounded-xl ${gem ? "bg-gradient-to-b from-white/15 to-transparent" : "bg-gradient-to-b from-white/5 to-transparent"}`}>
+        {/* Kit — nothing on top of it */}
+        <div className={`relative flex min-h-0 flex-1 items-end justify-center overflow-hidden rounded-xl ${small ? "mx-2 mt-1" : "mx-2.5 mt-1.5"} ${gem ? "bg-gradient-to-b from-white/15 to-transparent" : "bg-gradient-to-b from-white/5 to-transparent"}`}>
           <PlayerImage card={card} />
-          {!showcase && (
-          <div className="pointer-events-none absolute left-1 top-1 flex flex-col items-start gap-1">
-            {finish && <FinishPill finish={finish} id={`badge-${card.id}`} size="xs" />}
-            {card.stamps > 0 && (
-              <span title={`${card.stamps} history stamp${card.stamps === 1 ? "" : "s"}`}>
-                <Badge tone="muted">★ {card.stamps}</Badge>
-              </span>
-            )}
-            {card.risingPct && (
-              <span title={`Tipped to rise ~${card.risingPct}% at the next revaluation`}>
-                <Badge tone="lime">📈 Rising</Badge>
-              </span>
-            )}
-            {(card.watchers ?? 0) > 0 && (
-              <span title={`Watched by ${card.watchers} manager${card.watchers === 1 ? "" : "s"}`}>
-                <Badge tone="muted">👁 {card.watchers}</Badge>
-              </span>
-            )}
-            {card.lock === "COMPETITION" && <Badge tone="lime">In squad</Badge>}
-            {card.lock === "LISTED" && <Badge tone="warn">Listed</Badge>}
-            {card.loan && (card.loan.ended ? <Badge tone="warn">Loan ended</Badge> : <Badge tone="muted">On loan</Badge>)}
-          </div>
-          )}
-          {!showcase && <FindPlayer playerId={card.playerId} name={card.name} small={small} />}
-          {showcase && finish && (
-            <div className="pointer-events-none absolute left-1 top-1">
-              <FinishPill finish={finish} id={`badge-${card.id}`} size="xs" />
-            </div>
-          )}
-          {card.totw && (
-            <span
-              title="Team of the Week — the badge lasts 7 days"
-              className={`pointer-events-none absolute bottom-1 right-1 rounded-md bg-gradient-to-r from-[#f2cf63] to-[#adfc07] font-black uppercase italic tracking-wider text-[#0a0d02] shadow-[0_2px_10px_rgba(242,207,99,0.55)] ${small ? "px-1 text-[8px]" : "px-1.5 py-0.5 text-[10px]"}`}
-            >
-              ★ TOTW
-            </span>
-          )}
-          {(card.acquired || card.edition === "STARTER") && !card.loan && !small && !showcase && (
-            <span className="absolute right-1 top-1 rounded bg-ink-950/85 px-1.5 text-[9px] font-semibold text-muted">
-              {card.tradeable ? card.acquired : `${card.acquired ?? "Starter"} · locked`}
-            </span>
-          )}
         </div>
 
-        {/* Name */}
-        <div className="px-2.5 pt-1.5 text-center">
-          <div className={`truncate font-display font-bold uppercase leading-tight tracking-wide ${small ? "text-sm" : "text-[17px]"} ${finish ? FINISH_STYLE[finish.kind].name : ""}`}>{card.name}</div>
+        {/* Name, then Type | Club | League */}
+        <div className={`relative text-center ${small ? "px-2 pt-1" : "px-2.5 pt-1.5"}`}>
+          <div className={`truncate font-display font-bold uppercase leading-tight tracking-wide ${small ? "text-[13px]" : size === "lg" ? "text-xl" : "text-[17px]"} ${finish ? FINISH_STYLE[finish.kind].name : ""}`}>{card.name}</div>
           {finish?.kind === "RAINBOW" && !small && <RainbowChant name={card.name} className="truncate text-[9px] tracking-wide" />}
-          <div className="truncate text-[10px] text-muted">{card.clubName ?? "Free agent"}</div>
-          {card.leagueName && <div className="truncate text-[8.5px] font-bold uppercase leading-tight tracking-[0.14em] text-faint">{card.leagueName}</div>}
-          <CardNumber card={card} />
+          <div className={`mt-0.5 flex items-center justify-center whitespace-nowrap font-bold uppercase ${small ? "gap-0.5 text-[8px] tracking-[0.02em]" : "gap-1 text-[9px] tracking-[0.1em]"}`}>
+            <span className={finish ? FINISH_STYLE[finish.kind].name : t.text}>{t.label}</span>
+            <span className="text-faint">|</span>
+            <span className="flex min-w-0 items-center gap-1 text-muted">
+              {!small && <ClubBadge short={card.clubShort} primary={card.clubPrimary} secondary={card.clubSecondary} kit={card.kit} crestUrl={card.crestUrl} size={13} title={card.clubName ?? undefined} />}
+              <span className={small ? "shrink-0" : "truncate"}>{small ? (card.clubShort || card.clubCode || "—") : (card.clubName ?? "Free agent")}</span>
+            </span>
+            {card.leagueName && (
+              <>
+                <span className="text-faint">|</span>
+                <span className="text-faint">{leagueShort(card.leagueName)}</span>
+              </>
+            )}
+          </div>
+          {!showcase && <StatusLine card={card} small={small} />}
         </div>
 
-        {/* £ value · points won for you (left off posters) */}
-        <div className={`mx-2.5 mb-2 mt-1.5 ${showcase ? "hidden" : "grid"} grid-cols-2 gap-1 border-t border-white/10 pt-1.5`}>
-          {card.loan ? (
-            <div className="min-w-0" title="Loan players are free, untradeable and have no value">
-              <div className="whitespace-nowrap text-[11px] font-bold text-lime">Loan</div>
-              <div className="truncate text-[9px] text-faint">
-                {card.loan.ended ? "Discard loan player" : card.loan.left ? `${card.loan.left} of ${card.loan.total} uses left` : "Last use played"}
+        {/* £ value · Find · points won for you (left off posters) */}
+        <div className={`relative ${small ? "mx-2 mb-1.5 mt-1 pt-1" : "mx-2.5 mb-2 mt-1.5 pt-1.5"} ${showcase ? "hidden" : "flex"} items-center gap-1 border-t border-white/10`}>
+          <div className="min-w-0 flex-1">
+            {card.loan ? (
+              <div title="Loan players are free, untradeable and have no value">
+                <div className="whitespace-nowrap text-[11px] font-bold text-lime">Loan</div>
+                <div className="truncate text-[9px] text-faint">{card.loan.ended ? "Discard" : card.loan.left ? `${card.loan.left}/${card.loan.total} uses` : "Last use"}</div>
               </div>
-            </div>
-          ) : (
-            <div className="min-w-0">
-              <div className="flex items-baseline gap-1 whitespace-nowrap text-[11px] font-bold text-lime">
-                {mpLabel(card.valueMp)} <Trend pct={card.trendPct} />
+            ) : (
+              <div>
+                <div className="whitespace-nowrap text-[11px] font-bold text-lime">{mpLabel(card.valueMp)}</div>
+                <div className="truncate text-[9px] text-faint">{card.trendPct !== null ? <Trend pct={card.trendPct} /> : "value"}</div>
               </div>
-              <div className="truncate text-[9px] text-faint">value</div>
-            </div>
-          )}
-          <div className="min-w-0 text-right" title="Points this card has won for you in settled competitions">
-            <div className={`text-[11px] font-black ${card.pointsForYou ? (card.pointsForYou > 0 ? "text-fg" : "text-danger") : "text-faint"}`}>
-              {card.pointsForYou !== null ? `${formatPts(card.pointsForYou)} pts` : "—"}
-            </div>
-            <div className="truncate text-[9px] text-faint">{card.pointsForYou !== null ? "won for you" : "points"}</div>
+            )}
+          </div>
+          <FindPlayer playerId={card.playerId} name={card.name} small inline />
+          <div className="min-w-0 flex-1 text-right" title="Points this card has won for you in settled competitions">
+            <div className={`text-[11px] font-black ${card.pointsForYou ? (card.pointsForYou > 0 ? "text-fg" : "text-danger") : "text-faint"}`}>{card.pointsForYou !== null ? `${formatPts(card.pointsForYou)} pts` : "—"}</div>
+            <div className="truncate text-[9px] text-faint">{card.pointsForYou !== null ? "for you" : "points"}</div>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** One tidy line of status under the name — the most important first, never over the kit. */
+function StatusLine({ card, small }: { card: CardView; small: boolean }) {
+  const items: Array<[string, string, string?]> = [];
+  if (card.loan) items.push([card.loan.ended ? "Loan ended" : "On loan", card.loan.ended ? "text-warn" : "text-muted"]);
+  if (card.lock === "COMPETITION") items.push(["In squad", "text-lime"]);
+  if (card.lock === "LISTED") items.push(["Listed", "text-warn"]);
+  if (card.totw) items.push(["★ TOTW", "text-gold", "Team of the Week — the badge lasts 7 days"]);
+  if (card.risingPct) items.push(["▲ Rising", "text-mint", `Tipped to rise ~${card.risingPct}% at the next revaluation`]);
+  if ((card.watchers ?? 0) > 0) items.push([`👁 ${card.watchers}`, "text-muted", `Watched by ${card.watchers} manager${card.watchers === 1 ? "" : "s"}`]);
+  if (card.stamps > 0) items.push([`★ ${card.stamps}`, "text-muted", `${card.stamps} history stamp${card.stamps === 1 ? "" : "s"}`]);
+  if (!card.loan && card.edition === "STARTER" && !card.tradeable) items.push(["Starter", "text-faint", "Free starter card — yours to play, can't be traded"]);
+  const shown = items.slice(0, small ? 2 : 3);
+  return (
+    <div className={`flex items-center justify-center gap-1.5 overflow-hidden whitespace-nowrap font-bold uppercase tracking-wide ${small ? "mt-0.5 h-3 text-[8px]" : "mt-1 h-3.5 text-[9px]"}`}>
+      {shown.map(([label, tone, title], i) => (
+        <span key={label} className={`flex items-center gap-1.5 ${tone}`} title={title}>
+          {i > 0 && <span className="text-faint">·</span>}
+          {label}
+        </span>
+      ))}
     </div>
   );
 }
@@ -192,21 +167,26 @@ const formatPts = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1)
  * Every card carries its own number, so no two are alike: "147/500" for a Gold (147th of a possible
  * 500), "4/10" for a Ruby, "3/5" for a Diamond. Free starter and loan cards are numbered on their own.
  */
-function CardNumber({ card }: { card: CardView }) {
-  const [num, of, label] = card.finish
-    ? [card.finish.serial, card.finish.of, FINISH_STYLE[card.finish.kind].label]
-    : card.edition === "LOAN"
-      ? [card.serial, null, "Loan"]
-      : card.edition === "STARTER"
-        ? [card.serial, null, "Starter"]
-        : [card.serial, card.maxSupply, "No."];
-  if (!num) return <div className="h-4" />;
+function CardNumber({ card, small }: { card: CardView; small: boolean }) {
+  if (card.finish) {
+    const f = card.finish;
+    return (
+      <span className="flex items-center gap-1 rounded-md bg-ink-950/75 px-1.5 py-0.5" title={`${FINISH_STYLE[f.kind].label} ${f.serial} of ${f.of}`}>
+        <Gem kind={f.kind} id={`num-${card.id}`} size={small ? 11 : 13} />
+        <span className={`font-black tabular-nums ${FINISH_STYLE[f.kind].name} ${small ? "text-[10px]" : "text-xs"}`}>
+          {f.serial}/{f.of.toLocaleString("en-GB")}
+        </span>
+      </span>
+    );
+  }
+  const [num, of] = card.edition === "STANDARD" ? [card.serial, card.maxSupply] : [card.serial, null];
+  if (!num) return null;
   return (
-    <div className="mt-0.5 flex h-4 items-center justify-center gap-1 text-[10px] tabular-nums" title={of ? `Number ${num} of ${of}` : `Number ${num}`}>
-      <span className="font-semibold uppercase tracking-wider text-faint">{label}</span>
-      <span className="font-black text-fg">{num}</span>
-      {of ? <span className="text-faint">/ {of.toLocaleString("en-GB")}</span> : null}
-    </div>
+    <span className={`rounded-md bg-ink-950/75 px-1.5 py-0.5 tabular-nums ${small ? "text-[10px]" : "text-xs"}`} title={of ? `Number ${num} of ${of}` : `Number ${num}`}>
+      <span className="font-semibold text-faint">#</span>
+      <b className="font-black text-fg">{num}</b>
+      {of ? <span className="text-faint">/{of.toLocaleString("en-GB")}</span> : null}
+    </span>
   );
 }
 
@@ -230,11 +210,6 @@ export function Trend({ pct, className = "" }: { pct: number | null; className?:
       {up ? "▲" : "▼"} {Math.abs(pct)}%
     </span>
   );
-}
-
-function Badge({ children, tone }: { children: React.ReactNode; tone: "muted" | "lime" | "warn" }) {
-  const cls = tone === "lime" ? "bg-lime text-ink-950" : tone === "warn" ? "bg-warn text-ink-950" : "bg-ink-950/80 text-muted border border-ink-600";
-  return <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${cls}`}>{children}</span>;
 }
 
 export function CategoryDot({ category }: { category: CardView["category"] }) {

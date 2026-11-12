@@ -21,6 +21,11 @@ export interface ProviderPlayer {
   squadNumber?: number | null;
   /** Simulator: how good the player is (1 = average). Better players start, score and assist more. */
   weight?: number;
+  /**
+   * Simulator: how nailed-on a starter they are, 0–1 — real appearances (share of minutes in the
+   * club's recent real games) × form. 1 = always starts. Unset = fall back to the shirt number.
+   */
+  startScore?: number;
 }
 
 export interface ProviderFixture {

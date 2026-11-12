@@ -70,6 +70,8 @@ export async function simReplay(gameweekId: string): Promise<ReplayData | null> 
     select: { id: true, displayName: true, clubId: true, position: true, squadNumber: true, providerRefs: true },
   });
   const w = await weights(players.map((p) => p.id), ko);
+  const lineups = await import("./sim-lineups");
+  const sc = ko >= lineups.SELECTION_V2_FROM ? await lineups.startScores(players.map((p) => p.id), ko) : new Map<string, { score: number }>();
   const refOf = (p: (typeof players)[number]) => (p.providerRefs as Record<string, string>)[SIMULATED_PROVIDER_NAME];
   const byRef = new Map(players.map((p) => [refOf(p), p]));
 
@@ -109,7 +111,7 @@ export async function simReplay(gameweekId: string): Promise<ReplayData | null> 
     const events: ReplayEvent[] = [];
     fixtures.forEach((f, fi) => {
       const squad = (clubId: string) =>
-        players.filter((p) => p.clubId === clubId).map((p) => ({ ref: refOf(p), clubRef: clubId, position: p.position, squadNumber: p.squadNumber, weight: w.get(p.id) ?? 1 }));
+        players.filter((p) => p.clubId === clubId).map((p) => ({ ref: refOf(p), clubRef: clubId, position: p.position, squadNumber: p.squadNumber, weight: w.get(p.id) ?? 1, startScore: sc.get(p.id)?.score }));
       const feed: SimFeedEvent[] = [];
       const msgs = simulateMatch(
         { providerFixtureId: f.providerFixtureId, homeClubRef: f.homeClub.code, awayClubRef: f.awayClub.code, kickoffAt: f.kickoffAt },

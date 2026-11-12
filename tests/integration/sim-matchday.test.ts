@@ -189,3 +189,29 @@ describe("likely to start (sim)", () => {
     }
   });
 });
+
+describe("start chance from real appearances × form", () => {
+  it("players who played every real game are nailed on (100%); ones who never played don't start", async () => {
+    const { simStartGuide, startScores } = await import("@/server/sim-lineups");
+    const sport = await db.sport.findFirstOrThrow();
+    const [club, opp] = await db.club.findMany({ orderBy: { code: "asc" }, take: 2 });
+    const squad = await db.player.findMany({ where: { clubId: club.id }, orderBy: { lastName: "asc" } });
+    const defs = squad.filter((p) => p.position === "DEF");
+    const gk = squad.filter((p) => p.position === "GK");
+    const gw = await db.gameweek.create({ data: { sportId: sport.id, season: "real-hist", number: 1, startsAt: new Date(Date.now() - 40 * 86_400_000), endsAt: new Date(Date.now() - 30 * 86_400_000), status: "SETTLED" } });
+    for (let i = 0; i < 6; i++) {
+      const f = await db.fixture.create({ data: { gameweekId: gw.id, provider: "test", providerFixtureId: `hist-${i}`, homeClubId: club.id, awayClubId: opp.id, kickoffAt: new Date(Date.now() - (30 + i) * 86_400_000), status: "FINISHED", homeGoals: 1, awayGoals: 0 } });
+      // The first four defenders and the first keeper play every minute; the rest never play.
+      for (const p of [...defs.slice(0, 4), gk[0]]) {
+        await db.playerMatchStat.create({ data: { fixtureId: f.id, playerId: p.id, revision: 1, isCurrent: true, sourceEventId: `ev-${i}-${p.id}`, stats: { minutes: 90, goals: 0, assists: 0, clean_sheet: true } } });
+      }
+    }
+    const sc = await startScores(defs.map((d) => d.id), new Date());
+    expect(sc.get(defs[0].id)).toMatchObject({ apps: 6, games: 6 });
+    expect(sc.get(defs[4].id)).toMatchObject({ apps: 0, score: 0 });
+    const g = await simStartGuide([...defs, gk[0]].map((p) => p.id));
+    for (const d of defs.slice(0, 4)) expect(g.get(d.id)!.pct).toBe(100);
+    expect(g.get(defs[4].id)!.pct).toBe(0);
+    expect(g.get(gk[0].id)!.pct).toBe(100);
+  });
+});

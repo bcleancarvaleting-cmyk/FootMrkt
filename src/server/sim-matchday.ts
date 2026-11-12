@@ -265,13 +265,16 @@ async function playOnce(now: Date) {
           select: { id: true, displayName: true, clubId: true, position: true, squadNumber: true, providerRefs: true },
         });
         const w = await weights(players.map((p) => p.id), fixtures[0].kickoffAt);
+        // Who starts: real appearances × form (sims from SELECTION_V2_FROM; older ones keep shirt numbers so replays match).
+        const lineups = await import("./sim-lineups");
+        const sc = fixtures[0].kickoffAt >= lineups.SELECTION_V2_FROM ? await lineups.startScores(players.map((p) => p.id), fixtures[0].kickoffAt) : new Map<string, { score: number }>();
         const byRef = new Map(players.map((p) => [(p.providerRefs as Record<string, string>)[SIMULATED_PROVIDER_NAME], p]));
         const messages: ProviderMessage[] = [];
         for (const f of fixtures) {
           const squad = (clubId: string) =>
             players
               .filter((p) => p.clubId === clubId)
-              .map((p) => ({ ref: (p.providerRefs as Record<string, string>)[SIMULATED_PROVIDER_NAME], clubRef: clubId, position: p.position, squadNumber: p.squadNumber, weight: w.get(p.id) ?? 1 }));
+              .map((p) => ({ ref: (p.providerRefs as Record<string, string>)[SIMULATED_PROVIDER_NAME], clubRef: clubId, position: p.position, squadNumber: p.squadNumber, weight: w.get(p.id) ?? 1, startScore: sc.get(p.id)?.score }));
           const feed: SimFeedEvent[] = [];
           messages.push(
             ...simulateMatch(

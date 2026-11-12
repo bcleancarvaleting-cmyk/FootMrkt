@@ -19,6 +19,8 @@ export interface ProviderPlayer {
   position: "GK" | "DEF" | "MID" | "ATT";
   /** Shirt number, if known — the DEV simulator uses it as a "first choice" hint. */
   squadNumber?: number | null;
+  /** Simulator: how good the player is (1 = average). Better players start, score and assist more. */
+  weight?: number;
 }
 
 export interface ProviderFixture {

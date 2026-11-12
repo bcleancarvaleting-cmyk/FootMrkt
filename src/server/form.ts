@@ -6,7 +6,7 @@ export async function recentForm(playerIds: string[], gameweeks = 3) {
   const out = new Map<string, number[]>();
   if (!playerIds.length) return out;
   const gws = await db.gameweek.findMany({
-    where: { status: { in: ["PROVISIONAL", "SETTLED"] } },
+    where: { simulated: false, status: { in: ["PROVISIONAL", "SETTLED"] } },
     orderBy: [{ season: "desc" }, { number: "desc" }],
     take: gameweeks,
   });

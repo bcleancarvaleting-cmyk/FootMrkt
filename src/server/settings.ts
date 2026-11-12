@@ -133,6 +133,11 @@ export const TEXT_SETTINGS = {
     help: "When MATCHX opens, as YYYY-MM-DD HH:MM in UK time (e.g. 2026-12-01 19:00). Shows a countdown on the waitlist page. Leave blank for 'Coming soon'.",
     default: "",
   },
+  simDailyTime: {
+    label: "Daily simulated matchday kick-off",
+    help: "Set a UK time (e.g. 19:00) to create a simulated matchday every day, kicking off then, with the matches copied from the latest simulated matchday. Leave blank for none — you can still create them by hand.",
+    default: "",
+  },
   reportEmails: {
     label: "Daily report — extra emails",
     help: "The daily report (sign-ups, card takings, packs and players sold) goes to every admin at 8am. Add more addresses here, separated by commas.",
@@ -169,6 +174,7 @@ export async function setText(adminId: string, key: TextSettingKey, value: strin
     throw new DomainError("URL", "Paste the full image link, starting https:// — e.g. a photo's direct link from Unsplash or Pexels.");
   }
   if (key === "launchDate" && v && !/^\d{4}-\d{2}-\d{2}( \d{2}:\d{2})?$/.test(v)) throw new DomainError("DATE", "Use YYYY-MM-DD HH:MM, e.g. 2026-12-01 19:00.");
+  if (key === "simDailyTime" && v && !/^([01]\d|2[0-3]):[0-5]\d$/.test(v)) throw new DomainError("TIME", "Use a 24-hour UK time, e.g. 19:00.");
   if (key === "reportEmails" && v && !v.split(/[,\s]+/).filter(Boolean).every((e) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e))) throw new DomainError("EMAIL", "Enter email addresses separated by commas.");
   if (key === "earlyAccessCode" && v && !/^[A-Za-z0-9-]{4,32}$/.test(v)) throw new DomainError("CODE", "4–32 letters, numbers or dashes.");
   if (key === "referralRewardSku" || key === "referralMonthlyPrizeSku" || key === "waitlistRewardSku") {

@@ -4,6 +4,7 @@ import { potTotal } from "@/domain/football/prizes";
 import { type Requirements, prizesSummary, requirementsSummary } from "@/server/competitions";
 import { fmtMp } from "@/server/wallet";
 import { FoundingBadge } from "./founding-badge";
+import { SimBadge } from "./sim-badge";
 
 /**
  * A match as a card: title, which cards it takes, cost to enter, prize pot and teams entered, then
@@ -22,7 +23,7 @@ type Comp = { id: string; name: string; status: string; format: string; requirem
 type Entry = { finalPoints: number | null; provisionalPoints: number | null; rank: number | null } | undefined;
 type Podium = Array<{ rank: number; displayName: string; foundingNumber: number | null; points: number; prizeMinor: number }>;
 
-export function MatchCard({ c, entry, paidEntry, results }: { c: Comp; entry: Entry; paidEntry: boolean; results?: Podium }) {
+export function MatchCard({ c, entry, paidEntry, results, sim = false }: { c: Comp; entry: Entry; paidEntry: boolean; results?: Podium; sim?: boolean }) {
   const [label, tone] = STATUS[c.status] ?? ["", ""];
   const feeBlocked = c.entryFeeMinor > 0 && !paidEntry;
   const cards = cardsLabel((c.requirements ?? {}) as Requirements, c.format);
@@ -36,6 +37,7 @@ export function MatchCard({ c, entry, paidEntry, results }: { c: Comp; entry: En
       <span className={`absolute inset-x-0 top-0 h-1 ${cards.bar}`} aria-hidden="true" />
       <span className="flex items-start justify-between gap-3 px-5 pb-3 pt-5">
         <span className="min-w-0">
+          {sim && <SimBadge className="mb-1.5" />}
           <span className="block font-display text-2xl font-black uppercase italic leading-[0.95] tracking-tight">{c.name}</span>
           <span className="mt-1 block text-xs text-muted">{requirementsSummary((c.requirements ?? {}) as Requirements, c.format)}</span>
         </span>

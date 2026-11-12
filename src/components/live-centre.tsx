@@ -168,6 +168,7 @@ function Fixture({ f, flash }: { f: LiveFixture; flash: boolean }) {
         ) : (
           <span className="text-faint">{ko}</span>
         )}
+        {f.sim && <span className="rounded bg-[#8fe3ff] px-1.5 text-[10px] font-black text-[#04121a]" title="Simulated from the players' real form">SIM</span>}
         {flash && <span className="text-lime">GOAL!</span>}
       </div>
       <div className="space-y-1">

@@ -22,6 +22,8 @@ export interface LiveFixture {
   kickoffAt: string;
   /** Man of the Match, once the game is over. */
   motm: string | null;
+  /** A simulated matchday game (results generated from real form). */
+  sim: boolean;
 }
 
 export interface LivePlayer {
@@ -71,6 +73,7 @@ async function tickerFixtures(now: Date) {
     minute: true,
     motmPlayerId: true,
     kickoffAt: true,
+    gameweek: { select: { simulated: true } },
     homeClub: { select: { code: true, name: true, primaryColour: true, league: { select: { code: true } } } },
     awayClub: { select: { code: true, name: true, primaryColour: true } },
   } as const;
@@ -90,6 +93,7 @@ async function tickerFixtures(now: Date) {
   return rows.map(
     (f): LiveFixture => ({
       motm: f.motmPlayerId ? (names.get(f.motmPlayerId) ?? null) : null,
+      sim: f.gameweek.simulated,
       id: f.id,
       home: { code: f.homeClub.code, name: f.homeClub.name, colour: f.homeClub.primaryColour },
       away: { code: f.awayClub.code, name: f.awayClub.name, colour: f.awayClub.primaryColour },
@@ -168,7 +172,7 @@ export async function liveBoard(userId?: string | null, now = new Date()): Promi
 export async function alertGoals(now = new Date()) {
   const stats = await db.playerMatchStat.findMany({
     where: { isCurrent: true, fixture: { OR: [{ status: "LIVE" }, { status: "FINISHED", finalisedAt: { gte: new Date(now.getTime() - 3 * HOUR) } }] } },
-    select: { playerId: true, stats: true, fixtureId: true, fixture: { select: { gameweekId: true, homeGoals: true, awayGoals: true, homeClub: { select: { code: true } }, awayClub: { select: { code: true } } } }, player: { select: { displayName: true } } },
+    select: { playerId: true, stats: true, fixtureId: true, fixture: { select: { gameweekId: true, gameweek: { select: { simulated: true } }, homeGoals: true, awayGoals: true, homeClub: { select: { code: true } }, awayClub: { select: { code: true } } } }, player: { select: { displayName: true } } },
   });
   const scorers = stats.map((s) => ({ ...s, line: toStatLine(s.stats) })).filter((s) => s.line.goals > 0);
   let sent = 0;
@@ -184,7 +188,7 @@ export async function alertGoals(now = new Date()) {
       for (let g = 1; g <= s.line.goals; g++) {
         await notify(userId, {
           kind: "GOAL",
-          title: `⚽ GOAL! ${s.player.displayName}${g > 1 ? ` (${g === 2 ? "brace" : g === 3 ? "hat-trick" : `${g} goals`})` : ""}`,
+          title: `⚽ ${s.fixture.gameweek.simulated ? "SIM " : ""}GOAL! ${s.player.displayName}${g > 1 ? ` (${g === 2 ? "brace" : g === 3 ? "hat-trick" : `${g} goals`})` : ""}`,
           body: `${score} — points for your squad.`,
           href: "/live",
           dedupeKey: `goal:${s.fixtureId}:${s.playerId}:${g}:${userId}`,

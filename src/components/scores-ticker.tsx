@@ -101,7 +101,11 @@ function TickerItem({ f }: { f: LiveFixture }) {
   const ko = new Date(f.kickoffAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
   return (
     <li className="flex h-full items-center gap-2 border-r border-white/10 px-4 text-[12px] font-bold uppercase tracking-wide">
-      <span className="text-[9px] font-extrabold tracking-[0.16em] text-white/40">{f.league}</span>
+      {f.sim ? (
+        <span className="rounded bg-[#8fe3ff] px-1 text-[9px] font-black tracking-[0.12em] text-[#04121a]" title="Simulated from real form">SIM</span>
+      ) : (
+        <span className="text-[9px] font-extrabold tracking-[0.16em] text-white/40">{f.league}</span>
+      )}
       <span className="h-3 w-1 rounded-sm" style={{ background: f.home.colour }} aria-hidden="true" />
       <span>{f.home.code}</span>
       {f.status === "SCHEDULED" || f.status === "POSTPONED" ? (

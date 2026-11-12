@@ -51,7 +51,7 @@ export async function leaveLeague(userId: string, leagueId: string) {
 /** Each manager's score per gameweek: their best entry that gameweek (final, else provisional). */
 async function gameweekScores(userIds: string[], season: string) {
   const entries = await db.competitionEntry.findMany({
-    where: { userId: { in: userIds }, status: "ACTIVE", competition: { status: { in: ["PROVISIONAL", "SETTLED"] }, gameweek: { season } } },
+    where: { userId: { in: userIds }, status: "ACTIVE", competition: { status: { in: ["PROVISIONAL", "SETTLED"] }, gameweek: { season, simulated: false } } },
     select: { userId: true, finalPoints: true, provisionalPoints: true, competition: { select: { gameweek: { select: { id: true, number: true } } } } },
   });
   const out = new Map<string, Map<number, number>>();
@@ -72,7 +72,7 @@ export async function leagueTable(userId: string, leagueId: string) {
     include: { members: true },
   });
   if (!league || !league.members.some((m) => m.userId === userId)) throw new DomainError("NOT_FOUND", "League not found.");
-  const latest = await db.gameweek.findFirst({ where: { status: { in: ["PROVISIONAL", "SETTLED"] } }, orderBy: [{ season: "desc" }, { number: "desc" }] });
+  const latest = await db.gameweek.findFirst({ where: { simulated: false, status: { in: ["PROVISIONAL", "SETTLED"] } }, orderBy: [{ season: "desc" }, { number: "desc" }] });
   const users = await db.user.findMany({ where: { id: { in: league.members.map((m) => m.userId) } }, select: { id: true, displayName: true, clubName: true, crest: true, foundingNumber: true } });
   const scores = latest ? await gameweekScores(users.map((u) => u.id), latest.season) : new Map<string, Map<number, number>>();
   const rows = users

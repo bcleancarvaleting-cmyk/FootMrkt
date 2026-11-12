@@ -546,7 +546,7 @@ export async function ensureGameweeksAhead(weeks = 4, now = new Date(), actorId:
     for (let w = 0; w < weeks; w++) {
       const sat = new Date(now.getTime() + ((6 - now.getUTCDay() + 7) % 7 || 7) * DAY + w * 7 * DAY);
       const kickoff = new Date(Date.UTC(sat.getUTCFullYear(), sat.getUTCMonth(), sat.getUTCDate(), 15));
-      const clash = await db.gameweek.findFirst({ where: { startsAt: { gte: new Date(kickoff.getTime() - 3 * DAY), lte: new Date(kickoff.getTime() + 3 * DAY) } } });
+      const clash = await db.gameweek.findFirst({ where: { simulated: false, startsAt: { gte: new Date(kickoff.getTime() - 3 * DAY), lte: new Date(kickoff.getTime() + 3 * DAY) } } });
       if (clash) continue;
       await createGameweek({ season, number: await nextGameweekNumber(season), opensAt: now, firstKickoffAt: kickoff, actorId }).catch(() => null);
       made++;

@@ -17,7 +17,7 @@ const KEY = "season.current";
 export async function currentSeason() {
   const row = await db.appSetting.findUnique({ where: { key: KEY } });
   if (typeof row?.value === "string") return row.value;
-  const last = await db.gameweek.findFirst({ orderBy: [{ season: "desc" }, { number: "desc" }], select: { season: true } });
+  const last = await db.gameweek.findFirst({ where: { simulated: false }, orderBy: [{ season: "desc" }, { number: "desc" }], select: { season: true } });
   return last?.season ?? "2026-27";
 }
 

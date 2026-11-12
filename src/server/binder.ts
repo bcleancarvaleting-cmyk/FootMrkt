@@ -149,7 +149,7 @@ export async function portfolio(userId: string, now = new Date()) {
   const untradeable = valueOf(cards.filter((c) => !c.tradeable && !c.loan));
 
   const soon = await db.fixture.findMany({
-    where: { status: "SCHEDULED", kickoffAt: { gt: now, lt: new Date(now.getTime() + 7 * 86_400_000) } },
+    where: { status: "SCHEDULED", gameweek: { simulated: false }, kickoffAt: { gt: now, lt: new Date(now.getTime() + 7 * 86_400_000) } },
     select: { kickoffAt: true, homeClub: { select: { code: true } }, awayClub: { select: { code: true } } },
   });
   const nextKick = new Map<string, Date>();

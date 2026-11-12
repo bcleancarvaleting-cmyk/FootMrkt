@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MatchCard } from "@/components/match-card";
+import { SimBadge } from "@/components/sim-badge";
 import { Countdown } from "@/components/countdown";
 import { EmptyState } from "@/components/page-header";
 import { requireUser } from "@/server/auth/session";
@@ -15,8 +16,11 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
   const user = await requireUser();
   const sport = await footballSport();
   const { gw: gwParam } = await searchParams;
-  const gameweeks = await db.gameweek.findMany({ where: { sportId: sport.id }, orderBy: [{ season: "desc" }, { number: "desc" }] });
-  const gw = gameweeks.find((g) => g.id === gwParam) ?? gameweeks.find((g) => g.status !== "SETTLED") ?? gameweeks[0];
+  // Real gameweeks and simulated matchdays, in date order; the tabs show the last 3 played and what's next.
+  const all = await db.gameweek.findMany({ where: { sportId: sport.id }, orderBy: [{ startsAt: "asc" }] });
+  const settled = all.filter((g) => g.status === "SETTLED");
+  const gameweeks = [...settled.slice(-3), ...all.filter((g) => g.status !== "SETTLED").slice(0, 7)];
+  const gw = all.find((g) => g.id === gwParam) ?? all.find((g) => g.status !== "SETTLED") ?? settled[settled.length - 1];
   if (!gw) return <EmptyState title="No matches yet">An admin needs to open the first gameweek.</EmptyState>;
 
   const [comps, fixtures, paidEntry] = await Promise.all([
@@ -42,13 +46,22 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
     <div className="space-y-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">{gw.season} season</p>
-          <h1 className="mt-1 text-4xl leading-none sm:text-5xl">Gameweek {gw.number}</h1>
+          <p className="eyebrow">{gw.simulated ? "Simulated matchday" : `${gw.season} season`}</p>
+          <h1 className="mt-1 flex items-center gap-3 text-4xl leading-none sm:text-5xl">
+            {gw.simulated ? <>Matchday {gw.number} <SimBadge className="text-xs" /></> : <>Gameweek {gw.number}</>}
+          </h1>
+          {gw.simulated && (
+            <p className="mt-2 max-w-xl rounded-lg border border-[#8fe3ff]/40 bg-[#8fe3ff]/5 px-3 py-2 text-sm text-muted">
+              These games aren&apos;t real football: the results are <b className="text-fg">simulated from each player&apos;s real form and value</b>, and play out live — goals minute by minute, half time, full time. Your points count in these matches only, not in real stats or the Mega League.
+            </p>
+          )}
           <p className="mt-2 text-sm text-muted">
             {open && locksAt ? (
               <>
                 Squads lock in <Countdown to={locksAt.toISOString()} className="font-bold text-lime" /> · {fmtDate(locksAt)} — 10 minutes before the first kick-off
               </>
+            ) : open ? (
+              <>Kick-off {fmtDate(gw.startsAt, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</>
             ) : gw.status === "SETTLED" ? (
               "All matches settled"
             ) : (
@@ -64,7 +77,7 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
           <div className="flex gap-1 overflow-x-auto rounded-xl border border-ink-700 bg-ink-900 p-1">
             {gameweeks.slice(0, 8).map((g) => (
               <Link key={g.id} href={`/matches?gw=${g.id}`} className={`rounded-lg px-3 py-1.5 text-xs font-bold ${g.id === gw.id ? "bg-accent text-accent-ink" : "text-muted hover:text-fg"}`}>
-                GW{g.number}
+                {g.simulated ? `SIM ${g.number}` : `GW${g.number}`}
               </Link>
             ))}
           </div>
@@ -83,7 +96,7 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
             <ul className="grid gap-4 md:grid-cols-2">
               {comps.map((c) => (
                 <li key={c.id}>
-                  <MatchCard c={c} entry={c.entries[0]} paidEntry={paidEntry} results={results.get(c.id)} />
+                  <MatchCard c={c} entry={c.entries[0]} paidEntry={paidEntry} results={results.get(c.id)} sim={gw.simulated} />
                 </li>
               ))}
             </ul>

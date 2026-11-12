@@ -121,6 +121,7 @@ export const guideBySlug = (slug: string) => GUIDES.find((g) => g.slug === slug)
 
 /** What's new on MATCHX (newest first). Shown at the top of Guides. */
 export const WHATS_NEW: Array<{ date: string; title: string; body: string; href?: string }> = [
+  { date: "2026-11-12", title: "Simulated matchdays", body: "Matches marked SIM are played by the real clubs with results simulated from each player's real form and value, and they play out live: goals minute by minute, half time and full time. Your points count in those matches only, never in real stats or the Mega League.", href: "/matches" },
   { date: "2026-11-12", title: "Everything in £", body: "Your balance, prices and player values are now shown in pounds. Your balance is spend-only credit for players, packs and matches.", href: "/account/wallet" },
   { date: "2026-11-12", title: "MATCHX market", body: "Every player in the game is on sale, priced by their form, real-world value and demand — up to £20. Only 5 copies each, and every sale makes the rest 2% dearer.", href: "/transfers/market" },
   { date: "2026-11-12", title: "1,000 XP = £5", body: "Every 1,000 XP your players earn turns into £5 of credit automatically.", href: "/account/wallet#xp" },

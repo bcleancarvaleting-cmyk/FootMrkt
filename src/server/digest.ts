@@ -42,7 +42,7 @@ export async function digestFor(userId: string, now = new Date(), shared?: { dro
   // This weekend: from now until Tuesday 00:00 (covers Friday to Monday night games).
   const until = new Date(now.getTime() + 4 * DAY);
   const fixtures = await db.fixture.findMany({
-    where: { status: "SCHEDULED", kickoffAt: { gt: now, lt: until } },
+    where: { status: "SCHEDULED", gameweek: { simulated: false }, kickoffAt: { gt: now, lt: until } },
     orderBy: { kickoffAt: "asc" },
     select: { kickoffAt: true, homeClub: { select: { code: true } }, awayClub: { select: { code: true } } },
   });

@@ -38,7 +38,7 @@ export interface PerformerRow {
 /** The gameweeks in a window, newest first. Only gameweeks with stats in (provisional or settled) count. */
 export async function windowGameweeks(window: PerformanceWindow) {
   const all = await db.gameweek.findMany({
-    where: { status: { in: ["PROVISIONAL", "SETTLED"] } },
+    where: { simulated: false, status: { in: ["PROVISIONAL", "SETTLED"] } },
     orderBy: [{ season: "desc" }, { number: "desc" }],
     select: { id: true, number: true, season: true },
   });
@@ -154,7 +154,7 @@ export async function formGuide(playerIds: string[], games = 4) {
   const players = await db.player.findMany({ where: { id: { in: playerIds } }, select: { id: true, position: true, clubId: true } });
   const clubIds = [...new Set(players.map((p) => p.clubId).filter((c): c is string => !!c))];
   const fixtures = await db.fixture.findMany({
-    where: { status: "FINISHED", OR: [{ homeClubId: { in: clubIds } }, { awayClubId: { in: clubIds } }] },
+    where: { status: "FINISHED", gameweek: { simulated: false }, OR: [{ homeClubId: { in: clubIds } }, { awayClubId: { in: clubIds } }] },
     orderBy: { kickoffAt: "desc" },
     take: Math.max(40, clubIds.length * games * 2),
     select: { id: true, homeClubId: true, awayClubId: true, homeClub: { select: { code: true } }, awayClub: { select: { code: true } } },

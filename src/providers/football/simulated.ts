@@ -109,6 +109,14 @@ interface OnPitch {
   position: ProviderPlayer["position"];
   on: number;
   off: number;
+  weight: number;
+}
+
+/** A stable minute (1–90) for an event, from a key — so a live replay and the final agree. */
+function minuteOf(key: string) {
+  let h = 2166136261;
+  for (const ch of key) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return 1 + ((h >>> 0) % 90);
 }
 
 function pickTeam(rng: RandomSource, squad: ProviderPlayer[]): OnPitch[] {
@@ -116,7 +124,8 @@ function pickTeam(rng: RandomSource, squad: ProviderPlayer[]): OnPitch[] {
   const priority = (p: ProviderPlayer) => {
     const n = p.squadNumber ?? 99;
     const base = n >= 1 && n <= 11 ? 0 : n <= 25 ? 1.2 : 2.4;
-    return base + uniform(rng) * 1.6;
+    // Better players (by form and value) are more likely to start.
+    return base + uniform(rng) * 1.6 - ((p.weight ?? 1) - 1) * 0.8;
   };
   const by = (pos: ProviderPlayer["position"]) =>
     squad
@@ -130,7 +139,7 @@ function pickTeam(rng: RandomSource, squad: ProviderPlayer[]): OnPitch[] {
   const att = by("ATT");
   const xi = [...gk.slice(0, 1), ...def.slice(0, 4), ...mid.slice(0, 4), ...att.slice(0, 2)];
   const bench = shuffle(rng, [...def.slice(4), ...mid.slice(4), ...att.slice(2)]);
-  const lineup: OnPitch[] = xi.map((p) => ({ ref: p.ref, position: p.position, on: 0, off: 90 }));
+  const lineup: OnPitch[] = xi.map((p) => ({ ref: p.ref, position: p.position, on: 0, off: 90, weight: p.weight ?? 1 }));
   // Up to three outfield substitutions between 55' and 85'.
   const subs = Math.min(bench.length, 1 + rng.int(3));
   const outfield = lineup.filter((p) => p.position !== "GK");
@@ -138,7 +147,7 @@ function pickTeam(rng: RandomSource, squad: ProviderPlayer[]): OnPitch[] {
   offs.forEach((o, i) => {
     const minute = 55 + rng.int(31);
     o.off = minute;
-    lineup.push({ ref: bench[i].ref, position: bench[i].position, on: minute, off: 90 });
+    lineup.push({ ref: bench[i].ref, position: bench[i].position, on: minute, off: 90, weight: bench[i].weight ?? 1 });
   });
   return lineup;
 }
@@ -171,15 +180,22 @@ const emptyLine = (): Line => ({
   goals_conceded_on_pitch: 0,
 });
 
-/** Simulate one fixture and return the raw provider messages it would emit. */
+/**
+ * Simulate one fixture and return the raw provider messages it would emit. With `atMinute`, the
+ * same match as it stands at that minute (score, goals, minutes played so far) — for simulated
+ * matchdays that play out live; the full-time messages carry a higher revision, so they replace
+ * the in-play ones.
+ */
 export function simulateMatch(
   fixture: ProviderFixture,
   home: { club: ProviderClub; squad: ProviderPlayer[] },
   away: { club: ProviderClub; squad: ProviderPlayer[] },
   seed: number,
+  opts: { atMinute?: number; noPostponements?: boolean } = {},
 ): ProviderMessage[] {
   const rng = seededRandom(seed);
-  if (chance(rng, 0.03)) {
+  const postponed = chance(rng, 0.03);
+  if (postponed && !opts.noPostponements) {
     return [
       {
         providerEventId: `${fixture.providerFixtureId}:result:1`,
@@ -202,6 +218,9 @@ export function simulateMatch(
   const sa = away.club.strengthHint ?? 50;
   const lambdas = [1.25 * Math.sqrt(sh / sa) + 0.2, 1.25 * Math.sqrt(sa / sh)];
   const score = [0, 0];
+  const live = opts.atMinute !== undefined && opts.atMinute < 90;
+  const m = live ? Math.max(0, opts.atMinute!) : 90;
+  const events: Array<{ minute: number; team: number; scorer?: string; assister?: string; og?: string; conceded: string[] }> = [];
 
   const onPitchAt = (lineup: readonly OnPitch[], minute: number) => lineup.filter((p) => p.on < minute && p.off >= minute);
 
@@ -212,35 +231,48 @@ export function simulateMatch(
       const minute = 1 + rng.int(90);
       const ours = onPitchAt(t.lineup, minute);
       const theirs = onPitchAt(opp.lineup, minute);
-      score[ti]++;
+      const ev: (typeof events)[number] = { minute, team: ti, conceded: theirs.map((p) => p.ref) };
       if (chance(rng, 0.03)) {
         const og = weighted(rng, theirs.map((p) => [p, p.position === "DEF" ? 4 : p.position === "MID" ? 1 : 0.2] as [OnPitch, number]));
-        lines.get(og.ref)!.own_goals++;
+        ev.og = og.ref;
       } else {
+        // In-form, valuable players score and assist more often.
         const scorer = weighted(
           rng,
-          ours.map((p) => [p, { GK: 0.01, DEF: 0.7, MID: 2.5, ATT: 5 }[p.position]] as [OnPitch, number]),
+          ours.map((p) => [p, { GK: 0.01, DEF: 0.7, MID: 2.5, ATT: 5 }[p.position] * p.weight] as [OnPitch, number]),
         );
-        lines.get(scorer.ref)!.goals++;
+        ev.scorer = scorer.ref;
         if (chance(rng, 0.7)) {
           const others = ours.filter((p) => p.ref !== scorer.ref);
           const assister = weighted(
             rng,
-            others.map((p) => [p, { GK: 0.05, DEF: 1, MID: 4, ATT: 2 }[p.position]] as [OnPitch, number]),
+            others.map((p) => [p, { GK: 0.05, DEF: 1, MID: 4, ATT: 2 }[p.position] * p.weight] as [OnPitch, number]),
           );
-          lines.get(assister.ref)!.goal_assist++;
+          ev.assister = assister.ref;
         }
       }
-      for (const p of theirs) lines.get(p.ref)!.goals_conceded_on_pitch++;
+      events.push(ev);
+      // Only what has happened by minute m counts (all of it at full time).
+      if (minute <= m) {
+        score[ti]++;
+        if (ev.og) lines.get(ev.og)!.own_goals++;
+        if (ev.scorer) lines.get(ev.scorer)!.goals++;
+        if (ev.assister) lines.get(ev.assister)!.goal_assist++;
+        for (const r of ev.conceded) lines.get(r)!.goals_conceded_on_pitch++;
+      }
     }
     // Saves by the opposing keeper.
     const oppGk = opp.lineup.find((p) => p.position === "GK");
-    if (oppGk) lines.get(oppGk.ref)!.saves += poisson(rng, 3.2);
+    const saves = poisson(rng, 3.2);
+    if (oppGk) lines.get(oppGk.ref)!.saves += Math.floor((saves * m) / 90);
     // Penalties that didn't go in.
     if (chance(rng, 0.06)) {
       const taker = weighted(rng, t.lineup.map((p) => [p, p.position === "ATT" ? 5 : p.position === "MID" ? 2 : 0.1] as [OnPitch, number]));
-      lines.get(taker.ref)!.pen_missed++;
-      if (oppGk && chance(rng, 0.6)) lines.get(oppGk.ref)!.pen_saves++;
+      const saved = oppGk && chance(rng, 0.6);
+      if (minuteOf(`${fixture.providerFixtureId}:pen:${ti}`) <= m) {
+        lines.get(taker.ref)!.pen_missed++;
+        if (saved) lines.get(oppGk!.ref)!.pen_saves++;
+      }
     }
   });
 
@@ -249,28 +281,37 @@ export function simulateMatch(
       const l = lines.get(p.ref)!;
       const mins = l.mins_played;
       const rate = { GK: 0.1, DEF: 2.4, MID: 1.9, ATT: 0.6 }[p.position];
-      l.won_tackle += poisson(rng, (rate * mins) / 90);
-      if (chance(rng, 0.09 * (mins / 90))) l.yellow_card++;
-      if (chance(rng, 0.006 * (mins / 90))) l.red_card++;
+      const tackles = poisson(rng, (rate * mins) / 90);
+      const yellow = chance(rng, 0.09 * (mins / 90));
+      const red = chance(rng, 0.006 * (mins / 90));
+      // Minutes played (and what came with them) so far.
+      const sofar = Math.max(0, Math.min(p.off, m) - p.on);
+      l.mins_played = sofar;
+      l.won_tackle += mins ? Math.floor((tackles * sofar) / mins) : 0;
+      if (yellow && minuteOf(`${fixture.providerFixtureId}:y:${p.ref}`) <= m) l.yellow_card++;
+      if (red && minuteOf(`${fixture.providerFixtureId}:r:${p.ref}`) <= m) l.red_card++;
     }
   }
 
+  // Live replays: revision = the minute (1–89); full time = 100 (replaces every in-play line).
+  const revision = opts.atMinute === undefined ? 1 : live ? Math.max(1, m) : 100;
   const messages: ProviderMessage[] = [
     {
-      providerEventId: `${fixture.providerFixtureId}:result:1`,
+      providerEventId: `${fixture.providerFixtureId}:result:${revision}:${score[0]}-${score[1]}`,
       kind: "FIXTURE_RESULT",
       providerFixtureId: fixture.providerFixtureId,
-      revision: 1,
-      payload: { match_status: "finished", home_score: score[0], away_score: score[1] },
+      revision,
+      payload: live ? { match_status: "live", home_score: score[0], away_score: score[1], minute: m } : { match_status: "finished", home_score: score[0], away_score: score[1] },
     },
   ];
   for (const [ref, l] of lines) {
+    if (live && l.mins_played === 0 && !events.some((e) => e.minute <= m && e.conceded.includes(ref))) continue; // not on yet
     messages.push({
-      providerEventId: `${fixture.providerFixtureId}:player:${ref}:1`,
+      providerEventId: `${fixture.providerFixtureId}:player:${ref}:${revision}`,
       kind: "PLAYER_STATS",
       providerFixtureId: fixture.providerFixtureId,
       playerRef: ref,
-      revision: 1,
+      revision,
       payload: { ...l },
     });
   }

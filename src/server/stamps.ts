@@ -10,6 +10,9 @@ import { db } from "./db";
  */
 /** Stamp every counted card in a settled competition. Idempotent: safe to run again. */
 export async function stampCompetition(competitionId: string) {
+  // Simulated matchdays don't write a card's real history.
+  const simGw = await db.competition.findUnique({ where: { id: competitionId }, select: { gameweek: { select: { simulated: true } } } });
+  if (simGw?.gameweek.simulated) return 0;
   const comp = await db.competition.findUniqueOrThrow({ where: { id: competitionId }, include: { gameweek: true } });
   if (comp.status !== "SETTLED") return 0;
   const counted = await db.cardPoints.findMany({

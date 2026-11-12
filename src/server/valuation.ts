@@ -13,9 +13,9 @@ async function valuePlayers(now: Date, opts: { includeLive?: boolean; reset?: bo
     where: { edition: "STANDARD", active: true },
     select: { id: true, playerId: true, category: true, player: { select: { position: true, marketValueGbp: true } } },
   });
-  const latestGw = await db.gameweek.findFirst({ where: { status: { in: ["PROVISIONAL", "SETTLED"] } }, orderBy: [{ season: "desc" }, { number: "desc" }], select: { season: true } });
+  const latestGw = await db.gameweek.findFirst({ where: { simulated: false, status: { in: ["PROVISIONAL", "SETTLED"] } }, orderBy: [{ season: "desc" }, { number: "desc" }], select: { season: true } });
   const gws = latestGw
-    ? await db.gameweek.findMany({ where: { season: latestGw.season, status: { in: opts.includeLive ? ["PROVISIONAL", "SETTLED"] : ["SETTLED"] } }, select: { id: true } })
+    ? await db.gameweek.findMany({ where: { simulated: false, season: latestGw.season, status: { in: opts.includeLive ? ["PROVISIONAL", "SETTLED"] : ["SETTLED"] } }, select: { id: true } })
     : [];
   const stats = gws.length
     ? await db.playerMatchStat.findMany({ where: { isCurrent: true, fixture: { gameweekId: { in: gws.map((g) => g.id) } } }, select: { playerId: true, stats: true } })

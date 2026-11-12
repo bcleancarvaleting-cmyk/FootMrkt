@@ -1,5 +1,6 @@
 import { confirmOrderWithProvider } from "@/server/market";
 import Link from "next/link";
+import { SimBadge } from "@/components/sim-badge";
 import { cardPaymentsReady } from "@/server/payments/config";
 import { ManagerBadge } from "@/components/club-crest";
 import { FoundingBadge } from "@/components/founding-badge";
@@ -47,9 +48,14 @@ export default async function CompetitionPage({ params, searchParams }: { params
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <Link href="/matches" className="text-xs text-faint hover:text-fg">
-            ← Gameweek {comp.gameweek.number}
+          <Link href={`/matches?gw=${comp.gameweekId}`} className="text-xs text-faint hover:text-fg">
+            ← {comp.gameweek.simulated ? `Simulated matchday ${comp.gameweek.number}` : `Gameweek ${comp.gameweek.number}`}
           </Link>
+          {comp.gameweek.simulated && (
+            <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
+              <SimBadge /> Simulated games — results generated from each player&apos;s real form and value, played out live.
+            </p>
+          )}
           <h1 className="mt-1 text-5xl font-extrabold">{comp.name}</h1>
           <p className="text-sm text-muted">
             {requirementsSummary((comp.requirements ?? {}) as Requirements, comp.format)} · {comp.entryFeeMinor > 0 ? `${fmtMp(comp.entryFeeMinor)} entry` : "free entry"} · 7 starters + {getRosterRules(comp.rosterRules).bench === 1 ? "1 sub" : `${getRosterRules(comp.rosterRules).bench} subs`} ·{" "}

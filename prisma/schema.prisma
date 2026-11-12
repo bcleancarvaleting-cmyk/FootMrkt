@@ -738,6 +738,9 @@ model Gameweek {
   startsAt DateTime
   endsAt   DateTime
   status   GameweekStatus @default(UPCOMING)
+  // A simulated matchday (results generated from real form, clearly labelled): kept out of
+  // real-world stats, values, Top performers, Team of the Week and the Mega League.
+  simulated Boolean       @default(false)
 
   fixtures     Fixture[]
   competitions Competition[]

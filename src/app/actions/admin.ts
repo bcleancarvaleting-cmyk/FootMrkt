@@ -218,6 +218,19 @@ export async function loadGameweeksAheadAction(): Promise<ActionResult> {
   return { ok: true, data: undefined, message: r.created || r.added ? `${r.created} gameweek${r.created === 1 ? "" : "s"} added${r.added ? `, ${r.added} fixtures added to loaded weeks` : ""}` : "Already loaded 4 weeks ahead" };
 }
 
+export async function createSimMatchdayAction(_: ActionResult | null, f: FormData): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const res = await attempt(async () => {
+    const sim = await import("@/server/sim-matchday");
+    const kickoffAt = sim.ukLocalToDate(String(f.get("kickoffAt") ?? ""));
+    return sim.createSimMatchday(admin.id, { kickoffAt, copyFrom: f.get("copy") === "on" ? "latest" : null });
+  });
+  done();
+  if (!res.ok) return res;
+  const r = res.data as { number: number; fixtures: number; copied: number };
+  return { ok: true, data: undefined, message: `SIM ${r.number} created: ${r.fixtures} games${r.copied ? `, ${r.copied} matches copied` : " — now add your matches to it"}` };
+}
+
 export async function removeAutoMatchesAction(): Promise<ActionResult> {
   const admin = await requireAdmin();
   const res = await attempt(async () => (await import("@/server/competitions")).removeAutoMatches(admin.id));

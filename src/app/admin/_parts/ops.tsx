@@ -13,6 +13,8 @@ import {
 import { revokeModeratorAction } from "@/app/actions/moderation";
 import { ActionButton } from "@/components/action-button";
 import { InviteModeratorForm } from "@/components/moderator-admin";
+import { SimMatchdayForm, TextSettingForm } from "@/components/admin-forms";
+import { TEXT_SETTINGS, getText } from "@/server/settings";
 import { moderatorRoster } from "@/server/moderation";
 import { FLAG_DEFINITIONS, type FlagKey } from "@/config/flags";
 import { db } from "@/server/db";
@@ -27,6 +29,9 @@ export async function OpsSections({ only }: { only: string[] }) {
   const sport = await footballSport();
   const day = hoursAgo(24);
   const roster = await moderatorRoster();
+  const simDaily = show("gameweeks") ? await getText("simDailyTime") : "";
+  const lastSim = show("gameweeks") ? await db.gameweek.findFirst({ where: { simulated: true }, orderBy: { startsAt: "desc" }, select: { _count: { select: { competitions: true } } } }) : null;
+  const simSuggest = (await import("@/server/sim-matchday")).suggestedSimKickoff(new Date());
   const autoLeft = show("gameweeks") ? (await (await import("@/server/competitions")).autoMatchesStillOpen()).length : 0;
   const [users, newUsers, openings, openings24, listings, flags, supply, gameweeks, releases, auditLog, providerEvents, staleFixtures] = await Promise.all([
     db.user.count(),
@@ -38,8 +43,8 @@ export async function OpsSections({ only }: { only: string[] }) {
     supplyReport(sport.id),
     db.gameweek.findMany({
       where: { sportId: sport.id },
-      orderBy: [{ season: "desc" }, { number: "desc" }],
-      take: 5,
+      orderBy: [{ startsAt: "desc" }],
+      take: 8,
       include: { _count: { select: { fixtures: true } }, fixtures: { select: { status: true } }, competitions: { select: { status: true, _count: { select: { entries: true } } } } },
     }),
     db.supplyRelease.findMany({ where: { sportId: sport.id }, orderBy: { scheduledFor: "desc" }, take: 6 }),
@@ -98,6 +103,16 @@ export async function OpsSections({ only }: { only: string[] }) {
         {!flags.SIMULATED_DATA && (
           <p className="mb-3 text-sm text-warn">Simulated data is off and no licensed provider is connected — gameweek tools are unavailable.</p>
         )}
+        <div className="mb-5 rounded-xl border border-[#8fe3ff]/40 bg-[#8fe3ff]/5 p-4">
+          <h3 className="font-bold">Simulated matchdays</h3>
+          <p className="mb-3 mt-1 text-xs text-muted">
+            A matchday between the real clubs, clearly labelled <b>SIM</b> for players, with results simulated from each player&apos;s real form and value. It plays out live —
+            goals minute by minute, half time, full time — and settles automatically ~2 hours after kick-off. Results never touch real stats, values, Top performers, Team of the Week or the Mega League.
+            Add your matches to it like any gameweek (or copy the last sim day&apos;s).
+          </p>
+          <SimMatchdayForm suggested={simSuggest} canCopy={(lastSim?._count.competitions ?? 0) > 0} />
+          <TextSettingForm settingKey="simDailyTime" label={TEXT_SETTINGS.simDailyTime.label} help={TEXT_SETTINGS.simDailyTime.help} value={simDaily} placeholder="19:00" />
+        </div>
         <div className="space-y-3">
           {gameweeks.map((g) => {
             const played = g.fixtures.filter((f) => f.status !== "SCHEDULED").length;
@@ -107,9 +122,11 @@ export async function OpsSections({ only }: { only: string[] }) {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <b>
-                      GW{g.number} · {g.season}
+                      {g.simulated ? `SIM ${g.number}` : `GW${g.number}`} · {g.season.replace(/ SIM$/, "")}
                     </b>{" "}
+                    {g.simulated && <span className="chip ml-2 border-[#8fe3ff]/60 text-[#8fe3ff]">Simulated</span>}
                     <span className="chip ml-2">{g.status}</span>
+                    <div className="text-xs text-faint">{fmtDate(g.startsAt)}</div>
                     <div className="text-xs text-faint">
                       {played}/{g._count.fixtures} fixtures in · {entries} entries · {g.competitions.length} competitions
                     </div>

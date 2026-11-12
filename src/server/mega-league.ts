@@ -7,7 +7,7 @@ import { db } from "./db";
  * provisional points, and settles when the gameweek does.
  */
 export async function megaLeague(userId: string | null, take = 100) {
-  const latest = await db.gameweek.findFirst({ where: { status: { in: ["PROVISIONAL", "SETTLED"] } }, orderBy: [{ season: "desc" }, { number: "desc" }] });
+  const latest = await db.gameweek.findFirst({ where: { simulated: false, status: { in: ["PROVISIONAL", "SETTLED"] } }, orderBy: [{ season: "desc" }, { number: "desc" }] });
   if (!latest) return { season: null, gameweek: null, live: false, rows: [], me: null, managers: 0 };
   const rows = await db.$queryRaw<Array<{ userId: string; total: number; played: bigint; best: number; gw: number | null }>>`
     WITH best AS (
@@ -15,7 +15,7 @@ export async function megaLeague(userId: string | null, take = 100) {
       FROM "CompetitionEntry" e
       JOIN "Competition" c ON c.id = e."competitionId"
       JOIN "Gameweek" g ON g.id = c."gameweekId"
-      WHERE e.status = 'ACTIVE' AND c.status IN ('PROVISIONAL', 'SETTLED') AND g.season = ${latest.season}
+      WHERE e.status = 'ACTIVE' AND c.status IN ('PROVISIONAL', 'SETTLED') AND g.season = ${latest.season} AND NOT g.simulated
       GROUP BY e."userId", g.number
     )
     SELECT best."userId", SUM(pts)::float AS total, COUNT(*) AS played, MAX(pts)::float AS best,

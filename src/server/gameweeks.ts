@@ -78,6 +78,7 @@ export async function insertGameweek(args: {
   actorId: string | null;
   provider: string;
   fixtures: Array<{ providerFixtureId: string; homeClubId: string; awayClubId: string; kickoffAt: Date }>;
+  simulated?: boolean;
 }) {
   if (!args.fixtures.length) throw new DomainError("NO_FIXTURES", "No fixtures found for that gameweek.");
   const sport = await footballSport();
@@ -99,12 +100,13 @@ export async function insertGameweek(args: {
         startsAt: firstKickoff,
         endsAt: new Date(Math.max(firstKickoff.getTime() + 3 * 24 * 3600_000, lastKickoff.getTime() + 3 * 3600_000)),
         status: args.opensAt <= new Date() ? "OPEN" : "UPCOMING",
+        simulated: args.simulated ?? false,
       },
     });
     await tx.fixture.createMany({
       data: fixtures.map((f) => ({ gameweekId: gw.id, provider: args.provider, ...f })),
     });
-    for (const t of autoTemplates()) {
+    for (const t of args.simulated ? [] : autoTemplates()) {
       await tx.competition.create({
         data: {
           sportId: sport.id,
@@ -223,7 +225,9 @@ export async function finaliseGameweek(gameweekId: string, actorId: string | nul
   const comps = await db.competition.findMany({ where: { gameweekId, status: { in: ["LOCKED", "PROVISIONAL"] } } });
   for (const c of comps) await settleCompetition(c.id, actorId);
   await db.gameweek.update({ where: { id: gameweekId }, data: { status: "SETTLED" } });
-  await revalueAll(valuationAt);
+  // Simulated matchdays never move real player values.
+  const sim = await db.gameweek.findUnique({ where: { id: gameweekId }, select: { simulated: true } });
+  if (!sim?.simulated) await revalueAll(valuationAt);
 }
 
 /** Scheduled job entry point. */
@@ -250,7 +254,9 @@ export async function runScheduledJobs() {
 export async function currentGameweek() {
   const sport = await footballSport();
   return (
-    (await db.gameweek.findFirst({ where: { sportId: sport.id, status: { not: "SETTLED" } }, orderBy: [{ season: "asc" }, { number: "asc" }] })) ??
+    // Real football first; a simulated matchday only when nothing real is on.
+    (await db.gameweek.findFirst({ where: { sportId: sport.id, simulated: false, status: { not: "SETTLED" } }, orderBy: [{ season: "asc" }, { number: "asc" }] })) ??
+    (await db.gameweek.findFirst({ where: { sportId: sport.id, status: { not: "SETTLED" } }, orderBy: [{ startsAt: "asc" }] })) ??
     (await db.gameweek.findFirst({ where: { sportId: sport.id }, orderBy: [{ season: "desc" }, { number: "desc" }] }))
   );
 }

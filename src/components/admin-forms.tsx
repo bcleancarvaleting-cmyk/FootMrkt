@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { appGiveawayAction, setSettingAction, setTextSettingAction, addWelcomeGiftAction, competitionRulesAction, createAuctionAction, createMatchAction, createChallengeAction, pinnedListingsAction, scheduleDropAction, stockHouseAction } from "@/app/actions/economy";
+import { createSimMatchdayAction } from "@/app/actions/admin";
 import type { ActionResult } from "@/app/actions/result";
 import { ResultText } from "./action-button";
 
@@ -347,6 +348,20 @@ export function AppGiveawayForm({ packs }: { packs: Array<{ code: string; name: 
       </div>
       <I name="mx" label="Credit in £ (optional)" type="number" step="0.01" min="0" max="100" placeholder="0.00" />
       <I name="openDays" label="Keep open for new installs (days, 0 = current app users only)" type="number" min="0" max="60" defaultValue="0" />
+    </Form>
+  );
+}
+
+/** Simulated matchday: kick-off time (UK) and whether to copy the last sim day's matches. */
+export function SimMatchdayForm({ suggested, canCopy }: { suggested: string; canCopy: boolean }) {
+  return (
+    <Form action={createSimMatchdayAction} submit="Create simulated matchday">
+      <I name="kickoffAt" label="Kick-off (UK time)" type="datetime-local" defaultValue={suggested} required />
+      {canCopy && (
+        <label className="flex items-center gap-2 self-end pb-2 text-sm">
+          <input type="checkbox" name="copy" defaultChecked /> Copy matches from the last sim day
+        </label>
+      )}
     </Form>
   );
 }

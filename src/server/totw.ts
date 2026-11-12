@@ -23,7 +23,7 @@ export const totwPlayerIds = cache(async (now = new Date()) => {
 
 export async function pickTeamOfTheWeek(now = new Date()) {
   const gws = await db.gameweek.findMany({
-    where: { status: "SETTLED", endsAt: { gte: new Date(now.getTime() - TOTW_DAYS * DAY) } },
+    where: { status: "SETTLED", simulated: false, endsAt: { gte: new Date(now.getTime() - TOTW_DAYS * DAY) } },
     orderBy: { endsAt: "asc" },
     select: { id: true, number: true, season: true },
   });

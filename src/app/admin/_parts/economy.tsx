@@ -47,17 +47,17 @@ export async function EconomySections({ only }: { only: string[] }) {
   const [leagueRows, openGws, fixtureRows] = show("matchrules")
     ? await Promise.all([
         db.league.findMany({ orderBy: { tier: "asc" }, select: { code: true, name: true } }),
-        db.gameweek.findMany({ where: { status: { in: ["UPCOMING", "OPEN"] } }, orderBy: [{ season: "asc" }, { number: "asc" }], select: { id: true, number: true, season: true } }),
+        db.gameweek.findMany({ where: { status: { in: ["UPCOMING", "OPEN"] } }, orderBy: [{ startsAt: "asc" }], select: { id: true, number: true, season: true, simulated: true, startsAt: true } }),
         db.fixture.findMany({
           where: { gameweek: { status: { in: ["UPCOMING", "OPEN"] } }, kickoffAt: { gt: new Date() } },
           orderBy: [{ kickoffAt: "asc" }],
-          select: { id: true, kickoffAt: true, gameweek: { select: { number: true } }, homeClub: { select: { name: true, league: { select: { name: true } } } }, awayClub: { select: { name: true } } },
+          select: { id: true, kickoffAt: true, gameweek: { select: { number: true, simulated: true } }, homeClub: { select: { name: true, league: { select: { name: true } } } }, awayClub: { select: { name: true } } },
         }),
       ])
     : [[], [], []];
-  const fixtureOpts = fixtureRows.map((f) => ({ value: f.id, league: `GW${f.gameweek.number} · ${f.homeClub.league.name}`, label: `${f.homeClub.name} v ${f.awayClub.name} · ${fmtDate(f.kickoffAt)}` }));
+  const fixtureOpts = fixtureRows.map((f) => ({ value: f.id, league: `${f.gameweek.simulated ? "SIM " : "GW"}${f.gameweek.number} · ${f.homeClub.league.name}`, label: `${f.homeClub.name} v ${f.awayClub.name} · ${fmtDate(f.kickoffAt)}` }));
   const leagueOpts = leagueRows.map((l) => ({ value: l.code, label: l.name }));
-  const gwOpts = openGws.map((g) => ({ value: g.id, label: `GW${g.number} · ${g.season}` }));
+  const gwOpts = openGws.map((g) => ({ value: g.id, label: g.simulated ? `SIM ${g.number} · simulated, ${fmtDate(g.startsAt)}` : `GW${g.number} · ${g.season}` }));
   const freerolls = comps.filter((c) => ((c.requirements ?? {}) as Requirements).freeCardsOnly && c.entryFeeMinor === 0);
   const houseActive = house.find((h) => h.status === "ACTIVE")?._count._all ?? 0;
   const houseSold = house.find((h) => h.status === "SOLD");

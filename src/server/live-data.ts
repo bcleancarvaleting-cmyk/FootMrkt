@@ -237,12 +237,16 @@ export async function createLiveGameweek(args: { season: string; number: number;
   return insertGameweek({ season: args.season, number: args.number, opensAt: args.opensAt, actorId: args.actorId, provider: src.name, fixtures });
 }
 
+import { CORRECTION_WINDOW_MS } from "./settle-window";
+
 /** Step 4: poll every live-data fixture that has kicked off and isn't final yet, then rescore. */
 export async function syncLiveGameweek(gameweekId: string, actorId: string | null = null) {
   const src = await requireKey();
   const gw = await db.gameweek.findUniqueOrThrow({ where: { id: gameweekId } });
   const due = await db.fixture.findMany({
-    where: { gameweekId, provider: src.name, finalisedAt: null, kickoffAt: { lte: new Date() } },
+    // Games not finished yet, plus finished ones still in the correction window (e.g. a goal
+    // changed to an own goal) — they keep being re-checked until the gameweek settles.
+    where: { gameweekId, provider: src.name, kickoffAt: { lte: new Date() }, OR: [{ finalisedAt: null }, { finalisedAt: { gte: new Date(Date.now() - CORRECTION_WINDOW_MS - 10 * 60_000) } }] },
     select: { providerFixtureId: true },
   });
   if (!due.length) return { fixtures: 0, received: 0, applied: 0, duplicates: 0, stale: 0, unknown: 0 };

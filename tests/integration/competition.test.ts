@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
 import { submitEntry } from "@/server/competitions";
-import { createGameweek, finaliseGameweek, simulateCorrections, simulateFixturesNow } from "@/server/gameweeks";
+import { autoSettleRealGameweeks, createGameweek, simulateCorrections, simulateFixturesNow } from "@/server/gameweeks";
 import { ingestMessages } from "@/server/ingestion";
 import { openPack } from "@/server/packs";
 import { reproduceCalculation, settleCompetition } from "@/server/scoring";
@@ -84,7 +84,11 @@ describe("football competition end to end (spec §6, §17)", () => {
     expect(await db.playerMatchStat.count({ where: { isCurrent: true } })).toBe(before);
     expect(await db.playerMatchStat.count({ where: { isCurrent: false } })).toBe(corr.applied);
 
-    await finaliseGameweek(gw.id, null);
+    // Settles itself 90 minutes after the last full time — not before (corrections can still land).
+    const lastFt = (await db.fixture.findFirstOrThrow({ where: { gameweekId: gw.id }, orderBy: { finalisedAt: "desc" } })).finalisedAt!;
+    expect((await autoSettleRealGameweeks(new Date(lastFt.getTime() + 89 * 60_000))).settled).toEqual([]);
+    expect((await db.competition.findUniqueOrThrow({ where: { id: open.id } })).status).not.toBe("SETTLED");
+    expect((await autoSettleRealGameweeks(new Date(lastFt.getTime() + 91 * 60_000))).settled).toEqual([gw.number]);
     const settled = await db.competition.findUniqueOrThrow({ where: { id: open.id } });
     expect(settled.status).toBe("SETTLED");
     const entries = await db.competitionEntry.findMany({ where: { competitionId: open.id }, orderBy: { rank: "asc" } });

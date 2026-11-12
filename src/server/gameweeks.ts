@@ -216,6 +216,27 @@ export async function refreshProvisional(gameweekId: string) {
   for (const c of comps) await updateProvisionalScores(c.id);
 }
 
+/**
+ * Real football settles itself: once every game in a gameweek is over and 90 minutes have passed
+ * since the last full time (the correction window), the gameweek is settled — prizes paid, packs
+ * granted, players revalued. Sims settle themselves straight after full time (sim-matchday).
+ */
+export async function autoSettleRealGameweeks(now = new Date()) {
+  const { CORRECTION_WINDOW_MS } = await import("./settle-window");
+  const gws = await db.gameweek.findMany({
+    where: { simulated: false, status: { not: "SETTLED" }, fixtures: { some: {}, none: { status: { in: ["SCHEDULED", "LIVE"] } } } },
+    select: { id: true, number: true, fixtures: { select: { kickoffAt: true, finalisedAt: true } } },
+  });
+  const settled: number[] = [];
+  for (const gw of gws) {
+    const last = Math.max(...gw.fixtures.map((f) => (f.finalisedAt ?? new Date(f.kickoffAt.getTime() + 2 * 3_600_000)).getTime()));
+    if (now.getTime() < last + CORRECTION_WINDOW_MS) continue;
+    await finaliseGameweek(gw.id, null, now);
+    settled.push(gw.number);
+  }
+  return { settled };
+}
+
 /** Close the correction window: settle every competition, then revalue cards. */
 export async function finaliseGameweek(gameweekId: string, actorId: string | null, valuationAt = new Date()) {
   const pending = await db.fixture.count({ where: { gameweekId, status: { in: ["SCHEDULED", "LIVE"] } } });

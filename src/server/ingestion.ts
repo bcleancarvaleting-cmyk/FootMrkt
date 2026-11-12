@@ -65,7 +65,8 @@ export async function ingestMessages(provider: FootballDataProvider, messages: P
             homeGoals: r.homeGoals,
             awayGoals: r.awayGoals,
             minute: r.status === "LIVE" && typeof msg.payload.minute === "number" ? msg.payload.minute : null,
-            finalisedAt: terminal ? new Date() : null,
+            // Keep the first full-time stamp: the 90-minute correction window runs from it.
+            finalisedAt: terminal ? (fixture.finalisedAt ?? new Date()) : null,
           },
         });
       } else {

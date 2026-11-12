@@ -169,3 +169,23 @@ describe("simulated matchdays", () => {
     expect((await db.cardInstance.findUniqueOrThrow({ where: { id: starters[0].cardId } })).lock).toBe("COMPETITION");
   });
 });
+
+describe("likely to start (sim)", () => {
+  it("first-choice shirt numbers are far more likely to start than squad players, and a lone keeper always starts", async () => {
+    const { simStartGuide } = await import("@/server/sim-lineups");
+    const club = await db.club.findFirstOrThrow({ orderBy: { code: "asc" } });
+    const squad = await db.player.findMany({ where: { clubId: club.id }, orderBy: { lastName: "asc" } });
+    const defs = squad.filter((p) => p.position === "DEF");
+    // Number the defenders 1–4 (first choice) and the rest 30+ (fringe).
+    for (const [i, p] of defs.entries()) await db.player.update({ where: { id: p.id }, data: { squadNumber: i < 4 ? i + 2 : 30 + i } });
+    const g = await simStartGuide(squad.map((p) => p.id));
+    for (const p of squad) expect(g.get(p.id)!.pct).toBeGreaterThanOrEqual(0);
+    const gks = squad.filter((p) => p.position === "GK");
+    if (gks.length === 1) expect(g.get(gks[0].id)!.pct).toBe(100);
+    if (defs.length > 4) {
+      const first = defs.slice(0, 4).map((p) => g.get(p.id)!.pct);
+      const fringe = defs.slice(4).map((p) => g.get(p.id)!.pct);
+      expect(Math.min(...first)).toBeGreaterThan(Math.max(...fringe));
+    }
+  });
+});

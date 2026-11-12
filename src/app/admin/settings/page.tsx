@@ -9,7 +9,7 @@ import { AdminTitle } from "../_parts/title";
 export const metadata = { title: "Admin · Settings" };
 
 export default async function SettingsPage() {
-  const [values, fbGroup, whatsapp, referral, hero, monthly] = await Promise.all([allSettings(), getText("facebookGroupUrl"), getText("whatsappChannelUrl"), getText("referralRewardSku"), getText("homeHeroImage"), getText("referralMonthlyPrizeSku")]);
+  const [values, fbGroup, whatsapp, referral, hero, monthly, milestones] = await Promise.all([allSettings(), getText("facebookGroupUrl"), getText("whatsappChannelUrl"), getText("referralRewardSku"), getText("homeHeroImage"), getText("referralMonthlyPrizeSku"), getText("referralMilestones")]);
   return (
     <>
       <AdminTitle title="Settings & flags" intro="Game settings, feature switches (pack shop, transfers, auctions, beta…) and the audit log.">
@@ -23,6 +23,7 @@ export default async function SettingsPage() {
         ))}
         <TextSettingForm settingKey="referralRewardSku" label={TEXT_SETTINGS.referralRewardSku.label} help={TEXT_SETTINGS.referralRewardSku.help} value={referral} options={giftPacks()} />
         <TextSettingForm settingKey="referralMonthlyPrizeSku" label={TEXT_SETTINGS.referralMonthlyPrizeSku.label} help={TEXT_SETTINGS.referralMonthlyPrizeSku.help} value={monthly} options={giftPacks()} />
+        <TextSettingForm settingKey="referralMilestones" label={TEXT_SETTINGS.referralMilestones.label} help={TEXT_SETTINGS.referralMilestones.help} value={milestones} placeholder="1=football-eng-bronze, 5=football-eng-silver, 20=football-eng-gold, 100=football-eng-rare" />
       </section>
       <section className="panel space-y-4 p-5">
         <h2 className="text-2xl">Homepage</h2>

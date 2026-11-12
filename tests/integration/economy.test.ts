@@ -401,6 +401,31 @@ describe("starter period, Gold pick and referrals", () => {
     const { pickOptions } = await import("@/server/picks");
     expect((await pickOptions(referrer.userId, packs[0].id)).category).toBe("BRONZE");
   });
+
+  it("referrals pay XP on sign-up and the friend's first pack, and milestone gifts are tradeable shop packs", async () => {
+    const { registerUser } = await import("@/server/auth/accounts");
+    const { payMilestones } = await import("@/server/referrals");
+    const { grantPack } = await import("@/server/packs");
+    const referrer = await makeUser("xpinviter");
+    const friend = await registerUser({ email: "xpfriend@test.dev", password: "correct-horse-battery", displayName: "xpfriend", ref: "XPINVITER" });
+    expect((await balancesFor(referrer.userId)).xp).toBe(100); // default sign-up XP
+    // The friend's first bought pack: +250 XP, once.
+    await withTx((tx) => grantPack(tx, { userId: friend.user.id, skuCode: "football-eng-bronze", source: "PURCHASE", sourceRef: "order-ref-1" }));
+    await withTx((tx) => grantPack(tx, { userId: friend.user.id, skuCode: "football-eng-bronze", source: "PURCHASE", sourceRef: "order-ref-2" }));
+    expect((await balancesFor(referrer.userId)).xp).toBe(350);
+    // Milestones: 1 friend who's played → the 1-friend gift (a tradeable England Bronze), once.
+    await withTx((tx) => grantPack(tx, { userId: referrer.userId, skuCode: "football-bronze-pick", source: "REWARD", sourceRef: `referral:${friend.user.id}` }));
+    expect(await withTx((tx) => payMilestones(tx, referrer.userId))).toEqual([1]);
+    expect(await withTx((tx) => payMilestones(tx, referrer.userId))).toEqual([]);
+    const gift = await db.packEntitlement.findFirstOrThrow({ where: { userId: referrer.userId, sourceRef: { startsWith: "ref-milestone:" } }, include: { packSku: true } });
+    expect(gift.packSku.code).toBe("football-eng-bronze");
+    const { parseMilestones } = await import("@/server/settings");
+    await expect(parseMilestones("1=football-bronze-pick")).rejects.toThrow(/tradeable/);
+    expect(await parseMilestones("5=£5, 1=football-eng-gold")).toEqual([
+      { friends: 1, gift: { pack: "football-eng-gold", name: "England Gold" } },
+      { friends: 5, gift: { cashMinor: 500 } },
+    ]);
+  });
 });
 
 describe("club binders", () => {

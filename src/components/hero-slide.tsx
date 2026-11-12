@@ -27,7 +27,7 @@ export function HeroSlide({
   heading?: "h1" | "h2";
 }) {
   const H = heading;
-  const btn = { primary: "btn-primary", ghost: "btn border border-white/30 text-white hover:border-white/70", gold: "btn-gold", sim: "btn bg-[#8fe3ff] text-[#04121a]" } as const;
+  const btn = { primary: "btn-primary", ghost: "btn border border-white/30 text-white hover:border-white/70", gold: "btn-gold", sim: "btn-glow" } as const;
   return (
     <div className="relative h-full overflow-hidden bg-[#0b0e0c] lg:rounded-[28px]">
       {background ?? <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_80%_20%,rgb(173_252_7/0.14),transparent_60%)]" aria-hidden="true" />}

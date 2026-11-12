@@ -57,7 +57,7 @@ export async function LiveGamesList({ userId }: { userId: string | null }) {
             const action = guest
               ? { href: "/register", label: playing ? "Join to play" : "Enter now", cls: "bg-accent text-accent-ink" }
               : playing
-              ? { href: sim ? `/watch?gw=${g.gameweek.id}` : "/watch?scope=real", label: "● Watch", cls: sim ? "bg-[#8fe3ff] text-[#04121a]" : "bg-danger text-white" }
+              ? { href: sim ? `/watch?gw=${g.gameweek.id}` : "/watch?scope=real", label: "● Watch", cls: "btn-glow !px-4 !py-2 !text-[11px]" }
               : mine
                 ? { href: `/competitions/${g.id}`, label: "Edit team", cls: "border border-mint/70 text-mint" }
                 : { href: `/competitions/${g.id}`, label: "Enter now", cls: "bg-accent text-accent-ink" };

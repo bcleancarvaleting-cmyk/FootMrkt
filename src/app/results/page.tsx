@@ -55,7 +55,7 @@ export default async function ResultsPage() {
             </ul>
             <div className="grid grid-cols-2 gap-2 border-t border-ink-700 p-3">
               {d.simulated ? (
-                <Link href={d.settled ? `/watch?gw=${d.id}&replay=1` : `/watch?gw=${d.id}`} className="btn bg-[#8fe3ff] py-3 text-[12px] text-[#04121a]">
+                <Link href={d.settled ? `/watch?gw=${d.id}&replay=1` : `/watch?gw=${d.id}`} className="btn-glow py-3 text-[12px]">
                   {d.settled ? "▶ Watch game" : "● Watch live"}
                 </Link>
               ) : (

@@ -57,12 +57,12 @@ export default async function CompetitionPage({ params, searchParams }: { params
             <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
               <SimBadge /> Simulated games — results generated from each player&apos;s real form and value, played out live.
               {comp.status === "SETTLED" && (
-                <Link href={`/watch?gw=${comp.gameweekId}`} className="ml-1 inline-flex items-center gap-1.5 rounded-full bg-[#8fe3ff] px-3 py-1 text-[11px] font-black uppercase text-[#04121a]">
+                <Link href={`/watch?gw=${comp.gameweekId}`} className="btn-glow ml-1 !px-3 !py-1 !text-[11px]">
                   ▶ Watch replay
                 </Link>
               )}
               {comp.status !== "SETTLED" && (
-                <Link href="/watch" className="watch-btn ml-1 inline-flex items-center gap-1.5 rounded-full bg-[#8fe3ff] px-3 py-1 text-[11px] font-black uppercase text-[#04121a]">
+                <Link href="/watch" className="btn-glow watch-btn ml-1 !px-3 !py-1 !text-[11px]">
                   <span className="live-dot" aria-hidden="true" /> Watch live sim
                 </Link>
               )}
@@ -151,6 +151,8 @@ async function Builder({
   const enteredThisGw = (await db.competitionEntry.count({ where: { userId, status: "ACTIVE", competition: { gameweekId: competition.gameweekId } } })) > 0;
   const sim = (await db.gameweek.findUnique({ where: { id: competition.gameweekId }, select: { simulated: true } }))?.simulated ?? false;
   const simTaken = sim ? await simCardsInUse(db, userId, competition.gameweekId, competition.id) : new Set<string>();
+  // Sim games: how likely each player is to start (so managers aren't picking blind).
+  const startGuide = sim ? await (await import("@/server/sim-lineups")).simStartGuide([...new Set(cards.map((c) => c.playerId))]) : null;
   const fixtures = await db.fixture.findMany({
     where: { gameweekId: competition.gameweekId },
     include: { homeClub: true, awayClub: true },
@@ -160,6 +162,9 @@ async function Builder({
     if (!f) return null;
     return f.homeClub.code === clubCode ? `vs ${f.awayClub.shortName} (H)` : `vs ${f.homeClub.shortName} (A)`;
   };
+  // Games limited to some leagues: other leagues' players can't be picked.
+  const reqLeagues = ((competition.requirements ?? {}) as Requirements).leagues;
+  const leagueNames = reqLeagues ? new Set((await db.league.findMany({ where: { code: { in: reqLeagues } }, select: { name: true } })).map((l) => l.name)) : null;
   const builderCards: BuilderCard[] = cards.map((c) => {
     const mine = c.lock === "COMPETITION" && entry && c.lockRef === entry.id;
     const req = (competition.requirements ?? {}) as Requirements;
@@ -168,13 +173,15 @@ async function Builder({
     // Sim matchdays: cards in real squads can play too (and loans don't use up a gameweek).
     const loanEnded = !sim && !!c.loan && c.loan.left === 0 && !enteredThisGw;
     const free = sim ? c.lock !== "LISTED" && !simTaken.has(c.id) : c.lock === "NONE" || !!mine;
-    const available = free && !notFree && !wrongClub && !loanEnded;
+    const wrongLeague = !!leagueNames && !leagueNames.has(c.leagueName ?? "");
+    const available = free && !notFree && !wrongClub && !wrongLeague && !loanEnded;
     return {
       ...c,
       available,
-      unavailableReason: available ? undefined : loanEnded ? "loan ended" : wrongClub ? "not in this match" : notFree ? "not a free card" : c.lock === "LISTED" ? "listed on market" : sim ? "in another sim match" : "in another squad",
+      unavailableReason: available ? undefined : loanEnded ? "loan ended" : wrongLeague ? "league not in this game" : wrongClub ? "not in this match" : notFree ? "not a free card" : c.lock === "LISTED" ? "listed on market" : sim ? "in another sim match" : "in another squad",
       form: form.get(c.playerId) ?? [],
       fixture: fixtureFor(c.clubCode),
+      start: startGuide?.get(c.playerId),
     };
   });
   const initial = entry

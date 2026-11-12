@@ -46,7 +46,7 @@ export function NewGameForm({ weeks, fixtures, suggestedKickoff, leagues: league
             role="radio"
             aria-checked={kind === k}
             onClick={() => setKind(k)}
-            className={`rounded-2xl border-2 px-4 py-3 text-left transition ${kind === k ? (k === "sim" ? "border-[#8fe3ff] bg-[#8fe3ff]/10" : "border-accent bg-accent/10") : "border-ink-700 bg-ink-850"}`}
+            className={`rounded-2xl border-2 px-4 py-3 text-left transition ${kind === k ? "border-accent bg-accent/10 shadow-[0_0_18px_-6px_rgb(173_252_7/0.6)]" : "border-ink-700 bg-ink-850"}`}
           >
             <span className="block font-display text-xl font-black uppercase italic leading-none">{title}</span>
             <span className="mt-1 block text-[11px] text-muted">{sub}</span>
@@ -177,7 +177,7 @@ export function NewGameForm({ weeks, fixtures, suggestedKickoff, leagues: league
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <button className={`px-6 py-3 text-sm ${kind === "sim" ? "btn bg-[#8fe3ff] text-[#04121a]" : "btn-primary"}`} disabled={pending || (kind === "sim" && simLeagues.size === 0)}>
+        <button className={`px-6 py-3 text-sm ${kind === "sim" ? "btn-glow" : "btn-primary"}`} disabled={pending || (kind === "sim" && simLeagues.size === 0)}>
           {pending ? "Creating…" : kind === "sim" ? "Create sim game" : "Create real game"}
         </button>
         {state && <ResultText result={state} />}

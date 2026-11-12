@@ -13,6 +13,20 @@ export interface BuilderCard extends CardView {
   unavailableReason?: string;
   form: number[];
   fixture: string | null; // "vs ABC (H)"
+  /** Sim games: chance of starting (0–100) and recent sim starts. */
+  start?: { pct: number; started: number; of: number };
+}
+
+/** Green "likely to start" / red "unlikely to start" for sim games. */
+export function StartChip({ s, compact = false }: { s: NonNullable<BuilderCard["start"]>; compact?: boolean }) {
+  const likely = s.pct >= 50;
+  const tone = likely ? "border-mint/60 bg-mint/10 text-mint" : "border-danger/60 bg-danger/10 text-danger";
+  if (compact) return <span className={`inline-block h-2 w-2 rounded-full ${likely ? "bg-mint" : "bg-danger"}`} title={`${s.pct}% likely to start`} aria-label={likely ? "Likely to start" : "Unlikely to start"} />;
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-[9px] font-black uppercase tracking-wide ${tone}`} title={s.of ? `Started ${s.started} of their club's last ${s.of} sim games` : "No sim games yet"}>
+      {likely ? "Likely to start" : "Unlikely to start"} {s.pct}%{s.of ? <span className="font-bold normal-case opacity-80">· {s.started}/{s.of}</span> : null}
+    </span>
+  );
 }
 
 interface Formation {
@@ -170,7 +184,8 @@ export function SquadBuilder({
 
   /** Fill empty slots with the best available players by recent form, then MX. */
   function autoPick() {
-    const score = (c: BuilderCard) => (avg(c.form) ?? 0) * 10 + (c.valueMp ?? 0);
+    // Sims: weight by how likely they are to start, so auto-pick doesn't fill the team with benchwarmers.
+    const score = (c: BuilderCard) => ((avg(c.form) ?? 0) * 10 + (c.valueMp ?? 0)) * (c.start ? 0.2 + c.start.pct / 100 : 1);
     const pool = cards.filter((c) => c.available && allowedCategories.includes(c.category)).sort((a, b) => score(b) - score(a));
     setAssign((a) => {
       const n = { ...a };
@@ -502,6 +517,11 @@ export function SquadBuilder({
                       <CategoryDot category={c.category} /> {c.name}
                       {inUse && <span className="text-[10px] text-lime">✓ picked</span>}
                     </span>
+                    {c.start && (
+                      <span className="mt-0.5 block">
+                        <StartChip s={c.start} />
+                      </span>
+                    )}
                     <span className="block truncate text-[11px] text-faint">
                       {c.clubShort} · {c.leagueName ?? "no league"} · {c.fixture ?? "no fixture"}
                       {c.pointsForYou ? ` · ${c.pointsForYou} pts won for you` : ""}
@@ -518,7 +538,9 @@ export function SquadBuilder({
           })}
           {!picker.length && <li className="p-4 text-sm text-faint">{draft || q ? "No players match." : "No players for this position. Open more packs!"}</li>}
         </ul>
-        <div className="border-t border-ink-700 p-2 text-[10px] text-faint">Form = avg points over recent gameweeks</div>
+        <div className="border-t border-ink-700 p-2 text-[10px] text-faint">
+          Form = avg points over recent gameweeks{cards.some((c) => c.start) ? " · Start chance from the sim's team selection (shirt number, form and value) · x/y = sim games started recently" : ""}
+        </div>
       </aside>
     </div>
   );
@@ -557,7 +579,10 @@ function PitchSlot({
       >
         {card ? (
           <>
-            <span className={`text-[10px] font-black ${t!.text}`}>{card.position}</span>
+            <span className={`flex items-center gap-1 text-[10px] font-black ${t!.text}`}>
+              {card.position}
+              {card.start && <StartChip s={card.start} compact />}
+            </span>
             <span className="w-full truncate px-1 text-xs font-bold">{card.lastName}</span>
             <span className="text-[10px] text-faint">
               <b className="font-bold">{leagueShort(card.leagueName)}</b> · {card.fixture ?? card.clubShort}

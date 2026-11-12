@@ -119,14 +119,22 @@ function minuteOf(key: string) {
   return 1 + ((h >>> 0) % 90);
 }
 
+/** Starting XI shape: 1 keeper, 4 defenders, 4 midfielders, 2 attackers. */
+export const XI_SLOTS = { GK: 1, DEF: 4, MID: 4, ATT: 2 } as const;
+
+/**
+ * Who starts: lower is more likely. First-choice numbers (1–11) usually start, 12–25 sometimes,
+ * others rarely — with rotation noise (`noise` in 0–1), and better players (by form and value,
+ * `weight`) more likely to start. Shared with the "likely to start" guide so it matches the sim.
+ */
+export function startPriority(p: { squadNumber?: number | null; weight?: number }, noise: number) {
+  const n = p.squadNumber ?? 99;
+  const base = n >= 1 && n <= 11 ? 0 : n <= 25 ? 1.2 : 2.4;
+  return base + noise * 1.6 - ((p.weight ?? 1) - 1) * 0.8;
+}
+
 function pickTeam(rng: RandomSource, squad: ProviderPlayer[]): OnPitch[] {
-  // First-choice numbers (1–11) usually start, 12–25 sometimes, others rarely — with rotation noise.
-  const priority = (p: ProviderPlayer) => {
-    const n = p.squadNumber ?? 99;
-    const base = n >= 1 && n <= 11 ? 0 : n <= 25 ? 1.2 : 2.4;
-    // Better players (by form and value) are more likely to start.
-    return base + uniform(rng) * 1.6 - ((p.weight ?? 1) - 1) * 0.8;
-  };
+  const priority = (p: ProviderPlayer) => startPriority(p, uniform(rng));
   const by = (pos: ProviderPlayer["position"]) =>
     squad
       .filter((p) => p.position === pos)
@@ -137,8 +145,8 @@ function pickTeam(rng: RandomSource, squad: ProviderPlayer[]): OnPitch[] {
   const def = by("DEF");
   const mid = by("MID");
   const att = by("ATT");
-  const xi = [...gk.slice(0, 1), ...def.slice(0, 4), ...mid.slice(0, 4), ...att.slice(0, 2)];
-  const bench = shuffle(rng, [...def.slice(4), ...mid.slice(4), ...att.slice(2)]);
+  const xi = [...gk.slice(0, XI_SLOTS.GK), ...def.slice(0, XI_SLOTS.DEF), ...mid.slice(0, XI_SLOTS.MID), ...att.slice(0, XI_SLOTS.ATT)];
+  const bench = shuffle(rng, [...def.slice(XI_SLOTS.DEF), ...mid.slice(XI_SLOTS.MID), ...att.slice(XI_SLOTS.ATT)]);
   const lineup: OnPitch[] = xi.map((p) => ({ ref: p.ref, position: p.position, on: 0, off: 90, weight: p.weight ?? 1 }));
   // Up to three outfield substitutions between 55' and 85'.
   const subs = Math.min(bench.length, 1 + rng.int(3));

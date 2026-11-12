@@ -50,3 +50,57 @@ export async function payRecruiterPrizes(now = new Date()) {
   await db.appSetting.create({ data: { key, value: top.map((t) => ({ userId: t.userId, friends: t.friends })) as never } });
   return top.length;
 }
+
+/**
+ * Refer a friend, extras (product decision 13 Nov 2026):
+ *  • XP for every friend who signs up with your link, and more the first time they buy a pack.
+ *  • Milestone gifts at 1, 5, 20 and 100 friends (admin-set; tradeable shop packs or £ credit).
+ * A friend counts towards milestones once they've played a match — the same rule as the invite pack
+ * and the monthly board — so fake sign-ups don't unlock gifts.
+ */
+export async function referralSignupXp(tx: import("./db").Tx, friendId: string, referrerId: string) {
+  const { getSetting } = await import("./settings");
+  const xp = await getSetting("referralSignupXp");
+  if (xp > 0) await (await import("./wallet")).creditXp(tx, { userId: referrerId, xp, refId: `ref-signup:${friendId}`, note: "A friend joined with your link" });
+}
+
+export async function referralPackXp(tx: import("./db").Tx, friendId: string) {
+  const u = await tx.user.findUnique({ where: { id: friendId }, select: { referredById: true, displayName: true } });
+  if (!u?.referredById) return;
+  const { getSetting } = await import("./settings");
+  const xp = await getSetting("referralPackXp");
+  if (xp > 0) await (await import("./wallet")).creditXp(tx, { userId: u.referredById, xp, refId: `ref-pack:${friendId}`, note: `${u.displayName} bought a pack` });
+}
+
+/** Friends who count: joined with the link and played a match (one invite pack each). */
+export async function qualifiedFriends(tx: import("./db").Tx | typeof db, referrerId: string) {
+  return tx.packEntitlement.count({ where: { userId: referrerId, sourceRef: { startsWith: "referral:" } } });
+}
+
+/** Give any milestone gifts the manager has reached and not had yet. */
+export async function payMilestones(tx: import("./db").Tx, referrerId: string) {
+  const { getText, parseMilestones } = await import("./settings");
+  const milestones = await parseMilestones(await getText("referralMilestones")).catch(() => []);
+  const n = await qualifiedFriends(tx, referrerId);
+  const given: number[] = [];
+  for (const m of milestones) {
+    if (n < m.friends) break;
+    const ref = `ref-milestone:${referrerId}:${m.friends}`;
+    if ("pack" in m.gift) {
+      if (await tx.packEntitlement.findUnique({ where: { sourceRef: ref } })) continue;
+      await grantPack(tx, { userId: referrerId, skuCode: m.gift.pack, source: "REWARD", sourceRef: ref });
+    } else {
+      if (await tx.walletEntry.findUnique({ where: { refId: ref } })) continue;
+      await (await import("./wallet")).credit(tx, { userId: referrerId, amountMinor: m.gift.cashMinor, kind: "CHALLENGE_REWARD", bucket: "BONUS", refId: ref, note: `${m.friends} friend milestone` });
+    }
+    given.push(m.friends);
+  }
+  return given;
+}
+
+/** For the invite panel: milestones with progress. */
+export async function milestoneProgress(referrerId: string) {
+  const { getText, parseMilestones } = await import("./settings");
+  const [milestones, n] = await Promise.all([parseMilestones(await getText("referralMilestones")).catch(() => []), qualifiedFriends(db, referrerId)]);
+  return { friends: n, milestones: milestones.map((m) => ({ ...m, reached: n >= m.friends, label: "pack" in m.gift ? m.gift.name : `£${(m.gift.cashMinor / 100).toFixed(2)}` })) };
+}

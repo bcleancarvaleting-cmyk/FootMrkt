@@ -36,6 +36,8 @@ export async function grantPack(
     data: [{ userId: args.userId, packSkuId: sku.id, source: args.source, sourceRef: args.sourceRef }],
     skipDuplicates: true,
   });
+  // Refer a friend: the first pack a referred manager buys gives their referrer XP (once).
+  if (args.source === "PURCHASE") await (await import("./referrals")).referralPackXp(tx, args.userId);
   return tx.packEntitlement.findUniqueOrThrow({ where: { sourceRef: args.sourceRef } });
 }
 

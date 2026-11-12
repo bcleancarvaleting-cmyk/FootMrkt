@@ -38,6 +38,9 @@ export default async function AccountPage() {
   const rewardName = FOOTBALL_PACKS.find((p) => p.code === rewardCode)?.name ?? "pack";
   const [board, monthlyCode] = await Promise.all([recruiterBoard(), getText("referralMonthlyPrizeSku")]);
   const monthlyName = FOOTBALL_PACKS.find((p) => p.code === monthlyCode)?.name ?? "prize pack";
+  const { milestoneProgress } = await import("@/server/referrals");
+  const { getSetting } = await import("@/server/settings");
+  const [ladder, signupXp, packXp] = await Promise.all([milestoneProgress(user.id), getSetting("referralSignupXp"), getSetting("referralPackXp")]);
   const [referred, referralPacks] = await Promise.all([
     db.user.count({ where: { referredById: user.id } }),
     db.packEntitlement.count({ where: { userId: user.id, sourceRef: { startsWith: "referral:" } } }),
@@ -132,10 +135,30 @@ export default async function AccountPage() {
         <div className="min-w-0 flex-1 basis-72">
           <p className="eyebrow text-lime">Share MATCHX with your friends</p>
           <p className="mt-1 font-semibold">Get a free {rewardName} for every friend who joins with your link and plays a match.</p>
-          <p className="text-sm text-muted">Your link is unique to you. Rewards are untradeable and count in challenges, binders and freerolls. No limit.</p>
+          <p className="text-sm text-muted">Your link is unique to you. The per-friend pack is untradeable (it counts in challenges, binders and freerolls); milestone gifts are tradeable. No limit.</p>
+          {(signupXp > 0 || packXp > 0) && (
+            <p className="mt-1 text-sm">
+              Plus {signupXp > 0 && <b className="text-lime">{signupXp.toLocaleString("en-GB")} XP</b>} {signupXp > 0 && "when they sign up"}
+              {signupXp > 0 && packXp > 0 && " and "}
+              {packXp > 0 && <b className="text-lime">{packXp.toLocaleString("en-GB")} XP</b>} {packXp > 0 && "when they buy their first pack"}.
+            </p>
+          )}
           <p className="mt-2 text-xs text-faint">
             {referred} friend{referred === 1 ? "" : "s"} joined · {referralPacks} pack{referralPacks === 1 ? "" : "s"} earned
           </p>
+          {ladder.milestones.length > 0 && (
+            <div className="mt-3">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-faint">Milestone gifts · tradeable</p>
+              <ol className="mt-1.5 flex flex-wrap gap-2">
+                {ladder.milestones.map((m) => (
+                  <li key={m.friends} className={`rounded-xl border px-3 py-1.5 text-xs ${m.reached ? "border-lime/70 bg-lime/10" : "border-ink-700"}`}>
+                    <b className={m.reached ? "text-lime" : ""}>{m.reached ? "✓ " : ""}{m.friends} friend{m.friends === 1 ? "" : "s"}</b> <span className="text-muted">· {m.label}</span>
+                  </li>
+                ))}
+              </ol>
+              <p className="mt-1 text-[11px] text-faint">{ladder.friends} counted so far — a friend counts once they&apos;ve played a match.</p>
+            </div>
+          )}
         </div>
         <div className="flex w-full max-w-md flex-col gap-2 sm:w-auto">
           <CopyLink value={referLink} />

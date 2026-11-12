@@ -62,6 +62,20 @@ export const SETTINGS = {
     min: 0,
     max: 1,
   },
+  referralSignupXp: {
+    label: "Refer a friend: XP per sign-up",
+    help: "XP the manager gets as soon as a friend creates an account with their link. 0 = none.",
+    default: 100,
+    min: 0,
+    max: 100_000,
+  },
+  referralPackXp: {
+    label: "Refer a friend: XP when the friend buys a pack",
+    help: "XP the manager gets the first time a friend they referred buys a pack (by card or with their balance). Once per friend. 0 = none.",
+    default: 250,
+    min: 0,
+    max: 100_000,
+  },
 } as const;
 export type SettingKey = keyof typeof SETTINGS;
 
@@ -148,6 +162,11 @@ export const TEXT_SETTINGS = {
     help: "While Pre-launch is on, sign-up only works from a link with this code: /register?code=YOURCODE (for testers and friends). Leave blank to close sign-up completely.",
     default: "",
   },
+  referralMilestones: {
+    label: "Refer a friend: milestone gifts",
+    help: "Gifts at a number of friends (friends who joined with the link and played a match). One per line or comma: number = shop pack code or £ amount, e.g. 1=football-eng-bronze, 5=football-eng-silver, 20=football-eng-gold, 100=football-eng-rare. Packs come from the shop, so every card is tradeable.",
+    default: "1=football-eng-bronze, 5=football-eng-silver, 20=football-eng-gold, 100=football-eng-rare",
+  },
   referralRewardSku: {
     label: "Refer-a-friend reward",
     help: "The free pack a manager gets for each friend who joins with their link and plays a match.",
@@ -181,6 +200,7 @@ export async function setText(adminId: string, key: TextSettingKey, value: strin
     const { FOOTBALL_PACKS } = await import("@/config/packs");
     if (!FOOTBALL_PACKS.some((p) => p.code === v && p.kind === "WEEKLY")) throw new DomainError("PACK", "Choose a free pack.");
   }
+  if (key === "referralMilestones") await parseMilestones(v); // throws a readable error
   const tierPrize = PRIZE_POOL_KEYS[key as keyof typeof PRIZE_POOL_KEYS];
   if (tierPrize) {
     const { parsePrizes } = await import("./competitions");
@@ -200,4 +220,25 @@ export async function referralRewardName() {
   const { FOOTBALL_PACKS } = await import("@/config/packs");
   const code = await getText("referralRewardSku");
   return FOOTBALL_PACKS.find((p) => p.code === code)?.name ?? "pack";
+}
+
+export type ReferralMilestone = { friends: number; gift: { pack: string; name: string } | { cashMinor: number } };
+
+/** "1=football-eng-bronze, 5=£5" → milestone gifts, lowest first. Packs must be tradeable shop packs. */
+export async function parseMilestones(text: string): Promise<ReferralMilestone[]> {
+  const { FOOTBALL_PACKS } = await import("@/config/packs");
+  const out: ReferralMilestone[] = [];
+  for (const part of text.split(/[,\n]/).map((x) => x.trim()).filter(Boolean)) {
+    const m = /^(\d+)\s*=\s*(.+)$/.exec(part);
+    if (!m || Number(m[1]) < 1) throw new DomainError("MILESTONES", `Couldn't read “${part}” — use e.g. 5=football-eng-silver or 5=£5`);
+    const gift = m[2].trim();
+    const cash = /^£?\s*(\d+(?:\.\d{1,2})?)$/.exec(gift);
+    if (cash && gift.startsWith("£")) out.push({ friends: Number(m[1]), gift: { cashMinor: Math.round(Number(cash[1]) * 100) } });
+    else {
+      const pack = FOOTBALL_PACKS.find((p) => p.code === gift);
+      if (!pack || pack.kind !== "REGULAR" || pack.config.nonTradeable) throw new DomainError("MILESTONES", `“${gift}” isn't a tradeable shop pack — use e.g. football-eng-bronze, football-eng-silver, football-eng-gold or football-eng-rare.`);
+      out.push({ friends: Number(m[1]), gift: { pack: pack.code, name: pack.name } });
+    }
+  }
+  return out.sort((a, b) => a.friends - b.friends);
 }

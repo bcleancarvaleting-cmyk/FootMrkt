@@ -29,7 +29,7 @@ export default async function MatchdayResultsPage({ params }: { params: Promise<
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           {r.simulated && (
-            <Link href={r.settled ? `/watch?gw=${r.id}&replay=1` : `/watch?gw=${r.id}`} className="btn bg-[#8fe3ff] px-5 py-3 text-[12px] text-[#04121a]">
+            <Link href={r.settled ? `/watch?gw=${r.id}&replay=1` : `/watch?gw=${r.id}`} className="btn-glow px-5 py-3 text-[12px]">
               {r.settled ? "▶ Watch game" : "● Watch live"}
             </Link>
           )}

@@ -73,6 +73,8 @@ export async function registerUser(input: z.input<typeof RegisterSchema>) {
         },
       });
       const starter = await grantStarterPack(tx, user.id);
+      // Refer a friend: XP for the manager whose link this was.
+      if (referrer) await (await import("../referrals")).referralSignupXp(tx, user.id, referrer.id);
       return { user, starterEntitlementId: starter.id, emailVerificationToken };
     });
     // On the waitlist with this email: mark them converted and give the launch gift.

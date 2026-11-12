@@ -286,6 +286,12 @@ async function rewardReferrer(tx: Parameters<Parameters<typeof withTx>[0]>[0], u
   const { getText } = await import("./settings");
   const sku = (await getText("referralRewardSku")) || REFERRAL_PACK_CODE;
   await grantPack(tx, { userId: u.referredById, skuCode: sku, source: "REWARD", sourceRef: ref });
+  // Milestone gifts (1, 5, 20, 100 friends…).
+  const given = await (await import("./referrals")).payMilestones(tx, u.referredById);
+  if (given.length) {
+    const { notify } = await import("./notifications");
+    for (const n of given) await notify(u.referredById, { kind: "PACK", title: `🎉 ${n} friend${n > 1 ? "s" : ""} on MATCHX!`, body: "You've hit a refer-a-friend milestone — your gift is waiting on Packs.", href: "/packs", dedupeKey: `ref-milestone:${u.referredById}:${n}` }).catch(() => {});
+  }
 }
 
 /** Admin: set a match's entry fee (£) and extra requirements. */

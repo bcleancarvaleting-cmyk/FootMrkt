@@ -143,7 +143,7 @@ export function WatchLive({ initial, gw = null, autoReplay = false }: { initial:
       )}
 
       {view.phase === "ft" && !replay && board.replay && (
-        <button type="button" onClick={startReplay} disabled={loadingReplay} className="watch-btn flex w-full items-center justify-center gap-2 rounded-2xl bg-[#8fe3ff] px-6 py-4 font-display text-xl font-black uppercase italic text-[#04121a]">
+        <button type="button" onClick={startReplay} disabled={loadingReplay} className="btn-glow watch-btn w-full px-6 py-4 font-display text-xl font-black italic">
           {loadingReplay ? "Loading replay…" : "▶ Watch the replay"}
         </button>
       )}
@@ -238,14 +238,14 @@ function Countdown({ label, to, now }: { label: string; to: string | null; now: 
 
 function ReplayBar({ t, duration, playing, speed, onPlay, onSpeed, onSeek, onExit }: { t: number; duration: number; playing: boolean; speed: number; onPlay: () => void; onSpeed: (n: number) => void; onSeek: (t: number) => void; onExit: () => void }) {
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#8fe3ff]/40 bg-[#8fe3ff]/5 px-3 py-2.5">
-      <button type="button" onClick={onPlay} className="flex h-10 w-10 items-center justify-center rounded-full bg-[#8fe3ff] text-lg font-black text-[#04121a]" aria-label={playing ? "Pause" : "Play"}>
+    <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-lime/30 bg-lime/[0.04] px-3 py-2.5">
+      <button type="button" onClick={onPlay} className="btn-glow h-10 w-10 !p-0 text-lg" aria-label={playing ? "Pause" : "Play"}>
         {playing ? "❚❚" : "▶"}
       </button>
       <input type="range" min={0} max={duration} step={0.5} value={t} onChange={(e) => onSeek(Number(e.target.value))} className="min-w-0 flex-1 accent-[#8fe3ff]" aria-label="Replay position" />
       <div className="flex overflow-hidden rounded-full border border-white/15 text-xs font-bold">
         {[1, 2, 4].map((n) => (
-          <button key={n} type="button" onClick={() => onSpeed(n)} className={`px-2.5 py-1 ${speed === n ? "bg-[#8fe3ff] text-[#04121a]" : "text-muted"}`}>
+          <button key={n} type="button" onClick={() => onSpeed(n)} className={`px-2.5 py-1 ${speed === n ? "bg-lime/15 text-lime" : "text-muted"}`}>
             {n}×
           </button>
         ))}

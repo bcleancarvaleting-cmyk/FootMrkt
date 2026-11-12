@@ -215,3 +215,39 @@ describe("start chance from real appearances × form", () => {
     expect(g.get(gk[0].id)!.pct).toBe(100);
   });
 });
+
+describe("the MATCHX house account (admins) plays for bragging rights", () => {
+  it("an admin can enter and finish anywhere, but the prize always goes to a manager", async () => {
+    const now = new Date();
+    const host = await makeUser("simhost");
+    const squadFor = async (userId: string, ent: string) => {
+      const res = await openPack(userId, ent);
+      const cards = await db.cardInstance.findMany({ where: { id: { in: res.cards.map((c) => c.cardId) } }, include: { template: { include: { player: true } } } });
+      const by = (p: string) => cards.filter((c) => c.template.player.position === p);
+      const starters = [
+        ...by("GK").slice(0, 1).map((c) => ({ cardId: c.id, position: "GK" as const })),
+        ...by("DEF").slice(0, 2).map((c) => ({ cardId: c.id, position: "DEF" as const })),
+        ...by("MID").slice(0, 2).map((c) => ({ cardId: c.id, position: "MID" as const })),
+        ...by("ATT").slice(0, 2).map((c) => ({ cardId: c.id, position: "ATT" as const })),
+      ];
+      const used = new Set(starters.map((x) => x.cardId));
+      return { formation: "2-2-2", starters, bench: cards.filter((c) => !used.has(c.id)).map((c) => c.id).slice(0, 1) };
+    };
+    const adm = await makeUser("houseplayer");
+    await db.user.update({ where: { id: adm.userId }, data: { role: "ADMIN" } });
+    const mgr = await makeUser("realplayer");
+    const ko = new Date(now.getTime() + 4 * MIN);
+    const sim = await createSimMatchday(host.userId, { kickoffAt: ko, match: { name: "House Night", prizes: "1=5", freeCardsOnly: true } }, now);
+    const comp = await db.competition.findFirstOrThrow({ where: { gameweekId: sim.gameweekId, name: { startsWith: "House Night" } } });
+    await submitEntry(adm.userId, comp.id, await squadFor(adm.userId, adm.starterEntitlementId!));
+    await submitEntry(mgr.userId, comp.id, await squadFor(mgr.userId, mgr.starterEntitlementId!));
+    const end = simPlan(sim.gameweekId, null).end;
+    await playSimMatchdays(new Date(ko.getTime() + 100_000));
+    await playSimMatchdays(new Date(ko.getTime() + (end + 1) * 1000));
+    await playSimMatchdays(new Date(ko.getTime() + (end + 8) * 1000));
+    expect((await db.competition.findUniqueOrThrow({ where: { id: comp.id } })).status).toBe("SETTLED");
+    expect(await db.walletEntry.count({ where: { userId: adm.userId, kind: "PRIZE" } })).toBe(0);
+    const paid = await db.walletEntry.findFirstOrThrow({ where: { userId: mgr.userId, kind: "PRIZE" } });
+    expect(paid.amountMinor).toBe(500);
+  });
+});

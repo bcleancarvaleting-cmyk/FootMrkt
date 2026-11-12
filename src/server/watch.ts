@@ -39,7 +39,7 @@ export interface WatchTable {
   status: string;
   /** Entries are closed: managers can open each other's teams. */
   locked: boolean;
-  rows: Array<{ entryId: string; userId: string; name: string; club: string | null; points: number; rank: number; me: boolean }>;
+  rows: Array<{ entryId: string; userId: string; name: string; club: string | null; points: number; rank: number; me: boolean; house?: boolean }>;
 }
 
 /** One player in a team on the watch screen, with live points. */
@@ -202,7 +202,7 @@ export async function watchBoard(scope: WatchScope, userId: string | null, now =
       prizes: await prizeRules(c.rewards),
       status: c.status,
       locked: !["OPEN", "UPCOMING"].includes(c.status) || c.locksAt <= now,
-      rows: lb.map((r) => ({ entryId: r.entryId, userId: r.userId, name: r.displayName, club: r.clubName, points: Math.round(r.points * 10) / 10, rank: r.rank, me: r.userId === userId })),
+      rows: lb.map((r) => ({ entryId: r.entryId, userId: r.userId, name: r.displayName, club: r.clubName, points: Math.round(r.points * 10) / 10, rank: r.rank, me: r.userId === userId, house: r.house })),
     });
   }
   // Matches you're in first.

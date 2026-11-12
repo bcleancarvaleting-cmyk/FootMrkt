@@ -202,7 +202,7 @@ export async function ensureAdmin() {
   const email = (process.env.SEED_ADMIN_EMAIL ?? "admin@matchx.dev").toLowerCase();
   if (await db.user.findUnique({ where: { email } })) return email;
   await db.user.create({
-    data: { email, displayName: "Admin", passwordHash: await hashPassword(process.env.SEED_ADMIN_PASSWORD ?? "matchx-admin"), role: "ADMIN", emailVerifiedAt: new Date() },
+    data: { email, displayName: "Admin", passwordHash: await hashPassword(process.env.SEED_ADMIN_PASSWORD ?? "matchx-admin"), role: "ADMIN", emailVerifiedAt: new Date(), crest: { ...(await import("@/lib/crest")).HOUSE_CREST } },
   });
   return email;
 }

@@ -42,7 +42,12 @@ export const CrestSchema = z.object({
     .regex(/^[A-Za-z0-9&]*$/, "Initials: letters and numbers only")
     .transform((s) => s.toUpperCase()),
   est: z.boolean().default(true),
+  /** The MATCHX house account (admins): shown as the MATCHX X instead of a designed crest. */
+  house: z.boolean().optional(),
 });
+
+/** The crest every admin account plays under — the MATCHX X. */
+export const HOUSE_CREST = { shape: "round", pattern: "plain", emblem: "none", primary: "#111111", secondary: "#ADFC07", accent: "#ADFC07", initials: "MX", est: false, house: true } as const;
 export type Crest = z.output<typeof CrestSchema>;
 
 export const ClubNameSchema = z

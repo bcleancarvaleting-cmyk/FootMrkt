@@ -459,7 +459,7 @@ export async function leaderboard(competitionId: string, limit = 100) {
   const settled = comp.status === "SETTLED";
   const entries = await db.competitionEntry.findMany({
     where: { competitionId, status: "ACTIVE" },
-    include: { user: { select: { displayName: true, foundingNumber: true, clubName: true, crest: true } } },
+    include: { user: { select: { displayName: true, foundingNumber: true, clubName: true, crest: true, role: true } } },
     orderBy: settled ? [{ rank: "asc" }] : [{ provisionalPoints: { sort: "desc", nulls: "last" } }, { createdAt: "asc" }],
     take: limit,
   });
@@ -479,6 +479,8 @@ export async function leaderboard(competitionId: string, limit = 100) {
       rank: settled ? e.rank ?? i + 1 : rank,
       final: settled,
       prizeMinor: prizes.get(e.userId) ?? 0,
+      /** The MATCHX house account (admins): plays for bragging rights, never wins prizes. */
+      house: e.user.role === "ADMIN",
     };
   });
 }

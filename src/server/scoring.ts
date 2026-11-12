@@ -153,13 +153,21 @@ export async function settleCompetition(competitionId: string, actorId: string |
     }
     totals.sort((a, b) => b.total - a.total);
     const rewards = (comp.rewards as RewardRule[]) ?? [];
+    // The MATCHX house account (admins) plays for bragging rights only: shown in their real place,
+    // but never wins a prize — prizes go to the next managers (ties split as usual).
+    const house = new Set((await tx.user.findMany({ where: { id: { in: totals.map((t) => t.userId) }, role: "ADMIN" }, select: { id: true } })).map((u) => u.id));
+    const prizeTotals = totals.filter((t) => !house.has(t.userId));
     let rank = 0;
     for (let i = 0; i < totals.length; i++) {
       if (i === 0 || totals[i].total !== totals[i - 1].total) rank = i + 1;
-      const t = totals[i];
-      await tx.competitionEntry.update({ where: { id: t.id }, data: { finalPoints: t.total, rank } });
+      await tx.competitionEntry.update({ where: { id: totals[i].id }, data: { finalPoints: totals[i].total, rank } });
+    }
+    let prizeRank = 0;
+    for (let i = 0; i < prizeTotals.length; i++) {
+      if (i === 0 || prizeTotals[i].total !== prizeTotals[i - 1].total) prizeRank = i + 1;
+      const t = prizeTotals[i];
       for (const [ri, r] of rewards.entries()) {
-        if (rank >= r.rankFrom && rank <= r.rankTo) {
+        if (prizeRank >= r.rankFrom && prizeRank <= r.rankTo) {
           if (r.packSkuCode) await grantPack(tx, { userId: t.userId, skuCode: r.packSkuCode, source: "REWARD", sourceRef: `reward:${competitionId}:${ri}:${t.userId}` });
         }
       }
@@ -168,12 +176,12 @@ export async function settleCompetition(competitionId: string, actorId: string |
     const sim = (await tx.gameweek.findUnique({ where: { id: comp.gameweekId }, select: { simulated: true } }))?.simulated ?? false;
     if (!sim) for (const t of totals) await creditXp(tx, { userId: t.userId, xp: t.total, refId: `xp:${competitionId}:${t.userId}`, note: `${t.total} pts` });
     // £ prize pot: dead-heat rule — tied managers split the prizes for the positions they share.
-    const shares = splitPrizePot(totals, rewards);
-    for (const t of totals) {
+    const shares = splitPrizePot(prizeTotals, rewards);
+    for (const t of prizeTotals) {
       const share = shares.get(t.userId);
       if (!share) continue;
-      const rank = 1 + totals.findIndex((x) => x.total === t.total);
-      const tied = totals.filter((x) => x.total === t.total).length;
+      const rank = 1 + prizeTotals.findIndex((x) => x.total === t.total);
+      const tied = prizeTotals.filter((x) => x.total === t.total).length;
       await creditWinnings(tx, { userId: t.userId, amountMinor: share, refId: `prize:${competitionId}:${t.userId}`, note: `${tied > 1 ? "Joint " : ""}#${rank}${tied > 1 ? ` of ${tied}` : ""}` });
     }
     // Release competition locks held by this competition's entries.

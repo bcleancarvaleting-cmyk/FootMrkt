@@ -46,7 +46,7 @@ export interface ReplayData {
   fixtures: Array<{ id: string; home: { code: string; name: string; colour: string }; away: { code: string; name: string; colour: string }; league: string }>;
   frames: ReplayFrame[];
   events: ReplayEvent[];
-  tables: Array<{ id: string; name: string; pot: string | null; prizes: PrizeRule[]; rows: Array<{ entryId: string; userId: string; name: string; club: string | null }> }>;
+  tables: Array<{ id: string; name: string; pot: string | null; prizes: PrizeRule[]; rows: Array<{ entryId: string; userId: string; name: string; club: string | null; house?: boolean }> }>;
   teams: Record<string, { competitionId: string; competition: string; manager: string; club: string | null; userId: string; formation: string; players: Array<Omit<WatchPlayer, "points" | "goals" | "assists" | "yellow" | "red" | "minutes" | "playing">> }>;
 }
 
@@ -91,7 +91,7 @@ export async function simReplay(gameweekId: string): Promise<ReplayData | null> 
           userId: true,
           formation: true,
           finalPoints: true,
-          user: { select: { displayName: true, clubName: true } },
+          user: { select: { displayName: true, clubName: true, role: true } },
           selections: { orderBy: [{ slot: "asc" }, { order: "asc" }], select: { playerId: true, slot: true, position: true, isCaptain: true, player: { select: { displayName: true, club: { select: { code: true, primaryColour: true } } } } } },
         },
       },
@@ -190,7 +190,7 @@ export async function simReplay(gameweekId: string): Promise<ReplayData | null> 
       name: c.name,
       pot: prizesSummary(c.rewards).split(" · ")[0] || null,
       prizes: await prizeRules(c.rewards),
-      rows: c.entries.map((e) => ({ entryId: e.id, userId: e.userId, name: e.user.displayName, club: e.user.clubName })),
+      rows: c.entries.map((e) => ({ entryId: e.id, userId: e.userId, name: e.user.displayName, club: e.user.clubName, house: e.user.role === "ADMIN" })),
     }))),
     teams: Object.fromEntries(
       comps.flatMap((c) =>

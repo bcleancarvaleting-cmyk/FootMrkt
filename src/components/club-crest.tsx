@@ -64,6 +64,11 @@ function Pattern({ crest }: { crest: Crest }) {
  * `id` must be unique on the page (it names the clip path).
  */
 export function ClubCrest({ crest, id, size = 40, title, className = "" }: { crest: Crest; id: string; size?: number; title?: string; className?: string }) {
+  // The MATCHX house account (admins): the X logo.
+  if (crest.house) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src="/icons/icon-192.png" alt={title ?? "MATCHX"} width={size} height={size} className={`rounded-[22%] ring-1 ring-[#adfc07]/40 ${className}`} />;
+  }
   const clip = `crest-${id}`;
   const outline =
     crest.shape === "round" ? <circle cx={ROUND.cx} cy={ROUND.cy} r={ROUND.r} /> : <path d={SHAPES[crest.shape]} />;

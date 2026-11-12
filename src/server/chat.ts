@@ -12,6 +12,8 @@ export interface ChatMessageView {
   displayName: string;
   foundingNumber: number | null;
   isMod: boolean;
+  /** The MATCHX team (admins): shown with the X logo. */
+  house?: boolean;
   body: string | null; // null when removed / hidden
   createdAt: string;
   removed: boolean;
@@ -48,6 +50,7 @@ export async function listMessages(room: ChatRoomId, opts: { after?: Date; limit
       displayName: m.user.displayName,
       foundingNumber: m.user.foundingNumber,
       isMod: canModerate(m.user.role),
+      house: m.user.role === "ADMIN",
       body: hidden ? null : m.body,
       createdAt: m.createdAt.toISOString(),
       removed: hidden,

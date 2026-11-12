@@ -116,7 +116,7 @@ export default async function TopPerformersPage({ searchParams }: { searchParams
                       <Shirt r={top!} size="h-10" />
                     </span>
                     <span className="min-w-0">
-                      <span className="block truncate font-display text-lg font-bold uppercase leading-tight">{top!.name}</span>
+                      <span className="line-clamp-2 break-words font-display text-base font-bold uppercase leading-tight sm:text-lg">{top!.name}</span>
                       <span className="block truncate text-xs text-muted">
                         {top!.position} · {top!.club}
                       </span>

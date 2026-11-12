@@ -43,3 +43,20 @@ describe("projectedWins (live table: if it ended now)", () => {
     expect(tied.has("c")).toBe(false);
   });
 });
+
+describe("the MATCHX house account never wins", () => {
+  it("an admin on top is skipped: the prize goes to the next manager, and joint 2nds split it", () => {
+    const rules = [{ rankFrom: 1, rankTo: 1, cashMinor: 2000 }];
+    const rows = [
+      { userId: "admin", points: 50, rank: 1, house: true },
+      { userId: "b", points: 40, rank: 2 },
+      { userId: "c", points: 40, rank: 2 },
+      { userId: "d", points: 10, rank: 4 },
+    ];
+    const w = projectedWins(rows, rules);
+    expect(w.has("admin")).toBe(false);
+    expect(w.get("b")).toEqual({ cashMinor: 1000, packs: [] });
+    expect(w.get("c")).toEqual({ cashMinor: 1000, packs: [] });
+    expect(w.has("d")).toBe(false);
+  });
+});

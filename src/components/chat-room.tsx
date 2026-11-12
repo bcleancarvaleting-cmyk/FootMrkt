@@ -104,18 +104,27 @@ export function ChatRoom({
           const mine = m.userId === me.id;
           return (
             <div key={m.id} className={`group flex gap-3 ${mine ? "flex-row-reverse text-right" : ""}`}>
-              <span
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-display text-sm font-extrabold uppercase text-white"
-                style={{ background: `hsl(${hue(m.displayName)} 55% 38%)` }}
-                aria-hidden="true"
-              >
-                {m.displayName.slice(0, 1)}
-              </span>
+              {m.house ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src="/icons/icon-192.png" alt="" className="h-9 w-9 shrink-0 rounded-full ring-1 ring-[#adfc07]/50" />
+              ) : (
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-display text-sm font-extrabold uppercase text-white"
+                  style={{ background: `hsl(${hue(m.displayName)} 55% 38%)` }}
+                  aria-hidden="true"
+                >
+                  {m.displayName.slice(0, 1)}
+                </span>
+              )}
               <div className={`min-w-0 max-w-[78%] ${mine ? "items-end" : ""}`}>
                 <div className={`flex items-baseline gap-2 text-xs ${mine ? "justify-end" : ""}`}>
                   <b className="text-fg">{m.displayName}</b>
                   <FoundingBadge number={m.foundingNumber} compact className="ml-1" />
-                  {m.isMod && <span className="rounded-full bg-gold/15 px-1.5 text-[9px] font-extrabold uppercase tracking-wider text-gold">Mod</span>}
+                  {m.house ? (
+                    <span className="rounded-full bg-lime/15 px-1.5 text-[9px] font-extrabold uppercase tracking-wider text-lime">MATCHX</span>
+                  ) : (
+                    m.isMod && <span className="rounded-full bg-gold/15 px-1.5 text-[9px] font-extrabold uppercase tracking-wider text-gold">Mod</span>
+                  )}
                   <span className="text-faint">{time(m.createdAt)}</span>
                 </div>
                 <div

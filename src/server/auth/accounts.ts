@@ -1,3 +1,4 @@
+import { HOUSE_CREST } from "@/lib/crest";
 import { blockIfPaused } from "../safer-play";
 import { createHash, randomBytes } from "node:crypto";
 import { ClubNameSchema, suggestedCrests } from "@/lib/crest";
@@ -69,7 +70,8 @@ export async function registerUser(input: z.input<typeof RegisterSchema>) {
           favouriteClubId: favourite?.id,
           // A starting crest from the club name, so every club has one even before it's customised.
           clubName: data.clubName,
-          crest: data.clubName ? suggestedCrests(data.clubName)[0] : undefined,
+          // Admins play as the MATCHX house club: the X instead of a crest.
+          crest: adminEmails().includes(data.email) ? { ...HOUSE_CREST } : data.clubName ? suggestedCrests(data.clubName)[0] : undefined,
         },
       });
       const starter = await grantStarterPack(tx, user.id);

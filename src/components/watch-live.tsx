@@ -526,11 +526,19 @@ function Table({ t, replay, replayView }: { t: WatchTable; replay: Replay | null
                 <span className="w-5 text-xs font-black">{mv > 0 ? <span className="text-lime">▲</span> : mv < 0 ? <span className="text-danger">▼</span> : null}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-semibold">
+                    {r.house && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src="/icons/icon-192.png" alt="" width={16} height={16} className="mr-1 inline-block h-4 w-4 rounded align-[-2px]" />
+                    )}
                     {r.name} {r.me && <span className="text-[10px] font-bold text-lime">YOU</span>}
                   </span>
-                  {r.club && <span className="block truncate text-[11px] text-faint">{r.club}</span>}
+                  {r.house ? (
+                    <span className="block truncate text-[11px] font-bold text-lime" title="The MATCHX team plays for fun — never wins prizes">MATCHX · playing for bragging rights</span>
+                  ) : (
+                    r.club && <span className="block truncate text-[11px] text-faint">{r.club}</span>
+                  )}
                 </span>
-                {wins.get(r.userId) && <WinChip w={wins.get(r.userId)!} settled={settled} />}
+                {!r.house && wins.get(r.userId) && <WinChip w={wins.get(r.userId)!} settled={settled} />}
                 <span key={r.points} className="pts-pop font-display text-2xl font-black italic tabular-nums text-lime">{r.points}</span>
               </button>
             );

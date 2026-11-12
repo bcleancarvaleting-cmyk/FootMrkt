@@ -55,8 +55,11 @@ export interface PrizeRule extends CashRule {
  * dead-heat rule (exactly as at settlement), and a pack for everyone whose rank earns one (managers
  * tied on a pack position all get one). `rows` must be sorted best first.
  */
-export function projectedWins(rows: Array<{ userId: string; points: number; rank: number }>, rules: PrizeRule[]): Map<string, { cashMinor: number; packs: string[] }> {
+export function projectedWins(all: Array<{ userId: string; points: number; rank: number; house?: boolean }>, rules: PrizeRule[]): Map<string, { cashMinor: number; packs: string[] }> {
   const out = new Map<string, { cashMinor: number; packs: string[] }>();
+  // The house account (admins) never wins: prizes are worked out among everyone else, re-ranked.
+  const rows: Array<{ userId: string; points: number; rank: number }> = [];
+  for (const [i, r] of all.filter((x) => !x.house).entries()) rows.push({ ...r, rank: i > 0 && r.points === rows[i - 1].points ? rows[i - 1].rank : i + 1 });
   if (!rules.length || !rows.length) return out;
   const cash = splitPrizePot(rows.map((r) => ({ userId: r.userId, total: r.points })), rules);
   for (const r of rows) {

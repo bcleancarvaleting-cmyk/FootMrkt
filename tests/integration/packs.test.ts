@@ -15,45 +15,50 @@ const grant = (userId: string, skuCode: string, ref: string) =>
   withTx((tx) => grantPack(tx, { userId, skuCode, source: "DEV", sourceRef: ref }));
 
 describe("starter pack (spec §5.2, §17)", () => {
-  it("sign-up grants four league starters, three league picks and the loan pick; the Premier League starter is 11 Premier League Silvers", async () => {
+  it("sign-up grants the four league starters only; the Premier League starter is 8 Premier League Silvers (7 + 1)", async () => {
     const { userId, starterEntitlementId } = await makeUser();
     const ents = await db.packEntitlement.findMany({ where: { userId }, include: { packSku: true } });
-    expect(ents.map((e) => e.packSku.code).sort()).toEqual(
-      ["football-loan-pick", "football-pick-cha", "football-pick-lg1", "football-pick-lg2", "football-starter", "football-starter-cha", "football-starter-lg1", "football-starter-lg2"].sort(),
-    );
+    expect(ents.map((e) => e.packSku.code).sort()).toEqual(["football-starter", "football-starter-cha", "football-starter-lg1", "football-starter-lg2"].sort());
     expect(ents.every((e) => e.source === "STARTER")).toBe(true);
     expect(ents.find((e) => e.id === starterEntitlementId)!.packSku.code).toBe("football-starter");
 
     const res = await openPack(userId, starterEntitlementId);
-    expect(res.cards).toHaveLength(11);
+    expect(res.cards).toHaveLength(8);
     const cards = await db.cardInstance.findMany({
       where: { id: { in: res.cards.map((c) => c.cardId) } },
       include: { template: { include: { player: { include: { club: { include: { league: true } } } } } } },
     });
     expect(cards.every((c) => c.ownerId === userId && c.supplyState === "HELD" && c.tradeStatus === "NON_TRADEABLE")).toBe(true);
     expect(cards.every((c) => c.template.edition === "STARTER")).toBe(true);
-    expect(new Set(cards.map((c) => c.template.playerId)).size).toBe(11);
+    expect(new Set(cards.map((c) => c.template.playerId)).size).toBe(8);
     expect(cards.every((c) => c.template.player.club?.league.tier === 1)).toBe(true);
     expect(cards.every((c) => c.template.category === "SILVER")).toBe(true);
 
     const pos = (p: string) => cards.filter((c) => c.template.player.position === p).length;
-    expect([pos("GK"), pos("DEF"), pos("MID"), pos("ATT")]).toEqual([2, 3, 3, 3]);
+    expect(pos("GK")).toBe(1);
+    expect(pos("DEF") + pos("MID") + pos("ATT")).toBe(7);
+    expect(Math.min(pos("DEF"), pos("MID"), pos("ATT"))).toBeGreaterThanOrEqual(2);
 
     const opening = await db.packOpening.findUniqueOrThrow({ where: { id: res.openingId } });
-    expect(opening.configSnapshot).toMatchObject({ code: "football-starter", version: 4 });
+    expect(opening.configSnapshot).toMatchObject({ code: "football-starter", version: 5 });
     expect((opening.rngAudit as { source: string }).source).toBe("node:crypto");
 
-    // The second league's starter: 11 players, all from that league.
+    // The second league's starter: 8 players, all from that league.
     const cha = ents.find((e) => e.packSku.code === "football-starter-cha")!;
     const res2 = await openPack(userId, cha.id);
     const cards2 = await db.cardInstance.findMany({ where: { id: { in: res2.cards.map((c) => c.cardId) } }, include: { template: { include: { player: { include: { club: { include: { league: true } } } } } } } });
-    expect(cards2).toHaveLength(11);
+    expect(cards2).toHaveLength(8);
     expect(cards2.every((c) => c.template.player.club?.league.tier === 2)).toBe(true);
   });
 
-  it("league picks offer 4 of the league's most valuable players and keep 1 forever", async () => {
+  it("app-only picks: installing on a phone gives one pick per league — 1 of 4 top performers, on loan for 4 gameweeks", async () => {
     const { userId } = await makeUser();
-    const pick = await db.packEntitlement.findFirstOrThrow({ where: { userId, packSku: { code: "football-pick-cha" } } });
+    const { grantAppPicks } = await import("@/server/app-messages");
+    expect(await grantAppPicks(userId)).toBe(4);
+    expect(await grantAppPicks(userId)).toBe(0); // once only
+    const ents = await db.packEntitlement.findMany({ where: { userId, sourceRef: { startsWith: "app-pick:" } }, include: { packSku: true } });
+    expect(ents.map((e) => e.packSku.code).sort()).toEqual(["football-app-pick-cha", "football-app-pick-epl", "football-app-pick-lg1", "football-app-pick-lg2"]);
+    const pick = ents.find((e) => e.packSku.code === "football-app-pick-cha")!;
     const { pickOptions, choosePick } = await import("@/server/picks");
     const o = await pickOptions(userId, pick.id);
     expect(o.playerIds).toHaveLength(4);
@@ -61,8 +66,9 @@ describe("starter pack (spec §5.2, §17)", () => {
     expect(players.every((p) => p.club?.league.tier === 2)).toBe(true);
     await choosePick(userId, pick.id, o.playerIds[0]);
     const card = await db.cardInstance.findFirstOrThrow({ where: { ownerId: userId, template: { playerId: o.playerIds[0] } }, include: { template: true } });
-    expect(card).toMatchObject({ tradeStatus: "NON_TRADEABLE", loanGameweeks: null });
-    expect(card.template).toMatchObject({ category: "SILVER", edition: "STARTER" });
+    expect(card).toMatchObject({ tradeStatus: "NON_TRADEABLE", loanGameweeks: 4 });
+    expect(card.template.edition).toBe("LOAN");
+    expect(await db.notification.count({ where: { userId, kind: "APP" } })).toBe(1);
   });
 
   it("re-opening and concurrent opening never issue a second pack", async () => {
@@ -73,7 +79,7 @@ describe("starter pack (spec §5.2, §17)", () => {
     const again = await openPack(userId, starterEntitlementId);
     expect(again.alreadyOpened).toBe(true);
     expect(await db.packOpening.count({ where: { userId } })).toBe(1);
-    expect(await db.cardInstance.count({ where: { ownerId: userId } })).toBe(11);
+    expect(await db.cardInstance.count({ where: { ownerId: userId } })).toBe(8);
   });
 
   it("another user cannot open my pack", async () => {

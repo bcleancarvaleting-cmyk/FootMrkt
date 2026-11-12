@@ -111,6 +111,11 @@ export function PlayerCard({ card, size = "md", className = "", showcase = false
                 <Badge tone="muted">★ {card.stamps}</Badge>
               </span>
             )}
+            {(card.watchers ?? 0) > 0 && (
+              <span title={`Watched by ${card.watchers} manager${card.watchers === 1 ? "" : "s"}`}>
+                <Badge tone="muted">👁 {card.watchers}</Badge>
+              </span>
+            )}
             {card.lock === "COMPETITION" && <Badge tone="lime">In squad</Badge>}
             {card.lock === "LISTED" && <Badge tone="warn">Listed</Badge>}
             {card.loan && (card.loan.ended ? <Badge tone="warn">Loan ended</Badge> : <Badge tone="muted">On loan</Badge>)}

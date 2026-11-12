@@ -76,8 +76,19 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
       {welcome && (
         <div className="rounded-2xl border border-accent/40 bg-accent/10 p-5">
           <p className="eyebrow text-lime">Welcome to MATCHX</p>
-          <p className="mt-1 text-lg font-bold">Your free starter packs are waiting — open them to sign your first 49 players.</p>
+          <p className="mt-1 text-lg font-bold">Your four free starter packs are waiting — open them to sign your first 32 players: a seven and a sub for every league.</p>
         </div>
+      )}
+
+      {!(await hasAppPicks(user.id)) && (
+        <Link href="/get-the-app" className="flex flex-wrap items-center gap-3 rounded-2xl border border-accent/50 bg-ink-900 px-4 py-3 transition hover:border-accent">
+          <span className="text-2xl" aria-hidden="true">📱</span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[11px] font-extrabold uppercase tracking-[0.18em] text-lime">App only</span>
+            <span className="block font-semibold">Get the app for 4 free player picks — a top performer from every league.</span>
+          </span>
+          <span className="text-sm font-bold text-lime">How →</span>
+        </Link>
       )}
 
       <section aria-labelledby="boosters">
@@ -328,4 +339,9 @@ function PackArt({ code, name, small }: { code: string; name?: string; small?: b
       )}
     </div>
   );
+}
+
+/** Has this manager had the app-only league picks yet? */
+async function hasAppPicks(userId: string) {
+  return (await db.packEntitlement.count({ where: { userId, sourceRef: { startsWith: "app-pick:" } } })) > 0;
 }

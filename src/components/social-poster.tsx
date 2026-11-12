@@ -368,7 +368,7 @@ export function ClubAdPoster({ clubName, code, colour, count, cards, format }: {
         ))}
       </div>
       <p className="mt-10 text-center text-[32px] font-semibold text-white/90">
-        {count} {clubName} cards · score points from their real matches · start with 49 free players
+        {count} {clubName} cards · score points from their real matches · start with 32 free players
       </p>
     </Frame>
   );

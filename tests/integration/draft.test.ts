@@ -45,7 +45,7 @@ async function cheapSquad() {
     ...by("ATT").slice(0, 2).map((x) => ({ playerId: x.playerId, position: "ATT" as const })),
   ];
   const used = new Set(starters.map((s) => s.playerId));
-  const bench = [by("GK")[1], ...pool.filter((x) => x.position !== "GK" && !used.has(x.playerId)).slice(0, 3)].map((x) => x.playerId);
+  const bench = pool.filter((x) => x.position !== "GK" && !used.has(x.playerId)).slice(0, 1).map((x) => x.playerId);
   return { formation: "2-2-2", starters, bench, captain: starters[6].playerId };
 }
 
@@ -56,7 +56,7 @@ describe("free draft", () => {
     const squad = await cheapSquad();
     await submitDraftEntry(userId, comp.id, squad);
     const sels = await db.competitionSelection.findMany({ where: { entry: { userId } } });
-    expect(sels).toHaveLength(11);
+    expect(sels).toHaveLength(8);
     expect(sels.every((s) => s.cardId === null)).toBe(true);
     // A draft match can't be entered with cards, and the budget is enforced.
     await expect(submitEntry(userId, comp.id, { formation: "2-2-2", starters: [], bench: [] })).rejects.toMatchObject({ code: "DRAFT_MATCH" });

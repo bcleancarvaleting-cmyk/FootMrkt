@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { WatchButton } from "@/components/watch-button";
-import { isWatching } from "@/server/watchlist";
+import { isWatching, watcherCounts } from "@/server/watchlist";
+import { WatchedBy } from "@/components/watch-button";
 import { requireUser } from "@/server/auth/session";
 import { playerProfile } from "@/server/binder";
 import { DomainError } from "@/server/errors";
@@ -32,7 +33,10 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
           {age !== null && ` · ${age}`}
         </p>
         {player.rightsStatus === "PLACEHOLDER" && <p className="mt-1 text-xs text-warn">Placeholder player for development — not a real person.</p>}
-        <WatchButton playerId={player.id} initial={await isWatching(user.id, player.id)} className="mt-3" />
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <WatchButton playerId={player.id} initial={await isWatching(user.id, player.id)} />
+          <WatchedBy count={(await watcherCounts([player.id])).get(player.id) ?? 0} />
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-4">

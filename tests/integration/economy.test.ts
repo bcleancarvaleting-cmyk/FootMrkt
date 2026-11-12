@@ -120,7 +120,7 @@ describe("match entry fees and requirements", () => {
   async function openComp() {
     const gw = await db.gameweek.create({ data: { sportId: (await db.sport.findFirstOrThrow()).id, season: "t", number: 1, startsAt: new Date(), endsAt: new Date(Date.now() + 3 * 86_400_000), status: "OPEN" } });
     return db.competition.create({
-      data: { sportId: gw.sportId, gameweekId: gw.id, code: `c-${Math.random()}`, name: "Cup", format: "OPEN", rosterRules: "football-roster-v3", scoringRules: "football-scoring-v2-draft", entryOpensAt: new Date(), locksAt: new Date(Date.now() + 86_400_000), status: "OPEN" },
+      data: { sportId: gw.sportId, gameweekId: gw.id, code: `c-${Math.random()}`, name: "Cup", format: "OPEN", rosterRules: "football-roster-v4", scoringRules: "football-scoring-v2-draft", entryOpensAt: new Date(), locksAt: new Date(Date.now() + 86_400_000), status: "OPEN" },
     });
   }
   async function squad(userId: string) {
@@ -129,7 +129,7 @@ describe("match entry fees and requirements", () => {
     const cards = await db.cardInstance.findMany({ where: { ownerId: userId }, include: { template: { include: { player: true } } } });
     const by = (p: string) => cards.filter((c) => c.template.player.position === p);
     const starters = [...by("GK").slice(0, 1), ...by("DEF").slice(0, 2), ...by("MID").slice(0, 2), ...by("ATT").slice(0, 2)];
-    const bench = cards.filter((c) => !starters.includes(c)).slice(0, 4);
+    const bench = cards.filter((c) => !starters.includes(c)).slice(0, 1);
     return { formation: "2-2-2", starters: starters.map((c) => ({ cardId: c.id, position: c.template.player.position })), bench: bench.map((c) => c.id) };
   }
 
@@ -228,7 +228,7 @@ describe("founding members", () => {
     const { userId } = await makeUser("nonfounder");
     const sport = await db.sport.findFirstOrThrow();
     const gw = await db.gameweek.create({ data: { sportId: sport.id, season: "f", number: 1, startsAt: new Date(), endsAt: new Date(Date.now() + 86_400_000), status: "OPEN" } });
-    const comp = await db.competition.create({ data: { sportId: sport.id, gameweekId: gw.id, code: "freeroll", name: "Founders Freeroll", format: "OPEN", rosterRules: "football-roster-v3", scoringRules: "football-scoring-v2-draft", entryOpensAt: new Date(), locksAt: new Date(Date.now() + 86_400_000), status: "OPEN" } });
+    const comp = await db.competition.create({ data: { sportId: sport.id, gameweekId: gw.id, code: "freeroll", name: "Founders Freeroll", format: "OPEN", rosterRules: "football-roster-v4", scoringRules: "football-scoring-v2-draft", entryOpensAt: new Date(), locksAt: new Date(Date.now() + 86_400_000), status: "OPEN" } });
     await rules(admin.userId, comp.id, { entryFeeMinor: 0, requirements: { foundersOnly: true, freeCardsOnly: true }, prizes: "1=10" });
     await expect(enter(userId, comp.id, { formation: "2-2-2", starters: [], bench: [] })).rejects.toMatchObject({ code: "FOUNDERS_ONLY" });
     expect((await db.competition.findUniqueOrThrow({ where: { id: comp.id } })).rewards).toEqual([{ rankFrom: 1, rankTo: 1, cashMinor: 1000 }]);
@@ -264,7 +264,7 @@ describe("prize guardrails", () => {
   async function comp() {
     const sport = await db.sport.findFirstOrThrow();
     const gw = await db.gameweek.create({ data: { sportId: sport.id, season: "g", number: 1, startsAt: new Date(), endsAt: new Date(Date.now() + 86_400_000), status: "OPEN" } });
-    return db.competition.create({ data: { sportId: sport.id, gameweekId: gw.id, code: `g-${Math.random()}`, name: "G", format: "OPEN", rosterRules: "football-roster-v3", scoringRules: "football-scoring-v2-draft", entryOpensAt: new Date(), locksAt: new Date(Date.now() + 86_400_000), status: "OPEN" } });
+    return db.competition.create({ data: { sportId: sport.id, gameweekId: gw.id, code: `g-${Math.random()}`, name: "G", format: "OPEN", rosterRules: "football-roster-v4", scoringRules: "football-scoring-v2-draft", entryOpensAt: new Date(), locksAt: new Date(Date.now() + 86_400_000), status: "OPEN" } });
   }
 
   it("£ prizes need free entry (and free cards only when 'Cash prizes with any cards' is off)", async () => {
@@ -292,7 +292,7 @@ describe("prize guardrails", () => {
       const pool = cards.filter((x) => x.template.edition === edition);
       const by = (p: string, n: number) => pool.filter((x) => x.template.player.position === p).slice(0, n);
       const starters = [...by("GK", 1), ...by("DEF", 2), ...by("MID", 2), ...by("ATT", 2)];
-      return { formation: "2-2-2", starters: starters.map((x) => ({ cardId: x.id, position: x.template.player.position })), bench: pool.filter((x) => !starters.includes(x)).slice(0, 4).map((x) => x.id) };
+      return { formation: "2-2-2", starters: starters.map((x) => ({ cardId: x.id, position: x.template.player.position })), bench: pool.filter((x) => !starters.includes(x)).slice(0, 1).map((x) => x.id) };
     };
     await submitEntry(userId, c.id, pick("STARTER"));
     const mixed = pick("STARTER");
@@ -350,12 +350,12 @@ describe("starter period, Gold pick and referrals", () => {
     expect(await db.packEntitlement.count({ where: { userId: referrer.userId, sourceRef: { startsWith: "referral:" } } })).toBe(0);
     const sport = await db.sport.findFirstOrThrow();
     const gw = await db.gameweek.create({ data: { sportId: sport.id, season: "r", number: 1, startsAt: new Date(), endsAt: new Date(Date.now() + 86_400_000), status: "OPEN" } });
-    const comp = await db.competition.create({ data: { sportId: sport.id, gameweekId: gw.id, code: "ref-c", name: "R", format: "OPEN", rosterRules: "football-roster-v3", scoringRules: "football-scoring-v2-draft", entryOpensAt: new Date(), locksAt: new Date(Date.now() + 86_400_000), status: "OPEN" } });
+    const comp = await db.competition.create({ data: { sportId: sport.id, gameweekId: gw.id, code: "ref-c", name: "R", format: "OPEN", rosterRules: "football-roster-v4", scoringRules: "football-scoring-v2-draft", entryOpensAt: new Date(), locksAt: new Date(Date.now() + 86_400_000), status: "OPEN" } });
     await openPack(friend.user.id, friend.starterEntitlementId);
     const cards = await db.cardInstance.findMany({ where: { ownerId: friend.user.id }, include: { template: { include: { player: true } } } });
     const by = (p: string, n: number) => cards.filter((x) => x.template.player.position === p).slice(0, n);
     const starters = [...by("GK", 1), ...by("DEF", 2), ...by("MID", 2), ...by("ATT", 2)];
-    const sub = { formation: "2-2-2", starters: starters.map((x) => ({ cardId: x.id, position: x.template.player.position })), bench: cards.filter((x) => !starters.includes(x)).slice(0, 4).map((x) => x.id) };
+    const sub = { formation: "2-2-2", starters: starters.map((x) => ({ cardId: x.id, position: x.template.player.position })), bench: cards.filter((x) => !starters.includes(x)).slice(0, 1).map((x) => x.id) };
     await submitEntry(friend.user.id, comp.id, sub);
     await submitEntry(friend.user.id, comp.id, sub);
     const packs = await db.packEntitlement.findMany({ where: { userId: referrer.userId, sourceRef: { startsWith: "referral:" } }, include: { packSku: true } });

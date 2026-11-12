@@ -69,13 +69,15 @@ async function watchers(playerId: string) {
 
 /** A manager listed a card: tell the player's watchers (respecting their alert price). */
 export async function alertNewListing(listing: { id: string; sellerId: string | null; askingPriceMinor: number; playerId: string; playerName: string }) {
-  for (const w of await watchers(listing.playerId)) {
+  const list = await watchers(listing.playerId);
+  const n = list.length;
+  for (const w of list) {
     if (w.userId === listing.sellerId) continue;
     if (w.maxPriceMinor != null && listing.askingPriceMinor > w.maxPriceMinor) continue;
     await notify(w.userId, {
       kind: "listing",
       title: `${listing.playerName} listed for ${fmtMp(listing.askingPriceMinor)}`,
-      body: w.maxPriceMinor != null ? `At or under your alert price of ${fmtMp(w.maxPriceMinor)}.` : "A player on your watchlist is on the Transfer list.",
+      body: (w.maxPriceMinor != null ? `At or under your alert price of ${fmtMp(w.maxPriceMinor)}.` : "A player on your watchlist is on the Transfer list.") + watching(n),
       href: "/transfers",
       dedupeKey: `listing:${listing.id}:${w.userId}`,
     });
@@ -105,11 +107,13 @@ export async function announceLiveDrops(now = new Date()) {
   });
   let sent = 0;
   for (const l of live) {
-    for (const w of await watchers(l.card.template.playerId)) {
+    const list = await watchers(l.card.template.playerId);
+    const n = list.length;
+    for (const w of list) {
       await notify(w.userId, {
         kind: "drop",
         title: `${l.card.template.player.displayName} has dropped!`,
-        body: `MATCHX released one for ${fmtMp(l.askingPriceMinor)}. First come, first served.`,
+        body: `MATCHX released one for ${fmtMp(l.askingPriceMinor)}. First come, first served.${watching(n)}`,
         href: "/transfers/drops",
         dedupeKey: `drop:${l.id}:${w.userId}`,
       });
@@ -158,6 +162,69 @@ export async function alertValueMoves() {
     });
     await db.watchItem.update({ where: { id: w.id }, data: { baselineMp: v } });
     sent++;
+  }
+  return sent;
+}
+
+/** How many managers are watching each player (for "watched by 12 managers" and alert copy). */
+export async function watcherCounts(playerIds: string[]) {
+  if (!playerIds.length) return new Map<string, number>();
+  const rows = await db.watchItem.groupBy({ by: ["playerId"], where: { playerId: { in: [...new Set(playerIds)] } }, _count: { _all: true } });
+  return new Map(rows.map((r) => [r.playerId, r._count._all]));
+}
+
+const watching = (n: number) => (n > 1 ? ` ${n} managers are watching — be quick.` : "");
+
+/**
+ * Every other way a watched player comes onto the market, told once each (to the phone too):
+ * MATCHX buy-now listings from circulation, house listings and auctions going live. Managers'
+ * own listings are told the moment they're made (alertNewListing, same key, so never twice) and
+ * player drops by announceLiveDrops.
+ */
+export async function announceWatchedMarket(now = new Date()) {
+  const since = new Date(now.getTime() - 2 * 86_400_000);
+  const [listings, auctions] = await Promise.all([
+    db.marketListing.findMany({
+      where: { status: "ACTIVE", expiresAt: { gt: now }, OR: [{ liveAt: null, createdAt: { gte: since } }, { liveAt: { lte: now, gte: since } }], NOT: { house: true, card: { packable: false } } },
+      select: { id: true, house: true, sellerId: true, askingPriceMinor: true, card: { select: { template: { select: { playerId: true, player: { select: { displayName: true } } } } } } },
+      take: 500,
+    }),
+    db.auction.findMany({
+      where: { status: "LIVE", endsAt: { gt: now }, startsAt: { gte: since, lte: now } },
+      select: { id: true, startPriceMinor: true, endsAt: true, card: { select: { template: { select: { playerId: true, player: { select: { displayName: true } } } } } } },
+    }),
+  ]);
+  const ids = [...listings.map((l) => l.card.template.playerId), ...auctions.map((a) => a.card.template.playerId)];
+  if (!ids.length) return 0;
+  const [items, counts] = await Promise.all([db.watchItem.findMany({ where: { playerId: { in: ids } } }), watcherCounts(ids)]);
+  let sent = 0;
+  for (const l of listings) {
+    const pid = l.card.template.playerId;
+    for (const w of items.filter((x) => x.playerId === pid)) {
+      if (w.userId === l.sellerId) continue;
+      if (w.maxPriceMinor != null && l.askingPriceMinor > w.maxPriceMinor) continue;
+      await notify(w.userId, {
+        kind: "listing",
+        title: `👀 ${l.card.template.player.displayName} is available — ${fmtMp(l.askingPriceMinor)}`,
+        body: `${l.house ? "MATCHX has one on buy now." : "A manager has listed one on the Transfer list."}${watching(counts.get(pid) ?? 0)}`,
+        href: "/transfers",
+        dedupeKey: `listing:${l.id}:${w.userId}`,
+      });
+      sent++;
+    }
+  }
+  for (const a of auctions) {
+    const pid = a.card.template.playerId;
+    for (const w of items.filter((x) => x.playerId === pid)) {
+      await notify(w.userId, {
+        kind: "listing",
+        title: `🔨 ${a.card.template.player.displayName} is up for auction`,
+        body: `Bidding starts at ${fmtMp(a.startPriceMinor)}.${watching(counts.get(pid) ?? 0)}`,
+        href: "/transfers/auctions",
+        dedupeKey: `auction:${a.id}:${w.userId}`,
+      });
+      sent++;
+    }
   }
   return sent;
 }

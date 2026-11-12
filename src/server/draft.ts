@@ -12,7 +12,7 @@ import { draftPrice } from "@/domain/football/draft";
 export { draftPrice };
 
 /**
- * Free draft: a match anyone can enter without owning cards. Pick 7 starters + 4 subs from every
+ * Free draft: a match anyone can enter without owning cards. Pick 7 starters + a sub from every
  * player in the match's leagues, within a total MX budget (current card values) and a per-club cap.
  * Same formations, captain and auto-subs as every other match.
  */

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
 import { scheduleDrops } from "@/server/player-drops";
 import { applyMarketValues } from "@/server/tiering";
-import { alertNewListing, alertValueMoves, announceLiveDrops, isWatching, myWatchlist, unwatchPlayer, watchPlayer } from "@/server/watchlist";
+import { alertNewListing, alertValueMoves, announceLiveDrops, announceWatchedMarket, watcherCounts, isWatching, myWatchlist, unwatchPlayer, watchPlayer } from "@/server/watchlist";
 import { buildWorld, makeUser, resetDb } from "./fixtures";
 
 beforeEach(async () => {
@@ -61,5 +61,23 @@ describe("watchlist and alerts", () => {
     expect(await alertValueMoves()).toBe(0); // told once
     const n = await db.notification.findFirstOrThrow({ where: { userId: u.userId, kind: "value" } });
     expect(n.title).toContain("down 15% to 17 MX");
+  });
+
+  it("tells watchers when a player comes onto any market (MATCHX buy now, auctions), once; cards show how many are watching", async () => {
+    const a = await makeUser("mkwatch1");
+    const b = await makeUser("mkwatch2");
+    const card = await db.cardInstance.findFirstOrThrow({ where: { supplyState: "AVAILABLE", packable: true }, include: { template: true } });
+    await watchPlayer(a.userId, card.template.playerId);
+    await watchPlayer(b.userId, card.template.playerId);
+    expect((await watcherCounts([card.template.playerId])).get(card.template.playerId)).toBe(2);
+    const { cardViews } = await import("@/server/views");
+    expect((await cardViews({ id: card.id }))[0].watchers).toBe(2);
+
+    await db.marketListing.create({ data: { cardId: card.id, sellerId: null, house: true, askingPriceMinor: 250, expiresAt: new Date(Date.now() + 86_400_000) } });
+    expect(await announceWatchedMarket()).toBe(2);
+    expect(await announceWatchedMarket()).toBe(2); // attempted again, but each is only told once
+    const n = await db.notification.findMany({ where: { userId: a.userId, kind: "listing" } });
+    expect(n).toHaveLength(1);
+    expect(n[0].body).toContain("2 managers are watching");
   });
 });

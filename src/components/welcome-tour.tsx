@@ -7,9 +7,9 @@ import { finishTourAction, restartTourAction } from "@/app/actions/account";
 
 const STEPS: Array<{ icon: string; title: string; body: string }> = [
   { icon: "👋", title: "Welcome to MATCHX", body: "Collect real players from the Premier League to League Two, pick a squad every gameweek and score points from what they do on the pitch." },
-  { icon: "🎁", title: "Your 49 free players", body: "Your starter packs give you a full squad for all four leagues, three league picks and two Premier League Gold loans. Open them on Packs." },
+  { icon: "🎁", title: "Your 32 free players", body: "Four starter packs give you a starting seven and a sub for every league. Get the app for 4 more: a top-performer pick from each league." },
   { icon: "🛡️", title: "My Club", body: "Every player you own lives in My Club — their value, how they're trending, and your squad's total portfolio value." },
-  { icon: "⚽", title: "Pick your squad", body: "On Matches, choose 7 starters and 4 subs before the deadline. Your captain scores double, and a weekly booster adds extra points." },
+  { icon: "⚽", title: "Pick your squad", body: "On Matches, choose 7 starters and a sub before the deadline. Your captain scores double, and a weekly booster adds extra points." },
   { icon: "🔁", title: "Build a better club", body: "Sell players on Transfers, bid in auctions, and sign new MATCHX player drops every day at 10am." },
   { icon: "🔥", title: "Earn every day", body: "Points earn XP, XP levels you up for free packs, and daily logins and predictions add more. Guides to everything are in the menu." },
 ];

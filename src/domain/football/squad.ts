@@ -54,7 +54,7 @@ export function validateSquad(
     issues.push({ code: "WRONG_STARTER_COUNT", message: `Pick exactly ${rules.starters} starters` });
   }
   if (submission.bench.length !== rules.bench) {
-    issues.push({ code: "WRONG_BENCH_COUNT", message: `Pick exactly ${rules.bench} substitutes` });
+    issues.push({ code: "WRONG_BENCH_COUNT", message: rules.bench === 1 ? "Pick a substitute" : `Pick exactly ${rules.bench} substitutes` });
   }
 
   const formation = FORMATIONS[submission.formation];

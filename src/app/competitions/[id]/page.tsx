@@ -52,7 +52,7 @@ export default async function CompetitionPage({ params, searchParams }: { params
           </Link>
           <h1 className="mt-1 text-5xl font-extrabold">{comp.name}</h1>
           <p className="text-sm text-muted">
-            {requirementsSummary((comp.requirements ?? {}) as Requirements, comp.format)} · {comp.entryFeeMinor > 0 ? `${fmtMp(comp.entryFeeMinor)} entry` : "free entry"} · 7 starters + 4 subs ·{" "}
+            {requirementsSummary((comp.requirements ?? {}) as Requirements, comp.format)} · {comp.entryFeeMinor > 0 ? `${fmtMp(comp.entryFeeMinor)} entry` : "free entry"} · 7 starters + {getRosterRules(comp.rosterRules).bench === 1 ? "1 sub" : `${getRosterRules(comp.rosterRules).bench} subs`} ·{" "}
             {open ? `locks ${relativeTime(comp.locksAt)} (${fmtDate(comp.locksAt)})` : comp.status.toLowerCase()}
           </p>
         </div>
@@ -174,6 +174,7 @@ async function Builder({
       initial={initial}
       hasEntry={!!entry}
       boosters={await boosterChoices(userId, entry?.id ?? null)}
+        benchSize={rules.bench}
     />
   );
 }
@@ -236,6 +237,7 @@ async function DraftBuilder({
         hasEntry={!!entry}
         draft={{ budgetMx: req.draftBudgetMx!, maxPerClub: req.maxPerClub }}
         boosters={await boosterChoices(userId, entry?.id ?? null)}
+        benchSize={rules.bench}
       />
     </div>
   );

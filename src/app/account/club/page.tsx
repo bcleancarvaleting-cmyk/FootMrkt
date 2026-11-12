@@ -131,7 +131,7 @@ export default async function MyClubPage({ searchParams }: { searchParams: Promi
 
       {groups.length === 0 ? (
         <EmptyState title={Object.values(filters).some(Boolean) ? "No matches" : "No players yet"} action={<Link href="/packs" className="btn-primary">Go to Packs</Link>}>
-          {Object.values(filters).some(Boolean) ? "No cards match those filters." : "Open your free starter packs to sign your first 49 players."}
+          {Object.values(filters).some(Boolean) ? "No cards match those filters." : "Open your free starter packs to sign your first 32 players."}
         </EmptyState>
       ) : (
         <div className="space-y-6">

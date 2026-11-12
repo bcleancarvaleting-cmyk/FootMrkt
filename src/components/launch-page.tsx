@@ -139,7 +139,7 @@ export async function LaunchPage({ sp }: { sp: LaunchParams }) {
           <h2 className="mt-1 text-4xl sm:text-5xl">Your club. Real football.</h2>
           <ol className="mt-6 space-y-4">
             {[
-              ["Start with 49 free players", "A full squad for the Premier League, Championship, League One and League Two, plus two Premier League Golds on loan."],
+              ["Start with 32 free players", "A starting seven and a sub for the Premier League, Championship, League One and League Two, plus 4 top-performer picks when you get the app."],
               ["Pick your seven", "Choose a formation and your starters each gameweek. Real goals, assists, clean sheets and saves become your points."],
               ["Build your club", "Open packs, trade with other managers and chase the one-of-one Rainbow card of every player in England."],
             ].map(([t, d], i) => (

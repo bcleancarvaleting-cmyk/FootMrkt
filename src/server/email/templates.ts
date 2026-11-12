@@ -29,10 +29,11 @@ const b = (s: string) => `<b style="color:#f4f5f2">${esc(s)}</b>`;
 export const EMAILS = {
   welcome: (d: { name: string; verifyUrl?: string }) =>
     layout({
-      preheader: "Your 14 free players are waiting.",
+      preheader: "Your 32 free players are waiting — and 4 more in the app.",
       title: `Welcome to MATCHX, ${d.name}`,
       paragraphs: [
-        `Your club is ready. Open your ${b("four free league Starter Packs")} — a full squad for the Premier League, Championship, League One and League Two — make your three league picks and choose your two Premier League Gold loans.`,
+        `Your club is ready. Open your ${b("four free league Starter Packs")}: 8 players each for the Premier League, Championship, League One and League Two — a starting seven and a sub for every league.`,
+        `📱 ${b("Download our app today to get 4 free player picks.")} Only on the app: pick a Premier League, Championship, League One and League Two player from each league's top 50 performers — on loan for your first 4 gameweeks. That's 36 players to start your journey. <a href="${APP_URL}/get-the-app" style="color:#adfc07">How to get the app →</a>`,
         `Then a free booster pack lands every Tuesday: put it on one player to boost their points.`,
         ...(d.verifyUrl ? [`Please confirm your email address so we can reach you about prizes.`] : []),
       ],
@@ -181,7 +182,7 @@ export const EMAILS = {
       preheader: "MATCHX is open. Your free players are waiting.",
       title: "MATCHX is live ⚽",
       paragraphs: [
-        `Hi ${esc(d.name)} — the wait is over. Create your club now and open your 49 free players: a full squad for the Premier League, Championship, League One and League Two.`,
+        `Hi ${esc(d.name)} — the wait is over. Create your club now and open your 32 free players: a starting seven and a sub for the Premier League, Championship, League One and League Two — plus 4 top-performer picks when you get the app.`,
         `Because you joined the waitlist, you also get ${b(d.gift)} — it's waiting in Packs when you sign up with this email.`,
       ],
       cta: { label: "Create my club", href: d.url },

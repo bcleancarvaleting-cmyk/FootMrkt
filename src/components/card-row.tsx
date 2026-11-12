@@ -30,6 +30,11 @@ export function CardRow({ card, href, children, sub, below, showValue = false }:
           <ClubBadge short={card.clubShort} primary={card.clubPrimary} secondary={card.clubSecondary} kit={card.kit} crestUrl={card.crestUrl} size={14} title={card.clubName ?? undefined} />
           <span className="min-w-0 truncate">{card.clubName ?? "Free agent"}</span>
           {card.stamps > 0 && <span className="rounded bg-ink-700 px-1.5 text-[10px] font-bold text-gold" title="History stamps">★ {card.stamps}</span>}
+          {(card.watchers ?? 0) > 0 && (
+            <span className="rounded bg-ink-700 px-1.5 text-[10px] font-bold text-fg" title={`Watched by ${card.watchers} manager${card.watchers === 1 ? "" : "s"}`}>
+              👁 {card.watchers} watching
+            </span>
+          )}
           {sub}
         </span>
         {showValue && !card.loan && (

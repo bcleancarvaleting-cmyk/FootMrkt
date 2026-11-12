@@ -146,7 +146,7 @@ export function MobileMenu({ user, theme, unread = 0, wallet, waitlist = false }
           <nav className="flex-1 overflow-y-auto px-4 pb-10 pt-2" aria-label="All pages" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 2.5rem)" }}>
             {!user && (
               <Link href={waitlist ? "/launch#join" : "/register"} onClick={() => setOpen(false)} className="btn-primary my-3 w-full py-3">
-                {waitlist ? "Join the waitlist" : "Join free — get 49 players"}
+                {waitlist ? "Join the waitlist" : "Join free — get 32 players"}
               </Link>
             )}
             {user && wallet && (

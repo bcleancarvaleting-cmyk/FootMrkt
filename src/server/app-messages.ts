@@ -4,7 +4,7 @@ import { latestDrop } from "./boosters";
 import { db, withTx } from "./db";
 import { DomainError } from "./errors";
 import { notify } from "./notifications";
-import { grantPack } from "./packs";
+import { ensurePublished, grantPack } from "./packs";
 import { credit, fmtMp } from "./wallet";
 
 /**
@@ -18,8 +18,44 @@ import { credit, fmtMp } from "./wallet";
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
 
+/**
+ * App-only welcome picks: one pick per league (choose 1 of 4 of its top 50 performers, on loan for
+ * the first 4 gameweeks). Given once, when a manager installs MATCHX on their phone.
+ */
+export async function grantAppPicks(userId: string) {
+  const { APP_PICK_LIST } = await import("@/config/packs");
+  let added = 0;
+  await withTx(async (tx) => {
+    for (const code of APP_PICK_LIST) {
+      await ensurePublished(tx, code);
+      const ref = `app-pick:${code}:${userId}`;
+      if (await tx.packEntitlement.findUnique({ where: { sourceRef: ref } })) continue;
+      await grantPack(tx, { userId, skuCode: code, source: "STARTER", sourceRef: ref });
+      added++;
+    }
+  });
+  if (added) {
+    await notify(userId, {
+      kind: "APP",
+      title: "📱 Your 4 app-only picks are ready",
+      body: "Pick a top performer from each league: Premier League, Championship, League One and League Two. They're on loan for your first 4 gameweeks.",
+      href: "/packs",
+      dedupeKey: `app-picks:${userId}`,
+    });
+  }
+  return added;
+}
+
 export async function appMessages(now = new Date()) {
-  const out = { welcomed: 0, boosterSoon: 0, giveaways: 0 };
+  const out = { welcomed: 0, boosterSoon: 0, giveaways: 0, appPicks: 0 };
+
+  // 0) App picks for phone installs that haven't had them (normally given the moment they install).
+  const missing = await db.user.findMany({
+    where: { status: "ACTIVE", appPlatform: { in: ["ios", "android"] }, appInstalledAt: { not: null }, packEntitlements: { none: { sourceRef: { startsWith: "app-pick:" } } } },
+    select: { id: true },
+    take: 200,
+  });
+  for (const u of missing) if (await grantAppPicks(u.id)) out.appPicks++;
 
   // 1) Welcome, 1 hour after installing (window of a day so a quiet server still catches up).
   const fresh = await db.user.findMany({

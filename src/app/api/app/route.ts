@@ -23,5 +23,10 @@ export async function POST(req: Request) {
       ...(notifications !== undefined && notifications !== current.notificationsEnabled ? { notificationsEnabled: notifications, notificationsUpdatedAt: new Date() } : {}),
     },
   });
+  // First open from a phone's home screen: the app-only league picks.
+  if (installed && installed !== "desktop" && !current.appInstalledAt) {
+    const { grantAppPicks } = await import("@/server/app-messages");
+    await grantAppPicks(user.id).catch(() => 0);
+  }
   return NextResponse.json({ ok: true });
 }

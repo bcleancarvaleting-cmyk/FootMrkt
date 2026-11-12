@@ -15,11 +15,11 @@ export const GUIDES: Guide[] = [
     slug: "getting-started",
     icon: "🚀",
     title: "Getting started",
-    summary: "Your 49 free players, your first squad and where everything lives.",
+    summary: "Your 32 free players (36 with the app), your first squad and where everything lives.",
     steps: [
       { title: "Open your starter packs", body: "You get a full squad for the Premier League, Championship, League One and League Two — plus three league picks and two Premier League Gold loans. Open them on Packs.", href: "/packs", cta: "Go to Packs" },
       { title: "Meet your club", body: "Every player you own is in My Club, grouped by position, with their value, how they're trending and the points they've won for you.", href: "/account/club", cta: "Open My Club" },
-      { title: "Pick a squad", body: "Choose a match on Matches, then 7 starters and 4 subs before the deadline (10 minutes before the first kick-off). Real goals, assists and clean sheets become your points.", href: "/matches", cta: "See matches" },
+      { title: "Pick a squad", body: "Choose a match on Matches, then 7 starters and a sub before the deadline (10 minutes before the first kick-off). Real goals, assists and clean sheets become your points.", href: "/matches", cta: "See matches" },
       { title: "Come back every day", body: "Daily logins build a streak (a free pack every 7th day), today's prediction earns XP, and new MATCHX player drops land at 10am.", href: "/", cta: "Home" },
     ],
   },
@@ -42,7 +42,7 @@ export const GUIDES: Guide[] = [
     summary: "How matches work, who you can pick, and how points are scored.",
     steps: [
       { title: "Choose a match", body: "Each gameweek has matches with their own rules: which cards they take (e.g. Bronze only, free cards, a free draft), the entry (free or MX) and the prize pot.", href: "/matches", cta: "See matches" },
-      { title: "Pick 7 + 4 subs", body: "Pick a formation, a keeper, defenders, midfielders and attackers, and four subs who come on automatically if a starter doesn't play." },
+      { title: "Pick 7 + a sub", body: "Pick a formation, a keeper, defenders, midfielders and attackers, and a sub who comes on automatically if a starter doesn't play." },
       { title: "Captain & vice", body: "Your captain scores double. If they don't play, your vice-captain takes the double instead." },
       { title: "The deadline", body: "Squads lock 10 minutes before the gameweek's first kick-off. Points come in live and are final once the data window closes." },
       { title: "Paid matches", body: "If a match has an MX entry fee and you're short, the match page offers MX bundles and brings you straight back. Withdraw before the deadline and the fee is refunded." },
@@ -121,6 +121,9 @@ export const guideBySlug = (slug: string) => GUIDES.find((g) => g.slug === slug)
 
 /** What's new on MATCHX (newest first). Shown at the top of Guides. */
 export const WHATS_NEW: Array<{ date: string; title: string; body: string; href?: string }> = [
+  { date: "2026-11-12", title: "7 + 1 squads", body: "Matches now take 7 starters and just one sub — quicker to pick, easier to fill. Boosters stay the same.", href: "/matches" },
+  { date: "2026-11-12", title: "4 free picks in the app", body: "Install MATCHX on your phone for a top-performer pick from every league, on loan for your first 4 gameweeks.", href: "/get-the-app" },
+  { date: "2026-11-12", title: "Watched by…", body: "Cards now show how many managers are watching a player, and you're told the moment a watched player is on any market.", href: "/account/watchlist" },
   { date: "2026-11-12", title: "Team of the Week", body: "After every gameweek the 7 best performers get a ★ TOTW badge on their cards for 7 days.", href: "/top-performers#totw" },
   { date: "2026-11-12", title: "Card upgrades", body: "New challenges: trade 5 Bronze up for a Choice of Silver, or 5 Silver for a Choice of Gold.", href: "/account/challenges" },
   { date: "2026-11-12", title: "Value alerts", body: "Players on your watchlist now alert you when their value rises or falls 10% or more.", href: "/account/watchlist" },

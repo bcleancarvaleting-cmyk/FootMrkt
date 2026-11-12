@@ -34,7 +34,7 @@ export default function HowItWorks() {
           unique numbered copy with its own ownership history.
         </p>
         <p>
-          New managers get <b>49 free players</b> to start their MatchX journey: four league starter packs (a 7 + 4 squad each for the Premier League, Championship, League One and League Two), three league picks and two Premier League <b>Gold loans</b> for their first four gameweeks. Then a free <b>booster</b> every Tuesday, and gifts on big matchdays. Free cards are yours to play with but are untradeable.
+          New managers get <b>32 free players</b> to start their MatchX journey: four league starter packs, each a starting seven and a sub, for the Premier League, Championship, League One and League Two. Install the app for <b>4 more</b>: pick a top performer from each league, on loan for your first four gameweeks. Then a free <b>booster</b> every Tuesday, and gifts on big matchdays. Free cards are yours to play with but are untradeable.
         </p>
         <p>
           Gold Packs always contain at least <b>2 Gold</b> top-flight players — sometimes 3 or 4 — with the rest Bronze or Silver.
@@ -44,8 +44,8 @@ export default function HowItWorks() {
 
       <Section title="2. Pick your squad">
         <p>
-          Each gameweek you pick <b>7 starters</b> — 1 goalkeeper, 2 defenders, 2 midfielders and 2 attackers — and <b>4 substitutes</b>{" "}
-          in order. You can line up in any of these formations:
+          Each gameweek you pick <b>7 starters</b> — 1 goalkeeper, 2 defenders, 2 midfielders and 2 attackers — and <b>1 substitute</b>, who comes on if a starter doesn&apos;t play.{" "}
+          You can line up in any of these formations:
         </p>
         <div className="flex flex-wrap gap-2">
           {Object.values(FORMATIONS)
@@ -61,8 +61,8 @@ export default function HowItWorks() {
           squad at a time, so choose where to play your best players.
         </p>
         <p>
-          <b>Automatic substitutions:</b> if a starter doesn&apos;t play, Sub 1 comes on if they keep a valid formation (keepers only for
-          keepers), otherwise Sub 2, and so on. You never need to make subs yourself.
+          <b>Automatic substitutions:</b> if a starter doesn&apos;t play, your sub comes on as long as your team still makes a valid formation
+          (only a keeper can replace a keeper). You never need to make the change yourself.
         </p>
       </Section>
 

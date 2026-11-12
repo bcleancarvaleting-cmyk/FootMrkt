@@ -40,7 +40,7 @@ export async function grantPack(
 }
 
 /** Publish a catalogue pack on first use, so sign-up never fails on a database that predates it. */
-async function ensurePublished(tx: Tx, code: string) {
+export async function ensurePublished(tx: Tx, code: string) {
   const { FOOTBALL_PACKS } = await import("@/config/packs");
   const p = FOOTBALL_PACKS.find((x) => x.code === code)!;
   if (await tx.packSku.findFirst({ where: { code, version: { gte: p.version } } })) return;
@@ -49,8 +49,9 @@ async function ensurePublished(tx: Tx, code: string) {
 }
 
 /**
- * The sign-up offer: four league starter packs (7 + 4 each) and three league picks, all free,
- * untradeable and kept. Returns the Premier League starter, which is opened first.
+ * The sign-up offer: four league starter packs of 8 (7 + 1 sub each), all free, untradeable and
+ * kept. Returns the Premier League starter, which is opened first. (The four league picks come
+ * with the app: see grantAppPicks.)
  */
 export async function grantStarterPack(tx: Tx, userId: string) {
   let first: Awaited<ReturnType<typeof grantPack>> | null = null;

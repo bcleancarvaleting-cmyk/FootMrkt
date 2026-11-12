@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import type { CardCategory } from "@/generated/prisma/client";
-import { BRONZE_PICK_CODE, GOLD_PICK_CODE, LEAGUE_PICK_CODES, LOAN_PICK_CODE, SILVER_PICK_CODE } from "@/config/packs";
+import { APP_PICK_CODES, BRONZE_PICK_CODE, GOLD_PICK_CODE, LEAGUE_PICK_CODES, LOAN_PICK_CODE, SILVER_PICK_CODE } from "@/config/packs";
 import { LOAN_GAMEWEEKS } from "./loans";
 import { ensureTemplate, mintInstances } from "./cards";
 import { db, withTx } from "./db";
@@ -29,6 +29,8 @@ export interface PickConfig {
   leagueTier?: number;
   /** Only the league's N most valuable players of the tier (by market value). */
   mostValuable?: number;
+  /** Offer from the league's top N performers this season (any tier; falls back to the most valuable before stats exist). */
+  topPerformers?: number;
 }
 
 export const PICKS: Record<string, PickConfig> = {
@@ -41,7 +43,34 @@ export const PICKS: Record<string, PickConfig> = {
   [LEAGUE_PICK_CODES.LG2]: { category: "BRONZE", options: 4, keep: 1, leagueTier: 4, mostValuable: 40 },
   [LEAGUE_PICK_CODES.LG1]: { category: "BRONZE", options: 4, keep: 1, leagueTier: 3, mostValuable: 40 },
   [LEAGUE_PICK_CODES.CHA]: { category: "SILVER", options: 4, keep: 1, leagueTier: 2, mostValuable: 40 },
+  // App-only picks (12 Nov 2026): 1 of 4 from the league's top 50 performers, on loan for 4 gameweeks.
+  [APP_PICK_CODES.EPL]: { category: "SILVER", options: 4, keep: 1, leagueTier: 1, topPerformers: 50, loanGameweeks: LOAN_GAMEWEEKS },
+  [APP_PICK_CODES.CHA]: { category: "SILVER", options: 4, keep: 1, leagueTier: 2, topPerformers: 50, loanGameweeks: LOAN_GAMEWEEKS },
+  [APP_PICK_CODES.LG1]: { category: "SILVER", options: 4, keep: 1, leagueTier: 3, topPerformers: 50, loanGameweeks: LOAN_GAMEWEEKS },
+  [APP_PICK_CODES.LG2]: { category: "SILVER", options: 4, keep: 1, leagueTier: 4, topPerformers: 50, loanGameweeks: LOAN_GAMEWEEKS },
 };
+
+/** The league's top performers this season who have a card, best first; the most valuable fill any gap. */
+async function topPerformerIds(leagueTier: number, take: number) {
+  const league = await db.league.findFirst({ where: { tier: leagueTier, country: "ENG" }, select: { code: true } });
+  if (!league) return [];
+  const { performanceTable } = await import("./top-performers");
+  const rows = await performanceTable({ window: "season", league: league.code });
+  const withCards = new Set(
+    (await db.cardTemplate.findMany({ where: { playerId: { in: rows.map((r) => r.playerId) }, edition: "STANDARD", active: true }, select: { playerId: true } })).map((t) => t.playerId),
+  );
+  const ids = rows.filter((r) => withCards.has(r.playerId)).slice(0, take).map((r) => r.playerId);
+  if (ids.length < take) {
+    const more = await db.player.findMany({
+      where: { active: true, id: { notIn: ids }, club: { league: { tier: leagueTier, country: "ENG" } }, templates: { some: { edition: "STANDARD", active: true } } },
+      orderBy: [{ marketValueGbp: { sort: "desc", nulls: "last" } }, { id: "asc" }],
+      take: take - ids.length,
+      select: { id: true },
+    });
+    ids.push(...more.map((p) => p.id));
+  }
+  return ids;
+}
 
 export const isPick = (skuCode: string) => skuCode in PICKS;
 
@@ -72,7 +101,7 @@ async function loadEntitlement(userId: string, entitlementId: string) {
 /** The players on offer for this pick (same every time for the same pack). */
 export async function pickOptions(userId: string, entitlementId: string) {
   const { ent, pick } = await loadEntitlement(userId, entitlementId);
-  const players = await db.player.findMany({
+  const players = pick.topPerformers ? (await topPerformerIds(pick.leagueTier ?? 1, pick.topPerformers)).map((id) => ({ id })) : await db.player.findMany({
     where: {
       active: true,
       templates: { some: { category: pick.category, edition: "STANDARD", active: true } },
@@ -89,9 +118,11 @@ export async function pickOptions(userId: string, entitlementId: string) {
   while (chosen.size < pick.options) chosen.add(players[next(players.length)].id);
   const ids = [...chosen];
   // Show each option as a card face, drawn from the player's tier template (no copy needs to exist yet).
+  // Top-performer picks offer each player in their own current tier.
   const templates = await db.cardTemplate.findMany({
-    where: { playerId: { in: ids }, category: pick.category, edition: "STANDARD", active: true },
+    where: { playerId: { in: ids }, ...(pick.topPerformers ? {} : { category: pick.category }), edition: "STANDARD", active: true },
     include: CARD_INCLUDE.template.include,
+    orderBy: { version: "desc" },
   });
   const samples: CardWithTemplate[] = ids.flatMap((playerId) => {
     const template = templates.find((t) => t.playerId === playerId);
@@ -119,13 +150,14 @@ export async function pickOptions(userId: string, entitlementId: string) {
   const views = (await enrichCards(samples)).map((v) =>
     pick.loanGameweeks ? { ...v, edition: "LOAN" as const, loan: { left: pick.loanGameweeks, total: pick.loanGameweeks, ended: false }, valueMp: null, trendPct: null, lock: "NONE" as const } : v,
   );
-  return { entitlement: ent, category: pick.category, pick, playerIds: ids, cards: views, opened: ent.status !== "UNOPENED" };
+  const categories = new Map(samples.map((s) => [s.template.playerId, s.template.category]));
+  return { entitlement: ent, category: pick.category, categories, pick, playerIds: ids, cards: views, opened: ent.status !== "UNOPENED" };
 }
 
 /** Keep the offered player(s). Idempotent: a used pick can't be used again. */
 export async function choosePick(userId: string, entitlementId: string, chosen: string | string[]) {
   const playerIdsChosen = [...new Set(Array.isArray(chosen) ? chosen : [chosen])];
-  const { playerIds, category, entitlement, pick } = await pickOptions(userId, entitlementId);
+  const { playerIds, category, categories, entitlement, pick } = await pickOptions(userId, entitlementId);
   if (playerIdsChosen.length !== pick.keep) throw new DomainError("PICK_COUNT", `Choose ${pick.keep} player${pick.keep > 1 ? "s" : ""}.`);
   if (playerIdsChosen.some((id) => !playerIds.includes(id))) throw new DomainError("NOT_OFFERED", "That player isn't one of your choices.");
   const edition = pick.loanGameweeks ? "LOAN" : "STARTER";
@@ -144,12 +176,13 @@ export async function choosePick(userId: string, entitlementId: string, chosen: 
     });
     const cardIds: string[] = [];
     for (const [slotIndex, playerId] of playerIdsChosen.entries()) {
-      const tpl = await ensureTemplate(tx, playerId, category, edition);
+      const tier = categories.get(playerId) ?? category;
+      const tpl = await ensureTemplate(tx, playerId, tier, edition);
       const [cardId] = await mintInstances(tx, { templateId: tpl.id, count: 1, state: "HELD", ownerId: userId, tradeStatus: "NON_TRADEABLE" });
       if (!cardId) throw new DomainError("NO_STOCK", "That player can't be issued right now — pick another.");
       if (pick.loanGameweeks) await tx.cardInstance.update({ where: { id: cardId }, data: { loanGameweeks: pick.loanGameweeks } });
       await tx.cardOwnership.create({ data: { cardId, userId, acquiredVia: "WEEKLY_PACK", acquiredRef: opening.id } });
-      await tx.packOpeningCard.create({ data: { packOpeningId: opening.id, cardId, slotIndex, category } });
+      await tx.packOpeningCard.create({ data: { packOpeningId: opening.id, cardId, slotIndex, category: tier } });
       cardIds.push(cardId);
     }
     return { openingId: opening.id, cardId: cardIds[0], cardIds };

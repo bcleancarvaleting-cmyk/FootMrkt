@@ -18,17 +18,16 @@ export default async function RegisterPage({ searchParams }: { searchParams: Pro
       <div className="space-y-4">
         <p className="eyebrow">One account · every world</p>
         <h1 className="text-4xl font-black leading-tight">
-          Your club starts with <span className="text-lime">49 free players.</span>
+          Your club starts with <span className="text-lime">32 free players.</span>
         </h1>
         <p className="text-muted">
-          Every new manager gets 49 free players to start their MatchX journey, enough to enter this week&apos;s matches straight away, then a
+          Every new manager gets 32 free players to start their MatchX journey, enough to enter this week&apos;s matches straight away, then a
           free booster every week.
         </p>
         <ul className="space-y-2 text-sm text-muted">
-          <li>✓ A full 7 + 4 squad for each league: Premier League, Championship, League One and League Two</li>
-          <li>✓ Three league picks: choose your own League Two, League One and Championship player</li>
-          <li>✓ Choose 2 Premier League Gold players on loan for your first 4 gameweeks</li>
-          <li>✓ Score points from real match performances</li>
+          <li>✓ A starting seven and a sub for each league: Premier League, Championship, League One and League Two</li>
+          <li>✓ Get the app for 4 more: pick a top performer from each league, on loan for your first 4 gameweeks</li>
+                    <li>✓ Score points from real match performances</li>
           <li>✓ Starter cards are yours to play with but can&apos;t be sold or traded</li>
         </ul>
       </div>

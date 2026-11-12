@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { maxPriceFor } from "@/server/transfers";
 import { WatchButton } from "@/components/watch-button";
-import { isWatching } from "@/server/watchlist";
+import { isWatching, watcherCounts } from "@/server/watchlist";
+import { WatchedBy } from "@/components/watch-button";
 import { STAMPS, type StampKind, stampsForCard } from "@/server/stamps";
 import { FINISH_STYLE, FinishPill } from "@/components/finish-art";
 import { discardLoanAction } from "@/app/actions/account";
@@ -77,6 +78,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
           </ActionButton>
         )}
         {user && <WatchButton playerId={card.template.playerId} initial={await isWatching(user.id, card.template.playerId)} />}
+        <WatchedBy count={(await watcherCounts([card.template.playerId])).get(card.template.playerId) ?? 0} />
         {isOwner && user && (
           <ActionButton action={toggleShowcaseAction.bind(null, id)} className="btn-ghost text-xs">
             {(await db.user.findUniqueOrThrow({ where: { id: user.id }, select: { showcaseCardIds: true } })).showcaseCardIds.includes(id) ? "📌 Pinned to club page" : "📌 Pin to club page"}

@@ -46,3 +46,14 @@ export function AlertPriceForm({ playerId, current }: { playerId: string; curren
     </form>
   );
 }
+
+/** "👁 Watched by 12 managers" — real watchlist count; shows a nudge when it's popular. */
+export function WatchedBy({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-ink-600 bg-ink-900 px-3 py-1.5 text-xs font-semibold">
+      <span aria-hidden="true">👁</span> Watched by <b className="tabular-nums text-fg">{count}</b> manager{count === 1 ? "" : "s"}
+      {count >= 5 && <span className="text-lime">· in demand</span>}
+    </span>
+  );
+}

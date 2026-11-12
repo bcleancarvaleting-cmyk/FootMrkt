@@ -13,7 +13,7 @@ const norm = (code: string) => code.toUpperCase().replace(/[^A-Z0-9]/g, "").slic
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }) {
   const t = await teamPage(norm((await params).code));
   if (!t) return { title: "Club" };
-  const description = `Collect every ${t.club.name} player as a MATCHX card and score points from their real matches. Free to play — start with 49 players.`;
+  const description = `Collect every ${t.club.name} player as a MATCHX card and score points from their real matches. Free to play — start with 32 players.`;
   return { title: `${t.club.name} cards`, description, openGraph: { title: `${t.club.name} on MATCHX`, description } };
 }
 

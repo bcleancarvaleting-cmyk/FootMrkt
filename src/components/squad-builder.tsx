@@ -47,6 +47,7 @@ export function SquadBuilder({
   hasEntry,
   draft,
   boosters,
+  benchSize = 4,
 }: {
   competitionId: string;
   formations: Formation[];
@@ -56,6 +57,8 @@ export function SquadBuilder({
   hasEntry: boolean;
   /** Free draft: the cards are players (id = player id), priced at their MX value, within a budget. */
   draft?: { budgetMx: number; maxPerClub?: number };
+  /** Substitutes the match needs (1 from 12 Nov 2026; 4 for older matches). */
+  benchSize?: number;
   /** Weekly boosters this manager can play here (any match; strictly one per entry). */
   boosters?: { available: Array<{ id: string; name: string; icon: string; description: string; color: string; expires: string; benchOnly: boolean }>; current: string | null };
 }) {
@@ -91,7 +94,7 @@ export function SquadBuilder({
   const [result, setResult] = useState<ActionResult<unknown> | null>(null);
 
   const slots = slotsFor(formation);
-  const benchSlots = [0, 1, 2, 3].map((i) => `B-${i}`);
+  const benchSlots = Array.from({ length: benchSize }, (_, i) => `B-${i}`);
   const used = new Set(Object.values(assign));
   // Who can carry the chosen booster: subs for Super Sub, the starting seven for the rest.
   const boostTargets = booster ? (booster.benchOnly ? benchSlots : slots.map((s) => s.key)).map((k) => assign[k]).filter(Boolean) : [];
@@ -196,9 +199,10 @@ export function SquadBuilder({
       // Bench: try to cover GK first, then best remaining.
       for (const k of benchSlots) {
         if (n[k]) continue;
-        const hasGk = benchSlots.some((b) => n[b] && byId.get(n[b])?.position === "GK");
+        const hasGk = benchSize === 1 || benchSlots.some((b) => n[b] && byId.get(n[b])?.position === "GK");
         const c =
           (!hasGk && pool.find((p) => p.position === "GK" && !taken.has(p.id) && !players.has(p.playerId) && affordable(p))) ||
+          pool.find((p) => (benchSize > 1 || p.position !== "GK") && !taken.has(p.id) && !players.has(p.playerId) && affordable(p)) ||
           pool.find((p) => !taken.has(p.id) && !players.has(p.playerId) && affordable(p));
         if (c) take(k, c);
       }
@@ -330,8 +334,8 @@ export function SquadBuilder({
 
         <div className="panel p-4">
           <div className="mb-2 flex items-center justify-between">
-            <span className="label mb-0">Bench — subs come on in this order</span>
-            <span className="text-[11px] text-faint">If a starter doesn&apos;t play, the first compatible sub replaces them</span>
+            <span className="label mb-0">{benchSize === 1 ? "Sub — comes on if a starter doesn’t play" : "Bench — subs come on in this order"}</span>
+            <span className="text-[11px] text-faint">{benchSize === 1 ? "An outfield sub covers the most positions" : "If a starter doesn’t play, the first compatible sub replaces them"}</span>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {benchSlots.map((k, i) => (
@@ -345,11 +349,11 @@ export function SquadBuilder({
                   onClear={() => clear(k)}
                   boost={booster && boostTarget && assign[k] === boostTarget ? booster : undefined}
                 />
-                <div className="flex gap-1">
+                <div className={`flex gap-1 ${benchSize === 1 ? "hidden" : ""}`}>
                   <button className="rounded px-1.5 text-xs text-faint hover:text-fg disabled:opacity-20" disabled={i === 0} onClick={() => moveBench(i, -1)} aria-label="Move earlier">
                     ◀
                   </button>
-                  <button className="rounded px-1.5 text-xs text-faint hover:text-fg disabled:opacity-20" disabled={i === 3} onClick={() => moveBench(i, 1)} aria-label="Move later">
+                  <button className="rounded px-1.5 text-xs text-faint hover:text-fg disabled:opacity-20" disabled={i === benchSize - 1} onClick={() => moveBench(i, 1)} aria-label="Move later">
                     ▶
                   </button>
                 </div>
@@ -437,7 +441,7 @@ export function SquadBuilder({
               Withdraw
             </button>
           )}
-          {!filled && <span className="self-center text-xs text-faint">Fill all 7 starters and 4 subs to enter.</span>}
+          {!filled && <span className="self-center text-xs text-faint">Fill all 7 starters and {benchSize === 1 ? "your sub" : `${benchSize} subs`} to enter.</span>}
           {result && <ResultText result={result} />}
         </div>
       </div>

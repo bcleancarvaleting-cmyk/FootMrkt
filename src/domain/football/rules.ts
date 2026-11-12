@@ -68,7 +68,17 @@ export const ROSTER_RULES: Record<string, RosterRules> = {
     uniquePlayers: true,
     autoSub: { trigger: "NO_APPEARANCE", compatibility: "VALID_FORMATION" },
   },
-  /** v3: adds 3-1-2 (confirmed 9 Nov 2026). Used by every new competition. */
+  /** v4 (12 Nov 2026): 7 starters + 1 sub — simpler to fill. Used by every new competition. */
+  "football-roster-v4": {
+    id: "football-roster-v4",
+    starters: 7,
+    bench: 1,
+    allowedFormations: ["2-2-2", "2-3-1", "3-2-1", "3-1-2"],
+    strictPositions: true,
+    uniquePlayers: true,
+    autoSub: { trigger: "NO_APPEARANCE", compatibility: "VALID_FORMATION" },
+  },
+  /** v3: adds 3-1-2 (confirmed 9 Nov 2026). 7 + 4; kept for competitions created before v4. */
   "football-roster-v3": {
     id: "football-roster-v3",
     starters: 7,

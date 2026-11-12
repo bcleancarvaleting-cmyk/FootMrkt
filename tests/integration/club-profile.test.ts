@@ -23,7 +23,7 @@ describe("public club page", () => {
 
     const p = await clubProfile("showoff");
     expect(p).not.toBeNull();
-    expect(p!.manager).toMatchObject({ name: "Showoff", clubName: "Peckham Rovers", cards: 11 });
+    expect(p!.manager).toMatchObject({ name: "Showoff", clubName: "Peckham Rovers", cards: 8 });
     expect(p!.manager.crest).not.toBeNull();
     expect(p!.trophies.wins).toEqual([expect.objectContaining({ name: comp.name, gameweek: 1, points: 42 })]);
     expect(JSON.stringify(p)).not.toContain("secret@test.dev");

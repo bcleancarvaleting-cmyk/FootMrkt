@@ -65,7 +65,7 @@ async function Landing() {
               </>
             }
             body="Pick seven real English footballers from your club, choose a formation and score points from what they do on the pitch every weekend."
-            points={["2-2-2, 2-3-1, 3-2-1 or 3-1-2", "Four subs come on if a starter doesn't play", "Free matches every gameweek, with prizes"]}
+            points={["2-2-2, 2-3-1, 3-2-1 or 3-1-2", "A sub comes on if a starter doesn't play", "Free matches every gameweek, with prizes"]}
             visual={
               <div className="relative flex h-[380px] items-center justify-center">
                 {picks.map((c, i) => (
@@ -108,7 +108,7 @@ async function Landing() {
                 <span className="text-[#adfc07]">pull Golds.</span>
               </>
             }
-            body="49 free players to start your MatchX journey: a full squad for the Premier League, Championship, League One and League Two, three league picks and two Premier League Gold loans. Plus a free booster every week."
+            body="32 free players to start your MatchX journey: a starting seven and a sub for the Premier League, Championship, League One and League Two. Get the app for 4 more top-performer picks. Plus a free booster every week."
             points={["England Bronze, Silver and Gold packs", "Published odds on every pack", "Pack shop coming soon"]}
             visual={
               <div className="flex items-end justify-center gap-4">
@@ -147,8 +147,8 @@ async function Landing() {
         <h2 className="mt-1 text-5xl">Three steps to matchday</h2>
         <ol className="mt-8 grid gap-4 md:grid-cols-3">
           {[
-            ["01", "Open packs", "Start with 49 free players across all four leagues, then a free booster every week. Every card is a numbered copy of a real player — Bronze, Silver or Gold by real market value."],
-            ["02", "Pick your seven", "Choose a formation, a keeper, defenders, midfielders and attackers, plus four subs who come on if a starter doesn't play."],
+            ["01", "Open packs", "Start with 32 free players across all four leagues (36 with the app), then a free booster every week. Every card is a numbered copy of a real player — Bronze, Silver or Gold by real market value."],
+            ["02", "Pick your seven", "Choose a formation, a keeper, defenders, midfielders and attackers, plus a sub who comes on if a starter doesn't play."],
             ["03", "Score real points", "Goals, assists, clean sheets and saves from real games become your points. Top the table, win packs."],
           ].map(([n, t, d]) => (
             <li key={n} className="panel relative overflow-hidden p-6">
@@ -204,7 +204,7 @@ function Slide({ background, eyebrow, title, body, points, visual }: { backgroun
           </ul>
           <div className="flex flex-col gap-3 pt-1 sm:flex-row">
             <Link href="/register" className="btn-primary px-7 py-4 text-sm">
-              Play free — get 49 players
+              Play free — get 32 players
             </Link>
             <Link href="/how-it-works" className="btn border border-white/30 px-7 py-4 text-sm text-white hover:border-white/70">
               How it works

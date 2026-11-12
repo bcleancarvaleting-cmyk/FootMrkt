@@ -28,16 +28,23 @@ export const STARTER_PACK_CODE = "football-starter";
 export const WEEKLY_PACK_CODE = "football-weekly";
 
 /**
- * Sign-up offer (product decision 11 Nov 2026), all free, untradeable and kept forever:
- *  - four league starter packs of 7 + 4 (a full squad and bench for every league from day one),
- *  - three "choice of 4" picks: a League Two, a League One and a Championship player,
- *  - the two Premier League Gold loans (unchanged).
- * Replaces the 14-player starter and the 4-week welcome gifts.
+ * Sign-up offer (product decision 12 Nov 2026), all free and untradeable:
+ *  - four league starter packs of 8 (a starting seven and a sub for every league) = 32 players,
+ *  - app only: four league picks (choose 1 of 4 of the league's top 50 performers, on loan for
+ *    the first 4 gameweeks), granted when the manager installs the MATCHX app = 36 players.
+ * Replaces the 7 + 4 starters, the three sign-up league picks and the two Gold loans.
  */
 export const LEAGUE_STARTER_CODES = {
   CHA: "football-starter-cha",
   LG1: "football-starter-lg1",
   LG2: "football-starter-lg2",
+} as const;
+/** App-only league picks: granted when a manager installs the app (see src/server/app-messages.ts). */
+export const APP_PICK_CODES = {
+  EPL: "football-app-pick-epl",
+  CHA: "football-app-pick-cha",
+  LG1: "football-app-pick-lg1",
+  LG2: "football-app-pick-lg2",
 } as const;
 export const LEAGUE_PICK_CODES = {
   LG2: "football-pick-lg2",
@@ -45,7 +52,7 @@ export const LEAGUE_PICK_CODES = {
   CHA: "football-pick-cha",
 } as const;
 
-/** A full squad from one league: GK, 2 DEF, 2 MID, 2 ATT, and a bench of GK, DEF, MID, ATT. */
+/** A team from one league: GK, 2 DEF, 2 MID, 2 ATT and an outfield sub. */
 function leagueStarter(code: string, version: number, league: string, tier: number, base: "BRONZE" | "SILVER", silverChance: boolean): PackSkuSeed {
   const f = (pos: "GK" | "DEF" | "MID" | "ATT") => ({ positions: [pos], countries: ["ENG"], leagueTiers: [tier] });
   // Approved 9 Nov 2026: ~30% chance per slot of Silver (where the league has Silver players).
@@ -56,7 +63,7 @@ function leagueStarter(code: string, version: number, league: string, tier: numb
     name: `${league} Starter`,
     kind: "STARTER",
     priceMinor: 0,
-    blurb: `11 ${league} players — a starting seven and four subs. Free when you join. Untradeable, yours to keep.`,
+    blurb: `8 ${league} players — a starting seven and a sub. Free when you join. Untradeable, yours to keep.`,
     leagues: [league],
     config: {
       mode: "MINT",
@@ -67,10 +74,7 @@ function leagueStarter(code: string, version: number, league: string, tier: numb
         { label: "DEF", count: 2, base, filters: f("DEF"), upgrades: up },
         { label: "MID", count: 2, base, filters: f("MID"), upgrades: up },
         { label: "ATT", count: 2, base, filters: f("ATT"), upgrades: up },
-        { label: "Sub GK", count: 1, base, filters: f("GK"), upgrades: [] },
-        { label: "Sub DEF", count: 1, base, filters: f("DEF"), upgrades: up },
-        { label: "Sub MID", count: 1, base, filters: f("MID"), upgrades: up },
-        { label: "Sub ATT", count: 1, base, filters: f("ATT"), upgrades: up },
+        { label: "Sub", count: 1, base, filters: { positions: ["DEF", "MID", "ATT"], countries: ["ENG"], leagueTiers: [tier] }, upgrades: up },
       ],
     },
   };
@@ -80,7 +84,8 @@ export const FOOTBALL_PACKS: PackSkuSeed[] = [
   // v4 (11 Nov 2026): one starter pack per league — see LEAGUE_STARTERS below. This is the
   // Premier League one. The Premier League has almost no Bronze players (Bronze = under £2m), so
   // its starter is all Silver.
-  leagueStarter(STARTER_PACK_CODE, 4, "Premier League", 1, "SILVER", false),
+  // v5 (12 Nov 2026): 8 players (7 + 1 sub).
+  leagueStarter(STARTER_PACK_CODE, 5, "Premier League", 1, "SILVER", false),
   {
     code: WEEKLY_PACK_CODE,
     // v2: renamed "Free Pack" — now given out on admin-scheduled drop days (10 Nov 2026).
@@ -286,7 +291,19 @@ export const SILVER_PICK_CODE = "football-silver-pick";
 /** Starter loans: every new manager chooses 2 of 6 top-flight Gold players, on loan for their first 4 gameweeks. */
 export const LOAN_PICK_CODE = "football-loan-pick";
 /** Packs opened through the pick screen (choose from a random shortlist) rather than a normal reveal. */
-export const PICK_CODES = [GOLD_PICK_CODE, SILVER_PICK_CODE, BRONZE_PICK_CODE, LOAN_PICK_CODE, LEAGUE_PICK_CODES.LG2, LEAGUE_PICK_CODES.LG1, LEAGUE_PICK_CODES.CHA] as const;
+export const PICK_CODES = [
+  GOLD_PICK_CODE,
+  SILVER_PICK_CODE,
+  BRONZE_PICK_CODE,
+  LOAN_PICK_CODE,
+  LEAGUE_PICK_CODES.LG2,
+  LEAGUE_PICK_CODES.LG1,
+  LEAGUE_PICK_CODES.CHA,
+  "football-app-pick-epl",
+  "football-app-pick-cha",
+  "football-app-pick-lg1",
+  "football-app-pick-lg2",
+] as const;
 
 const free = (code: string, name: string, blurb: string, slots: PackSkuSeed["config"]["slots"]): PackSkuSeed => ({
   code,
@@ -340,21 +357,26 @@ FOOTBALL_PACKS.push(
 
 /** The rest of the sign-up offer: three more league starters and the three league picks. */
 FOOTBALL_PACKS.push(
-  leagueStarter(LEAGUE_STARTER_CODES.CHA, 1, "Championship", 2, "BRONZE", true),
-  leagueStarter(LEAGUE_STARTER_CODES.LG1, 1, "League One", 3, "BRONZE", false),
-  leagueStarter(LEAGUE_STARTER_CODES.LG2, 1, "League Two", 4, "BRONZE", false),
+  leagueStarter(LEAGUE_STARTER_CODES.CHA, 2, "Championship", 2, "BRONZE", true),
+  leagueStarter(LEAGUE_STARTER_CODES.LG1, 2, "League One", 3, "BRONZE", false),
+  leagueStarter(LEAGUE_STARTER_CODES.LG2, 2, "League Two", 4, "BRONZE", false),
   { ...free(LEAGUE_PICK_CODES.LG2, "League Two Pick", "Choose 1 of 4 of League Two's most valuable players to keep. Untradeable.", [{ label: "League Two pick", count: 1, base: "BRONZE", upgrades: [] }]), kind: "STARTER" },
   { ...free(LEAGUE_PICK_CODES.LG1, "League One Pick", "Choose 1 of 4 of League One's most valuable players to keep. Untradeable.", [{ label: "League One pick", count: 1, base: "BRONZE", upgrades: [] }]), kind: "STARTER" },
   { ...free(LEAGUE_PICK_CODES.CHA, "Championship Pick", "Choose 1 of 4 of the Championship's most valuable Silver players to keep. Untradeable.", [{ label: "Championship pick", count: 1, base: "SILVER", upgrades: [] }]), kind: "STARTER" },
 );
 
 /** Everything a new manager gets at sign-up, in the order it's shown (the Premier League starter first). */
-export const SIGNUP_PACK_CODES = [
-  STARTER_PACK_CODE,
-  LEAGUE_STARTER_CODES.CHA,
-  LEAGUE_STARTER_CODES.LG1,
-  LEAGUE_STARTER_CODES.LG2,
-  LEAGUE_PICK_CODES.CHA,
-  LEAGUE_PICK_CODES.LG1,
-  LEAGUE_PICK_CODES.LG2,
-] as const;
+export const SIGNUP_PACK_CODES = [STARTER_PACK_CODE, LEAGUE_STARTER_CODES.CHA, LEAGUE_STARTER_CODES.LG1, LEAGUE_STARTER_CODES.LG2] as const;
+
+/** The app-only picks, Premier League first. */
+const appPick = (code: string, league: string, name: string) => ({
+  ...free(code, `${name} Pick`, `App exclusive: choose 1 of 4 of the ${league}'s top 50 performers, on loan for your first 4 gameweeks.`, [{ label: `${name} pick`, count: 1, base: "SILVER" as const, upgrades: [] }]),
+  kind: "STARTER" as const,
+});
+FOOTBALL_PACKS.push(
+  appPick(APP_PICK_CODES.EPL, "Premier League", "Premier League"),
+  appPick(APP_PICK_CODES.CHA, "Championship", "Championship"),
+  appPick(APP_PICK_CODES.LG1, "League One", "League One"),
+  appPick(APP_PICK_CODES.LG2, "League Two", "League Two"),
+);
+export const APP_PICK_LIST = [APP_PICK_CODES.EPL, APP_PICK_CODES.CHA, APP_PICK_CODES.LG1, APP_PICK_CODES.LG2] as const;

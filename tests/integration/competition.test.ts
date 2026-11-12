@@ -28,7 +28,7 @@ async function starterSquad(userId: string, entitlementId: string) {
     ...by("ATT").slice(0, 2).map((c) => ({ cardId: c.id, position: "ATT" as const })),
   ];
   const used = new Set(starters.map((s) => s.cardId));
-  const bench = cards.filter((c) => !used.has(c.id)).map((c) => c.id).slice(0, 4);
+  const bench = cards.filter((c) => !used.has(c.id)).map((c) => c.id).slice(0, 1);
   return { formation: "2-2-2", starters, bench };
 }
 
@@ -52,14 +52,14 @@ describe("football competition end to end (spec §6, §17)", () => {
     const squadB = await starterSquad(b.userId, b.starterEntitlementId);
 
     // Invalid: wrong bench size.
-    await expect(submitEntry(a.userId, open.id, { ...squadA, bench: squadA.bench.slice(0, 3) })).rejects.toMatchObject({ code: "SQUAD_INVALID" });
+    await expect(submitEntry(a.userId, open.id, { ...squadA, bench: [] })).rejects.toMatchObject({ code: "SQUAD_INVALID" });
     // Invalid: someone else's cards.
     await expect(submitEntry(a.userId, open.id, squadB)).rejects.toMatchObject({ code: "SQUAD_INVALID" });
 
     const entryA = await submitEntry(a.userId, open.id, squadA);
     await submitEntry(b.userId, open.id, squadB);
     const locked = await db.cardInstance.count({ where: { lock: "COMPETITION", lockRef: entryA.id } });
-    expect(locked).toBe(11);
+    expect(locked).toBe(8);
 
     // Same cards can't go into a second competition at the same time.
     await expect(submitEntry(a.userId, bronze.id, squadA)).rejects.toMatchObject({ code: "SQUAD_INVALID" });

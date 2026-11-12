@@ -5,7 +5,7 @@ import { submitEntry } from "@/server/competitions";
 import { db, withTx } from "@/server/db";
 import { createGameweek } from "@/server/gameweeks";
 import { LOAN_GAMEWEEKS, assertLoansUsable, discardLoan, endedLoans, loansLeft } from "@/server/loans";
-import { openPack } from "@/server/packs";
+import { grantStarterLoans, openPack } from "@/server/packs";
 import { choosePick, pickOptions } from "@/server/picks";
 import { cardViews } from "@/server/views";
 import { buildWorld, makeUser, resetDb } from "./fixtures";
@@ -35,12 +35,13 @@ async function squadWithLoans(userId: string) {
     }
   }
   const used = new Set(starters.map((s) => s.cardId));
-  return { formation: "2-2-2", starters, bench: cards.filter((c) => !used.has(c.id)).map((c) => c.id).slice(0, 4) };
+  return { formation: "2-2-2", starters, bench: cards.filter((c) => !used.has(c.id)).map((c) => c.id).slice(0, 1) };
 }
 
 describe("starter loan players", () => {
-  it("every new manager chooses 2 of 6 top-flight Golds on loan: free, untradeable, no value, never handed in", async () => {
+  it("the Gold loan pick (admin gift) offers 2 of 6 top-flight Golds on loan: free, untradeable, no value, never handed in", async () => {
     const u = await makeUser("loaner");
+    await withTx((tx) => grantStarterLoans(tx, u.userId));
     const ent = await db.packEntitlement.findFirstOrThrow({ where: { userId: u.userId, packSku: { code: LOAN_PICK_CODE } } });
     await expect(openPack(u.userId, ent.id)).rejects.toMatchObject({ code: "USE_PICK" });
     const opts = await pickOptions(u.userId, ent.id);
@@ -67,6 +68,7 @@ describe("starter loan players", () => {
 
   it("plays in the first 4 gameweeks the manager enters; once they have settled it can be discarded", async () => {
     const u = await makeUser("loaner2");
+    await withTx((tx) => grantStarterLoans(tx, u.userId));
     await openPack(u.userId, u.starterEntitlementId);
     const ent = await db.packEntitlement.findFirstOrThrow({ where: { userId: u.userId, packSku: { code: LOAN_PICK_CODE } } });
     const { cardIds } = await choosePick(u.userId, ent.id, (await pickOptions(u.userId, ent.id)).playerIds.slice(0, 2));

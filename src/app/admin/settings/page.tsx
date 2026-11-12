@@ -3,6 +3,8 @@ import { ActionButton } from "@/components/action-button";
 import { SettingForm, TextSettingForm } from "@/components/admin-forms";
 import { SETTINGS, type SettingKey, TEXT_SETTINGS, allSettings, getText } from "@/server/settings";
 import { giftPacks } from "@/server/welcome";
+import { LaunchResetForm } from "@/components/launch-reset-form";
+import { RESET_PHRASE } from "@/server/launch-reset";
 import { OpsSections } from "../_parts/ops";
 import { AdminTitle } from "../_parts/title";
 
@@ -36,6 +38,16 @@ export default async function SettingsPage() {
         <TextSettingForm settingKey="whatsappChannelUrl" label={TEXT_SETTINGS.whatsappChannelUrl.label} help={TEXT_SETTINGS.whatsappChannelUrl.help} value={whatsapp} />
       </section>
       <OpsSections only={["flags", "audit"]} />
+      <section className="panel space-y-3 border-danger/50 p-5">
+        <h2 className="text-2xl text-danger">Reset for launch</h2>
+        <p className="text-sm text-muted">
+          Clears the beta test so everyone registers and starts again. <b className="text-fg">Deletes</b> every account except admins, and every card anyone owns goes back into the pool (rare Ruby,
+          Diamond and Rainbow finds included), with all balances, XP, orders, packs, entries, transfers, auctions, leagues, chat, notifications and sim matchdays.{" "}
+          <b className="text-fg">Keeps</b> leagues, clubs, players, values and price history, real gameweeks and results, pack setup, the MATCHX market and drops on sale, challenges, settings, keys and
+          switches, and the waitlist. Admins keep their login and get a fresh starter pack. It can&apos;t be undone — take a database backup first.
+        </p>
+        <LaunchResetForm phrase={RESET_PHRASE} />
+      </section>
     </>
   );
 }

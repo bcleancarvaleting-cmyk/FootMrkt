@@ -293,3 +293,14 @@ export async function removeAutoMatchesAction(): Promise<ActionResult> {
   done();
   return res.ok ? { ok: true, data: undefined, message: `${res.data} automatic match${res.data === 1 ? "" : "es"} removed` } : res;
 }
+
+/** Admin → Settings → "Reset for launch": clear every account but admins and all play, keep the data. */
+export async function resetForLaunchAction(_: ActionResult | null, f: FormData): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const res = await attempt(async () => {
+    const r = await (await import("@/server/launch-reset")).resetForLaunch(admin.id, String(f.get("phrase") ?? ""));
+    return `Reset done: ${r.playersRemoved} test account${r.playersRemoved === 1 ? "" : "s"} removed, ${r.cardsInPool.toLocaleString("en-GB")} cards back in the pool. Admins have a fresh starter pack.`;
+  });
+  revalidatePath("/", "layout");
+  return res.ok ? { ok: true, data: undefined, message: res.data } : res;
+}

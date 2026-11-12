@@ -65,7 +65,7 @@ export const GUIDES: Guide[] = [
     title: "Transfers, auctions & drops",
     summary: "Buy and sell with other managers, run auctions and sign MATCHX drops.",
     steps: [
-      { title: "Transfer list", body: "Buy from other managers or make offers, in earned credit. Sellers pay a 5% fee. Listings are final once posted.", href: "/transfers", cta: "Transfer list" },
+      { title: "Transfer list", body: "Buy from other managers or make offers with your £ balance. Sellers pay a 5% fee. Listings are final once posted.", href: "/transfers", cta: "Transfer list" },
       { title: "Auctions", body: "List a card for 3, 12 or 24 hours with a starting price, an optional buy-it-now and an optional minimum you'll accept.", href: "/transfers/auctions", cta: "Auctions" },
       { title: "MATCHX player drops", body: "New players released by MATCHX every day at 10am — one copy each, never in packs. Add the ones you want to your basket and pay for them all at once.", href: "/transfers/drops", cta: "Player drops" },
       { title: "Your basket", body: "Players in your basket aren't held — whoever pays first signs them. If you're short of credit, the basket offers bundles and brings you back to finish.", href: "/transfers/basket", cta: "Basket" },

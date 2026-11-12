@@ -125,13 +125,16 @@ describe("P2P transfers in MX", () => {
     expect(await kinds(seller.userId)).toEqual(["💸 Player sold"]);
   });
 
-  it("bought MX can't buy players from other managers (Transfer list is earned MX only)", async () => {
+  it("added funds can buy players from other managers; with too little it asks them to add funds", async () => {
     enableLegalGates();
     const seller = await makeTrader("sss3");
     const buyer = await makeTrader("bbb5");
-    await withTx((tx) => credit(tx, { userId: buyer.userId, amountMinor: 5000, kind: "DEPOSIT", bucket: "CASH", refId: "bought-1" }));
+    await withTx((tx) => credit(tx, { userId: buyer.userId, amountMinor: 200, kind: "DEPOSIT", bucket: "CASH", refId: "bought-1" }));
     const listing = await createListing(seller.userId, { cardId: await tradeableCard(seller.userId), askingPriceMinor: 300 });
-    await expect(buyNow(buyer.userId, listing.id)).rejects.toMatchObject({ code: "EARNED_ONLY" });
+    await expect(buyNow(buyer.userId, listing.id)).rejects.toMatchObject({ code: "INSUFFICIENT_FUNDS" });
+    await withTx((tx) => credit(tx, { userId: buyer.userId, amountMinor: 5000, kind: "DEPOSIT", bucket: "CASH", refId: "bought-2" }));
+    await buyNow(buyer.userId, listing.id);
+    expect((await balancesFor(buyer.userId)).bought).toBe(5200 - 300);
   });
 
   it("earned MX can buy cards (MX is never withdrawable), and sale proceeds are earned MX, not winnings", async () => {

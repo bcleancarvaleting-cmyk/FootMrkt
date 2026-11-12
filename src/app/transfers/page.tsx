@@ -47,13 +47,13 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
       <PageHeader
         eyebrow="Buy &amp; sell"
         title="Transfer list"
-        intro="Buy from other managers or make an offer, with earned credit. 5% seller fee."
+        intro="Buy from other managers or make an offer. 5% seller fee."
       />
 
       <p className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-        <span className="text-muted">Earned credit</span> <b className="tabular-nums text-lime">{fmtMp(bal.earned)}</b>
+        <span className="text-muted">Balance</span> <b className="tabular-nums text-lime">{fmtMp(bal.total)}</b>
         <span className="text-faint">· {bal.xp.toLocaleString("en-GB")} XP</span>
-        <Link href="/account/wallet#xp" className="text-xs font-bold text-lime underline-offset-2 hover:underline">Swap XP for £ →</Link>
+        <Link href="/account/wallet#add" className="text-xs font-bold text-lime underline-offset-2 hover:underline">Add funds →</Link>
       </p>
 
       {!tradeableNow && (
@@ -64,7 +64,7 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
           <span className="rounded-md bg-accent px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-accent-ink">Coming soon</span>
           <p className="mt-4 font-display text-3xl font-bold uppercase italic">The Transfer Market</p>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted">
-            Buy players from MATCHX and other managers with earned credit, make offers, and sell to build a better squad. Opening soon — keep earning XP in the meantime.
+            Buy players from MATCHX and other managers, make offers, and sell to build a better squad. Opening soon.
           </p>
         </div>
       )}
@@ -121,7 +121,7 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
         </>
       )}
       <p className="mt-6 text-xs text-faint">
-        Card values go up and down and past prices don&apos;t predict future ones. Money from sales is earned credit: it stays in the game for cards, packs and matches.
+        Card values go up and down and past prices don&apos;t predict future ones. Money from sales stays in the game for cards, packs and matches.
       </p>
     </div>
   );

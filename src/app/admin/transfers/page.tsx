@@ -40,7 +40,7 @@ export default async function Page() {
     <>
       <AdminTitle
         title="Transfer listings"
-        intro="Two ways cards get out and change hands. Player drops: MATCHX releases players at a set price, no fee, paid from any credit. Transfer list: managers sell to each other in earned credit, and the seller pays a 5% fee."
+        intro="Two ways cards get out and change hands. Player drops: MATCHX releases players at a set price, no fee, paid from any credit. Transfer list: managers sell to each other with any £ balance, and the seller pays a 5% fee."
       />
       <section className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-ink-700 bg-ink-700 lg:grid-cols-4">
         {tiles.map(([k, v, s]) => (

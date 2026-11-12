@@ -82,7 +82,15 @@ export function PlayerCard({ card, size = "md", className = "", showcase = false
         {/* Top: position (left) · card number (right) */}
         <div className={`relative flex items-center justify-between gap-1 ${small ? "px-2 pt-2" : "px-2.5 pt-2.5"}`}>
           <span className={`rounded-md bg-ink-950/75 px-1.5 py-0.5 font-black tracking-wider ${small ? "text-[10px]" : "text-xs"} ${t.text}`}>{card.position}</span>
-          <CardNumber card={card} small={small} />
+          <span className="flex items-center gap-1">
+            {/* Team of the Week: black and gold, for that week only (card.totw lasts 7 days). */}
+            {card.totw && (
+              <span title="Team of the Week — this week only" className={`rounded-md bg-black font-black italic tracking-wider text-[#f2cf63] shadow-[0_0_10px_rgba(242,207,99,0.45)] ring-1 ring-[#f2cf63]/80 ${small ? "px-1 py-0.5 text-[9px]" : "px-1.5 py-0.5 text-[10px]"}`}>
+                TOTW
+              </span>
+            )}
+            {!(card.totw && small) && <CardNumber card={card} small={small} />}
+          </span>
         </div>
 
         {/* Kit — nothing on top of it */}
@@ -146,7 +154,6 @@ function StatusLine({ card, small }: { card: CardView; small: boolean }) {
   if (card.loan) items.push([card.loan.ended ? "Loan ended" : "On loan", card.loan.ended ? "text-warn" : "text-muted"]);
   if (card.lock === "COMPETITION") items.push(["In squad", "text-lime"]);
   if (card.lock === "LISTED") items.push(["Listed", "text-warn"]);
-  if (card.totw) items.push(["★ TOTW", "text-gold", "Team of the Week — the badge lasts 7 days"]);
   if (card.risingPct) items.push(["▲ Rising", "text-mint", `Tipped to rise ~${card.risingPct}% at the next revaluation`]);
   if ((card.watchers ?? 0) > 0) items.push([`👁 ${card.watchers}`, "text-muted", `Watched by ${card.watchers} manager${card.watchers === 1 ? "" : "s"}`]);
   if (card.stamps > 0) items.push([`★ ${card.stamps}`, "text-muted", `${card.stamps} history stamp${card.stamps === 1 ? "" : "s"}`]);

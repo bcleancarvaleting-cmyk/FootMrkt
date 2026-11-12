@@ -766,6 +766,8 @@ model Fixture {
   status            FixtureStatus @default(SCHEDULED)
   homeGoals         Int?
   awayGoals         Int?
+  // Match clock while LIVE, when the provider sends it.
+  minute            Int?
   finalisedAt       DateTime?
 
   stats PlayerMatchStat[]

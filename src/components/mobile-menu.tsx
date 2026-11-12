@@ -17,6 +17,7 @@ const MEMBER: Section[] = [
     links: [
       ["Home", "/"],
       ["Matches", "/matches"],
+      ["Matchday Live", "/live"],
       ["Top performers", "/top-performers"],
       ["Mini-leagues", "/leagues"],
       ["Head-to-head", "/h2h"],
@@ -70,6 +71,7 @@ const GUEST: Section = {
     ["How it works", "/how-it-works"],
     ["Guides to MATCHX", "/guides"],
     ["Top performers", "/top-performers"],
+    ["Matchday Live", "/live"],
     ["Log in", "/login"],
   ],
 };

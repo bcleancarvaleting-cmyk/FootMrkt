@@ -60,7 +60,13 @@ export async function ingestMessages(provider: FootballDataProvider, messages: P
         const terminal = r.status === "FINISHED" || r.status === "POSTPONED" || r.status === "ABANDONED";
         await tx.fixture.update({
           where: { id: fixture.id },
-          data: { status: r.status, homeGoals: r.homeGoals, awayGoals: r.awayGoals, finalisedAt: terminal ? new Date() : null },
+          data: {
+            status: r.status,
+            homeGoals: r.homeGoals,
+            awayGoals: r.awayGoals,
+            minute: r.status === "LIVE" && typeof msg.payload.minute === "number" ? msg.payload.minute : null,
+            finalisedAt: terminal ? new Date() : null,
+          },
         });
       } else {
         const playerId = msg.playerRef ? playerByRef.get(msg.playerRef) : undefined;

@@ -97,7 +97,8 @@ export function messagesForFixture(f: AfFixture): ProviderMessage[] {
   const fid = String(f.fixture.id);
   const out: ProviderMessage[] = [];
   const status = fixtureStatus(f.fixture.status.short);
-  const fixturePayload = { status, home: f.goals.home, away: f.goals.away };
+  // The match clock while it's being played (API-Football sends it; Sportmonks doesn't, so the site estimates).
+  const fixturePayload = { status, home: f.goals.home, away: f.goals.away, ...(status === "LIVE" && f.fixture.status.elapsed ? { minute: f.fixture.status.elapsed } : {}) };
   out.push({ providerEventId: `${fid}:result:${hash(fixturePayload)}`, kind: "FIXTURE_RESULT", providerFixtureId: fid, revision: revisionNow(), payload: fixturePayload });
   if (status === "SCHEDULED" || status === "POSTPONED") return out;
 

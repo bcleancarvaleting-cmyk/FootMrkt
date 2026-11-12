@@ -1,0 +1,191 @@
+import { CURRENT_SCORING_RULES, getScoringRules, scorePlayer, toStatLine } from "@/domain/football/scoring";
+import { db } from "./db";
+import { notify } from "./notifications";
+
+/**
+ * Matchday live: scores for the scores ticker, and — for a signed-in manager — the live points of
+ * the players in their locked squads, plus each entry's provisional points and live rank. Fed by
+ * the scheduled live-data sync, so it's as fresh as the last sync.
+ */
+const HOUR = 3_600_000;
+
+export interface LiveFixture {
+  id: string;
+  home: { code: string; name: string; colour: string };
+  away: { code: string; name: string; colour: string };
+  league: string;
+  homeGoals: number | null;
+  awayGoals: number | null;
+  status: "SCHEDULED" | "LIVE" | "FINISHED" | "POSTPONED";
+  /** Clock while live: the provider's minute, or an estimate from kick-off ("HT" at the break). */
+  clock: string | null;
+  kickoffAt: string;
+}
+
+export interface LivePlayer {
+  playerId: string;
+  name: string;
+  club: string;
+  points: number;
+  goals: number;
+  assists: number;
+  minutes: number;
+  live: boolean;
+  captain: boolean;
+}
+
+export interface LiveEntry {
+  competitionId: string;
+  name: string;
+  points: number;
+  rank: number;
+  entries: number;
+}
+
+export interface LiveBoard {
+  fixtures: LiveFixture[];
+  liveCount: number;
+  mine: { entries: LiveEntry[]; players: LivePlayer[] } | null;
+  generatedAt: string;
+}
+
+/** Match clock: the provider's minute, else estimated from kick-off (45' + a 15-minute break). */
+export function matchClock(status: string, kickoffAt: Date, minute: number | null, now = new Date()) {
+  if (status !== "LIVE") return null;
+  if (minute != null) return `${minute}'`;
+  const m = Math.floor((now.getTime() - kickoffAt.getTime()) / 60_000);
+  if (m < 1) return "1'";
+  if (m <= 45) return `${m}'`;
+  if (m < 60) return "HT";
+  return `${Math.min(90, m - 15)}'${m - 15 > 90 ? "+" : ""}`;
+}
+
+async function tickerFixtures(now: Date) {
+  const select = {
+    id: true,
+    status: true,
+    homeGoals: true,
+    awayGoals: true,
+    minute: true,
+    kickoffAt: true,
+    homeClub: { select: { code: true, name: true, primaryColour: true, league: { select: { code: true } } } },
+    awayClub: { select: { code: true, name: true, primaryColour: true } },
+  } as const;
+  // Today's football: anything live, plus results and kick-offs within the day around now.
+  let rows = await db.fixture.findMany({
+    where: { OR: [{ status: "LIVE" }, { kickoffAt: { gte: new Date(now.getTime() - 14 * HOUR), lte: new Date(now.getTime() + 14 * HOUR) } }] },
+    orderBy: { kickoffAt: "asc" },
+    take: 80,
+    select,
+  });
+  // Quiet day: the latest results instead.
+  if (!rows.length) {
+    rows = (await db.fixture.findMany({ where: { status: "FINISHED", kickoffAt: { gte: new Date(now.getTime() - 4 * 24 * HOUR) } }, orderBy: { kickoffAt: "desc" }, take: 24, select })).reverse();
+  }
+  return rows.map(
+    (f): LiveFixture => ({
+      id: f.id,
+      home: { code: f.homeClub.code, name: f.homeClub.name, colour: f.homeClub.primaryColour },
+      away: { code: f.awayClub.code, name: f.awayClub.name, colour: f.awayClub.primaryColour },
+      league: f.homeClub.league.code,
+      homeGoals: f.homeGoals,
+      awayGoals: f.awayGoals,
+      status: f.status === "ABANDONED" ? "POSTPONED" : (f.status as LiveFixture["status"]),
+      clock: matchClock(f.status, f.kickoffAt, f.minute, now),
+      kickoffAt: f.kickoffAt.toISOString(),
+    }),
+  );
+}
+
+/** The manager's locked entries this gameweek: points, live rank, and each player's live points. */
+async function myLive(userId: string) {
+  const entries = await db.competitionEntry.findMany({
+    where: { userId, status: "ACTIVE", competition: { status: { in: ["LOCKED", "PROVISIONAL"] } } },
+    select: {
+      provisionalPoints: true,
+      competition: { select: { id: true, name: true, gameweekId: true, _count: { select: { entries: true } } } },
+      selections: { select: { playerId: true, isCaptain: true, slot: true, player: { select: { displayName: true, position: true, club: { select: { code: true } } } } } },
+    },
+  });
+  if (!entries.length) return null;
+  const ranks = await Promise.all(
+    entries.map((e) =>
+      db.competitionEntry.count({ where: { competitionId: e.competition.id, status: "ACTIVE", provisionalPoints: { gt: e.provisionalPoints ?? 0 } } }).then((n) => n + 1),
+    ),
+  );
+  const gwIds = [...new Set(entries.map((e) => e.competition.gameweekId))];
+  const picked = new Map<string, { name: string; club: string; position: string; captain: boolean }>();
+  for (const e of entries)
+    for (const s of e.selections) {
+      const prev = picked.get(s.playerId);
+      picked.set(s.playerId, { name: s.player.displayName, club: s.player.club?.code ?? "", position: s.player.position, captain: (prev?.captain ?? false) || s.isCaptain });
+    }
+  const stats = await db.playerMatchStat.findMany({
+    where: { isCurrent: true, playerId: { in: [...picked.keys()] }, fixture: { gameweekId: { in: gwIds } } },
+    select: { playerId: true, stats: true, fixture: { select: { status: true } } },
+  });
+  const rules = getScoringRules(CURRENT_SCORING_RULES);
+  const players: LivePlayer[] = [...picked.entries()].map(([playerId, p]) => {
+    const mine = stats.filter((s) => s.playerId === playerId);
+    const lines = mine.map((s) => toStatLine(s.stats)).filter((l) => l.minutes > 0);
+    const points = lines.length ? Math.round(scorePlayer(rules, p.position as "GK", lines).points * 10) / 10 : 0;
+    return {
+      playerId,
+      name: p.name,
+      club: p.club,
+      points,
+      goals: lines.reduce((s, l) => s + l.goals, 0),
+      assists: lines.reduce((s, l) => s + l.assists, 0),
+      minutes: lines.reduce((s, l) => s + l.minutes, 0),
+      live: mine.some((s) => s.fixture.status === "LIVE"),
+      captain: p.captain,
+    };
+  });
+  players.sort((a, b) => Number(b.live) - Number(a.live) || b.points - a.points || a.name.localeCompare(b.name));
+  return {
+    entries: entries
+      .map((e, i): LiveEntry => ({ competitionId: e.competition.id, name: e.competition.name, points: Math.round((e.provisionalPoints ?? 0) * 10) / 10, rank: ranks[i], entries: e.competition._count.entries }))
+      .sort((a, b) => a.rank - b.rank),
+    players,
+  };
+}
+
+export async function liveBoard(userId?: string | null, now = new Date()): Promise<LiveBoard> {
+  const [fixtures, mine] = await Promise.all([tickerFixtures(now), userId ? myLive(userId) : Promise.resolve(null)]);
+  return { fixtures, liveCount: fixtures.filter((f) => f.status === "LIVE").length, mine, generatedAt: now.toISOString() };
+}
+
+/**
+ * "⚽ Your player scored": for every goal by a player in a manager's locked squad this gameweek,
+ * one notification (to the phone too). Keyed on the goal count, so each goal is told once.
+ */
+export async function alertGoals(now = new Date()) {
+  const stats = await db.playerMatchStat.findMany({
+    where: { isCurrent: true, fixture: { OR: [{ status: "LIVE" }, { status: "FINISHED", finalisedAt: { gte: new Date(now.getTime() - 3 * HOUR) } }] } },
+    select: { playerId: true, stats: true, fixtureId: true, fixture: { select: { gameweekId: true, homeGoals: true, awayGoals: true, homeClub: { select: { code: true } }, awayClub: { select: { code: true } } } }, player: { select: { displayName: true } } },
+  });
+  const scorers = stats.map((s) => ({ ...s, line: toStatLine(s.stats) })).filter((s) => s.line.goals > 0);
+  let sent = 0;
+  for (const s of scorers) {
+    const owners = await db.competitionSelection.findMany({
+      where: { playerId: s.playerId, entry: { status: "ACTIVE", competition: { gameweekId: s.fixture.gameweekId, status: { in: ["LOCKED", "PROVISIONAL"] } } } },
+      select: { entry: { select: { userId: true } } },
+      distinct: ["entryId"],
+    });
+    const users = [...new Set(owners.map((o) => o.entry.userId))];
+    const score = `${s.fixture.homeClub.code} ${s.fixture.homeGoals ?? 0}–${s.fixture.awayGoals ?? 0} ${s.fixture.awayClub.code}`;
+    for (const userId of users) {
+      for (let g = 1; g <= s.line.goals; g++) {
+        await notify(userId, {
+          kind: "GOAL",
+          title: `⚽ GOAL! ${s.player.displayName}${g > 1 ? ` (${g === 2 ? "brace" : g === 3 ? "hat-trick" : `${g} goals`})` : ""}`,
+          body: `${score} — points for your squad.`,
+          href: "/live",
+          dedupeKey: `goal:${s.fixtureId}:${s.playerId}:${g}:${userId}`,
+        });
+        sent++;
+      }
+    }
+  }
+  return sent;
+}

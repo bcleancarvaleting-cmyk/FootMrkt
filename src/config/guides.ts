@@ -121,6 +121,7 @@ export const guideBySlug = (slug: string) => GUIDES.find((g) => g.slug === slug)
 
 /** What's new on MATCHX (newest first). Shown at the top of Guides. */
 export const WHATS_NEW: Array<{ date: string; title: string; body: string; href?: string }> = [
+  { date: "2026-11-12", title: "Matchday Live", body: "Live scores scroll across the top during games, GOAL! flashes when the net bulges, and your players' points and your live rank update as it happens.", href: "/live" },
   { date: "2026-11-12", title: "7 + 1 squads", body: "Matches now take 7 starters and just one sub — quicker to pick, easier to fill. Boosters stay the same.", href: "/matches" },
   { date: "2026-11-12", title: "4 free picks in the app", body: "Install MATCHX on your phone for a top-performer pick from every league, on loan for your first 4 gameweeks.", href: "/get-the-app" },
   { date: "2026-11-12", title: "Watched by…", body: "Cards now show how many managers are watching a player, and you're told the moment a watched player is on any market.", href: "/account/watchlist" },

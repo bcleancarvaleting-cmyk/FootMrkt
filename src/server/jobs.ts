@@ -26,6 +26,7 @@ export async function tick() {
     ["welcome packs", grantAllDueWelcomePacks],
     ["weekly reminders & results", weeklyRhythm],
     ["head-to-head", settleH2H],
+    ["goal alerts", async () => (await import("./live")).alertGoals()],
     ["watchlist: players on the market", async () => (await import("./watchlist")).announceWatchedMarket()],
     ["watchlist value alerts", async () => (await import("./watchlist")).alertValueMoves()],
     ["waitlist launch emails", async () => (await import("./waitlist")).sendLaunchEmails()],

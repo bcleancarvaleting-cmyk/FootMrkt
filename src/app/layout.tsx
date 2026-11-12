@@ -16,6 +16,8 @@ import { grantDueWelcomePacks } from "@/server/welcome";
 import Link from "next/link";
 import { Header } from "@/components/nav";
 import { StatsTicker } from "@/components/stats-ticker";
+import { ScoresTicker } from "@/components/scores-ticker";
+import { liveBoard } from "@/server/live";
 import type { Theme } from "@/components/theme-toggle";
 import { getCurrentUser } from "@/server/auth/session";
 import { dataCredit } from "@/config/data-credit";
@@ -61,6 +63,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <a href="#main" className="skip-link">Skip to content</a>
         {!hideTicker && <StatsTicker initial={stats} />}
         <Header theme={theme} unopenedPacks={unopened} />
+        {!hideTicker && <ScoresTicker initial={await liveBoard(user?.id ?? null)} />}
         <main id="main" tabIndex={-1} className={`mx-auto outline-none w-full max-w-6xl flex-1 px-4 pt-6 sm:px-6 ${user ? "pb-32 md:pb-16" : "pb-16"}`}>{children}</main>
         <SiteFooter loggedIn={!!user} credit={await dataCredit()} />
         {user && <BottomNav unopenedPacks={unopened} />}
@@ -85,7 +88,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
 function SiteFooter({ loggedIn, credit }: { loggedIn: boolean; credit: string }) {
   const cols: [string, [string, string][]][] = [
-    ["Play", [["Packs", "/packs"], ["Transfers", "/transfers"], ["Matches", "/matches"], ["Top performers", "/top-performers"], ["Hall of Fame", "/hall-of-fame"], ["Clubs", "/teams"], ["How it works", "/how-it-works"], ["Guides to MATCHX", "/guides"]]],
+    ["Play", [["Packs", "/packs"], ["Transfers", "/transfers"], ["Matches", "/matches"], ["Matchday Live", "/live"], ["Top performers", "/top-performers"], ["Hall of Fame", "/hall-of-fame"], ["Clubs", "/teams"], ["How it works", "/how-it-works"], ["Guides to MATCHX", "/guides"]]],
     ["Account", [["My Club", "/account/club"], ["Challenges", "/account/challenges"], ["Wallet", "/account/wallet"], ["Profile", "/account/profile"]]],
     ["Legal", [["Terms", "/legal/terms"], ["Privacy", "/legal/privacy"], ["Responsible play", "/legal/responsible-play"], ["Risk warning", "/legal/risk"], ["Pack odds", "/odds"], ["Report a problem", "/support"]]],
   ];

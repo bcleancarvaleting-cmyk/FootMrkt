@@ -874,3 +874,67 @@ h2 {
 .skip-link:focus {
   top: 12px;
 }
+
+/* Scores ticker: broadcast-style strip under the header. */
+.ticker-label {
+  clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ticker-track {
+    animation: ticker-scroll linear infinite;
+  }
+  .ticker-viewport:hover .ticker-track,
+  .ticker-viewport:focus-visible .ticker-track {
+    animation-play-state: paused;
+  }
+  .goal-flash-card {
+    animation: goal-flash 5.2s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+  }
+  .points-toast {
+    animation: points-toast 0.35s ease-out both;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ticker-viewport {
+    overflow-x: auto;
+  }
+}
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@keyframes goal-flash {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) skewX(-8deg);
+  }
+  8% {
+    opacity: 1;
+    transform: scale(1.08) skewX(-8deg);
+  }
+  14% {
+    transform: scale(1) skewX(0);
+  }
+  85% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.96);
+  }
+}
+@keyframes points-toast {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

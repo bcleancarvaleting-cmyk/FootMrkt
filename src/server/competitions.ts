@@ -505,3 +505,21 @@ export async function removeCompetition(adminId: string, competitionId: string) 
   }
   return removed.users.length;
 }
+
+/** The old automatic match codes (Freeroll, Free Draft, Open League and the tier cups). */
+const AUTO_SUFFIXES = ["-freeroll", "-draft", "-open", "-bronze", "-silver", "-gold"];
+
+export async function autoMatchesStillOpen() {
+  const comps = await db.competition.findMany({ where: { status: { in: ["UPCOMING", "OPEN"] } }, select: { id: true, code: true } });
+  return comps.filter((c) => AUTO_SUFFIXES.some((s) => c.code.endsWith(s)));
+}
+
+/** Admin: remove every automatic match that hasn't locked yet (entrants refunded and told). */
+export async function removeAutoMatches(adminId: string) {
+  let removed = 0;
+  for (const c of await autoMatchesStillOpen()) {
+    await removeCompetition(adminId, c.id);
+    removed++;
+  }
+  return removed;
+}

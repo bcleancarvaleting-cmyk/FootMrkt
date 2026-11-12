@@ -237,8 +237,11 @@ export async function runScheduledJobs() {
   const { syncLiveData } = await import("./live-data");
   await syncLiveData().catch((e) => console.error("live data sync failed", e));
   await db.gameweek.updateMany({ where: { status: "UPCOMING", competitions: { some: { status: "OPEN" } } }, data: { status: "OPEN" } });
+  // A gameweek locks once its deadline (10 minutes before the first kick-off) has passed and none of
+  // its matches is still taking entries. A gameweek with no matches yet stays open until then, so
+  // the admin can add matches to it.
   await db.gameweek.updateMany({
-    where: { status: "OPEN", competitions: { every: { status: { notIn: ["UPCOMING", "OPEN"] } } } },
+    where: { status: "OPEN", startsAt: { lte: new Date(Date.now() + DEADLINE_MINUTES * 60_000) }, competitions: { every: { status: { notIn: ["UPCOMING", "OPEN"] } } } },
     data: { status: "LOCKED" },
   });
   return windows;

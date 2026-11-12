@@ -28,6 +28,7 @@ export async function tick() {
     ["head-to-head", settleH2H],
     ["goal alerts", async () => (await import("./live")).alertGoals()],
     ["man of the match", async () => (await import("./live")).awardMotm()],
+    ["gameweeks 4 weeks ahead", async () => (await import("./live-data")).dailyGameweeksAhead()],
     ["admin daily report", async () => (await import("./admin-report")).sendDailyReport()],
     ["price tips", async () => (await import("./valuation")).refreshPriceTips()],
     ["watchlist: players on the market", async () => (await import("./watchlist")).announceWatchedMarket()],

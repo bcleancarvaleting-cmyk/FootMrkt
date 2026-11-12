@@ -1,6 +1,8 @@
 import {
   correctionsAction,
   createNextGameweekAction,
+  loadGameweeksAheadAction,
+  removeAutoMatchesAction,
   deleteGameweekAction,
   finaliseAction,
   lockGameweekAction,
@@ -25,6 +27,7 @@ export async function OpsSections({ only }: { only: string[] }) {
   const sport = await footballSport();
   const day = hoursAgo(24);
   const roster = await moderatorRoster();
+  const autoLeft = show("gameweeks") ? (await (await import("@/server/competitions")).autoMatchesStillOpen()).length : 0;
   const [users, newUsers, openings, openings24, listings, flags, supply, gameweeks, releases, auditLog, providerEvents, staleFixtures] = await Promise.all([
     db.user.count(),
     db.user.count({ where: { createdAt: { gte: day } } }),
@@ -60,18 +63,37 @@ export async function OpsSections({ only }: { only: string[] }) {
 
       {show("gameweeks") && (
       <section className="panel p-5">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-bold">Gameweeks</h2>
-          <ActionButton
-            action={createNextGameweekAction}
-            className="btn-primary"
-            confirm="Add the next gameweek? It loads next week's real fixtures so you can build matches from them. No matches are created — you add those yourself."
-          >
-            Add next gameweek
-          </ActionButton>
+          <div className="flex flex-wrap gap-2">
+            <ActionButton
+              action={loadGameweeksAheadAction}
+              className="btn-primary"
+              confirm="Load real fixtures for the next 4 weeks? Each week with matches becomes a gameweek (international breaks are skipped). No matches are created — you add and name those yourself."
+            >
+              Load next 4 weeks of fixtures
+            </ActionButton>
+            <ActionButton
+              action={createNextGameweekAction}
+              className="btn-ghost"
+              confirm="Add the next gameweek? It loads next week's real fixtures so you can build matches from them. No matches are created — you add those yourself."
+            >
+              Add one gameweek
+            </ActionButton>
+          </div>
         </div>
+        {autoLeft > 0 && (
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-warn/50 bg-warn/5 px-3 py-2 text-sm">
+            <span>
+              <b>{autoLeft}</b> automatic match{autoLeft === 1 ? "" : "es"} (Freeroll, Free Draft, Open League, cups) still open from before. Only your own matches should run.
+            </span>
+            <ActionButton action={removeAutoMatchesAction} className="btn-ghost px-3 py-1.5 text-[11px] text-danger" confirm="Remove every automatic match that hasn't locked yet? Anyone who entered is refunded, their players are freed, and they're told.">
+              Remove them
+            </ActionButton>
+          </div>
+        )}
         <p className="mb-3 text-xs text-faint">
-          Gameweeks are only ever added by you (or by a Sportmonks rebuild, which opens the next real week). A gameweek just holds that week&apos;s fixtures — players only see the matches you create in it.
+          A gameweek just holds that week&apos;s real fixtures — players only see the matches you create and name in it. With live data connected, the next 4 weeks of fixtures are also loaded automatically once a day.
         </p>
         {!flags.SIMULATED_DATA && (
           <p className="mb-3 text-sm text-warn">Simulated data is off and no licensed provider is connected — gameweek tools are unavailable.</p>

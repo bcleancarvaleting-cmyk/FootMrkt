@@ -208,3 +208,19 @@ export async function resolveAllErrorsAction(): Promise<ActionResult> {
   revalidatePath("/admin/errors");
   return { ok: true, data: undefined, message: `${r.count} marked fixed` };
 }
+
+export async function loadGameweeksAheadAction(): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const res = await attempt(async () => (await import("@/server/live-data")).ensureGameweeksAhead(4, new Date(), admin.id));
+  done();
+  if (!res.ok) return res;
+  const r = res.data as { created: number; added?: number };
+  return { ok: true, data: undefined, message: r.created || r.added ? `${r.created} gameweek${r.created === 1 ? "" : "s"} added${r.added ? `, ${r.added} fixtures added to loaded weeks` : ""}` : "Already loaded 4 weeks ahead" };
+}
+
+export async function removeAutoMatchesAction(): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const res = await attempt(async () => (await import("@/server/competitions")).removeAutoMatches(admin.id));
+  done();
+  return res.ok ? { ok: true, data: undefined, message: `${res.data} automatic match${res.data === 1 ? "" : "es"} removed` } : res;
+}

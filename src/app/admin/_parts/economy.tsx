@@ -204,7 +204,7 @@ export async function EconomySections({ only }: { only: string[] }) {
             <div key={c.id} className="border-t border-ink-700 pt-4 first:border-0 first:pt-0">
               <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
                 <p className="min-w-0 flex-1 text-sm">
-                  <b>{c.name}</b> <span className="text-faint">· GW{c.gameweek.number} · {c._count.entries} entries · {requirementsSummary((c.requirements ?? {}) as Requirements, c.format)}{prizesSummary(c.rewards) ? ` · prizes ${prizesSummary(c.rewards)}` : ""}</span>
+                  <b>{c.name}</b> <span className="text-faint">· GW{c.gameweek.number} · {c._count.entries} entries · {requirementsSummary((c.requirements ?? {}) as Requirements, c.format)} · {c.entryFeeMinor ? `£${(c.entryFeeMinor / 100).toFixed(2)} entry` : "free entry"} · locks {fmtDate(c.locksAt)}{prizesSummary(c.rewards) ? ` · prizes ${prizesSummary(c.rewards)}` : " · no prizes set"}</span>
                 </p>
                 <ActionButton
                   action={removeMatchAction.bind(null, c.id)}

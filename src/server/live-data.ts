@@ -526,3 +526,82 @@ export async function dailySquadSync() {
   if (last && Date.now() - Number(last.value) < 20 * 3600_000) return null;
   return syncSquads();
 }
+
+/**
+ * Keep gameweeks loaded up to `weeks` ahead (product request 12 Nov 2026: "fixtures for up to 4
+ * weeks in advance"). Real fixtures from the provider, grouped Friday to Thursday; weeks with no
+ * matches (international breaks) are skipped. Each new gameweek opens straight away with no
+ * matches in it — the admin creates and names every match. Weeks already loaded are left alone.
+ * Without a provider, simulated weeks are added instead (development).
+ */
+export async function ensureGameweeksAhead(weeks = 4, now = new Date(), actorId: string | null = null) {
+  const DAY = 86_400_000;
+  const { currentSeason, nextGameweekNumber } = await import("./season");
+  const season = await currentSeason();
+  await loadIntegrationState();
+  if (!liveDataReady()) {
+    // Development: simulated gameweeks a week apart, Saturday 15:00 UK.
+    const { createGameweek } = await import("./gameweeks");
+    let made = 0;
+    for (let w = 0; w < weeks; w++) {
+      const sat = new Date(now.getTime() + ((6 - now.getUTCDay() + 7) % 7 || 7) * DAY + w * 7 * DAY);
+      const kickoff = new Date(Date.UTC(sat.getUTCFullYear(), sat.getUTCMonth(), sat.getUTCDate(), 15));
+      const clash = await db.gameweek.findFirst({ where: { startsAt: { gte: new Date(kickoff.getTime() - 3 * DAY), lte: new Date(kickoff.getTime() + 3 * DAY) } } });
+      if (clash) continue;
+      await createGameweek({ season, number: await nextGameweekNumber(season), opensAt: now, firstKickoffAt: kickoff, actorId }).catch(() => null);
+      made++;
+    }
+    return { created: made, provider: "simulated" };
+  }
+  const src = liveSource();
+  const clubs = await db.club.findMany({ select: { id: true, providerRefs: true } });
+  const clubByTeam = new Map(clubs.flatMap((c) => (refOf(c.providerRefs) ? [[refOf(c.providerRefs)!, c.id] as const] : [])));
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const end = new Date(now.getTime() + (weeks * 7 + 7) * DAY);
+  const all: Array<{ id: string; at: Date; home: string; away: string }> = [];
+  for (const leagueId of Object.values(src.leagues)) {
+    for (const f of await src.fixturesBetween(leagueId, season, iso(now), iso(end))) {
+      const home = clubByTeam.get(f.home);
+      const away = clubByTeam.get(f.away);
+      const at = new Date(f.date);
+      if (home && away && at.getTime() > now.getTime() + 3600_000 && !all.some((x) => x.id === f.id)) all.push({ id: f.id, at, home, away });
+    }
+  }
+  const known = new Set((await db.fixture.findMany({ where: { provider: src.name, providerFixtureId: { in: all.map((f) => f.id) } }, select: { providerFixtureId: true } })).map((f) => f.providerFixtureId));
+  const weekStart = (d: Date) => {
+    const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    return new Date(x.getTime() - ((x.getUTCDay() - 5 + 7) % 7) * DAY).getTime();
+  };
+  const byWeek = new Map<number, typeof all>();
+  for (const f of all) byWeek.set(weekStart(f.at), [...(byWeek.get(weekStart(f.at)) ?? []), f]);
+  let created = 0;
+  let added = 0;
+  for (const [, list] of [...byWeek].sort((a, b) => a[0] - b[0]).slice(0, weeks)) {
+    const fresh = list.filter((f) => !known.has(f.id));
+    if (!fresh.length) continue;
+    // Part of the week is already loaded: add the rest to that gameweek.
+    const existing = list.find((f) => known.has(f.id));
+    if (existing) {
+      const gw = await db.fixture.findFirst({ where: { provider: src.name, providerFixtureId: existing.id }, select: { gameweekId: true } });
+      if (gw) {
+        await db.fixture.createMany({ data: fresh.map((f) => ({ gameweekId: gw.gameweekId, provider: src.name, providerFixtureId: f.id, homeClubId: f.home, awayClubId: f.away, kickoffAt: f.at })), skipDuplicates: true });
+        added += fresh.length;
+        continue;
+      }
+    }
+    await insertGameweek({ season, number: await nextGameweekNumber(season), opensAt: now, actorId, provider: src.name, fixtures: fresh.map((f) => ({ providerFixtureId: f.id, homeClubId: f.home, awayClubId: f.away, kickoffAt: f.at })) });
+    created++;
+  }
+  return { created, added, provider: src.name };
+}
+
+/** Once a day from the scheduled job. */
+export async function dailyGameweeksAhead(now = new Date()) {
+  const key = `gameweeks.ahead.${now.toISOString().slice(0, 10)}`;
+  if (await db.appSetting.findUnique({ where: { key } })) return { skipped: "done today" };
+  await loadIntegrationState();
+  if (!liveDataReady()) return { skipped: "no live data provider" };
+  const r = await ensureGameweeksAhead(4, now).catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
+  await db.appSetting.upsert({ where: { key }, create: { key, value: now.getTime() }, update: {} });
+  return r;
+}

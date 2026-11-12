@@ -67,7 +67,7 @@ export async function GamesAdmin() {
       <section className="panel p-4 sm:p-5">
         <h2 className="mb-1 text-2xl">Create a game</h2>
         <p className="mb-4 text-xs text-muted">Every game is made by you — nothing is created automatically. Add one whenever you like, each one different.</p>
-        <NewGameForm weeks={weekOpts} fixtures={fixtures} suggestedKickoff={suggested} />
+        <NewGameForm weeks={weekOpts} fixtures={fixtures} suggestedKickoff={suggested} leagues={leagueOpts} />
       </section>
 
       <section className="panel p-4 sm:p-5">

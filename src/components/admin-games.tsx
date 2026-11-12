@@ -13,11 +13,14 @@ type Fx = { value: string; week: string; league: string; label: string };
  * (simulated, at the kick-off you choose). Name it, set the entry fee and the £ pot, pick which cards
  * — nothing else is made for you.
  */
-export function NewGameForm({ weeks, fixtures, suggestedKickoff }: { weeks: Week[]; fixtures: Fx[]; suggestedKickoff: string }) {
+export function NewGameForm({ weeks, fixtures, suggestedKickoff, leagues: leagueOpts = [] }: { weeks: Week[]; fixtures: Fx[]; suggestedKickoff: string; leagues?: Array<{ value: string; label: string }> }) {
   const [state, run, pending] = useActionState<ActionResult | null, FormData>(createGameAction, null);
   const [kind, setKind] = useState<"real" | "sim">("sim");
   const [week, setWeek] = useState(weeks[0]?.id ?? "");
   const [on, setOn] = useState<Set<string>>(new Set());
+  const [simLeagues, setSimLeagues] = useState<Set<string>>(new Set(leagueOpts.map((l) => l.value)));
+  const allLeagues = simLeagues.size === leagueOpts.length;
+  const leagueSummary = allLeagues ? "All leagues" : simLeagues.size === 0 ? "Pick at least one" : leagueOpts.filter((l) => simLeagues.has(l.value)).map((l) => l.label).join(" + ");
   const inWeek = useMemo(() => fixtures.filter((f) => f.week === week), [fixtures, week]);
   const leagues = [...new Set(inWeek.map((f) => f.league))];
   const toggle = (ids: string[], v: boolean) =>
@@ -78,11 +81,48 @@ export function NewGameForm({ weeks, fixtures, suggestedKickoff }: { weeks: Week
         </label>
 
         {kind === "sim" ? (
+          <>
+          <div className="sm:col-span-2">
+            <span className="label">Leagues</span>
+            <details className="group relative">
+              <summary className={`input flex cursor-pointer list-none items-center justify-between gap-2 [&::-webkit-details-marker]:hidden ${simLeagues.size === 0 ? "border-danger" : ""}`}>
+                <span className="min-w-0 truncate">{leagueSummary}</span>
+                <span className="text-muted group-open:rotate-180">▾</span>
+              </summary>
+              <div className="absolute inset-x-0 z-20 mt-1 space-y-1 rounded-xl border border-ink-700 bg-ink-900 p-2 shadow-2xl">
+                <label className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-bold hover:bg-ink-800">
+                  <input type="checkbox" className="h-4 w-4 accent-lime" checked={allLeagues} onChange={(e) => setSimLeagues(new Set(e.target.checked ? leagueOpts.map((l) => l.value) : []))} /> All leagues
+                </label>
+                <div className="h-px bg-ink-700" />
+                {leagueOpts.map((l) => (
+                  <label key={l.value} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-ink-800">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 accent-lime"
+                      checked={simLeagues.has(l.value)}
+                      onChange={(e) =>
+                        setSimLeagues((cur) => {
+                          const n = new Set(cur);
+                          if (e.target.checked) n.add(l.value);
+                          else n.delete(l.value);
+                          return n;
+                        })
+                      }
+                    />
+                    {l.label}
+                  </label>
+                ))}
+              </div>
+            </details>
+            {!allLeagues && [...simLeagues].map((v) => <input key={v} type="hidden" name="leagues" value={v} />)}
+            <p className="mt-1 text-xs text-faint">Only players from these leagues can be picked — e.g. just the Premier League, or Championship + League One.</p>
+          </div>
           <div className="sm:col-span-2">
             <label className="label" htmlFor="g-ko">Kick-off (UK time)</label>
             <input id="g-ko" name="kickoffAt" type="datetime-local" defaultValue={suggestedKickoff} className={field} required />
             <p className="mt-1 text-xs text-faint">Every club plays, all kicking off together; entries close a minute before. Two sim games at the same kick-off share the same matchday.</p>
           </div>
+          </>
         ) : (
           <div className="space-y-2 sm:col-span-2">
             <div>
@@ -137,7 +177,7 @@ export function NewGameForm({ weeks, fixtures, suggestedKickoff }: { weeks: Week
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <button className={`px-6 py-3 text-sm ${kind === "sim" ? "btn bg-[#8fe3ff] text-[#04121a]" : "btn-primary"}`} disabled={pending}>
+        <button className={`px-6 py-3 text-sm ${kind === "sim" ? "btn bg-[#8fe3ff] text-[#04121a]" : "btn-primary"}`} disabled={pending || (kind === "sim" && simLeagues.size === 0)}>
           {pending ? "Creating…" : kind === "sim" ? "Create sim game" : "Create real game"}
         </button>
         {state && <ResultText result={state} />}

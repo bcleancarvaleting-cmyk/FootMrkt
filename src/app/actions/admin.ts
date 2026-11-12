@@ -254,6 +254,9 @@ export async function createGameAction(_: ActionResult | null, f: FormData): Pro
     const tier = (["BRONZE", "SILVER", "GOLD"] as const).find((t) => t === s("tier"));
     const common = { name, tier, freeCardsOnly: f.get("freeOnly") === "on", entryFeeMinor: Math.round(fee * 100), prizes: pot > 0 ? String(pot) : undefined };
     if (s("kind") === "sim") {
+      // Sim games can be limited to some leagues (none sent = all of them).
+      const leagues = f.getAll("leagues").map(String).filter(Boolean);
+      if (leagues.length) Object.assign(common, { leagues });
       const sim = await import("@/server/sim-matchday");
       const kickoffAt = sim.ukLocalToDate(s("kickoffAt"));
       // Another sim game at the same kick-off joins that matchday.

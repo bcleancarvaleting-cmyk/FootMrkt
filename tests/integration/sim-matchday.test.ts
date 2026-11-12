@@ -123,6 +123,13 @@ describe("simulated matchdays", () => {
     const comp = await db.competition.findFirstOrThrow({ where: { gameweekId: sim.gameweekId } });
     expect(comp.name).toBe("Sim Night · SIM 1");
     expect(comp.locksAt.getTime()).toBe(ko.getTime() - MIN);
+    // A second sim game at the same matchday, limited to one league.
+    const { createMatch } = await import("@/server/competitions");
+    const t1 = await createMatch(admin.userId, { gameweekId: sim.gameweekId, name: "T1 only", leagues: ["T1"] });
+    expect((t1.requirements as { leagues?: string[] }).leagues).toEqual(["T1"]);
+    // Both leagues ticked = no restriction.
+    const both = await createMatch(admin.userId, { gameweekId: sim.gameweekId, name: "All in", leagues: ["T1", "T2"] });
+    expect((both.requirements as { leagues?: string[] }).leagues).toBeUndefined();
     // Same cards, still locked in the real squad: fine for a sim.
     await submitEntry(a.userId, comp.id, squad);
     const card = await db.cardInstance.findUniqueOrThrow({ where: { id: starters[0].cardId } });

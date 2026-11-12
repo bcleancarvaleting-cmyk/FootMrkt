@@ -78,7 +78,11 @@ export function matchClock(status: string, kickoffAt: Date, minute: number | nul
   return `${Math.min(90, m - 15)}'${m - 15 > 90 ? "+" : ""}`;
 }
 
-async function tickerFixtures(now: Date) {
+/** Which games a board shows: real football, simulated matchdays, or both (Matchday Live). */
+export type LiveScope = "real" | "sim" | "all";
+const scopeWhere = (scope: LiveScope) => (scope === "all" ? {} : { gameweek: { simulated: scope === "sim" } });
+
+async function tickerFixtures(now: Date, scope: LiveScope) {
   const select = {
     id: true,
     status: true,
@@ -96,19 +100,22 @@ async function tickerFixtures(now: Date) {
   // Today's football: anything live, plus results and kick-offs within the day around now.
   // Live games first, then the next kick-offs and the latest results (a busy sim day can have hundreds).
   const [liveRows, nextRows, recentRows] = await Promise.all([
-    db.fixture.findMany({ where: { status: "LIVE" }, orderBy: { kickoffAt: "desc" }, take: 120, select }),
-    db.fixture.findMany({ where: { status: { not: "LIVE" }, kickoffAt: { gte: now, lte: new Date(now.getTime() + 14 * HOUR) } }, orderBy: { kickoffAt: "asc" }, take: 60, select }),
-    db.fixture.findMany({ where: { status: { not: "LIVE" }, kickoffAt: { gte: new Date(now.getTime() - 14 * HOUR), lt: now } }, orderBy: { kickoffAt: "desc" }, take: 60, select }),
+    db.fixture.findMany({ where: { status: "LIVE", ...scopeWhere(scope) }, orderBy: { kickoffAt: "desc" }, take: 120, select }),
+    db.fixture.findMany({ where: { status: { not: "LIVE" }, ...scopeWhere(scope), kickoffAt: { gte: now, lte: new Date(now.getTime() + 14 * HOUR) } }, orderBy: { kickoffAt: "asc" }, take: 60, select }),
+    db.fixture.findMany({ where: { status: { not: "LIVE" }, ...scopeWhere(scope), kickoffAt: { gte: new Date(now.getTime() - 14 * HOUR), lt: now } }, orderBy: { kickoffAt: "desc" }, take: 60, select }),
   ]);
   const seen = new Set<string>();
   let rows = [...liveRows, ...nextRows, ...recentRows].filter((r) => !seen.has(r.id) && seen.add(r.id));
-  // Simulated games: only the latest simulated matchday (older sim days' results drop off).
-  const latestSim = rows.filter((r) => r.gameweek.simulated).reduce<(typeof rows)[number] | null>((a, r) => (!a || r.kickoffAt > a.kickoffAt ? r : a), null);
-  if (latestSim) rows = rows.filter((r) => !r.gameweek.simulated || r.gameweekId === latestSim.gameweekId || r.status === "LIVE");
+  // Simulated games: one simulated matchday only — the one that kicked off most recently, else the next one.
+  const sims = rows.filter((r) => r.gameweek.simulated);
+  const started = sims.filter((r) => r.kickoffAt <= now).sort((a, b) => b.kickoffAt.getTime() - a.kickoffAt.getTime())[0];
+  const next = sims.filter((r) => r.kickoffAt > now).sort((a, b) => a.kickoffAt.getTime() - b.kickoffAt.getTime())[0];
+  const simGw = (started ?? next)?.gameweekId;
+  if (simGw) rows = rows.filter((r) => !r.gameweek.simulated || r.gameweekId === simGw);
   rows.sort((a, b) => a.kickoffAt.getTime() - b.kickoffAt.getTime());
   // Quiet day: the latest results instead.
   if (!rows.length) {
-    rows = (await db.fixture.findMany({ where: { status: "FINISHED", kickoffAt: { gte: new Date(now.getTime() - 4 * 24 * HOUR) } }, orderBy: { kickoffAt: "desc" }, take: 24, select })).reverse();
+    rows = (await db.fixture.findMany({ where: { status: "FINISHED", ...scopeWhere(scope), kickoffAt: { gte: new Date(now.getTime() - 4 * 24 * HOUR) } }, orderBy: { kickoffAt: "desc" }, take: 24, select })).reverse();
   }
   const motmIds = rows.map((r) => r.motmPlayerId).filter((x): x is string => !!x);
   const names = new Map((motmIds.length ? await db.player.findMany({ where: { id: { in: motmIds } }, select: { id: true, displayName: true } }) : []).map((p) => [p.id, p.displayName]));
@@ -133,9 +140,9 @@ async function tickerFixtures(now: Date) {
 }
 
 /** The manager's locked entries this gameweek: points, live rank, and each player's live points. */
-async function myLive(userId: string) {
+async function myLive(userId: string, scope: LiveScope) {
   const entries = await db.competitionEntry.findMany({
-    where: { userId, status: "ACTIVE", competition: { status: { in: ["LOCKED", "PROVISIONAL"] } } },
+    where: { userId, status: "ACTIVE", competition: { status: { in: ["LOCKED", "PROVISIONAL"] }, ...scopeWhere(scope) } },
     select: {
       provisionalPoints: true,
       competition: { select: { id: true, name: true, gameweekId: true, _count: { select: { entries: true } } } },
@@ -185,8 +192,8 @@ async function myLive(userId: string) {
   };
 }
 
-export async function liveBoard(userId?: string | null, now = new Date()): Promise<LiveBoard> {
-  const [{ fixtures, quick }, mine] = await Promise.all([tickerFixtures(now), userId ? myLive(userId) : Promise.resolve(null)]);
+export async function liveBoard(userId?: string | null, now = new Date(), scope: LiveScope = "all"): Promise<LiveBoard> {
+  const [{ fixtures, quick }, mine] = await Promise.all([tickerFixtures(now, scope), userId ? myLive(userId, scope) : Promise.resolve(null)]);
   return { fixtures, liveCount: fixtures.filter((f) => f.status === "LIVE").length, mine, generatedAt: now.toISOString(), fast: quick };
 }
 

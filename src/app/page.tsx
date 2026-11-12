@@ -248,9 +248,6 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
     db.miniLeagueMember.count({ where: { userId } }),
   ]);
   const totw = await currentTeamOfTheWeek();
-  // A simulated matchday that's open or playing, shown beside the real gameweek.
-  const simGw = await db.gameweek.findFirst({ where: { simulated: true, status: { in: ["OPEN", "LOCKED", "PROVISIONAL"] } }, orderBy: { startsAt: "asc" } });
-  const simComps = simGw ? await db.competition.findMany({ where: { gameweekId: simGw.id }, include: { entries: { where: { userId } }, _count: { select: { entries: true } } }, orderBy: [{ entryFeeMinor: "asc" }, { name: "asc" }] }) : [];
   const [comps, heroImage, paidEntry] = await Promise.all([
     gw
       ? db.competition.findMany({ where: { gameweekId: gw.id }, include: { entries: { where: { userId } }, _count: { select: { entries: true } } }, orderBy: [{ entryFeeMinor: "asc" }, { name: "asc" }] })
@@ -406,25 +403,6 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
             {comps.map((c) => (
               <li key={c.id} className="w-[86%] shrink-0 snap-start md:w-auto">
                 <MatchCard c={c} entry={c.entries[0]} paidEntry={paidEntry} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {simGw && simComps.length > 0 && (
-        <section>
-          <SectionHead
-            eyebrow={`Simulated matchday ${simGw.number} · kick-off ${simGw.startsAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" })}`}
-            title="Sim matchday"
-            href={`/matches?gw=${simGw.id}`}
-            cta="All sim matches"
-          />
-          <p className="-mt-1 mb-3 text-xs text-muted">Results simulated from real form, played out live. Points count in these matches only.</p>
-          <ul className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-2 md:overflow-visible md:px-0 xl:grid-cols-3">
-            {simComps.map((c) => (
-              <li key={c.id} className="w-[86%] shrink-0 snap-start md:w-auto">
-                <MatchCard c={c} entry={c.entries[0]} paidEntry={paidEntry} sim />
               </li>
             ))}
           </ul>

@@ -1,6 +1,7 @@
 import { confirmOrderWithProvider } from "@/server/market";
 import Link from "next/link";
 import { SimBadge } from "@/components/sim-badge";
+import { SimTickerScope } from "@/components/scores-ticker";
 import { cardPaymentsReady } from "@/server/payments/config";
 import { ManagerBadge } from "@/components/club-crest";
 import { FoundingBadge } from "@/components/founding-badge";
@@ -51,6 +52,7 @@ export default async function CompetitionPage({ params, searchParams }: { params
           <Link href={`/matches?gw=${comp.gameweekId}`} className="text-xs text-faint hover:text-fg">
             ← {comp.gameweek.simulated ? `Simulated matchday ${comp.gameweek.number}` : `Gameweek ${comp.gameweek.number}`}
           </Link>
+          {comp.gameweek.simulated && <SimTickerScope />}
           {comp.gameweek.simulated && (
             <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
               <SimBadge /> Simulated games — results generated from each player&apos;s real form and value, played out live.

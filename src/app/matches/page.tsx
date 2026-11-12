@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MatchCard } from "@/components/match-card";
 import { SimBadge } from "@/components/sim-badge";
+import { SimTickerScope } from "@/components/scores-ticker";
 import { Countdown } from "@/components/countdown";
 import { EmptyState } from "@/components/page-header";
 import { requireUser } from "@/server/auth/session";
@@ -55,6 +56,7 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
               These games aren&apos;t real football: the results are <b className="text-fg">simulated from each player&apos;s real form and value</b>, and play out live on Matchday Live — goals, assists and cards as they happen. You can use cards that are already in a real squad. Points count in these matches only, not in real stats or the Mega League.
             </p>
           )}
+          {gw.simulated && <SimTickerScope />}
           {gw.simulated && gw.status !== "SETTLED" && (
             <Link href="/live" className="btn-primary mt-3 inline-flex px-4 py-2 text-xs">
               {gw.status === "OPEN" || gw.status === "UPCOMING" ? "▶ Watch it live at kick-off" : "● Watch live now"}

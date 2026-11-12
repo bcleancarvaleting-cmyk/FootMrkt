@@ -16,7 +16,7 @@ import { grantDueWelcomePacks } from "@/server/welcome";
 import Link from "next/link";
 import { Header } from "@/components/nav";
 import { StatsTicker } from "@/components/stats-ticker";
-import { ScoresTicker } from "@/components/scores-ticker";
+import { ScoresTicker, TickerScopeProvider } from "@/components/scores-ticker";
 import { liveBoard } from "@/server/live";
 import { MomentOverlay } from "@/components/moment-overlay";
 import { nextMoment } from "@/server/moments";
@@ -62,10 +62,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       className={`${geistSans.variable} ${geistMono.variable} ${display.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
+        <TickerScopeProvider>
         <a href="#main" className="skip-link">Skip to content</a>
         {!hideTicker && <StatsTicker initial={stats} />}
         <Header theme={theme} unopenedPacks={unopened} />
-        {!hideTicker && <ScoresTicker initial={await liveBoard(user?.id ?? null)} />}
+        {/* Real football only; simulated-matchday pages switch it to their sim games. */}
+        {!hideTicker && <ScoresTicker initial={await liveBoard(user?.id ?? null, new Date(), "real")} />}
         {user && <MomentOverlay moment={await nextMoment(user.id)} />}
         <main id="main" tabIndex={-1} className={`mx-auto outline-none w-full max-w-6xl flex-1 px-4 pt-6 sm:px-6 ${user ? "pb-32 md:pb-16" : "pb-16"}`}>{children}</main>
         <SiteFooter loggedIn={!!user} credit={await dataCredit()} />
@@ -84,6 +86,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             maxLength={CHAT_RULES.maxLength}
           />
         )}
+        </TickerScopeProvider>
       </body>
     </html>
   );

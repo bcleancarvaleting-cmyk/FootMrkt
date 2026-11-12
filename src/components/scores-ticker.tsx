@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { LiveBoard, LiveFixture } from "@/server/live";
 
 /**
@@ -9,8 +9,33 @@ import type { LiveBoard, LiveFixture } from "@/server/live";
  * and kick-offs, scrolling. Polls every 30 seconds (15 while games are live). When a score changes
  * it flashes GOAL!, and when one of your players scores you get a "+6 for you" pop-up.
  */
+/**
+ * Which games the ticker shows. Real football everywhere; a simulated-matchday page (and Matchday
+ * Live while a sim is on) switches it to that sim's games by rendering <SimTickerScope />.
+ */
+type Scope = "real" | "sim";
+const ScopeContext = createContext<{ scope: Scope; setScope: (s: Scope) => void }>({ scope: "real", setScope: () => {} });
+
+export function TickerScopeProvider({ children }: { children: React.ReactNode }) {
+  const [scope, setScope] = useState<Scope>("real");
+  return <ScopeContext.Provider value={{ scope, setScope }}>{children}</ScopeContext.Provider>;
+}
+
+/** Put on a sim page: the ticker shows the sim games while this page is open. */
+export function SimTickerScope() {
+  const { setScope } = useContext(ScopeContext);
+  useEffect(() => {
+    setScope("sim");
+    return () => setScope("real");
+  }, [setScope]);
+  return null;
+}
+
 export function ScoresTicker({ initial }: { initial: LiveBoard }) {
+  const { scope } = useContext(ScopeContext);
   const [board, setBoard] = useState(initial);
+  // Which scope the board on screen belongs to (hide the real games while a sim page loads its own).
+  const [shown, setShown] = useState<Scope>("real");
   const [flash, setFlash] = useState<{ key: number; title: string; line: string; who: string | null } | null>(null);
   const [toasts, setToasts] = useState<Array<{ key: number; text: string }>>([]);
   const prev = useRef(initial);
@@ -18,12 +43,15 @@ export function ScoresTicker({ initial }: { initial: LiveBoard }) {
   useEffect(() => {
     let stop = false;
     let timer: ReturnType<typeof setTimeout>;
+    let switched = scope !== "real";
     const poll = async () => {
       try {
-        const r = await fetch("/api/live", { cache: "no-store" });
+        const r = await fetch(`/api/live?scope=${scope}`, { cache: "no-store" });
         if (r.ok && !stop) {
           const next = (await r.json()) as LiveBoard;
-          const { flash: f, gains } = changesBetween(prev.current, next);
+          // Switching between real and sim games isn't a goal.
+          const { flash: f, gains } = switched ? { flash: null, gains: [] } : changesBetween(prev.current, next);
+          switched = false;
           if (f) {
             setFlash(f);
             setTimeout(() => setFlash(null), 5200);
@@ -34,20 +62,22 @@ export function ScoresTicker({ initial }: { initial: LiveBoard }) {
           }
           prev.current = next;
           setBoard(next);
+          setShown(scope);
         }
       } catch {
         /* keep the last scores */
       }
       if (!stop) timer = setTimeout(poll, prev.current.fast ? 4_000 : prev.current.liveCount > 0 ? 15_000 : 30_000);
     };
-    timer = setTimeout(poll, initial.fast ? 4_000 : initial.liveCount > 0 ? 15_000 : 30_000);
+    // A sim page loads its games straight away; the real board starts from the server's copy.
+    timer = setTimeout(poll, scope === "sim" ? 0 : initial.fast ? 4_000 : initial.liveCount > 0 ? 15_000 : 30_000);
     return () => {
       stop = true;
       clearTimeout(timer);
     };
-  }, [initial.liveCount, initial.fast]);
+  }, [initial.liveCount, initial.fast, scope]);
 
-  if (!board.fixtures.length) return null;
+  if (!board.fixtures.length || shown !== scope) return null;
   const live = board.liveCount > 0;
   const items = board.fixtures;
   // Long enough to read: ~3.5s per match on screen.

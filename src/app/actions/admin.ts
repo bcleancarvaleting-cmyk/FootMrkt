@@ -241,6 +241,41 @@ export async function createSimMatchdayAction(_: ActionResult | null, f: FormDat
   return { ok: true, data: undefined, message: `SIM ${r.number} created: ${r.fixtures} games${r.copied ? `, ${r.copied} match${r.copied === 1 ? "" : "es"} open for entries` : " — now add your matches to it"}` };
 }
 
+/** Admin → Games: create one game, real (on real fixtures) or sim (at a kick-off time). */
+export async function createGameAction(_: ActionResult | null, f: FormData): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const s = (k: string) => String(f.get(k) ?? "").trim();
+  const res = await attempt(async () => {
+    const name = s("name");
+    if (name.length < 3) throw new DomainError("NAME", "Give the game a name.");
+    const fee = Number(s("fee") || 0);
+    const pot = Number(s("pot") || 0);
+    if (!Number.isFinite(fee) || fee < 0 || !Number.isFinite(pot) || pot < 0) throw new DomainError("MONEY", "Entry and pot must be £0 or more.");
+    const tier = (["BRONZE", "SILVER", "GOLD"] as const).find((t) => t === s("tier"));
+    const common = { name, tier, freeCardsOnly: f.get("freeOnly") === "on", entryFeeMinor: Math.round(fee * 100), prizes: pot > 0 ? String(pot) : undefined };
+    if (s("kind") === "sim") {
+      const sim = await import("@/server/sim-matchday");
+      const kickoffAt = sim.ukLocalToDate(s("kickoffAt"));
+      // Another sim game at the same kick-off joins that matchday.
+      const same = await db.gameweek.findFirst({ where: { simulated: true, startsAt: kickoffAt, status: { in: ["OPEN", "UPCOMING"] } } });
+      if (same) {
+        const { createMatch } = await import("@/server/competitions");
+        const c = await createMatch(admin.id, { gameweekId: same.id, ...common });
+        return `${c.name} added to SIM ${same.number}`;
+      }
+      const r = await sim.createSimMatchday(admin.id, { kickoffAt, match: common });
+      return `${name} · SIM ${r.number} created — kick-off ${kickoffAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" })}`;
+    }
+    const gameweekId = s("gameweekId");
+    if (!gameweekId) throw new DomainError("FIXTURES", "Pick the week of fixtures.");
+    const { createMatch } = await import("@/server/competitions");
+    const c = await createMatch(admin.id, { gameweekId, fixtureIds: f.getAll("fixtureIds").map(String).filter(Boolean), ...common });
+    return `${c.name} created`;
+  });
+  done();
+  return res.ok ? { ok: true, data: undefined, message: res.data as string } : res;
+}
+
 export async function removeAutoMatchesAction(): Promise<ActionResult> {
   const admin = await requireAdmin();
   const res = await attempt(async () => (await import("@/server/competitions")).removeAutoMatches(admin.id));

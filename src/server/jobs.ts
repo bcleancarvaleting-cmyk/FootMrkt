@@ -29,7 +29,6 @@ export async function tick() {
     ["goal alerts", async () => (await import("./live")).alertGoals()],
     ["man of the match", async () => (await import("./live")).awardMotm()],
     ["simulated matchdays (play)", async () => (await import("./sim-matchday")).playSimMatchdays()],
-    ["simulated matchday (daily)", async () => (await import("./sim-matchday")).dailySimMatchday()],
     ["gameweeks 4 weeks ahead", async () => (await import("./live-data")).dailyGameweeksAhead()],
     ["admin daily report", async () => (await import("./admin-report")).sendDailyReport()],
     ["price tips", async () => (await import("./valuation")).refreshPriceTips()],

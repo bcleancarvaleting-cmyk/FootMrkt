@@ -13,8 +13,6 @@ import {
 import { revokeModeratorAction } from "@/app/actions/moderation";
 import { ActionButton } from "@/components/action-button";
 import { InviteModeratorForm } from "@/components/moderator-admin";
-import { SimMatchdayForm, TextSettingForm } from "@/components/admin-forms";
-import { TEXT_SETTINGS, getText } from "@/server/settings";
 import { moderatorRoster } from "@/server/moderation";
 import { FLAG_DEFINITIONS, type FlagKey } from "@/config/flags";
 import { db } from "@/server/db";
@@ -29,9 +27,6 @@ export async function OpsSections({ only }: { only: string[] }) {
   const sport = await footballSport();
   const day = hoursAgo(24);
   const roster = await moderatorRoster();
-  const simDaily = show("gameweeks") ? await getText("simDailyTime") : "";
-  const lastSim = show("gameweeks") ? await db.gameweek.findFirst({ where: { simulated: true }, orderBy: { startsAt: "desc" }, select: { _count: { select: { competitions: true } } } }) : null;
-  const simSuggest = (await import("@/server/sim-matchday")).suggestedSimKickoff(new Date());
   const autoLeft = show("gameweeks") ? (await (await import("@/server/competitions")).autoMatchesStillOpen()).length : 0;
   const [users, newUsers, openings, openings24, listings, flags, supply, gameweeks, releases, auditLog, providerEvents, staleFixtures] = await Promise.all([
     db.user.count(),
@@ -103,17 +98,6 @@ export async function OpsSections({ only }: { only: string[] }) {
         {!flags.SIMULATED_DATA && (
           <p className="mb-3 text-sm text-warn">Simulated data is off and no licensed provider is connected — gameweek tools are unavailable.</p>
         )}
-        <div className="mb-5 rounded-xl border border-[#8fe3ff]/40 bg-[#8fe3ff]/5 p-4">
-          <h3 className="font-bold">Simulated matchdays</h3>
-          <p className="mb-3 mt-1 text-xs text-muted">
-            Every real club plays once, all kicking off together, clearly labelled <b>SIM</b> for players. Results are simulated from each player&apos;s real form and value.
-            Each game is short: a 5-minute first half, a 10-second break and a 5-minute second half, each with a few minutes of added time. Goals, assists and cards appear live on the Watch screen, and it settles and pays prizes about 11 minutes after kick-off.
-            Name a match below and it&apos;s open for entries straight away (squads lock 1 minute before kick-off). Players can use cards that are already in a real-gameweek squad.
-            Sim results never touch real stats, values, Top performers, Team of the Week or the Mega League.
-          </p>
-          <SimMatchdayForm suggested={simSuggest} canCopy={(lastSim?._count.competitions ?? 0) > 0} />
-          <TextSettingForm settingKey="simDailyTime" label={TEXT_SETTINGS.simDailyTime.label} help={TEXT_SETTINGS.simDailyTime.help} value={simDaily} placeholder="19:00" />
-        </div>
         <div className="space-y-3">
           {gameweeks.map((g) => {
             const played = g.fixtures.filter((f) => f.status !== "SCHEDULED").length;

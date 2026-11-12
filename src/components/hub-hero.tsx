@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ClubCrest } from "@/components/club-crest";
 import { HERO_PHOTOS, PhotoBackground } from "@/components/hero-background";
 import { HeroCarousel } from "@/components/hero-carousel";
@@ -46,7 +47,6 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
   const change = pf.changePct;
 
   const labels = ["My Club", "Packs", "Transfer list", "Matches", "Challenges"];
-  const pct = change !== null && change !== undefined ? `${change >= 0 ? "▲" : "▼"} ${Math.abs(change)}%` : null;
   const fan = (list: CardView[]) => (
     <div className="relative flex h-[330px] items-center justify-center sm:h-[380px]">
       {list.map((c, i) => (
@@ -56,8 +56,6 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
       ))}
     </div>
   );
-  // Best player in the middle of the fan.
-  const club3 = top3.length === 3 ? [top3[1], top3[0], top3[2]] : top3;
   const market3 = market?.rows.slice(0, 3).map((r) => r.card) ?? [];
   const marketFan = market3.length === 3 ? [market3[1], market3[0], market3[2]] : market3;
   const nextGame = games.find((g) => g.entries[0]) ?? games[0];
@@ -73,29 +71,31 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
   return (
     <div className="-mx-4 sm:-mx-6 lg:mx-0">
       <HeroCarousel labels={labels}>
-        <HeroSlide
-          background={<PhotoBackground src={HERO_PHOTOS.nightStadium} />}
-          eyebrow="My Club"
-          title={user.clubName ?? `${name}'s club`}
-          accent={`£${pf.value.toFixed(2)}.`}
-          body={
-            <>
-              {cards.length} players in your club{pct ? <> · value <b className={change! >= 0 ? "text-mint" : "text-danger"}>{pct}</b></> : null}. Welcome back, {name}.
-            </>
-          }
-          points={top3.map((c) => `${c.name} · ${c.valueMp !== null && c.valueMp !== undefined ? `£${c.valueMp.toFixed(2)}` : "—"}`)}
-          visual={
-            <div className="relative">
-              {crest && (
-                <div className="absolute -top-2 left-1/2 z-10 -translate-x-1/2 drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)]">
-                  <ClubCrest crest={crest} id="hub-crest" size={64} />
-                </div>
-              )}
-              {club3.length ? fan(club3) : null}
+        {/* My Club — kept as managers know it */}
+        <Frame tone="lime" href="/account/club" cta="My Club">
+          <div className="flex items-center gap-4">
+            {crest ? <ClubCrest crest={crest} id="hub-crest" size={72} /> : <Link href="/account/club/crest" className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl border border-dashed border-white/30 text-center text-[10px] font-bold text-white/60">Design crest</Link>}
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">Welcome back, {name}</p>
+              <h2 className="truncate font-display text-4xl font-black uppercase italic leading-none sm:text-5xl">{user.clubName ?? `${name}'s club`}</h2>
             </div>
-          }
-          ctas={[{ href: "/account/club", label: "My Club" }, crest ? { href: "/transfers/market", label: "Sign players", tone: "ghost" } : { href: "/account/club/crest", label: "Design your crest", tone: "ghost" }]}
-        />
+          </div>
+          <div className="mt-4 flex flex-wrap items-end gap-x-6 gap-y-2">
+            <span>
+              <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-white/55">Club value</span>
+              <span className="font-display text-4xl font-black italic tabular-nums text-[#adfc07]">£{pf.value.toFixed(2)}</span>
+              {change !== null && change !== undefined && <span className={`ml-2 text-sm font-bold ${change >= 0 ? "text-mint" : "text-danger"}`}>{change >= 0 ? "▲" : "▼"} {Math.abs(change)}%</span>}
+            </span>
+            <span className="text-sm text-white/70">{cards.length} players</span>
+          </div>
+          {top3.length > 0 && (
+            <div className="mt-4 flex justify-center gap-2 sm:justify-start">
+              {top3.map((c) => (
+                <PlayerCard key={c.id} card={c} size="sm" showcase />
+              ))}
+            </div>
+          )}
+        </Frame>
 
         <HeroSlide
           background={<PhotoBackground src={HERO_PHOTOS.ballBoots} position="60% 50%" />}
@@ -105,9 +105,9 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
           body={unopened ? <>You&apos;ve got <b className="text-[#f0cb5a]">{unopened} pack{unopened === 1 ? "" : "s"}</b> waiting to open.</> : "Bronze, Silver and Gold England packs — every card a numbered copy of a real player."}
           points={["England Bronze, Silver and Gold packs", "Published odds on every pack", "A free booster every week"]}
           visual={
-            <div className="flex items-end justify-center gap-4">
+            <div className="flex items-end justify-center gap-2 sm:gap-4">
               {(["bronze", "silver", "gold"] as const).map((t, i) => (
-                <div key={t} className={`card-premium ${t === "gold" ? "is-gold" : ""} foil-${t} relative flex h-48 w-32 items-end overflow-hidden rounded-2xl p-3 shadow-2xl sm:h-60 sm:w-40`} style={{ transform: `translateY(${i === 2 ? -16 : 0}px)` }}>
+                <div key={t} className={`card-premium ${t === "gold" ? "is-gold" : ""} foil-${t} relative flex h-40 w-[6.5rem] items-end overflow-hidden rounded-2xl p-3 shadow-2xl sm:h-60 sm:w-40`} style={{ transform: `translateY(${i === 2 ? -16 : 0}px)` }}>
                   <span className="sheen" aria-hidden="true" />
                   {t === "gold" && <span className="holo" aria-hidden="true" />}
                   <span className="absolute left-3 top-3 text-[10px] font-extrabold uppercase italic tracking-[0.2em] text-black/60">England</span>
@@ -120,7 +120,7 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
         />
 
         <HeroSlide
-          background={<PhotoBackground src={HERO_PHOTOS.bootBall} position="50% 40%" />}
+          background={<PhotoBackground src={HERO_PHOTOS.bootBall} position="50% 45%" />}
           eyebrow="Transfer list"
           title="Buy, sell,"
           accent="make offers."
@@ -131,7 +131,7 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
         />
 
         <HeroSlide
-          background={<PhotoBackground src={HERO_PHOTOS.floodlight} position="50% 40%" />}
+          background={<PhotoBackground src={HERO_PHOTOS.nightStadium} />}
           eyebrow="Matches"
           title={liveGames.length ? "Matchday" : "Pick your"}
           accent={liveGames.length ? "is live." : "seven."}
@@ -162,7 +162,7 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
         />
 
         <HeroSlide
-          background={<PhotoBackground src={HERO_PHOTOS.ballBoots} position="30% 60%" />}
+          background={<PhotoBackground src={HERO_PHOTOS.floodlight} position="50% 40%" />}
           eyebrow="Challenges"
           title="Hand in,"
           accent="cash in."
@@ -175,3 +175,14 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
   );
 }
 
+function Frame({ tone, href, cta, children }: { tone: "lime" | "gold"; href: string; cta: string; children: React.ReactNode }) {
+  return (
+    <div className="relative flex h-full min-h-[520px] flex-col overflow-hidden border-y border-ink-700 bg-[#0b0e0c] p-5 text-[#f4f5f2] sm:rounded-[28px] sm:border sm:p-8">
+      <div className={`pointer-events-none absolute inset-0 ${tone === "gold" ? "bg-[radial-gradient(120%_80%_at_85%_10%,rgb(240_203_90/0.18),transparent_60%)]" : "bg-[radial-gradient(120%_80%_at_85%_10%,rgb(173_252_7/0.16),transparent_60%)]"}`} aria-hidden="true" />
+      <div className="relative flex-1">{children}</div>
+      <Link href={href} className={`relative mt-5 self-start px-6 py-3 text-sm ${tone === "gold" ? "btn-gold" : "btn-primary"}`}>
+        {cta} →
+      </Link>
+    </div>
+  );
+}

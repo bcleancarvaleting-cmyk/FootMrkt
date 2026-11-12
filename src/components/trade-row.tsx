@@ -79,12 +79,12 @@ export function TradeRow({
           </span>
         </div>
         {/* 3: seller · extra · actions */}
-        <div className="flex items-center justify-between gap-2">
-          <span className="min-w-0 truncate text-[11px] text-muted">
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
+          <span className="min-w-0 flex-1 truncate text-[11px] text-muted">
             {seller}
             {extra && <span className="text-faint"> · {extra}</span>}
           </span>
-          {actions && <span className="flex shrink-0 items-center gap-1.5">{actions}</span>}
+          {actions && <span className="flex max-w-full shrink-0 flex-wrap items-start justify-end gap-1.5 max-sm:w-full">{actions}</span>}
         </div>
       </div>
     </li>

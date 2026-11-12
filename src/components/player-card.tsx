@@ -86,8 +86,11 @@ export function PlayerCard({ card, size = "md", className = "", showcase = false
         </div>
 
         {/* Kit — nothing on top of it */}
-        <div className={`relative flex min-h-0 flex-1 items-end justify-center overflow-hidden rounded-xl ${small ? "mx-2 mt-1" : "mx-2.5 mt-1.5"} ${gem ? "bg-gradient-to-b from-white/15 to-transparent" : "bg-gradient-to-b from-white/5 to-transparent"}`}>
-          <PlayerImage card={card} />
+        <div className={`relative min-h-0 flex-1 basis-0 overflow-hidden rounded-xl ${small ? "mx-2 mt-1" : "mx-2.5 mt-1.5"} ${gem ? "bg-gradient-to-b from-white/15 to-transparent" : "bg-gradient-to-b from-white/5 to-transparent"}`}>
+          {/* Pinned inside its box: the kit can never push the name and info off the card. */}
+          <div className="absolute inset-0 flex items-end justify-center">
+            <PlayerImage card={card} />
+          </div>
         </div>
 
         {/* Name, then Type | Club | League */}

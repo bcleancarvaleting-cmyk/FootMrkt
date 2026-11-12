@@ -49,7 +49,9 @@ export default async function AuctionsPage() {
                 </>
               }
               actions={
-                !a.mine && (
+                a.mine ? (
+                  <span className="rounded-full border border-white/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-muted">Your auction</span>
+                ) : (
                   <>
                     {a.buyNowMinor !== null && <AuctionBuyNowButton auctionId={a.id} priceMinor={a.buyNowMinor} enabled={on} />}
                     <BidForm auctionId={a.id} minMinor={a.minNextMinor} enabled={on} />

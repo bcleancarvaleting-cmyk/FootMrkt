@@ -39,6 +39,18 @@ export function ActionButton({
 
 export function ResultText({ result }: { result: ActionResult<unknown> }) {
   if (result.ok) return result.message ? <span className="text-xs text-mint">{result.message}</span> : null;
+  // Not enough money: one tap to the fix — top up (bundles), or swap XP when it needs earned credit.
+  if (result.code === "INSUFFICIENT_FUNDS" || result.code === "EARNED_ONLY") {
+    const earned = result.code === "EARNED_ONLY";
+    return (
+      <span className="flex max-w-[18rem] flex-col items-end gap-1 whitespace-normal text-right text-xs text-danger">
+        {result.error}
+        <a href={earned ? "/account/wallet#xp" : "/account/wallet#add"} className="rounded-full border border-lime/70 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-lime shadow-[0_0_14px_-4px_rgb(173_252_7/0.6)]">
+          {earned ? "Swap XP for £ →" : "Add funds →"}
+        </a>
+      </span>
+    );
+  }
   return (
     <span className="text-xs text-danger">
       {result.error}

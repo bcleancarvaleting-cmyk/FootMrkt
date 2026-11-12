@@ -1,13 +1,14 @@
 import { confirmOrderWithProvider, myCardPayments } from "@/server/market";
 import Link from "next/link";
 import { cardPaymentsReady } from "@/server/payments/config";
-import { ConvertXpForm, DepositForm, WithdrawForm } from "@/components/account-forms";
+import { ConvertXpForm, DepositForm } from "@/components/account-forms";
+import { WinningsActions } from "@/components/winnings-actions";
 import { GateNotice } from "@/components/page-header";
 import { basketCount } from "@/server/basket";
 import { requireUser } from "@/server/auth/session";
 import { db } from "@/server/db";
 import { isEnabled } from "@/server/flags";
-import { balancesFor, fmtGbp, fmtMp, profileGaps, walletHistory, xpPerMx } from "@/server/wallet";
+import { balancesFor, fmtGbp, fmtMp, walletHistory, xpPerMx } from "@/server/wallet";
 import { fmtDate } from "@/lib/view";
 
 export const metadata = { title: "Wallet" };
@@ -30,6 +31,7 @@ const KIND_LABEL: Record<string, string> = {
   PRIZE: "Match prize",
   XP_EARNED: "XP from a match",
   XP_CONVERT: "XP turned into credit",
+  WINNINGS_CONVERT: "Winnings moved to balance",
 };
 const W_TONE: Record<string, string> = { REQUESTED: "text-warn", PAID: "text-mint", REJECTED: "text-danger" };
 
@@ -49,7 +51,6 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
     isEnabled("DEPOSITS"),
     isEnabled("WITHDRAWALS"),
   ]);
-  const gaps = profileGaps(u);
   return (
     <div className="space-y-8">
       <div>
@@ -76,7 +77,12 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
         <div className="bg-ink-900 p-5">
           <p className="eyebrow text-lime">Winnings</p>
           <p className="mt-1 font-display text-3xl font-extrabold italic tabular-nums text-lime">{fmtGbp(bal.winnings)}</p>
-          <p className="mt-1 text-xs text-faint">£ prizes from free matches. The only balance you can withdraw (min £10).</p>
+          <p className="mt-1 text-xs text-faint">£ prizes from matches. The only balance you can withdraw (min £10) — or move it into your £ balance.</p>
+          <WinningsActions
+            winningsMinor={bal.winnings}
+            withdrawalsOn={withdrawalsOn}
+            prefill={{ fullName: u.fullName ?? "", line1: u.addressLine1 ?? "", line2: u.addressLine2 ?? "", city: u.city ?? "", postcode: u.postcode ?? "", country: u.country ?? "", dob: u.dateOfBirth ? u.dateOfBirth.toISOString().slice(0, 10) : "" }}
+          />
         </div>
       </section>
 
@@ -103,17 +109,11 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
           <DepositForm enabled={depositsOn && cardReady} initial={bundle} />
         </div>
         <div id="withdraw" className="panel scroll-mt-24 p-5">
-          <h2 className="mb-1 text-2xl">Withdraw winnings</h2>
-          <p className="mb-4 text-sm text-muted">
-            Cash out £ you&apos;ve won in matches — minimum £10. You can withdraw up to <b className="text-fg">{fmtGbp(bal.withdrawable)}</b>. Your £ balance can&apos;t be withdrawn — it&apos;s for building your club.
+          <h2 className="mb-1 text-2xl">Your withdrawals</h2>
+          <p className="mb-2 text-sm text-muted">
+            Use <b className="text-fg">Withdraw to bank</b> under Winnings to cash out £ you&apos;ve won — minimum £10. Your £ balance can&apos;t be withdrawn — it&apos;s for building your club.
           </p>
-          {!withdrawalsOn && <GateNotice>Coming soon. Your winnings are safe here; withdrawals open once identity checks and payouts are set up.</GateNotice>}
-          {gaps.length > 0 && (
-            <p className="mb-3 rounded-xl border border-ink-600 p-3 text-sm">
-              Add your {gaps.join(", ")} in <Link href="/account/profile" className="text-lime underline">Profile</Link> first. We check your identity before your first payout.
-            </p>
-          )}
-          <WithdrawForm enabled={withdrawalsOn && gaps.length === 0} maxMinor={bal.withdrawable} />
+          {withdrawals.length === 0 && <p className="text-sm text-faint">No withdrawals yet.</p>}
           {withdrawals.length > 0 && (
             <ul className="mt-4 divide-y divide-ink-700 text-sm">
               {withdrawals.map((w) => (

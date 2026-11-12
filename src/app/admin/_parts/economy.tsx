@@ -34,7 +34,15 @@ export async function EconomySections({ only }: { only: string[] }) {
     db.auction.findMany({ where: { status: { in: ["LIVE", "SCHEDULED"] } }, include: { card: { include: { template: { include: { player: true } } } }, bids: { where: { status: "LEADING" } } }, orderBy: { endsAt: "asc" } }),
     db.challenge.findMany({ orderBy: { createdAt: "desc" }, include: { _count: { select: { completions: true } } } }),
     db.competition.findMany({ where: { status: { in: ["UPCOMING", "OPEN"] } }, include: { gameweek: true, _count: { select: { entries: true } } }, orderBy: { name: "asc" } }),
-    db.withdrawal.findMany({ where: { status: "REQUESTED" }, include: { user: { select: { displayName: true, fullName: true, kycStatus: true } } }, orderBy: { createdAt: "asc" } }),
+    db.withdrawal.findMany({
+      where: { status: "REQUESTED" },
+      select: {
+        id: true, amountMinor: true, source: true, feeMinor: true, createdAt: true,
+        payeeName: true, sortCode: true, accountNumber: true, address: true, dateOfBirth: true, idType: true, idNumber: true, idImageType: true,
+        user: { select: { displayName: true, fullName: true, email: true, kycStatus: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    }),
     db.marketListing.aggregate({ where: { status: "SOLD" }, _sum: { feeMinor: true, soldPriceMinor: true }, _count: true }),
     welcomeGiftsForAdmin(),
     db.marketListing.groupBy({ by: ["status"], where: { house: true }, _count: { _all: true }, _sum: { soldPriceMinor: true } }),
@@ -233,20 +241,44 @@ export async function EconomySections({ only }: { only: string[] }) {
       )}
 
       {show("withdrawals") && (
-      <Section title="Withdrawals" intro="Managers can only withdraw £ winnings from match prizes — never spend-only credit. Check identity and bank details with the payout provider, then mark paid. Rejecting returns the winnings.">
+      <Section title="Withdrawals" intro="Managers can only withdraw £ winnings from match prizes — never spend-only credit. Check the ID and that the bank account name matches the manager, pay it from the MATCHX bank account, then mark paid (they're emailed). Rejecting returns the winnings.">
         <ul className="divide-y divide-ink-700 text-sm">
-          {withdrawals.map((w) => (
-            <li key={w.id} className="flex flex-wrap items-center justify-between gap-3 py-2">
-              <span>
-                <b>{fmtGbp(w.amountMinor)}</b>{" "}
-                <span className={`chip ${w.source === "MX" ? "border-accent/60 text-lime" : ""}`}>{w.source === "MX" ? `Credit cash-out · fee ${fmtGbp(w.feeMinor)}` : "Prize winnings"}</span> · {w.user.displayName} <span className="text-faint">({w.user.fullName ?? "no name"}, KYC {w.user.kycStatus.toLowerCase()}) · {fmtDate(w.createdAt)}</span>
-              </span>
-              <span className="flex gap-2">
-                <ActionButton action={processWithdrawalAction.bind(null, w.id, "REJECTED")} className="btn-ghost px-3 py-1.5 text-[11px]">Reject</ActionButton>
-                <ActionButton action={processWithdrawalAction.bind(null, w.id, "PAID")} className="btn-primary px-3 py-1.5 text-[11px]" confirm="Confirm the payout has been sent?">Mark paid</ActionButton>
-              </span>
-            </li>
-          ))}
+          {withdrawals.map((w) => {
+            const ad = (w.address ?? null) as { line1?: string; line2?: string; city?: string; postcode?: string; country?: string } | null;
+            const nameMatch = w.payeeName && w.user.fullName ? w.payeeName.trim().toLowerCase() === w.user.fullName.trim().toLowerCase() : null;
+            return (
+              <li key={w.id} className="space-y-2 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <span>
+                    <b className="text-lg">{fmtGbp(w.amountMinor)}</b>{" "}
+                    <span className={`chip ${w.source === "MX" ? "border-accent/60 text-lime" : ""}`}>{w.source === "MX" ? `Credit cash-out · fee ${fmtGbp(w.feeMinor)}` : "Prize winnings"}</span> · {w.user.displayName}{" "}
+                    <span className="text-faint">
+                      ({w.user.email}, KYC {w.user.kycStatus.toLowerCase()}) · {fmtDate(w.createdAt)}
+                    </span>
+                  </span>
+                  <span className="flex gap-2">
+                    <ActionButton action={processWithdrawalAction.bind(null, w.id, "REJECTED")} className="btn-ghost px-3 py-1.5 text-[11px]" confirm="Reject this withdrawal? The winnings go back to the manager.">Reject</ActionButton>
+                    <ActionButton action={processWithdrawalAction.bind(null, w.id, "PAID")} className="btn-primary px-3 py-1.5 text-[11px]" confirm="Confirm the payout has been sent to this bank account?">Mark paid</ActionButton>
+                  </span>
+                </div>
+                {w.payeeName ? (
+                  <dl className="grid gap-x-6 gap-y-1 rounded-xl border border-ink-700 bg-ink-850 p-3 text-xs sm:grid-cols-2">
+                    <div><dt className="inline text-faint">Account name </dt><dd className="inline font-bold">{w.payeeName}</dd>{nameMatch === false && <span className="ml-2 font-bold text-warn">≠ profile name ({w.user.fullName})</span>}</div>
+                    <div><dt className="inline text-faint">Sort code · account </dt><dd className="inline font-mono font-bold">{w.sortCode} · {w.accountNumber}</dd></div>
+                    <div className="sm:col-span-2"><dt className="inline text-faint">Address </dt><dd className="inline">{ad ? [ad.line1, ad.line2, ad.city, ad.postcode, ad.country].filter(Boolean).join(", ") : "—"}</dd></div>
+                    <div><dt className="inline text-faint">Date of birth </dt><dd className="inline">{w.dateOfBirth ? w.dateOfBirth.toLocaleDateString("en-GB", { timeZone: "UTC" }) : "—"}</dd></div>
+                    <div>
+                      <dt className="inline text-faint">ID </dt>
+                      <dd className="inline">{w.idType ? w.idType.replace("_", " ").toLowerCase() : "—"} · <span className="font-mono">{w.idNumber}</span></dd>
+                      {w.idImageType && <a href={`/api/admin/withdrawals/${w.id}/id`} target="_blank" rel="noreferrer" className="ml-2 font-bold text-lime underline">View ID</a>}
+                    </div>
+                  </dl>
+                ) : (
+                  <p className="text-xs text-warn">Older request — no bank details given. Contact the manager before paying.</p>
+                )}
+              </li>
+            );
+          })}
           {!withdrawals.length && <li className="py-2 text-faint">No pending withdrawals.</li>}
         </ul>
       </Section>

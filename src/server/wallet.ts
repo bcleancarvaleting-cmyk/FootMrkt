@@ -250,23 +250,121 @@ export function profileGaps(u: { fullName: string | null; dateOfBirth: Date | nu
   return gaps;
 }
 
-/** Withdraw £ winnings (only winnings — MX can never be withdrawn). */
-export async function requestWithdrawal(userId: string, amountMinor: number) {
+export interface PayoutDetails {
+  payeeName: string;
+  sortCode: string;
+  accountNumber: string;
+  address: { line1: string; line2?: string; city: string; postcode: string; country: string };
+  dateOfBirth: Date;
+  idType: "PASSPORT" | "DRIVING_LICENCE" | "ID_CARD";
+  idNumber: string;
+  idImage: { bytes: Uint8Array; type: string };
+}
+
+const ID_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "application/pdf"];
+export const MAX_ID_BYTES = 6 * 1024 * 1024;
+
+/** Check payout details are complete and sensible (UK bank: 6-digit sort code, 8-digit account). */
+export function validatePayout(d: PayoutDetails): PayoutDetails {
+  const name = d.payeeName.trim();
+  if (name.length < 3 || !/\s/.test(name)) throw new DomainError("NAME", "Enter the full name on the bank account.");
+  const sort = d.sortCode.replace(/[\s-]/g, "");
+  if (!/^\d{6}$/.test(sort)) throw new DomainError("SORT_CODE", "Enter a 6-digit sort code, e.g. 12-34-56.");
+  const acc = d.accountNumber.replace(/\s/g, "");
+  if (!/^\d{8}$/.test(acc)) throw new DomainError("ACCOUNT", "Enter your 8-digit account number.");
+  if (!d.address.line1.trim() || !d.address.city.trim() || !d.address.postcode.trim()) throw new DomainError("ADDRESS", "Enter your full address.");
+  if (Number.isNaN(d.dateOfBirth.getTime())) throw new DomainError("DOB", "Enter your date of birth.");
+  if (!isAdult(d.dateOfBirth)) throw new DomainError("AGE", "You must be 18 or over to withdraw.");
+  if (!["PASSPORT", "DRIVING_LICENCE", "ID_CARD"].includes(d.idType)) throw new DomainError("ID", "Choose your type of ID.");
+  if (d.idNumber.trim().length < 5) throw new DomainError("ID", "Enter the number on your ID.");
+  if (!d.idImage.bytes.length) throw new DomainError("ID_IMAGE", "Add a photo of your ID.");
+  if (d.idImage.bytes.length > MAX_ID_BYTES) throw new DomainError("ID_IMAGE", "That photo is too big — up to 6MB please.");
+  if (!ID_TYPES.includes(d.idImage.type)) throw new DomainError("ID_IMAGE", "Your ID photo must be a JPG, PNG, HEIC or PDF.");
+  return {
+    ...d,
+    payeeName: name,
+    sortCode: `${sort.slice(0, 2)}-${sort.slice(2, 4)}-${sort.slice(4)}`,
+    accountNumber: acc,
+    idNumber: d.idNumber.trim().toUpperCase(),
+    address: { line1: d.address.line1.trim(), line2: d.address.line2?.trim() || undefined, city: d.address.city.trim(), postcode: d.address.postcode.trim().toUpperCase(), country: d.address.country.trim() || "United Kingdom" },
+  };
+}
+
+/**
+ * Withdraw £ winnings to a bank account (only winnings — spend-only credit can never be withdrawn).
+ * The manager gives their bank details, address, date of birth and ID; the winnings are held and the
+ * request goes to Admin → Withdrawals to check and pay.
+ */
+export async function requestWithdrawal(userId: string, amountMinor: number, details?: PayoutDetails) {
   await requireFlag("WITHDRAWALS");
   if (!Number.isInteger(amountMinor) || amountMinor < MIN_WITHDRAWAL_MINOR) throw new DomainError("MIN", "The minimum withdrawal is £10.");
+  const d = details ? validatePayout(details) : null;
   return withTx(async (tx) => {
     await lockWallet(tx, userId);
     const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
-    const gaps = profileGaps(user);
-    if (gaps.length) throw new DomainError("PROFILE", `Add your ${gaps.join(", ")} in My Account → Profile before withdrawing.`);
-    if (!isAdult(user.dateOfBirth)) throw new DomainError("AGE", "You must be 18 or over to withdraw.");
+    if (!d) {
+      const gaps = profileGaps(user);
+      if (gaps.length) throw new DomainError("PROFILE", `Add your ${gaps.join(", ")} in My Account → Profile before withdrawing.`);
+      if (!isAdult(user.dateOfBirth)) throw new DomainError("AGE", "You must be 18 or over to withdraw.");
+    }
     if (user.status !== "ACTIVE") throw new DomainError("NOT_ALLOWED", "Withdrawals aren't available on this account.");
-    const w = await tx.withdrawal.create({ data: { userId, amountMinor } });
     const { winnings } = await balancesFor(userId, tx);
     if (amountMinor > winnings) throw new DomainError("INSUFFICIENT_FUNDS", `You have ${fmtGbp(Math.max(0, winnings))} of winnings to withdraw.`);
+    const w = await tx.withdrawal.create({
+      data: {
+        userId,
+        amountMinor,
+        ...(d
+          ? {
+              payeeName: d.payeeName,
+              sortCode: d.sortCode,
+              accountNumber: d.accountNumber,
+              address: d.address,
+              dateOfBirth: d.dateOfBirth,
+              idType: d.idType,
+              idNumber: d.idNumber,
+              idImage: Buffer.from(d.idImage.bytes),
+              idImageType: d.idImage.type,
+            }
+          : {}),
+      },
+    });
     await tx.walletEntry.create({ data: { userId, kind: "WITHDRAWAL_HOLD", bucket: "WINNINGS", amountMinor: -amountMinor, refId: `withdrawal:${w.id}:w`, note: "Withdrawal requested" } });
+    // Fill any gaps in the profile from what they've just given us.
+    if (d) {
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          fullName: user.fullName ?? d.payeeName,
+          dateOfBirth: user.dateOfBirth ?? d.dateOfBirth,
+          addressLine1: user.addressLine1 ?? d.address.line1,
+          addressLine2: user.addressLine2 ?? d.address.line2 ?? null,
+          city: user.city ?? d.address.city,
+          postcode: user.postcode ?? d.address.postcode,
+          country: user.country ?? d.address.country,
+        },
+      });
+    }
     if (user.kycStatus === "NONE") await tx.user.update({ where: { id: userId }, data: { kycStatus: "PENDING" } });
     return w;
+  });
+}
+
+/**
+ * Move £ winnings into the spend-only balance (as earned credit — usable for players, packs, entries
+ * and the Transfer list). One way: it can't be turned back into withdrawable winnings.
+ */
+export async function convertWinnings(userId: string, amountMinor: number, ref = crypto.randomUUID()) {
+  if (!Number.isInteger(amountMinor) || amountMinor < 1) throw new DomainError("AMOUNT", "Enter an amount to move.");
+  return withTx(async (tx) => {
+    await lockWallet(tx, userId);
+    // Same request twice (a double tap): done already.
+    if (await tx.walletEntry.findUnique({ where: { refId: `convert:${ref}:w` } })) return { amountMinor };
+    const { winnings } = await balancesFor(userId, tx);
+    if (amountMinor > winnings) throw new DomainError("INSUFFICIENT_FUNDS", `You have ${fmtGbp(Math.max(0, winnings))} of winnings.`);
+    await tx.walletEntry.create({ data: { userId, kind: "WINNINGS_CONVERT", bucket: "WINNINGS", amountMinor: -amountMinor, refId: `convert:${ref}:w`, note: "Moved to your £ balance" } });
+    await credit(tx, { userId, amountMinor, kind: "WINNINGS_CONVERT", bucket: "BONUS", refId: `convert:${ref}:b`, note: "From your winnings" });
+    return { amountMinor };
   });
 }
 

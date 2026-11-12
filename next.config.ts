@@ -14,6 +14,8 @@ const nextConfig: NextConfig = {
     },
   },
   serverExternalPackages: ["pg", "@prisma/adapter-pg"],
+  // Withdrawals include a photo of the manager's ID (up to 6MB).
+  experimental: { serverActions: { bodySizeLimit: "8mb" } },
   // Security headers on every page (security sweep, 11 Nov 2026): no framing (clickjacking), no
   // MIME sniffing, no referrer leaks to other sites, browser features off, HTTPS only in production.
   async headers() {

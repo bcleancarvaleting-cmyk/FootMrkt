@@ -200,6 +200,44 @@ describe("winnings", () => {
     expect(await balancesFor(userId)).toMatchObject({ winnings: 1500, total: 5000 });
   });
 
+  it("a withdrawal carries bank, address, date of birth and ID for the admin to check", async () => {
+    const { creditWinnings, requestWithdrawal } = await import("@/server/wallet");
+    process.env.LEGAL_GATES_CLEARED = "WITHDRAWALS";
+    process.env.FLAG_WITHDRAWALS = "true";
+    const { userId } = await makeUser("wd-details");
+    await withTx((tx) => creditWinnings(tx, { userId, amountMinor: 2500, refId: "prize-wd" }));
+    const base = {
+      payeeName: "Sam Smith",
+      sortCode: "12 34 56",
+      accountNumber: "12345678",
+      address: { line1: "1 Road", city: "Leeds", postcode: "ls1 1aa", country: "" },
+      dateOfBirth: new Date("1990-01-01"),
+      idType: "PASSPORT" as const,
+      idNumber: "abc12345",
+      idImage: { bytes: new Uint8Array([1, 2, 3]), type: "image/jpeg" },
+    };
+    await expect(requestWithdrawal(userId, 1000, { ...base, sortCode: "1234" })).rejects.toMatchObject({ code: "SORT_CODE" });
+    await expect(requestWithdrawal(userId, 1000, { ...base, idImage: { bytes: new Uint8Array(), type: "" } })).rejects.toMatchObject({ code: "ID_IMAGE" });
+    await expect(requestWithdrawal(userId, 1000, { ...base, dateOfBirth: new Date() })).rejects.toMatchObject({ code: "AGE" });
+    const w = await requestWithdrawal(userId, 2500, base);
+    const row = await db.withdrawal.findUniqueOrThrow({ where: { id: w.id } });
+    expect(row).toMatchObject({ payeeName: "Sam Smith", sortCode: "12-34-56", accountNumber: "12345678", idType: "PASSPORT", idNumber: "ABC12345", idImageType: "image/jpeg" });
+    expect(row.address).toMatchObject({ postcode: "LS1 1AA", country: "United Kingdom" });
+    expect((await balancesFor(userId)).winnings).toBe(0);
+    // Their profile is filled in from it.
+    expect(await db.user.findUniqueOrThrow({ where: { id: userId } })).toMatchObject({ fullName: "Sam Smith", city: "Leeds" });
+  });
+
+  it("winnings can be moved into the spend-only balance — once, one way", async () => {
+    const { convertWinnings, creditWinnings } = await import("@/server/wallet");
+    const { userId } = await makeUser("wd-convert");
+    await withTx((tx) => creditWinnings(tx, { userId, amountMinor: 2500, refId: "prize-cv" }));
+    await expect(convertWinnings(userId, 3000)).rejects.toMatchObject({ code: "INSUFFICIENT_FUNDS" });
+    await convertWinnings(userId, 1000, "tap-1");
+    await convertWinnings(userId, 1000, "tap-1"); // a double tap doesn't move it twice
+    expect(await balancesFor(userId)).toMatchObject({ winnings: 1500, earned: 1000, total: 1000 });
+  });
+
   it("admin £ prizes parse from '1=10, 2-3=5'", async () => {
     const { parsePrizes } = await import("@/server/competitions");
     expect(parsePrizes("1=10, 2-3=5")).toEqual([

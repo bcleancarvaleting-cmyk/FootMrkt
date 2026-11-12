@@ -1147,6 +1147,7 @@ enum WalletEntryKind {
   PRIZE // £ won in a match (WINNINGS bucket)
   XP_EARNED // match points turned into XP at settlement
   XP_CONVERT // XP exchanged for earned MX
+  WINNINGS_CONVERT // £ winnings moved into the spend-only balance (one way)
 }
 
 // MP buckets (never withdrawable — spend on packs, transfers and entries):
@@ -1198,6 +1199,16 @@ model Withdrawal {
   // WINNINGS = prize money; MX = bought MX cashed out (11 Nov 2026), after the fee.
   source      String           @default("WINNINGS")
   feeMinor    Int              @default(0)
+  // Payout details given with the request (checked by an admin before paying).
+  payeeName     String?
+  sortCode      String?
+  accountNumber String?
+  address       Json? // { line1, line2, city, postcode, country }
+  dateOfBirth   DateTime?
+  idType        String? // PASSPORT | DRIVING_LICENCE | ID_CARD
+  idNumber      String?
+  idImage       Bytes? // photo/scan of the ID — admins only
+  idImageType   String?
 
   @@index([status, createdAt])
 }

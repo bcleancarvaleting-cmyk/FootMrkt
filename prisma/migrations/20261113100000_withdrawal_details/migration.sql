@@ -1,0 +1,3 @@
+ALTER TYPE "WalletEntryKind" ADD VALUE 'WINNINGS_CONVERT';
+ALTER TABLE "Withdrawal" ADD COLUMN "payeeName" TEXT, ADD COLUMN "sortCode" TEXT, ADD COLUMN "accountNumber" TEXT, ADD COLUMN "address" JSONB,
+  ADD COLUMN "dateOfBirth" TIMESTAMP(3), ADD COLUMN "idType" TEXT, ADD COLUMN "idNumber" TEXT, ADD COLUMN "idImage" BYTEA, ADD COLUMN "idImageType" TEXT;

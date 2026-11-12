@@ -11,7 +11,7 @@ import { saveClub } from "@/server/club";
 import { discardLoan } from "@/server/loans";
 import { choosePick, isPick } from "@/server/picks";
 import { DomainError } from "@/server/errors";
-import { convertXp, fmtMp, isAdult, requestWithdrawal, startDeposit } from "@/server/wallet";
+import { convertWinnings, convertXp, fmtGbp, fmtMp, isAdult, requestWithdrawal, startDeposit } from "@/server/wallet";
 import { type ActionResult, attempt } from "./result";
 
 const opt = (max: number) =>
@@ -82,10 +82,35 @@ export async function depositAction(_: ActionResult | null, form: FormData): Pro
 
 export async function withdrawAction(_: ActionResult | null, form: FormData): Promise<ActionResult> {
   const user = await requireUser();
+  const str = (k: string) => String(form.get(k) ?? "");
   const res = await attempt(async () => {
-    await requestWithdrawal(user.id, Math.round(Number(form.get("amount")) * 100));
-  }, "Withdrawal requested — we'll check your details and pay out to your bank, usually within 3 working days.");
+    if (form.get("confirm") !== "on") throw new DomainError("CONFIRM", "Tick to confirm your details are correct.");
+    const file = form.get("idImage");
+    const img = file instanceof File && file.size ? { bytes: new Uint8Array(await file.arrayBuffer()), type: file.type || "application/octet-stream" } : { bytes: new Uint8Array(), type: "" };
+    await requestWithdrawal(user.id, Math.round(Number(form.get("amount")) * 100), {
+      payeeName: str("payeeName"),
+      sortCode: str("sortCode"),
+      accountNumber: str("accountNumber"),
+      address: { line1: str("line1"), line2: str("line2"), city: str("city"), postcode: str("postcode"), country: str("country") },
+      dateOfBirth: new Date(`${str("dob")}T00:00:00Z`),
+      idType: str("idType") as "PASSPORT",
+      idNumber: str("idNumber"),
+      idImage: img,
+    });
+  }, "Withdrawal requested — we'll check your details and pay it to your bank, usually within 3 working days. We'll email you when it's sent.");
   revalidatePath("/account", "layout");
+  return res;
+}
+
+/** Move £ winnings into the spend-only balance — one way. */
+export async function convertWinningsAction(_: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const user = await requireUser();
+  const amount = Math.round(Number(form.get("amount")) * 100);
+  const res = await attempt(async () => {
+    if (form.get("sure") !== "yes") throw new DomainError("CONFIRM", "Please confirm you want to move your winnings.");
+    await convertWinnings(user.id, amount, String(form.get("ref") ?? "") || undefined);
+  }, `${fmtGbp(Math.max(0, amount))} moved into your £ balance.`);
+  revalidatePath("/", "layout");
   return res;
 }
 

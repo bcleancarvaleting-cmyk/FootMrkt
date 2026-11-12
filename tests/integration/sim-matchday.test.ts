@@ -213,6 +213,11 @@ describe("start chance from real appearances × form", () => {
     for (const d of defs.slice(0, 4)) expect(g.get(d.id)!.pct).toBe(100);
     expect(g.get(defs[4].id)!.pct).toBe(0);
     expect(g.get(gk[0].id)!.pct).toBe(100);
+    // Five defenders who all play every minute, for four places: nobody is certain, so nobody shows 100%.
+    const fixtures = await db.fixture.findMany({ where: { gameweekId: gw.id } });
+    for (const f of fixtures) await db.playerMatchStat.create({ data: { fixtureId: f.id, playerId: defs[4].id, revision: 1, isCurrent: true, sourceEventId: `ev5-${f.id}`, stats: { minutes: 90, goals: 0, assists: 0 } } });
+    const g2 = await simStartGuide(defs.map((p) => p.id));
+    for (const d of defs) expect(g2.get(d.id)!.pct).toBeLessThanOrEqual(99);
   });
 });
 

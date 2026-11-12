@@ -541,7 +541,7 @@ export function SquadBuilder({
           {!picker.length && <li className="p-4 text-sm text-faint">{draft || q ? "No players match." : "No players for this position. Open more packs!"}</li>}
         </ul>
         <div className="border-t border-ink-700 p-2 text-[10px] text-faint">
-          Form = avg points over recent gameweeks{cards.some((c) => c.start) ? " · Start chance = real appearances × form (100% always starts) · apps = games played of their club's last 6" : ""}
+          Form = avg points over recent gameweeks{cards.some((c) => c.start) ? " · Start chance = real appearances × form, as of kick-off — 100% always start; it updates as real games are played · apps = games played of their club's last 6" : ""}
         </div>
       </aside>
     </div>

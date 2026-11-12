@@ -71,7 +71,11 @@ export interface StartGuide {
 
 const RUNS = 400;
 
-/** The "likely to start" guide for the given players (their whole club squads are simulated). */
+/**
+ * The "likely to start" guide for the given players (their whole club squads are simulated), as of
+ * the sim's kick-off — the same inputs the simulator will use. It moves as real games are played:
+ * a new real result before kick-off changes appearances and form, and the guide with them.
+ */
 export async function simStartGuide(playerIds: string[], asOf = new Date()): Promise<Map<string, StartGuide>> {
   const out = new Map<string, StartGuide>();
   if (!playerIds.length) return out;
@@ -95,7 +99,17 @@ export async function simStartGuide(playerIds: string[], asOf = new Date()): Pro
           .forEach((x) => starts.set(x.id, (starts.get(x.id) ?? 0) + 1));
       }
     }
-    for (const p of squad) chance.set(p.id, Math.round(((starts.get(p.id) ?? 0) / RUNS) * 100));
+    // 100% only when it's certain: even their worst rotation draw beats all but (slots − 1) team-mates'
+    // best draws. Anything less tops out at 99%, so "100%" always means they start.
+    for (const [pos, n] of Object.entries(XI_SLOTS)) {
+      const group = squad.filter((p) => p.position === pos);
+      for (const p of group) {
+        const worst = startPriority(p, 1);
+        const threats = group.filter((q) => q.id !== p.id && startPriority(q, 0) <= worst).length;
+        const pct = Math.round(((starts.get(p.id) ?? 0) / RUNS) * 100);
+        chance.set(p.id, threats < n ? 100 : Math.min(99, pct));
+      }
+    }
   }
   for (const id of playerIds) {
     const a = scores.get(id);

@@ -98,7 +98,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
             </Link>
           )}
           <h2 className="mb-1 text-2xl">Add funds</h2>
-          <p className="mb-4 text-sm text-muted">Top up by card — the bigger bundles come with bonus credit. Use your balance for packs, player drops too.</p>
+          <p className="mb-4 text-sm text-muted">Pay by card and get more to spend in game — e.g. pay £39.99, get £50. Use your balance for players, packs, player drops and match entries.</p>
           {(!depositsOn || !cardReady) && <GateNotice>Coming soon. Adding funds by card opens after the beta, once our payment provider is live.</GateNotice>}
           <DepositForm enabled={depositsOn && cardReady} initial={bundle} />
         </div>

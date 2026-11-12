@@ -1,10 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { MX_BUNDLES, bonusPct } from "@/config/bundles";
+import { MX_BUNDLES, type MxBundle, bonusPct } from "@/config/bundles";
 import { useActionState, useState } from "react";
 import { convertXpAction, depositAction, updateProfileAction, withdrawAction } from "@/app/actions/account";
 import { ResultText } from "./action-button";
+
+/** "£10 free" — the extra credit on top of what you pay (whole pounds), or null for the entry bundle. */
+function extraLabel(b: MxBundle) {
+  const extra = Math.floor((b.mxMinor - b.priceMinor) / 100);
+  return extra >= 1 ? `+£${extra} free` : null;
+}
 
 /** Buy a top-up bundle by card (wallet, and the basket when MX is short). */
 export function DepositForm({ enabled, initial = "squad", returnTo }: { enabled: boolean; initial?: string; returnTo?: string }) {
@@ -20,7 +26,6 @@ export function DepositForm({ enabled, initial = "squad", returnTo }: { enabled:
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="top-up bundles">
         {MX_BUNDLES.map((b) => {
           const on = pick === b.code;
-          const bonus = bonusPct(b);
           return (
             <button
               key={b.code}
@@ -32,9 +37,13 @@ export function DepositForm({ enabled, initial = "squad", returnTo }: { enabled:
             >
               {b.best && <span className="absolute -top-2.5 rounded-full bg-gold px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.14em] text-ink-950">Best value</span>}
               <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">{b.name}</span>
-              <span className="mt-1 font-display text-3xl font-black italic tabular-nums">£{b.mxMinor / 100}</span>
-              <span className="text-sm font-bold">£{(b.priceMinor / 100).toFixed(2)}</span>
-              <span className={`mt-1 text-[10px] font-semibold ${bonus > 0 ? "text-lime" : "text-faint"}`}>{bonus > 0 ? `+${bonus}% bonus credit` : "Entry bundle"}</span>
+              <span className="mt-2 text-xs text-muted">
+                Pay <b className="text-fg">£{(b.priceMinor / 100).toFixed(2)}</b>
+              </span>
+              <span className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-faint">get</span>
+              <span className="font-display text-3xl font-black italic leading-none tabular-nums">£{b.mxMinor / 100}</span>
+              <span className="text-[10px] font-semibold text-muted">to spend in game</span>
+              <span className={`mt-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${extraLabel(b) ? "bg-lime/15 text-lime" : "text-faint"}`}>{extraLabel(b) ?? "Entry bundle"}</span>
             </button>
           );
         })}
@@ -57,7 +66,7 @@ export function DepositForm({ enabled, initial = "squad", returnTo }: { enabled:
         </span>
       </label>
       <button className="btn-primary w-full" disabled={!enabled || pending}>
-        {!enabled ? "Card top-ups coming soon" : pending ? "Starting checkout…" : `Pay £${(chosen.priceMinor / 100).toFixed(2)} by card → £${chosen.mxMinor / 100} credit`}
+        {!enabled ? "Card top-ups coming soon" : pending ? "Starting checkout…" : `Pay £${(chosen.priceMinor / 100).toFixed(2)} — get £${chosen.mxMinor / 100} to spend in game`}
       </button>
       {state && <ResultText result={state} />}
     </form>

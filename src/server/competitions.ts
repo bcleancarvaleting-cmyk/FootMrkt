@@ -325,6 +325,8 @@ export const NewMatchSchema = z.object({
   fixtureIds: z.array(z.string().uuid()).max(200).optional(),
   kind: z.enum(["CARDS", "DRAFT"]).default("CARDS"),
   league: z.string().max(10).optional(),
+  /** Any mix of leagues (e.g. Premier League + League Two): their players can all be picked together. None = every league. */
+  leagues: z.array(z.string().max(10)).max(10).optional(),
   tier: z.enum(["BRONZE", "SILVER", "GOLD"]).optional(),
   freeCardsOnly: z.boolean().default(false),
   foundersOnly: z.boolean().default(false),
@@ -350,10 +352,12 @@ export async function createMatch(adminId: string, input: z.input<typeof NewMatc
   if (name.length < 3) throw new DomainError("NAME", "Give the match a name.");
   const gw = await db.gameweek.findUnique({ where: { id: m.gameweekId }, include: { competitions: { select: { locksAt: true, entryOpensAt: true, code: true, rosterRules: true, scoringRules: true } } } });
   if (!gw || !["UPCOMING", "OPEN"].includes(gw.status)) throw new DomainError("LOCKED", "Pick a gameweek that's still open for entries.");
-  if (m.league && !(await db.league.findUnique({ where: { code: m.league } }))) throw new DomainError("LEAGUE", "Unknown league.");
+  const leagueCodes = [...new Set([...(m.leagues ?? []), ...(m.league ? [m.league] : [])])];
+  if (leagueCodes.length && (await db.league.count({ where: { code: { in: leagueCodes } } })) !== leagueCodes.length) throw new DomainError("LEAGUE", "Unknown league.");
   if (m.kind === "DRAFT" && m.tier) throw new DomainError("RULES", "Free draft matches use any players, so there's no card tier.");
   const requirements = RequirementsSchema.parse({
-    leagues: m.league && !fixture ? [m.league] : undefined,
+    // All four leagues ticked is the same as no restriction.
+    leagues: leagueCodes.length && !fixture && leagueCodes.length < (await db.league.count()) ? leagueCodes : undefined,
     clubs: picked.length ? [...new Set(picked.flatMap((f) => [f.homeClub.code, f.awayClub.code]))] : undefined,
     freeCardsOnly: m.kind === "CARDS" && m.freeCardsOnly ? true : undefined,
     foundersOnly: m.foundersOnly || undefined,

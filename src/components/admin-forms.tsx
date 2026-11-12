@@ -181,7 +181,18 @@ export function CreateMatchForm({ gameweeks, leagues, fixtures }: { gameweeks: O
       <I name="name" label="Match title" placeholder="League Two Cup" required minLength={3} maxLength={40} />
       <S name="gameweekId" label="Gameweek" options={gameweeks} defaultValue={gameweeks[0]?.value} />
       <S name="kind" label="Type" options={[{ value: "CARDS", label: "Managers use their own cards" }, { value: "DRAFT", label: "Free draft (no cards needed)" }]} />
-      <S name="league" label="League" options={[{ value: "", label: "All leagues" }, ...leagues]} />
+      <fieldset className="min-w-0">
+        <legend className="label">Leagues</legend>
+        <div className="flex flex-wrap gap-x-4 gap-y-2 pt-1">
+          {leagues.map((l) => (
+            <label key={l.value} className="flex items-center gap-2 text-sm">
+              <input type="checkbox" name="leagues" value={l.value} className="h-4 w-4 accent-lime" />
+              {l.label}
+            </label>
+          ))}
+        </div>
+        <p className="mt-1 text-xs text-faint">Tick any mix, e.g. Premier League + League Two. None ticked = every league, so a League Two squad can take on a Premier League one.</p>
+      </fieldset>
       <S name="tier" label="Card tier" options={TIERS} />
       <S name="cards" label="Which cards" options={[{ value: "ANY", label: "Any cards" }, { value: "FREE", label: "Free cards only (needed for £ prizes)" }]} />
       <S name="who" label="Who can enter" options={[{ value: "ALL", label: "Everyone" }, { value: "FOUNDERS", label: "Founding members only" }]} />

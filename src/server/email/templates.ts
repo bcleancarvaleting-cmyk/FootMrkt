@@ -189,6 +189,34 @@ export const EMAILS = {
       footnote: "You joined the MATCHX waitlist.",
       unsubscribe: d.unsubscribeUrl,
     }),
+  adminDaily: (d: {
+    name: string;
+    day: string;
+    revenue: string;
+    cardPacks: { count: number; total: string };
+    topUps: { count: number; total: string };
+    packsCredit: number;
+    packsXp: number;
+    signups: number;
+    signupList: string[];
+    waitlist: number;
+    users: number;
+    marketSold: { count: number; total: string };
+    transfers: { count: number; total: string; fees: string };
+    entries: number;
+  }) =>
+    layout({
+      preheader: `${d.revenue} taken · ${d.signups} new managers · ${d.marketSold.count + d.transfers.count} players sold`,
+      title: `MATCHX daily · ${d.day}`,
+      paragraphs: [
+        `<span style="font-size:13px;color:#9aa096;text-transform:uppercase;letter-spacing:.12em">Money in (card payments)</span><br><span style="font-size:34px;font-weight:800;color:#adfc07">${esc(d.revenue)}</span><br>Packs by card: ${b(String(d.cardPacks.count))} (${esc(d.cardPacks.total)}) · Top-ups: ${b(String(d.topUps.count))} (${esc(d.topUps.total)})`,
+        `<span style="font-size:13px;color:#9aa096;text-transform:uppercase;letter-spacing:.12em">Managers</span><br>New sign-ups: ${b(String(d.signups))} · Waitlist: ${b(String(d.waitlist))} · Total managers: ${b(d.users.toLocaleString("en-GB"))} · Match entries: ${b(String(d.entries))}${d.signupList.length ? `<br><span style="font-size:13px;color:#9aa096">${d.signupList.map(esc).join("<br>")}${d.signups > d.signupList.length ? `<br>+${d.signups - d.signupList.length} more` : ""}</span>` : ""}`,
+        `<span style="font-size:13px;color:#9aa096;text-transform:uppercase;letter-spacing:.12em">Packs bought</span><br>By card: ${b(String(d.cardPacks.count))} · With credit: ${b(String(d.packsCredit))} · With XP: ${b(String(d.packsXp))}`,
+        `<span style="font-size:13px;color:#9aa096;text-transform:uppercase;letter-spacing:.12em">Players sold</span><br>MATCHX market &amp; drops: ${b(String(d.marketSold.count))} (${esc(d.marketSold.total)} credit) · Between managers: ${b(String(d.transfers.count))} (${esc(d.transfers.total)}, 5% fees ${esc(d.transfers.fees)})`,
+        `<span style="font-size:12px;color:#6c726a">Card takings are real money paid through Stripe. Credit figures are spend-only in-game credit, not cash.</span>`,
+      ],
+      cta: { label: "Open Admin → Money", href: `${APP_URL}/admin/money` },
+    }),
   test: (d: { name: string }) =>
     layout({
       preheader: "Your MATCHX emails are working.",

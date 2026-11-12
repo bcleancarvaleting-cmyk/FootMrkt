@@ -36,6 +36,15 @@ describe("admin: create a match", () => {
     const draft = await createMatch(admin.userId, { gameweekId: gw.id, name: "Draft T1", kind: "DRAFT", league: "T1" });
     expect(draft.requirements).toEqual({ leagues: ["T1"], draftBudgetMx: 70 });
     await expect(createMatch(admin.userId, { gameweekId: gw.id, name: "Nope", league: "XYZ" })).rejects.toThrow(/Unknown league/);
+
+    // Leagues can be mixed; ticking every league (or none) means any player from anywhere.
+    const one = await createMatch(admin.userId, { gameweekId: gw.id, name: "Only T1", leagues: ["T1"] });
+    expect(one.requirements).toEqual({ leagues: ["T1"] });
+    const all = await createMatch(admin.userId, { gameweekId: gw.id, name: "Every league", leagues: ["T1", "T2"] });
+    expect(all.requirements).toEqual({});
+    const none = await createMatch(admin.userId, { gameweekId: gw.id, name: "Open to all", leagues: [] });
+    expect(none.requirements).toEqual({});
+    await expect(createMatch(admin.userId, { gameweekId: gw.id, name: "Bad mix", leagues: ["T1", "XYZ"] })).rejects.toThrow(/Unknown league/);
   });
 
   it("head to head: pick a real fixture and only those two clubs' players count", async () => {

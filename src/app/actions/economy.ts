@@ -139,7 +139,7 @@ export async function createMatchAction(_: ActionResult | null, f: FormData): Pr
       name: opt("name"),
       fixtureIds: f.getAll("fixtureIds").map(String).filter(Boolean),
       kind: (opt("kind") ?? "CARDS") as "CARDS" | "DRAFT",
-      league: opt("league"),
+      leagues: f.getAll("leagues").map(String).filter(Boolean),
       tier: opt("tier") as "BRONZE" | "SILVER" | "GOLD" | undefined,
       freeCardsOnly: str(f, "cards") === "FREE",
       foundersOnly: str(f, "who") === "FOUNDERS",
@@ -327,4 +327,10 @@ export async function releaseMarketAction(launch: boolean): Promise<ActionResult
   });
   done();
   return res.ok ? { ok: true, data: undefined, message: `${res.data.listed.toLocaleString("en-GB")} copies listed · ${res.data.repriced.toLocaleString("en-GB")} re-priced · ${res.data.players.toLocaleString("en-GB")} players` } : res;
+}
+
+export async function sendReportNowAction(): Promise<ActionResult> {
+  await requireAdmin();
+  const res = await attempt(async () => (await import("@/server/admin-report")).sendDailyReport(new Date(), true));
+  return res.ok ? { ok: true, data: undefined, message: "sent" in res.data ? `Sent to ${res.data.sent} address${res.data.sent === 1 ? "" : "es"}` : "Nothing sent" } : res;
 }

@@ -2,6 +2,11 @@ import Link from "next/link";
 import { AdminChart } from "@/components/admin-chart";
 import { moneyDashboard } from "@/server/money";
 import { AdminTitle } from "../_parts/title";
+import { ActionButton } from "@/components/action-button";
+import { TextSettingForm } from "@/components/admin-forms";
+import { sendReportNowAction } from "@/app/actions/economy";
+import { reportRecipients } from "@/server/admin-report";
+import { TEXT_SETTINGS, getText } from "@/server/settings";
 
 export const metadata = { title: "Admin · Money" };
 
@@ -9,7 +14,7 @@ const gbp = (m: number) => `£${(m / 100).toLocaleString("en-GB", { minimumFract
 const mx = (m: number) => `£${(m / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export default async function MoneyPage() {
-  const m = await moneyDashboard();
+  const [m, reportTo, extra] = await Promise.all([moneyDashboard(), reportRecipients(), getText("reportEmails")]);
   return (
     <>
       <AdminTitle title="Money" intro="Real card takings through Stripe, what MATCHX owes in £ winnings, and how MX moves round the game. Worked out from the ledger every time you open it." />
@@ -66,13 +71,29 @@ export default async function MoneyPage() {
             rows={[
               ["Bought credit in wallets", mx(m.mx.boughtMinor), "Not withdrawable"],
               ["Earned credit in wallets", mx(m.mx.earnedMinor), "Rewards, XP swaps and sales"],
-              ["Transfer fees · 30 days", mx(m.mx.p2pFeesMinor), `5% of ${mx(m.mx.p2pVolumeMinor)} over ${m.mx.p2pSales} sales`, "/admin/transfers"],
+              ["Transfer fees · 30 days", mx(m.mx.p2pFeesMinor), `5% of ${mx(m.mx.p2pVolumeMinor)} over ${m.mx.p2pSales} sales — credit taken out of the game, not cash`, "/admin/transfers"],
               ["Player drops sold · 30 days", mx(m.mx.dropsMinor), `${m.mx.drops} drops`, "/admin/players"],
               ["Credit spent on packs · 30 days", mx(m.mx.packsMinor)],
               ["Credit spent on entries · 30 days", mx(m.mx.entriesMinor), "After refunds", "/admin/matches"],
             ]}
           />
         </div>
+      </section>
+
+      <section className="panel space-y-3 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-2xl">Daily report email</h2>
+            <p className="mt-1 text-sm text-muted">
+              Every morning at 8am: yesterday&apos;s card takings, new sign-ups (with names), packs bought (card, credit, XP) and players sold. Goes to {reportTo.length} address{reportTo.length === 1 ? "" : "es"}: {reportTo.join(", ") || "—"}.
+            </p>
+          </div>
+          <ActionButton action={sendReportNowAction} className="btn-ghost px-4 py-2 text-xs">Send yesterday&apos;s now</ActionButton>
+        </div>
+        <TextSettingForm settingKey="reportEmails" label={TEXT_SETTINGS.reportEmails.label} help={TEXT_SETTINGS.reportEmails.help} value={extra} placeholder="ian@example.com, accounts@example.com" />
+        <p className="text-xs text-faint">
+          About the 5% transfer fee: transfers between managers are paid in spend-only credit, so the seller gets 95% as credit and the 5% simply leaves the game. No money moves in Stripe — real money only comes in when managers pay by card (packs and top-ups).
+        </p>
       </section>
 
       <section className="panel p-5">

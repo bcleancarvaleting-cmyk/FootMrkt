@@ -133,6 +133,11 @@ export const TEXT_SETTINGS = {
     help: "When MATCHX opens, as YYYY-MM-DD HH:MM in UK time (e.g. 2026-12-01 19:00). Shows a countdown on the waitlist page. Leave blank for 'Coming soon'.",
     default: "",
   },
+  reportEmails: {
+    label: "Daily report — extra emails",
+    help: "The daily report (sign-ups, card takings, packs and players sold) goes to every admin at 8am. Add more addresses here, separated by commas.",
+    default: "",
+  },
   earlyAccessCode: {
     label: "Early-access code",
     help: "While Pre-launch is on, sign-up only works from a link with this code: /register?code=YOURCODE (for testers and friends). Leave blank to close sign-up completely.",
@@ -164,6 +169,7 @@ export async function setText(adminId: string, key: TextSettingKey, value: strin
     throw new DomainError("URL", "Paste the full image link, starting https:// — e.g. a photo's direct link from Unsplash or Pexels.");
   }
   if (key === "launchDate" && v && !/^\d{4}-\d{2}-\d{2}( \d{2}:\d{2})?$/.test(v)) throw new DomainError("DATE", "Use YYYY-MM-DD HH:MM, e.g. 2026-12-01 19:00.");
+  if (key === "reportEmails" && v && !v.split(/[,\s]+/).filter(Boolean).every((e) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e))) throw new DomainError("EMAIL", "Enter email addresses separated by commas.");
   if (key === "earlyAccessCode" && v && !/^[A-Za-z0-9-]{4,32}$/.test(v)) throw new DomainError("CODE", "4–32 letters, numbers or dashes.");
   if (key === "referralRewardSku" || key === "referralMonthlyPrizeSku" || key === "waitlistRewardSku") {
     const { FOOTBALL_PACKS } = await import("@/config/packs");

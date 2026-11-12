@@ -368,15 +368,25 @@ describe("house auctions", () => {
     expect(await kinds(b.userId)).toEqual(["⚠️ You've been outbid"]);
   });
 
-  it("a late bid extends the auction (anti-sniping)", async () => {
+  it("a bid in the last 30 seconds puts 30 seconds back on the clock (anti-sniping)", async () => {
     enableLegalGates();
     const admin = await makeTrader("admin2");
     const a = await makeTrader("aaa7");
+    const b = await makeTrader("bbb7");
     await fund(a.userId, 500);
+    await fund(b.userId, 500);
     const au = await auction(admin.userId);
-    const nearEnd = new Date(au.endsAt.getTime() - 30_000);
-    const { endsAt } = await placeBid(a.userId, au.id, 100, nearEnd);
-    expect(endsAt.getTime()).toBe(nearEnd.getTime() + 2 * 60_000);
+    // 45 seconds left: no change.
+    const early = new Date(au.endsAt.getTime() - 45_000);
+    expect((await placeBid(a.userId, au.id, 100, early)).endsAt.getTime()).toBe(au.endsAt.getTime());
+    // 10 seconds left: back to 30 seconds from the bid.
+    const late = new Date(au.endsAt.getTime() - 10_000);
+    const r1 = await placeBid(b.userId, au.id, 150, late);
+    expect(r1.endsAt.getTime()).toBe(late.getTime() + 30_000);
+    // And again, each time someone bids late.
+    const later = new Date(r1.endsAt.getTime() - 5_000);
+    const r2 = await placeBid(a.userId, au.id, 200, later);
+    expect(r2.endsAt.getTime()).toBe(later.getTime() + 30_000);
   });
 
   it("cancelling returns bids and puts the card back in the pool", async () => {

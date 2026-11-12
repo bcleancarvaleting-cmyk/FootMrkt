@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AuctionSync } from "@/components/auction-sync";
 import { Countdown } from "@/components/countdown";
 import { PlayerCard } from "@/components/player-card";
 import { AuctionBuyNowButton, BidForm } from "@/components/transfer-forms";
@@ -19,11 +20,12 @@ export default async function AuctionsPage() {
       <div>
         <h1 className="text-4xl">Auctions</h1>
         <p className="text-sm text-muted">
-          The highest bid when the clock runs out wins. Some sellers set a <b className="text-gold">buy-it-now</b> price, so you can take the player straight away. Your money is held while you lead and returned if you&apos;re outbid. To auction one of your own players, open it in{" "}
+          The highest bid when the clock runs out wins. Some sellers set a <b className="text-gold">buy-it-now</b> price, so you can take the player straight away. Your money is held while you lead and returned if you&apos;re outbid. <b className="text-fg">A bid in the last 30 seconds puts 30 seconds back on the clock</b>, so everyone gets a chance to bid again. To auction one of your own players, open it in{" "}
           <Link href="/account/club" className="text-lime underline">My Club</Link> and choose &ldquo;auction it&rdquo;.
         </p>
         {!on && <p className="mt-2 text-sm text-warn">Auctions open once our UK legal and payment checks are complete.</p>}
       </div>
+      <AuctionSync endsAt={live.map((a) => a.endsAt.toISOString())} />
       {live.length ? (
         <ul className="space-y-3">
           {live.map((a) => (
@@ -48,7 +50,7 @@ export default async function AuctionsPage() {
                 </p>
                 {!a.reserveMet && <p className="text-xs font-semibold text-warn">Minimum price not reached yet</p>}
                 <p className="text-xs text-faint">
-                  Ends in <Countdown to={a.endsAt.toISOString()} className="font-bold text-fg" /> · {a.bids} bid{a.bids === 1 ? "" : "s"}
+                  Ends in <Countdown to={a.endsAt.toISOString()} className="font-bold text-fg" urgentClassName="font-bold text-danger" urgentMs={30_000} /> · {a.bids} bid{a.bids === 1 ? "" : "s"}
                 </p>
               </div>
               {!a.mine && (

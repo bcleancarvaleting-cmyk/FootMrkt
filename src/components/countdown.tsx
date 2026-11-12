@@ -9,7 +9,7 @@ function parts(ms: number) {
 const pad = (n: number) => String(n).padStart(2, "0");
 
 /** Live countdown to `to` (ISO string). Renders "Ended" once it passes. */
-export function Countdown({ to, className = "", endedLabel = "Ended" }: { to: string; className?: string; endedLabel?: string }) {
+export function Countdown({ to, className = "", endedLabel = "Ended", urgentMs = 0, urgentClassName }: { to: string; className?: string; endedLabel?: string; urgentMs?: number; urgentClassName?: string }) {
   const target = new Date(to).getTime();
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
@@ -25,7 +25,7 @@ export function Countdown({ to, className = "", endedLabel = "Ended" }: { to: st
   if (left <= 0) return <span className={className}>{endedLabel}</span>;
   const p = parts(left);
   return (
-    <span className={`tabular-nums ${className}`} suppressHydrationWarning>
+    <span className={`tabular-nums ${urgentClassName && left <= urgentMs ? urgentClassName : className}`} suppressHydrationWarning>
       {p.d > 0 ? `${p.d}d ` : ""}
       {pad(p.h)}:{pad(p.m)}:{pad(p.s)}
     </span>

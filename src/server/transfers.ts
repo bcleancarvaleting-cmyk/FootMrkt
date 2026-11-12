@@ -500,6 +500,9 @@ export async function createAuction(adminId: string, input: z.input<typeof Aucti
   });
 }
 
+/** A bid in the final 30 seconds puts 30 seconds back on the clock. */
+export const ANTI_SNIPE_MS = 30_000;
+
 export async function placeBid(userId: string, auctionId: string, amountMinor: number, now = new Date()) {
   await requireFlag("MARKET");
   await requireFlag("AUCTIONS");
@@ -522,9 +525,10 @@ export async function placeBid(userId: string, auctionId: string, amountMinor: n
     }
     const bid = await tx.auctionBid.create({ data: { auctionId, userId, amountMinor } });
     await debit(tx, { userId, amountMinor, kind: "AUCTION_HOLD", refId: `bid:${bid.id}`, note: "Auction bid — money held", earnedOnly: true });
-    // Anti-sniping: a late bid pushes the end back so others get a fair chance to respond.
-    const snipe = a.antiSnipeMinutes * 60_000;
-    const endsAt = a.endsAt.getTime() - now.getTime() < snipe ? new Date(now.getTime() + snipe) : a.endsAt;
+    // Anti-sniping, auction style: a bid in the last 30 seconds resets the clock to 30 seconds, so
+    // everyone sees it and can bid again — and again, until no one beats it.
+    const snipe = ANTI_SNIPE_MS;
+    const endsAt = a.endsAt.getTime() - now.getTime() <= snipe ? new Date(now.getTime() + snipe) : a.endsAt;
     await tx.auction.update({ where: { id: auctionId }, data: { status: "LIVE", endsAt } });
     return { bid, endsAt, outbid: leading && leading.userId !== userId ? leading : null };
   });

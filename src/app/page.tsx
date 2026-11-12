@@ -15,6 +15,8 @@ import { Sparkline } from "@/components/card-row";
 import { LaunchPage, type LaunchParams } from "@/components/launch-page";
 import { HeroCarousel } from "@/components/hero-carousel";
 import { HubHero } from "@/components/hub-hero";
+import { PromoBanner } from "@/components/promo-banner";
+import { HERO_PHOTOS, PhotoBackground } from "@/components/hero-background";
 import { TakeItOnTheGo } from "@/components/app-install";
 import { CommunityLinks } from "@/components/community-links";
 import { EndedLoansBanner } from "@/components/loan-banner";
@@ -53,6 +55,7 @@ async function Landing() {
       <div className="-mx-4 sm:-mx-6 lg:mx-0">
         <HeroCarousel labels={["Manage your team", "Transfer market", "Buy packs"]}>
           <Slide
+            background={<PhotoBackground src={HERO_PHOTOS.floodlight} position="50% 40%" />}
             eyebrow="Manage your team"
             title={
               <>
@@ -74,6 +77,7 @@ async function Landing() {
             }
           />
           <Slide
+            background={<PhotoBackground src={HERO_PHOTOS.nightStadium} />}
             eyebrow="Transfer market"
             title={
               <>
@@ -97,6 +101,7 @@ async function Landing() {
             }
           />
           <Slide
+            background={<PhotoBackground src={HERO_PHOTOS.ballBoots} position="60% 50%" />}
             eyebrow="Buy packs"
             title={
               <>
@@ -249,9 +254,11 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
     isEnabled("PAID_ENTRY"),
   ]);
   const watch = await (await import("@/server/watch")).watchable();
+  const promo = await (await import("@/server/promo")).promoState(userId);
 
   return (
     <div className="space-y-8">
+      <PromoBanner {...promo} />
       <HubHero userId={userId} name={name} unopened={unopened} marketOn={marketOn} buyNows={playerDrops} auctions={auctions} watch={watch} />
 
       <EndedLoansBanner userId={userId} />

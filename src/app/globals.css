@@ -1070,3 +1070,6 @@ h2 {
 @keyframes signing-pop { 0% { transform: translateY(24px) scale(0.95); opacity: 0; } 12% { transform: none; opacity: 1; } 88% { transform: none; opacity: 1; } 100% { transform: translateY(12px); opacity: 0; } }
 .signing-pop { animation: signing-pop 6s ease-out forwards; }
 @media (prefers-reduced-motion: reduce) { .signing-pop { animation: none; } }
+@keyframes promo-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(240, 203, 90, 0); } 50% { box-shadow: 0 0 22px 2px rgba(240, 203, 90, 0.35); } }
+.promo-glow { animation: promo-glow 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .promo-glow { animation: none; } }

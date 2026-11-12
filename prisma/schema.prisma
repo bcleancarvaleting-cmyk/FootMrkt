@@ -133,6 +133,7 @@ model User {
   auditActions     AdminAuditLog[]
 
   @@index([referredById])
+  promoClaims              PromoClaim[]
 }
 
 model Session {
@@ -1541,4 +1542,18 @@ model Moment {
   shownAt   DateTime?
 
   @@index([userId, shownAt])
+}
+
+/// A promo code a manager has claimed (e.g. MATCHX: 50% off one pack). Once per manager per code;
+/// usedAt/usedRef record the purchase it went on (released again if a card payment fails).
+model PromoClaim {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code      String
+  claimedAt DateTime  @default(now())
+  usedAt    DateTime?
+  usedRef   String?
+
+  @@unique([userId, code])
 }

@@ -162,7 +162,9 @@ export async function buyPackWithCredit(userId: string, skuCode: string, clientK
     if (done) return done;
     const sku = await latestSku(skuCode, tx);
     if (sku.kind !== "REGULAR" || sku.priceMinor <= 0) throw new DomainError("NOT_FOR_SALE", "This pack isn't for sale.");
-    await debit(tx, { userId, amountMinor: sku.priceMinor, kind: "PACK_PURCHASE", refId, note: `${sku.name}` });
+    // A claimed promo code (e.g. MATCHX, 50% off) comes off this pack.
+    const promo = await (await import("./promo")).applyPromo(tx, userId, sku.priceMinor, refId);
+    await debit(tx, { userId, amountMinor: promo.priceMinor, kind: "PACK_PURCHASE", refId, note: promo.code ? `${sku.name} (${promo.code})` : `${sku.name}` });
     return grantPack(tx, { userId, skuCode, source: "MP_CREDIT", sourceRef: `credit:${refId}` });
   });
 }

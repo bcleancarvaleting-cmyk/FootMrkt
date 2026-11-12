@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ClubCrest } from "@/components/club-crest";
+import { HERO_PHOTOS, PhotoBackground } from "@/components/hero-background";
 import { HeroCarousel } from "@/components/hero-carousel";
 import { PlayerCard } from "@/components/player-card";
 import { SimBadge } from "@/components/sim-badge";
@@ -49,7 +50,7 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
     <div className="-mx-4 sm:mx-0">
       <HeroCarousel labels={labels}>
         {/* My Club */}
-        <Frame tone="lime" href="/account/club" cta="My Club">
+        <Frame photo={HERO_PHOTOS.nightStadium} tone="lime" href="/account/club" cta="My Club">
           <div className="flex items-center gap-4">
             {crest ? <ClubCrest crest={crest} id="hub-crest" size={72} /> : <Link href="/account/club/crest" className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl border border-dashed border-white/30 text-center text-[10px] font-bold text-white/60">Design crest</Link>}
             <div className="min-w-0">
@@ -75,7 +76,7 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
         </Frame>
 
         {/* Packs */}
-        <Frame tone="gold" href="/packs" cta={unopened ? `Open ${unopened} pack${unopened === 1 ? "" : "s"}` : "Pack shop"}>
+        <Frame photo={HERO_PHOTOS.ballBoots} tone="gold" href="/packs" cta={unopened ? `Open ${unopened} pack${unopened === 1 ? "" : "s"}` : "Pack shop"}>
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">Packs</p>
           <h2 className="font-display text-5xl font-black uppercase italic leading-none">{unopened ? <>{unopened} to <span className="text-[#f0cb5a]">open</span></> : <>Rip a <span className="text-[#f0cb5a]">pack</span></>}</h2>
           <p className="mt-2 max-w-sm text-sm text-white/70">Starters, weekly boosters, gifts and the shop — Bronze, Silver and Gold, with published odds.</p>
@@ -91,7 +92,7 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
         </Frame>
 
         {/* Transfers */}
-        <Frame tone="gold" href="/transfers/market" cta="Transfers">
+        <Frame photo={HERO_PHOTOS.bootBall} tone="gold" href="/transfers/market" cta="Transfers">
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">Transfers</p>
           <h2 className="font-display text-5xl font-black uppercase italic leading-none">Buy · sell · <span className="text-[#adfc07]">bid</span></h2>
           <p className="mt-2 text-sm text-white/70">{marketOn ? `${market?.total ?? 0} players on the MATCHX market · ${buyNows} buy-nows · ${auctions} auction${auctions === 1 ? "" : "s"} live` : "Opening soon"}</p>
@@ -111,7 +112,7 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
         </Frame>
 
         {/* Matches */}
-        <Frame tone="lime" href="/matches" cta="All matches">
+        <Frame photo={HERO_PHOTOS.floodlight} tone="lime" href="/matches" cta="All matches">
           <div className="flex items-center justify-between gap-2">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">Upcoming matches</p>
             <span className="flex gap-2">
@@ -156,7 +157,7 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
         </Frame>
 
         {/* Challenges */}
-        <Frame tone="lime" href="/account/challenges" cta="Challenges">
+        <Frame photo={HERO_PHOTOS.ballBoots} tone="lime" href="/account/challenges" cta="Challenges">
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">Challenges</p>
           <h2 className="font-display text-5xl font-black uppercase italic leading-none">Hand <span className="text-[#adfc07]">in</span></h2>
           <p className="mt-2 text-sm text-white/70">Trade in players you don&apos;t need for £ credit and packs.</p>
@@ -181,9 +182,10 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
   );
 }
 
-function Frame({ tone, href, cta, children }: { tone: "lime" | "gold"; href: string; cta: string; children: React.ReactNode }) {
+function Frame({ tone, href, cta, photo, children }: { tone: "lime" | "gold"; href: string; cta: string; photo: string; children: React.ReactNode }) {
   return (
     <div className={`relative flex h-full min-h-[520px] flex-col overflow-hidden border-y border-ink-700 bg-[#0b0e0c] p-5 text-[#f4f5f2] sm:rounded-[28px] sm:border sm:p-8`}>
+      <PhotoBackground src={photo} />
       <div className={`pointer-events-none absolute inset-0 ${tone === "gold" ? "bg-[radial-gradient(120%_80%_at_85%_10%,rgb(240_203_90/0.18),transparent_60%)]" : "bg-[radial-gradient(120%_80%_at_85%_10%,rgb(173_252_7/0.16),transparent_60%)]"}`} aria-hidden="true" />
       <div className="relative flex-1">{children}</div>
       <Link href={href} className={`relative mt-5 self-start px-6 py-3 text-sm ${tone === "gold" ? "btn-gold" : "btn-primary"}`}>

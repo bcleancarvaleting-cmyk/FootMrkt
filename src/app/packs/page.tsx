@@ -18,6 +18,8 @@ import { dropStatus } from "@/server/drops";
 import { upcomingWelcomePacks } from "@/server/welcome";
 import { isPick } from "@/server/picks";
 import { allFlags } from "@/server/flags";
+import { promoState } from "@/server/promo";
+import { PromoBanner } from "@/components/promo-banner";
 import { balancesFor, fmtMp, xpPriceFor } from "@/server/wallet";
 import { fmtDate, gbp } from "@/lib/view";
 
@@ -43,6 +45,8 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
     upcomingWelcomePacks(user.id),
     myBoosters(user.id),
   ]);
+  const promo = await promoState(user.id);
+  const half = (m: number) => (promo.status === "claimed" ? Math.max(1, Math.round((m * (100 - promo.pct)) / 100)) : m);
   const usedOn = boosters.some((b) => b.usedEntryId)
     ? new Map((await db.competitionEntry.findMany({ where: { id: { in: boosters.flatMap((b) => (b.usedEntryId ? [b.usedEntryId] : [])) } }, select: { id: true, competition: { select: { name: true } } } })).map((e) => [e.id, e.competition.name]))
     : new Map<string, string>();
@@ -56,6 +60,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
 
   return (
     <div className="space-y-10">
+      <PromoBanner code={promo.code} headline={promo.headline} status={promo.status} />
       {paid && /^[0-9a-f-]{36}$/.test(paid) && <PaymentReveal orderId={paid} />}
       {!paid && cancelled && /^[0-9a-f-]{36}$/.test(cancelled) && <PaymentReveal orderId={cancelled} cancelled />}
       {drop && !drop.opened && (
@@ -207,7 +212,14 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
                       <div className="flex flex-1 flex-col p-5">
                         <div className="flex items-baseline justify-between gap-2">
                           <h4 className="font-display text-2xl font-bold uppercase italic">{s.name}</h4>
-                          <span className="font-bold tabular-nums">{gbp(s.priceMinor)}</span>
+                          {promo.status === "claimed" ? (
+                            <span className="text-right tabular-nums">
+                              <span className="mr-1.5 text-sm text-faint line-through">{gbp(s.priceMinor)}</span>
+                              <b className="text-lime">{gbp(half(s.priceMinor))}</b>
+                            </span>
+                          ) : (
+                            <span className="font-bold tabular-nums">{gbp(s.priceMinor)}</span>
+                          )}
                         </div>
                         <p className="mt-1 text-sm text-muted">{meta(s.code)?.blurb ?? `${cardCount(cfg)} cards`}</p>
                         <ul className="mt-3 space-y-1 text-sm">
@@ -247,9 +259,9 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
                             <>
                               {/* XP | £ side by side, then card payment full width. */}
                               <XpPackButton skuCode={s.code} xp={xpPriceFor(s.priceMinor, xpRate)} affordable={bal.xp >= xpPriceFor(s.priceMinor, xpRate)} />
-                              <CreditPackButton skuCode={s.code} price={fmtMp(s.priceMinor)} affordable={bal.total >= s.priceMinor} />
+                              <CreditPackButton skuCode={s.code} price={fmtMp(half(s.priceMinor))} affordable={bal.total >= half(s.priceMinor)} />
                               <div className="col-span-2 grid">
-                                <BuyPackButton skuCode={s.code} price={gbp(s.priceMinor)} enabled={flags.PAID_PACKS && cardReady} />
+                                <BuyPackButton skuCode={s.code} price={gbp(half(s.priceMinor))} enabled={flags.PAID_PACKS && cardReady} />
                               </div>
                             </>
                           ) : (

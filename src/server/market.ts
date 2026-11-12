@@ -54,11 +54,16 @@ export async function startPackPurchase(userId: string, skuCode: string, clientK
   if (sku.kind !== "REGULAR" || sku.priceMinor <= 0) throw new DomainError("NOT_FOR_SALE", "This pack isn't for sale.");
   const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
   if (!isAdult(user.dateOfBirth)) throw new DomainError("AGE", "Add your date of birth in My Account → Profile. You must be 18 or over to buy packs.");
-  await assertCanSpend(userId, sku.priceMinor);
-  return createOrder(
-    { userId, kind: "PACK_PURCHASE", refId: sku.id, amountMinor: sku.priceMinor, idempotencyKey: `pack:${userId}:${clientKey}` },
+  // A claimed promo code (e.g. MATCHX, 50% off) comes off this pack; it's given back if the payment fails.
+  const { promoPrice } = await import("./promo");
+  const price = (await promoPrice(userId, sku.priceMinor)) ?? sku.priceMinor;
+  await assertCanSpend(userId, price);
+  const order = await createOrder(
+    { userId, kind: "PACK_PURCHASE", refId: sku.id, amountMinor: price, idempotencyKey: `pack:${userId}:${clientKey}` },
     provider,
   );
+  if (price !== sku.priceMinor) await db.promoClaim.updateMany({ where: { userId, usedAt: null }, data: { usedAt: new Date(), usedRef: order.orderId } });
+  return order;
 }
 
 /**
@@ -93,6 +98,7 @@ async function processPaymentEvent(event: PaymentWebhookEvent, provider: Payment
 
     if (event.type === "payment.failed") {
       if (o.status === "PENDING") await tx.order.update({ where: { id: o.id }, data: { status: "FAILED" } });
+      await (await import("./promo")).releasePromo(tx, o.id);
       return { status: "failed" as const };
     }
     if (event.type === "payment.refunded") {

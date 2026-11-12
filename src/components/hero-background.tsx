@@ -25,3 +25,27 @@ export function HeroBackground({ image }: { image: string }) {
   );
 }
 
+
+/**
+ * A football photo behind a hero slide (free-to-use Unsplash photos, stored with the site),
+ * darkened so text stays readable, with a hint of MATCHX lime.
+ */
+export const HERO_PHOTOS = {
+  nightStadium: "/hero/night-stadium.webp",
+  ballBoots: "/hero/ball-boots.webp",
+  floodlight: "/hero/floodlight.webp",
+  bootBall: "/hero/boot-ball.webp",
+} as const;
+
+export function PhotoBackground({ src, position = "50% 50%" }: { src: string; position?: string }) {
+  return (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: position }} loading="lazy" />
+      <div className="absolute inset-0 bg-[#060708]/45" aria-hidden="true" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#060708] via-[#060708]/70 to-[#060708]/10" aria-hidden="true" />
+      <div className="absolute inset-0 hidden bg-gradient-to-r from-[#060708]/90 via-[#060708]/40 to-transparent sm:block" aria-hidden="true" />
+      <div className="absolute inset-0 bg-[radial-gradient(90%_60%_at_85%_0%,rgb(173_252_7/0.14),transparent_60%)]" aria-hidden="true" />
+    </>
+  );
+}

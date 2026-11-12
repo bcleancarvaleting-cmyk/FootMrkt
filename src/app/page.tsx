@@ -317,22 +317,23 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
               ))}
             </div>
           )}
-          <div className="flex flex-wrap gap-3">
+          {/* Side by side on phones (two per row; an odd last one spans the row). */}
+          <div className="grid max-w-xl grid-cols-2 gap-2 sm:flex sm:max-w-none sm:flex-wrap sm:gap-3 [&>*:last-child:nth-child(odd)]:col-span-2">
             {watch.real && (
-              <Link href="/watch?scope=real" className="watch-btn btn-primary flex items-center gap-2 px-7 py-4 text-sm">
+              <Link href="/watch?scope=real" className="watch-btn btn-primary px-3 py-3.5 text-center text-[12px] leading-tight sm:px-7 sm:py-4 sm:text-sm">
                 <span className="live-dot" aria-hidden="true" /> Watch live table
               </Link>
             )}
             {watch.sim && (
-              <Link href="/watch" className="watch-btn flex items-center gap-2 rounded-full bg-[#8fe3ff] px-7 py-4 text-sm font-black uppercase tracking-wide text-[#04121a]">
+              <Link href="/watch" className="watch-btn btn bg-[#8fe3ff] px-3 py-3.5 text-center text-[12px] leading-tight text-[#04121a] sm:px-7 sm:py-4 sm:text-sm">
                 <span className="live-dot" aria-hidden="true" /> Watch live sim
               </Link>
             )}
-            <Link href="/matches" className="btn-primary px-7 py-4 text-sm shadow-[0_8px_30px_-6px_rgba(173,252,7,0.55)]">
+            <Link href="/matches" className="btn-primary px-3 py-3.5 text-center text-[12px] leading-tight shadow-[0_8px_30px_-6px_rgba(173,252,7,0.55)] sm:px-7 sm:py-4 sm:text-sm">
               {open ? (entered ? `Entered ${entered}/${comps.length} — edit` : "Pick my squad") : "Live scores"}
             </Link>
             {unopened > 0 && (
-              <Link href="/packs" className="btn-gold px-7 py-4 text-sm">
+              <Link href="/packs" className="btn-gold px-3 py-3.5 text-center text-[12px] leading-tight sm:px-7 sm:py-4 sm:text-sm">
                 Open {unopened} pack{unopened > 1 ? "s" : ""}
               </Link>
             )}

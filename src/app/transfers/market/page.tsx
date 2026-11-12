@@ -2,12 +2,15 @@ import Link from "next/link";
 import { AddToBasketButton } from "@/components/basket-buttons";
 import { CardRow } from "@/components/card-row";
 import { FormGuide } from "@/components/form-guide";
+import { MarketFilters } from "@/components/market-filters";
+import { MoversPanel } from "@/components/movers-panel";
 import { EmptyState, PageHeader } from "@/components/page-header";
 import { requireUser } from "@/server/auth/session";
 import { basketIds } from "@/server/basket";
 import { isEnabled } from "@/server/flags";
 import { type MarketSort, marketBoard } from "@/server/market-board";
 import { formGuide } from "@/server/top-performers";
+import { listedFinishes } from "@/server/transfers-view";
 import { fmtMp } from "@/server/wallet";
 
 export const metadata = { title: "MATCHX market" };
@@ -25,18 +28,19 @@ export default async function MarketPage({ searchParams }: { searchParams: Promi
   const user = await requireUser();
   const sp = await searchParams;
   const tier = (["BRONZE", "SILVER", "GOLD"] as const).find((t) => t === sp.tier);
+  const finish = (["RUBY", "DIAMOND", "RAINBOW"] as const).find((t) => t === sp.tier);
   const pos = (["GK", "DEF", "MID", "ATT"] as const).find((p) => p === sp.pos);
   const league = LEAGUES.find(([c]) => c === sp.league)?.[0];
   const sort = (["value", "cheap", "left"] as const).find((s) => s === sp.sort) ?? ("value" as MarketSort);
   const q = sp.q?.trim().slice(0, 40) || undefined;
-  const [open, board, inBasket] = await Promise.all([isEnabled("MARKET"), marketBoard({ q, tier, pos, league, sort, page: Number(sp.page) || 1 }), basketIds(user.id)]);
+  const [open, board, inBasket] = await Promise.all([isEnabled("MARKET"), marketBoard({ q, tier, finish, pos, league, sort, page: Number(sp.page) || 1 }), basketIds(user.id)]);
+  const rare = await listedFinishes(true);
   const form = await formGuide(board.rows.map((r) => r.card.playerId));
   const qs = (patch: Partial<SP>) => {
     const p = new URLSearchParams();
-    for (const [k, v] of Object.entries({ q, tier, pos, league, sort: sort === "value" ? undefined : sort, ...patch })) if (v) p.set(k, v);
+    for (const [k, v] of Object.entries({ q, tier: tier ?? finish, pos, league, sort: sort === "value" ? undefined : sort, ...patch })) if (v) p.set(k, v);
     return `/transfers/market${p.size ? `?${p}` : ""}`;
   };
-  const chip = (on: boolean) => `chip ${on ? "border-accent text-fg" : ""}`;
   return (
     <div className="space-y-6">
       <PageHeader
@@ -45,44 +49,22 @@ export default async function MarketPage({ searchParams }: { searchParams: Promi
         intro="Every player in the game, on sale now at their market value — set by their form this season, real-world value and how much managers want them. Only a few copies of each: every one sold makes the rest 2% dearer. New batches are released at the latest prices."
       />
 
-      <form action="/transfers/market" className="flex max-w-md gap-2" role="search">
-        {tier && <input type="hidden" name="tier" value={tier} />}
-        {pos && <input type="hidden" name="pos" value={pos} />}
-        {league && <input type="hidden" name="league" value={league} />}
-        <label htmlFor="mk-q" className="sr-only">Search for a player or club</label>
-        <input id="mk-q" name="q" type="search" defaultValue={q} placeholder="Search for a player or club" className="input flex-1" />
-        <button className="btn-primary px-4">Search</button>
-      </form>
+      <MarketFilters
+        action="/transfers/market"
+        q={q}
+        selects={[
+          { name: "league", label: "League", value: league ?? "", options: [["", "All leagues"], ...LEAGUES.map(([c, n]) => [c, n] as [string, string])] },
+          { name: "pos", label: "Position", value: pos ?? "", options: [["", "All positions"], ["GK", "Goalkeepers"], ["DEF", "Defenders"], ["MID", "Midfielders"], ["ATT", "Attackers"]] },
+          { name: "tier", label: "Type", value: tier ?? finish ?? "", options: [["", "All types"], ["GOLD", "Gold"], ["SILVER", "Silver"], ["BRONZE", "Bronze"], ...rare.map((k) => [k, `${k[0]}${k.slice(1).toLowerCase()} ✦`] as [string, string])] },
+          { name: "sort", label: "Sort", value: sort === "value" ? "" : sort, options: [["", "Most valuable"], ["cheap", "Cheapest"], ["left", "Fewest left"]] },
+        ]}
+      />
 
-      <nav className="flex flex-wrap items-center gap-2" aria-label="Filters">
-        {(["value", "cheap", "left"] as const).map((s) => (
-          <Link key={s} href={qs({ sort: s === "value" ? undefined : s, page: undefined })} className={chip(sort === s)}>
-            {s === "value" ? "Most valuable" : s === "cheap" ? "Cheapest" : "Fewest left"}
-          </Link>
-        ))}
-        <span className="mx-1 w-px self-stretch bg-ink-700" />
-        {(["GOLD", "SILVER", "BRONZE"] as const).map((t) => (
-          <Link key={t} href={qs({ tier: tier === t ? undefined : t, page: undefined })} className={chip(tier === t)}>
-            {t[0] + t.slice(1).toLowerCase()}
-          </Link>
-        ))}
-        <span className="mx-1 w-px self-stretch bg-ink-700" />
-        {LEAGUES.map(([c, n]) => (
-          <Link key={c} href={qs({ league: league === c ? undefined : c, page: undefined })} className={chip(league === c)}>
-            {n}
-          </Link>
-        ))}
-        <span className="mx-1 w-px self-stretch bg-ink-700" />
-        {(["GK", "DEF", "MID", "ATT"] as const).map((p) => (
-          <Link key={p} href={qs({ pos: pos === p ? undefined : p, page: undefined })} className={chip(pos === p)}>
-            {p}
-          </Link>
-        ))}
-      </nav>
+      <MoversPanel />
 
       {board.rows.length === 0 ? (
-        <EmptyState title={q || tier || pos || league ? "No players match" : "The market opens soon"}>
-          {q || tier || pos || league ? "Try another search or filter." : "MATCHX releases copies of every player here. Check back shortly."}
+        <EmptyState title={q || tier || finish || pos || league ? "No players match" : "The market opens soon"}>
+          {q || tier || finish || pos || league ? "Try another search or filter." : "MATCHX releases copies of every player here. Check back shortly."}
         </EmptyState>
       ) : (
         <>

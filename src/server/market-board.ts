@@ -9,12 +9,13 @@ import { CARD_INCLUDE, enrichCards } from "./views";
 export const MARKET_PAGE = 40;
 export type MarketSort = "value" | "cheap" | "left";
 
-export async function marketBoard(f: { q?: string; tier?: "BRONZE" | "SILVER" | "GOLD"; pos?: "GK" | "DEF" | "MID" | "ATT"; league?: string; sort?: MarketSort; page?: number }) {
+export async function marketBoard(f: { q?: string; tier?: "BRONZE" | "SILVER" | "GOLD"; pos?: "GK" | "DEF" | "MID" | "ATT"; league?: string; finish?: "RUBY" | "DIAMOND" | "RAINBOW"; sort?: MarketSort; page?: number }) {
   const page = Math.max(1, Math.min(500, f.page ?? 1));
   const where: Prisma.Sql[] = [Prisma.sql`ml.house AND ml.status = 'ACTIVE' AND c.packable AND ml."expiresAt" > now() AND (ml."liveAt" IS NULL OR ml."liveAt" <= now())`];
   if (f.tier) where.push(Prisma.sql`t.category = ${f.tier}::"CardCategory"`);
   if (f.pos) where.push(Prisma.sql`p.position = ${f.pos}::"Position"`);
   if (f.league) where.push(Prisma.sql`l.code = ${f.league}`);
+  if (f.finish) where.push(Prisma.sql`EXISTS (SELECT 1 FROM "CardFinish" cf WHERE cf."cardId" = c.id AND cf.kind = ${f.finish}::"CardFinishKind")`);
   if (f.q) where.push(Prisma.sql`(p."displayName" ILIKE ${"%" + f.q + "%"} OR cl.name ILIKE ${"%" + f.q + "%"})`);
   const cond = Prisma.join(where, " AND ");
   const order = f.sort === "cheap" ? Prisma.sql`price ASC, p."displayName"` : f.sort === "left" ? Prisma.sql`copies ASC, price DESC` : Prisma.sql`price DESC, p."displayName"`;

@@ -8,6 +8,9 @@ import { CARD_INCLUDE, enrichCards } from "./views";
 
 export interface BoardFilters {
   tier?: CardCategory;
+  /** Rare finishes: Ruby, Diamond, Rainbow. */
+  finish?: "RUBY" | "DIAMOND" | "RAINBOW";
+  league?: string;
   pos?: Position;
   q?: string;
   sort?: "new" | "price_asc" | "price_desc" | "ending";
@@ -56,12 +59,13 @@ export interface ListingRow {
 export async function transferBoard(f: BoardFilters, viewerId: string | null, take = 60): Promise<ListingRow[]> {
   const player: Prisma.PlayerWhereInput = {};
   if (f.pos) player.position = f.pos;
+  if (f.league) player.club = { league: { code: f.league } };
   if (f.q) player.OR = [{ displayName: { contains: f.q, mode: "insensitive" } }, { club: { name: { contains: f.q, mode: "insensitive" } } }];
   const orderBy: Prisma.MarketListingOrderByWithRelationInput =
     f.sort === "price_asc" ? { askingPriceMinor: "asc" } : f.sort === "price_desc" ? { askingPriceMinor: "desc" } : f.sort === "ending" ? { expiresAt: "asc" } : { createdAt: "desc" };
   const listings = await db.marketListing.findMany({
     // The Transfer list is player-to-player only; MATCHX releases players through Player drops.
-    where: { status: "ACTIVE", house: false, expiresAt: { gt: new Date() }, card: { template: { category: f.tier, player } } },
+    where: { status: "ACTIVE", house: false, expiresAt: { gt: new Date() }, card: { template: { category: f.tier, player }, ...(f.finish ? { finish: { kind: f.finish } } : {}) } },
     include: {
       card: { include: CARD_INCLUDE },
       seller: { select: { displayName: true, foundingNumber: true } },
@@ -188,4 +192,12 @@ export async function listingGuidance(card: CardView) {
   const avg = (await averageSalePrices([{ playerId: card.playerId, category: card.category }])).get(key(card.playerId, card.category));
   const rec = recommendPrice(card.valueMp, avg);
   return { recommendedMinor: rec, avgMinor: avg?.avgMinor ?? null, sales: avg?.sales ?? 0, feeAtRecommendedMinor: feeFor(rec) };
+}
+
+/** Which rare finishes are on sale right now (so the Type filter only offers those). */
+export async function listedFinishes(house: boolean): Promise<Array<"RUBY" | "DIAMOND" | "RAINBOW">> {
+  const rows = await db.$queryRaw<Array<{ kind: "RUBY" | "DIAMOND" | "RAINBOW" }>>`
+    SELECT DISTINCT f.kind::text AS kind FROM "MarketListing" ml JOIN "CardFinish" f ON f."cardId" = ml."cardId"
+    WHERE ml.status = 'ACTIVE' AND ml.house = ${house} AND ml."expiresAt" > now()`;
+  return (["RUBY", "DIAMOND", "RAINBOW"] as const).filter((k) => rows.some((r) => r.kind === k));
 }

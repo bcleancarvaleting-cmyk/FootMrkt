@@ -57,3 +57,33 @@ export async function marketMovers(now = new Date()) {
     tips: tips.map((t) => ({ ...t, player: who(t.playerId) })),
   };
 }
+
+/**
+ * The quick "Market movers" panel on the market pages: the top 5 players moving most this week, each
+ * with its value graph, value now, the week's change and where it's expected to go next (from live
+ * form and recent sales — a projection, not a promise).
+ */
+export async function topMovers(n = 5, now = new Date()) {
+  const m = await marketMovers(now);
+  const tips = await (await import("./valuation")).priceTips();
+  // Biggest risers first, then the biggest fallers to fill (so it's never empty when values move).
+  const picks = [...m.risers, ...m.fallers].slice(0, n);
+  if (picks.length < n) {
+    for (const t of m.tips) if (picks.length < n && !picks.some((p) => p.playerId === t.playerId)) picks.push({ playerId: t.playerId, category: t.category, now: t.nowMp, then: t.nowMp, pct: 0, player: t.player });
+  }
+  if (!picks.length) return [];
+  const hist = await db.$queryRaw<Array<{ playerId: string; category: CardCategory; valueMp: number }>>`
+    SELECT "playerId", category, "valueMp" FROM (
+      SELECT v."playerId", v.category, v."valueMp", v."computedAt",
+             ROW_NUMBER() OVER (PARTITION BY v."playerId", v.category ORDER BY v."computedAt" DESC) AS rn
+      FROM "MPValuation" v WHERE v."playerId" = ANY(${picks.map((p) => p.playerId)}::uuid[])
+    ) x WHERE rn <= 12 ORDER BY "computedAt" ASC`;
+  return picks.map((p) => {
+    const tip = tips.get(`${p.playerId}:${p.category}`);
+    return {
+      ...p,
+      history: hist.filter((h) => h.playerId === p.playerId && h.category === p.category).map((h) => Number(h.valueMp)),
+      expected: tip ? { value: tip.nextMp, pct: tip.pct } : null,
+    };
+  });
+}

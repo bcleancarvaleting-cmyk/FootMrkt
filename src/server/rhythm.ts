@@ -60,8 +60,8 @@ export async function weeklyRhythm(now = new Date()) {
       await notify(userId, {
         kind: "RESULTS",
         title: `GW${gw.number} results: ${e.finalPoints} pts`,
-        body: `${top}${e.competition.name} — #${e.rank} of ${e.competition._count.entries}. Your points are now XP.`,
-        href: "/matches",
+        body: `${top}${e.competition.name} — #${e.rank} of ${e.competition._count.entries}. Your points are now XP. Tap to share your matchday.`,
+        href: "/matchday",
         dedupeKey: `gw:${gw.id}:results:${userId}`,
       });
       out.results++;

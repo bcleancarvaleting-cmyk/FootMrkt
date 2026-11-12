@@ -373,3 +373,34 @@ export function ClubAdPoster({ clubName, code, colour, count, cards, format }: {
     </Frame>
   );
 }
+
+/** "My matchday": a manager's gameweek score, rank and best players, for Instagram, TikTok and WhatsApp. */
+export function MatchdayPoster({ d, format }: { d: { manager: string; clubName: string | null; competition: string; gameweek: number; points: number; rank: number; entries: number; live: boolean; top: Array<{ card: CardView; points: number; captain: boolean }> }; format: PosterFormat }) {
+  const w = format === "story" ? 290 : format === "portrait" ? 260 : 220;
+  return (
+    <Frame format={format} bg="LIME" footer="playmatchx.com · Free to play · 18+">
+      <p className="text-[30px] font-bold uppercase tracking-[0.3em] text-[#adfc07]">
+        Gameweek {d.gameweek} · {d.live ? "live" : "final"}
+      </p>
+      <p className="mt-3 text-[34px] font-semibold text-white/80">{d.clubName ?? d.manager}</p>
+      <Headline className={`${format === "square" ? "text-[190px]" : "text-[230px]"} text-[#adfc07]`}>{d.points}</Headline>
+      <p className="-mt-2 font-display text-[48px] font-black uppercase italic tracking-wide">points</p>
+      <p className="mt-4 rounded-full border border-white/25 px-8 py-3 text-[34px] font-bold">
+        #{d.rank.toLocaleString("en-GB")} of {d.entries.toLocaleString("en-GB")} · {d.competition}
+      </p>
+      {d.top.length > 0 && (
+        <div className="mt-10 flex items-end justify-center gap-5">
+          {d.top.map((t) => (
+            <div key={t.card.id} className="flex flex-col items-center gap-3">
+              <BigCard card={t.card} width={w} />
+              <span className="rounded-full bg-[#adfc07] px-5 py-1.5 font-display text-[34px] font-black italic text-[#0a0d02]">
+                {t.points} pts{t.captain ? " · C" : ""}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      <p className="mt-10 text-center text-[30px] font-semibold text-white/85">Beat my score — pick your seven on MATCHX.</p>
+    </Frame>
+  );
+}

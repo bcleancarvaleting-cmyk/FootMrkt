@@ -40,6 +40,12 @@ describe("matchday live", () => {
     await submitEntry(a.userId, open.id, await squad(a.userId, a.starterEntitlementId));
     await simulateFixturesNow(gw.id, "all", null);
 
+    const { matchdayCard } = await import("@/server/matchday-card");
+    const card = await matchdayCard(a.userId);
+    expect(card).toMatchObject({ gameweek: 1, live: true, rank: 1, entries: 1 });
+    expect(card!.top.length).toBeGreaterThan(0);
+    expect(card!.top[0].points).toBeGreaterThanOrEqual(card!.top.at(-1)!.points);
+
     const board = await liveBoard(a.userId);
     expect(board.fixtures.length).toBeGreaterThan(0);
     expect(board.mine?.entries[0]).toMatchObject({ competitionId: open.id, rank: 1, entries: 1 });

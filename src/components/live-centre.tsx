@@ -65,7 +65,10 @@ export function LiveCentre({ initial, signedIn }: { initial: LiveBoard; signedIn
       {board.mine ? (
         <section className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
           <div className="space-y-2">
-            <h2 className="text-2xl">Your matches</h2>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-2xl">Your matches</h2>
+              <Link href="/matchday" className="btn-ghost px-3 py-1.5 text-[11px]">📸 Share my matchday</Link>
+            </div>
             {board.mine.entries.map((e) => (
               <Link key={e.competitionId} href={`/competitions/${e.competitionId}`} className="flex items-center justify-between gap-3 rounded-2xl border border-ink-700 bg-ink-900 p-4 transition hover:border-accent/60">
                 <span className="min-w-0">

@@ -45,6 +45,21 @@ export default async function MoversPage() {
     <div className="space-y-6">
       <PageHeader eyebrow="Transfers" title="Market movers" intro="Who's rising and falling in value this week, who's changing hands most, and the biggest sales ever. Values move with real form and the market." />
       <div className="grid gap-4 lg:grid-cols-2">
+        <div className="lg:col-span-2">
+          <Board title="📈 Tipped to rise" sub="Heading up at the next revaluation, from this gameweek's live form and recent sales. A projection from real data, not a promise." empty="No tips right now — they appear as form and sales move.">
+            {m.tips.map((t, i) => (
+              <li key={`${t.playerId}${t.category}`} className="flex items-center gap-3 px-4 py-2.5">
+                <Who id={t.playerId} p={t.player} n={i + 1} />
+                <span className="shrink-0 text-right">
+                  <span className="block font-bold tabular-nums">
+                    {t.nowMp} → <span className="text-mint">{t.nextMp} MX</span>
+                  </span>
+                  <span className="block text-xs font-bold tabular-nums text-mint">▲ ~{t.pct}%</span>
+                </span>
+              </li>
+            ))}
+          </Board>
+        </div>
         <Board title="▲ Risers" sub="Biggest value gains over the last 7 days" empty="No risers yet — values update after each gameweek.">
           {m.risers.map((r, i) => (
             <li key={`${r.playerId}${r.category}`} className="flex items-center gap-3 px-4 py-2.5">

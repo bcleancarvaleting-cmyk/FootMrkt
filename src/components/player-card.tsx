@@ -111,6 +111,11 @@ export function PlayerCard({ card, size = "md", className = "", showcase = false
                 <Badge tone="muted">★ {card.stamps}</Badge>
               </span>
             )}
+            {card.risingPct && (
+              <span title={`Tipped to rise ~${card.risingPct}% at the next revaluation`}>
+                <Badge tone="lime">📈 Rising</Badge>
+              </span>
+            )}
             {(card.watchers ?? 0) > 0 && (
               <span title={`Watched by ${card.watchers} manager${card.watchers === 1 ? "" : "s"}`}>
                 <Badge tone="muted">👁 {card.watchers}</Badge>

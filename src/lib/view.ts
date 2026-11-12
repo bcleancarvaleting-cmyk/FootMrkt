@@ -55,6 +55,8 @@ export interface CardView {
   totw?: boolean;
   /** Managers with this player on their watchlist. */
   watchers?: number;
+  /** Tipped to rise: % the value is heading up, from live form and sales (a projection). */
+  risingPct?: number;
 }
 
 type CardLike = {
@@ -108,6 +110,7 @@ export function toCardView(
     history?: number[];
     totw?: boolean;
     watchers?: number;
+    risingPct?: number;
   } = {},
 ): CardView {
   const p = c.template.player;
@@ -130,6 +133,7 @@ export function toCardView(
     history: extra.history,
     totw: extra.totw || undefined,
     watchers: extra.watchers || undefined,
+    risingPct: loan ? undefined : extra.risingPct || undefined,
     clubCode: p.club?.code ?? null,
     clubShort: p.club?.shortName ?? null,
     clubName: p.club?.name ?? null,

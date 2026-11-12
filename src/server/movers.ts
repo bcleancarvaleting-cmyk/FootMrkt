@@ -40,7 +40,8 @@ export async function marketMovers(now = new Date()) {
     WHERE ml.status = 'SOLD' AND ml."soldPriceMinor" IS NOT NULL
     ORDER BY ml."soldPriceMinor" DESC LIMIT 10`;
 
-  const ids = [...new Set([...risers, ...fallers].map((r) => r.playerId).concat(traded.map((t) => t.playerId), records.map((r) => r.playerId)))];
+  const tips = [...(await (await import("./valuation")).priceTips()).values()].slice(0, 10);
+  const ids = [...new Set([...risers, ...fallers].map((r) => r.playerId).concat(traded.map((t) => t.playerId), records.map((r) => r.playerId), tips.map((t) => t.playerId)))];
   const players = new Map(
     (await db.player.findMany({ where: { id: { in: ids } }, select: { id: true, displayName: true, position: true, squadNumber: true, club: { select: { name: true, shortName: true, kit: true, primaryColour: true, secondaryColour: true } } } })).map((p) => [
       p.id,
@@ -53,5 +54,6 @@ export async function marketMovers(now = new Date()) {
     fallers: fallers.map((r) => ({ ...r, player: who(r.playerId) })),
     traded: traded.map((t) => ({ playerId: t.playerId, sales: Number(t.sales), avgMinor: Math.round(t.avg), topMinor: t.top, player: who(t.playerId) })),
     records: records.map((r) => ({ ...r, player: who(r.playerId) })),
+    tips: tips.map((t) => ({ ...t, player: who(t.playerId) })),
   };
 }

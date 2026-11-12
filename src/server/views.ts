@@ -80,7 +80,7 @@ async function valueHistory(keys: Array<{ playerId: string; category: string }>)
 
 /** Turn DB cards into view models with value, trend, acquisition and points won for the owner. */
 export async function enrichCards(cards: CardWithTemplate[]): Promise<CardView[]> {
-  const [trends, acquired, points, loans, issued, stamps, history, totw, watchers] = await Promise.all([
+  const [trends, acquired, points, loans, issued, stamps, history, totw, watchers, tips] = await Promise.all([
     valueTrends(cards.map((c) => ({ playerId: c.template.playerId, category: c.template.category }))),
     acquisitionLabels(cards.filter((c) => c.ownerId).map((c) => c.id)),
     pointsForOwners(cards),
@@ -90,6 +90,7 @@ export async function enrichCards(cards: CardWithTemplate[]): Promise<CardView[]
     valueHistory(cards.map((c) => ({ playerId: c.template.playerId, category: c.template.category }))),
     cards.length ? import("./totw").then((m) => m.totwPlayerIds()) : new Set<string>(),
     import("./watchlist").then((m) => m.watcherCounts(cards.map((c) => c.template.playerId))),
+    cards.length ? import("./valuation").then((m) => m.priceTips()) : new Map(),
   ]);
   return cards.map((c) => {
     const t = trends.get(valueKey(c.template.playerId, c.template.category));
@@ -104,6 +105,7 @@ export async function enrichCards(cards: CardWithTemplate[]): Promise<CardView[]
       stamps: stamps.get(c.id) ?? 0,
       totw: totw.has(c.template.playerId),
       watchers: watchers.get(c.template.playerId) ?? 0,
+      risingPct: tips.get(`${c.template.playerId}:${c.template.category}`)?.pct,
       history: (history.get(valueKey(c.template.playerId, c.template.category)) ?? []).map((v) => Math.round(v * (c.finish ? FINISH_VALUE[c.finish.kind] : 1) * 100) / 100),
     });
   });

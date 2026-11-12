@@ -19,6 +19,7 @@ const MEMBER: Section[] = [
       ["Matches", "/matches"],
       ["Matchday Live", "/live"],
       ["Top performers", "/top-performers"],
+      ["Mega League", "/mega-league"],
       ["Mini-leagues", "/leagues"],
       ["Head-to-head", "/h2h"],
       ["Hall of Fame", "/hall-of-fame"],

@@ -95,7 +95,7 @@ export async function leagueTable(userId: string, leagueId: string) {
     if (i === 0 || r.total !== rows[i - 1].total) rank = i + 1;
     return { ...r, rank };
   });
-  return { league, rows: ranked, gameweek: latest?.number ?? null, season: latest?.season ?? null, isOwner: league.ownerId === userId };
+  return { league, rows: ranked, gameweek: latest?.number ?? null, season: latest?.season ?? null, live: latest?.status === "PROVISIONAL", isOwner: league.ownerId === userId };
 }
 
 /** Leagues a manager is in, with their current position. */

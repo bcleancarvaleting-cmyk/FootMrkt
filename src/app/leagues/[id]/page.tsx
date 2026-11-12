@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AutoRefresh } from "@/components/auto-refresh";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { leaveLeagueAction } from "@/app/actions/social";
@@ -47,11 +48,17 @@ export default async function LeaguePage({ params }: { params: Promise<{ id: str
         </div>
       </section>
 
+      <AutoRefresh when={t.live} />
+      {t.live && <p className="-mb-4 text-xs font-bold uppercase tracking-[0.14em] text-danger">● Live — GW{t.gameweek} points update as the games are played</p>}
       <section className="overflow-hidden rounded-2xl border border-ink-700 bg-ink-900">
         <div className="grid grid-cols-[2.5rem_1fr_3.5rem_4rem] items-center gap-2 border-b border-ink-700 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
           <span>#</span>
           <span>Manager</span>
-          <span className="text-right">{t.gameweek ? `GW${t.gameweek}` : "GW"}</span>
+          <span className="text-right">
+            {t.live && <span className="mr-1 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-danger align-middle" aria-hidden="true" />}
+            {t.gameweek ? `GW${t.gameweek}` : "GW"}
+            {t.live && <span className="sr-only"> live</span>}
+          </span>
           <span className="text-right">Total</span>
         </div>
         <ol>

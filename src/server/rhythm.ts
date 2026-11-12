@@ -51,7 +51,7 @@ export async function weeklyRhythm(now = new Date()) {
   for (const gw of settled) {
     const entries = await db.competitionEntry.findMany({
       where: { competition: { gameweekId: gw.id, status: "SETTLED" }, finalPoints: { not: null } },
-      select: { userId: true, finalPoints: true, rank: true, competition: { select: { name: true, _count: { select: { entries: true } } } } },
+      select: { id: true, userId: true, finalPoints: true, rank: true, competition: { select: { name: true, _count: { select: { entries: true } } } } },
     });
     const best = new Map<string, (typeof entries)[number]>();
     for (const e of entries) if (!best.has(e.userId) || (e.rank ?? 1e9) < (best.get(e.userId)!.rank ?? 1e9)) best.set(e.userId, e);
@@ -65,6 +65,7 @@ export async function weeklyRhythm(now = new Date()) {
         dedupeKey: `gw:${gw.id}:results:${userId}`,
       });
       out.results++;
+      await celebrate(userId, gw, e, [...entries.filter((x) => x.userId === userId)]);
     }
   }
   return out;
@@ -80,4 +81,44 @@ export async function gameweekWinners() {
     orderBy: { finalPoints: "desc" },
   });
   return { number: gw.number, winners: wins.map((w) => ({ match: w.competition.name.replace(/ · GW\d+$/, ""), manager: w.user.displayName, club: w.user.clubName, points: w.finalPoints ?? 0 })) };
+}
+
+/**
+ * Full-screen moments from a settled gameweek: a win or podium (in a match of 3+), a new personal
+ * best score, and a captain hat-trick. Each once.
+ */
+async function celebrate(
+  userId: string,
+  gw: { id: string; number: number },
+  best: { finalPoints: number | null; rank: number | null; competition: { name: string; _count: { entries: number } } },
+  mine: Array<{ id: string; finalPoints: number | null }>,
+) {
+  const { addMoment } = await import("./moments");
+  const pts = best.finalPoints ?? 0;
+  if (best.rank && best.rank <= 3 && best.competition._count.entries >= 3) {
+    await addMoment(userId, {
+      kind: best.rank === 1 ? "win" : "podium",
+      icon: best.rank === 1 ? "🏆" : best.rank === 2 ? "🥈" : "🥉",
+      title: best.rank === 1 ? "Champions!" : `${best.rank === 2 ? "2nd" : "3rd"} place`,
+      subtitle: `${best.competition.name} · GW${gw.number} · ${pts} pts, #${best.rank} of ${best.competition._count.entries}`,
+      href: "/matchday",
+      cta: "Share it",
+      key: `moment:gw:${gw.id}:place:${userId}`,
+    });
+  }
+  const topThisWeek = Math.max(...mine.map((m) => m.finalPoints ?? 0));
+  const before = await db.competitionEntry.aggregate({ where: { userId, finalPoints: { not: null }, competition: { gameweekId: { not: gw.id }, status: "SETTLED" } }, _max: { finalPoints: true }, _count: { _all: true } });
+  if (before._count._all > 0 && topThisWeek > (before._max.finalPoints ?? 0)) {
+    await addMoment(userId, { kind: "pb", icon: "🚀", title: "New personal best", subtitle: `${topThisWeek} pts in GW${gw.number} — your best score yet.`, href: "/matchday", cta: "Share it", key: `moment:gw:${gw.id}:pb:${userId}` });
+  }
+  const captains = await db.competitionSelection.findMany({ where: { entryId: { in: mine.map((m) => m.id) }, isCaptain: true }, select: { playerId: true, player: { select: { displayName: true } } } });
+  for (const c of captains) {
+    const stats = await db.playerMatchStat.findMany({ where: { playerId: c.playerId, isCurrent: true, fixture: { gameweekId: gw.id } }, select: { stats: true } });
+    const { toStatLine } = await import("@/domain/football/scoring");
+    const goals = stats.reduce((n, s) => n + toStatLine(s.stats).goals, 0);
+    if (goals >= 3) {
+      await addMoment(userId, { kind: "hattrick", icon: "⚽", title: "Captain's hat-trick!", subtitle: `${c.player.displayName} scored ${goals} — double points for you.`, href: "/matchday", cta: "Share it", key: `moment:gw:${gw.id}:hattrick:${userId}` });
+      break;
+    }
+  }
 }

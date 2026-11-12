@@ -938,3 +938,89 @@ h2 {
     transform: translateY(0);
   }
 }
+
+/* Moments: full-screen celebrations. */
+.moment-rays {
+  background: repeating-conic-gradient(from 0deg, rgb(173 252 7 / 0.22) 0deg 9deg, transparent 9deg 24deg);
+  mask-image: radial-gradient(circle, #000 30%, transparent 70%);
+}
+.moment-title {
+  background: linear-gradient(100deg, #f4f5f2 20%, #adfc07 45%, #f2cf63 55%, #f4f5f2 80%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.confetti {
+  position: absolute;
+  top: -20px;
+  border-radius: 2px;
+  opacity: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .moment-backdrop {
+    animation: moment-fade 0.35s ease-out both;
+  }
+  .moment-rays {
+    animation: moment-spin 14s linear infinite;
+  }
+  .moment-icon {
+    animation: moment-pop 0.9s cubic-bezier(0.18, 1.6, 0.4, 1) 0.1s both;
+  }
+  .moment-title {
+    animation:
+      moment-rise 0.6s cubic-bezier(0.2, 0.9, 0.2, 1) 0.35s both,
+      moment-shine 2.8s ease-in-out 1s infinite;
+  }
+  .moment-sub {
+    animation: moment-rise 0.6s ease-out 0.6s both;
+  }
+  .confetti {
+    animation: confetti-fall linear forwards;
+  }
+}
+@keyframes moment-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes moment-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes moment-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) rotate(-25deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+@keyframes moment-rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+@keyframes moment-shine {
+  0%,
+  100% {
+    background-position: 100% 0;
+  }
+  50% {
+    background-position: 0 0;
+  }
+}
+@keyframes confetti-fall {
+  0% {
+    opacity: 1;
+    transform: translateY(0) rotate(0);
+  }
+  100% {
+    opacity: 0.9;
+    transform: translateY(105vh) rotate(720deg);
+  }
+}

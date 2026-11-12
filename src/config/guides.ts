@@ -121,6 +121,11 @@ export const guideBySlug = (slug: string) => GUIDES.find((g) => g.slug === slug)
 
 /** What's new on MATCHX (newest first). Shown at the top of Guides. */
 export const WHATS_NEW: Array<{ date: string; title: string; body: string; href?: string }> = [
+  { date: "2026-11-12", title: "Mega League", body: "Every manager on one season-long table — your best score each gameweek adds up, live while games are on.", href: "/mega-league" },
+  { date: "2026-11-12", title: "Man of the Match", body: "The top MATCHX scorer in every game gets +3 bonus points.", href: "/how-it-works" },
+  { date: "2026-11-12", title: "Share my matchday", body: "Your score, rank and best players as a ready-to-post image or video.", href: "/matchday" },
+  { date: "2026-11-12", title: "Tipped to rise", body: "Cards heading up in value, from live form and sales, are marked 📈 across the Transfer lists.", href: "/transfers/movers" },
+  { date: "2026-11-12", title: "Big moments", body: "Win a match, hit a personal best or see your captain bag a hat-trick — and get the full celebration.", href: "/matches" },
   { date: "2026-11-12", title: "Matchday Live", body: "Live scores scroll across the top during games, GOAL! flashes when the net bulges, and your players' points and your live rank update as it happens.", href: "/live" },
   { date: "2026-11-12", title: "7 + 1 squads", body: "Matches now take 7 starters and just one sub — quicker to pick, easier to fill. Boosters stay the same.", href: "/matches" },
   { date: "2026-11-12", title: "4 free picks in the app", body: "Install MATCHX on your phone for a top-performer pick from every league, on loan for your first 4 gameweeks.", href: "/get-the-app" },

@@ -1517,3 +1517,20 @@ model WaitlistEntry {
   @@index([createdAt])
   @@index([referredBy])
 }
+
+// Big moments shown once as a full-screen celebration (a match win, a level up, a captain hat-trick…).
+model Moment {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  kind      String
+  icon      String
+  title     String
+  subtitle  String
+  href      String?
+  cta       String?
+  key       String    @unique
+  createdAt DateTime  @default(now())
+  shownAt   DateTime?
+
+  @@index([userId, shownAt])
+}

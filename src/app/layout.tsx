@@ -18,6 +18,8 @@ import { Header } from "@/components/nav";
 import { StatsTicker } from "@/components/stats-ticker";
 import { ScoresTicker } from "@/components/scores-ticker";
 import { liveBoard } from "@/server/live";
+import { MomentOverlay } from "@/components/moment-overlay";
+import { nextMoment } from "@/server/moments";
 import type { Theme } from "@/components/theme-toggle";
 import { getCurrentUser } from "@/server/auth/session";
 import { dataCredit } from "@/config/data-credit";
@@ -64,6 +66,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {!hideTicker && <StatsTicker initial={stats} />}
         <Header theme={theme} unopenedPacks={unopened} />
         {!hideTicker && <ScoresTicker initial={await liveBoard(user?.id ?? null)} />}
+        {user && <MomentOverlay moment={await nextMoment(user.id)} />}
         <main id="main" tabIndex={-1} className={`mx-auto outline-none w-full max-w-6xl flex-1 px-4 pt-6 sm:px-6 ${user ? "pb-32 md:pb-16" : "pb-16"}`}>{children}</main>
         <SiteFooter loggedIn={!!user} credit={await dataCredit()} />
         {user && <BottomNav unopenedPacks={unopened} />}

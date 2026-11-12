@@ -21,7 +21,7 @@ export default async function MegaLeaguePage() {
         <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-accent/15 blur-3xl" aria-hidden="true" />
         <p className="eyebrow relative text-lime">
           {t.live && <span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-danger align-middle" aria-hidden="true" />}
-          Season {t.season ?? "—"} · {t.managers.toLocaleString("en-GB")} managers
+          Season {t.season ?? "—"} · {t.managers.toLocaleString("en-GB")} manager{t.managers === 1 ? "" : "s"}
         </p>
         <h1 className="relative mt-1 text-5xl leading-none sm:text-6xl">Mega League</h1>
         <p className="relative mt-2 max-w-xl text-sm text-muted">

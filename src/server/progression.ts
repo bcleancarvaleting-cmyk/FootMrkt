@@ -1,4 +1,5 @@
 import { ACHIEVEMENTS, LEVELS, type ManagerStats, STAGES, currentStage, levelFor } from "@/config/progression";
+import { addMoment } from "./moments";
 import { db, withTx } from "./db";
 import { notify } from "./notifications";
 import { grantPack } from "./packs";
@@ -107,6 +108,7 @@ export async function refreshProgress(userId: string) {
       if (paid) {
         stagesDone.push(st.stage);
         const next = STAGES.find((x) => x.stage === st.stage + 1);
+        await addMoment(userId, { kind: "stage", icon: "🏅", title: `Stage ${st.stage} complete`, subtitle: `${st.name} · +${st.bonusXp.toLocaleString("en-GB")} XP bonus`, href: "/account/achievements", cta: "See achievements", key: `moment:ach:${code}:${userId}` });
         await notify(userId, { kind: "achievement", title: `🏅 Stage ${st.stage} complete: ${st.name}`, body: `+${st.bonusXp.toLocaleString("en-GB")} XP bonus.${next ? ` Stage ${next.stage}, ${next.name}, is now open.` : " You've completed every stage!"}`, href: "/account/achievements", dedupeKey: `ach:${code}:${userId}` });
       }
     }
@@ -122,6 +124,7 @@ export async function refreshProgress(userId: string) {
     if (already) continue;
     await withTx((tx) => grantPack(tx, { userId, skuCode: l.reward!, source: "REWARD", sourceRef: ref }));
     newLevels.push(l.level);
+    await addMoment(userId, { kind: "level", icon: "⭐", title: `Level ${l.level}`, subtitle: `You're now ${l.name} — a free pack is waiting.`, href: "/packs", cta: "Open my pack", key: `moment:${ref}` });
     await notify(userId, { kind: "level", title: `Level ${l.level}: ${l.name}!`, body: "You've levelled up — a free pack is waiting in Packs.", href: "/packs", dedupeKey: ref });
   }
   return { unlocked: earned.map((a) => a.code), stages: stagesDone, levels: newLevels, level };

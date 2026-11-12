@@ -117,8 +117,9 @@ export function MobileMenu({ user, theme, unread = 0, wallet, waitlist = false }
     ? [
         ...MEMBER,
         ...(user.isMod && !user.isAdmin ? [{ title: "Moderation", links: [["Chat moderation", "/moderation"]] } as Section] : []),
-        // Admins only (checked again on every admin page): one entry — the admin area has its own menu.
-        ...(user.isAdmin ? [{ title: "Admin", links: [["Admin dashboard", "/admin"], ["Games", "/admin/matches"], ["Chat moderation", "/moderation"]] } as Section] : []),
+        // Admins only (every admin page and action checks again on the server): each admin area as its own section.
+        ...(user.isAdmin ? ADMIN_MENU.map((g) => ({ title: `Admin · ${g.group}`, links: g.items.map((i) => [i.label, i.href] as [string, string]) })) : []),
+        ...(user.isAdmin ? [{ title: "Admin · Community", links: [["Chat moderation", "/moderation"]] } as Section] : []),
       ]
     : [GUEST];
   const on = (href: string) => (href === "/" ? path === "/" : path === href);

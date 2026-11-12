@@ -42,7 +42,7 @@ export type Requirements = z.infer<typeof RequirementsSchema>;
 
 export function requirementsSummary(r: Requirements, format: string) {
   const bits: string[] = [];
-  if (r.draftBudgetMx) bits.push(`Free draft · any players · ${r.draftBudgetMx} MX budget`);
+  if (r.draftBudgetMx) bits.push(`Free draft · any players · £${r.draftBudgetMx} budget`);
   if (r.freeCardsOnly) bits.push("Free cards only");
   if (r.foundersOnly) bits.push("Founding members only");
   if (format !== "OPEN") bits.push(`${format.split("_")[0][0]}${format.split("_")[0].slice(1).toLowerCase()} only`);
@@ -50,7 +50,7 @@ export function requirementsSummary(r: Requirements, format: string) {
   if (r.clubs) bits.push(`${r.clubs.join(" v ")} players only`);
   if (r.leagues) bits.push(`${r.leagues.join("/")} players`);
   if (r.maxPerClub) bits.push(`max ${r.maxPerClub} per club`);
-  if (r.maxSquadValueMp) bits.push(`starting XI ≤ ${r.maxSquadValueMp} MX`);
+  if (r.maxSquadValueMp) bits.push(`starting XI ≤ £${r.maxSquadValueMp}`);
   return bits.length ? bits.join(" · ") : "Any players";
 }
 
@@ -233,7 +233,7 @@ async function checkRequirements(
         ORDER BY t."playerId", t.category, mv."computedAt" DESC
       ) v`;
     const total = vals[0]?.total ?? 0;
-    if (total > r.maxSquadValueMp) issues.push({ code: "UNKNOWN_CARD", message: `Your starters are worth ${total} MX — the limit is ${r.maxSquadValueMp} MX` });
+    if (total > r.maxSquadValueMp) issues.push({ code: "UNKNOWN_CARD", message: `Your starters are worth £${total} — the limit is £${r.maxSquadValueMp}` });
   }
   return issues;
 }
@@ -245,7 +245,7 @@ async function checkRequirements(
  */
 export function assertPrizeRules(feeMinor: number, req: Requirements, rewards: Array<{ cashMinor?: number }>, anyCards = false) {
   if (!rewards.some((r) => (r.cashMinor ?? 0) > 0)) return;
-  if (feeMinor > 0) throw new DomainError("PRIZE_RULES", "£ prizes are only allowed on free-entry matches. Matches with an MX entry fee can give MX or pack prizes.");
+  if (feeMinor > 0) throw new DomainError("PRIZE_RULES", "£ prizes are only allowed on free-entry matches. Matches with an entry fee can give credit or pack prizes.");
   if (!req.freeCardsOnly && !anyCards) throw new DomainError("PRIZE_RULES", "£ prizes need the 'Free cards only' rule, so bought cards can't improve anyone's chances. (Admin → Settings: 'Cash prizes with any cards'.)");
 }
 
@@ -273,7 +273,7 @@ async function rewardReferrer(tx: Parameters<Parameters<typeof withTx>[0]>[0], u
   await grantPack(tx, { userId: u.referredById, skuCode: sku, source: "REWARD", sourceRef: ref });
 }
 
-/** Admin: set a match's entry fee (MX) and extra requirements. */
+/** Admin: set a match's entry fee (£) and extra requirements. */
 /** "1=10, 2-3=5" → £ prizes by finishing position. */
 export function parsePrizes(text: string) {
   const rules: Array<{ rankFrom: number; rankTo: number; cashMinor: number }> = [];

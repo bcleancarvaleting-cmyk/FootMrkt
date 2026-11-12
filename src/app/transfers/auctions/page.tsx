@@ -19,7 +19,7 @@ export default async function AuctionsPage() {
       <div>
         <h1 className="text-4xl">Auctions</h1>
         <p className="text-sm text-muted">
-          The highest bid when the clock runs out wins. Some sellers set a <b className="text-gold">buy-it-now</b> price, so you can take the player straight away. Your MX is held while you lead and returned if you&apos;re outbid. To auction one of your own players, open it in{" "}
+          The highest bid when the clock runs out wins. Some sellers set a <b className="text-gold">buy-it-now</b> price, so you can take the player straight away. Your money is held while you lead and returned if you&apos;re outbid. To auction one of your own players, open it in{" "}
           <Link href="/account/club" className="text-lime underline">My Club</Link> and choose &ldquo;auction it&rdquo;.
         </p>
         {!on && <p className="mt-2 text-sm text-warn">Auctions open once our UK legal and payment checks are complete.</p>}
@@ -40,10 +40,10 @@ export default async function AuctionsPage() {
                 <p>
                   {a.leadingMinor !== null ? (
                     <>
-                      Top bid <b className="text-lime">{(a.leadingMinor / 100).toFixed(2)} MX</b> · {a.youLead ? <span className="text-mint">you lead</span> : a.leader}
+                      Top bid <b className="text-lime">£{(a.leadingMinor / 100).toFixed(2)}</b> · {a.youLead ? <span className="text-mint">you lead</span> : a.leader}
                     </>
                   ) : (
-                    <>Starting bid <b>{(a.minNextMinor / 100).toFixed(2)} MX</b> · no bids yet</>
+                    <>Starting bid <b>£{(a.minNextMinor / 100).toFixed(2)}</b> · no bids yet</>
                   )}
                 </p>
                 {!a.reserveMet && <p className="text-xs font-semibold text-warn">Minimum price not reached yet</p>}

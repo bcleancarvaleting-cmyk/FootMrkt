@@ -9,7 +9,7 @@ export async function claimOwnedSetAction(code: string): Promise<ActionResult> {
   const user = await requireUser();
   const res = await attempt(async () => {
     await claimOwnedSet(user.id, code);
-  }, "Claimed! The MX is in your wallet and the badge is on your club page.");
+  }, "Claimed! The credit is in your wallet and the badge is on your club page.");
   revalidatePath("/", "layout");
   return res;
 }

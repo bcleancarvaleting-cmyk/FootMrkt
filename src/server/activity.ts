@@ -23,6 +23,7 @@ export async function onVisit(userId: string) {
     if (now - (lastProgress.get(userId) ?? 0) > 60_000) {
       lastProgress.set(userId, now);
       await refreshProgress(userId);
+      await (await import("./wallet")).autoConvertXp(userId);
     }
   } catch (e) {
     console.error("onVisit", e);

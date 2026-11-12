@@ -8,7 +8,7 @@
  */
 export const LAUNCH_MIX = {
   days: 14,
-  /** Named players at fixed prices (MX). */
+  /** Named players at fixed prices (£). */
   pinned: ["Haaland=45"],
   bands: [
     { tier: "GOLD", count: 20, minMp: 12, maxMp: 39.99, leagues: ["EPL"] },

@@ -356,7 +356,7 @@ async function Result({ entryId, settled }: { entryId: string; settled: boolean 
 
 /**
  * Paid matches: the entry fee is paid in MX when the squad is submitted. If the manager hasn't got
- * enough, show what's short and the MX bundles, then bring them straight back here after paying.
+ * enough, show what's short and the top-up bundles, then bring them straight back here after paying.
  */
 async function EntryFee({ userId, competitionId, feeMinor }: { userId: string; competitionId: string; feeMinor: number }) {
   const [bal, paidEntry, depositsOn, pay] = await Promise.all([balancesFor(userId), isEnabled("PAID_ENTRY"), isEnabled("DEPOSITS"), cardPaymentsReady()]);
@@ -372,25 +372,25 @@ async function EntryFee({ userId, competitionId, feeMinor }: { userId: string; c
           <span className="font-display text-2xl font-black tabular-nums">{fmtMp(feeMinor)}</span>
         </span>
         <span>
-          <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-faint">Your MX</span>
+          <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-faint">Your balance</span>
           <span className={`font-display text-2xl font-black tabular-nums ${short ? "text-danger" : "text-mint"}`}>{fmtMp(bal.total)}</span>
         </span>
         <span className="min-w-0 basis-full text-sm text-muted sm:basis-0 sm:flex-1">
           {short ? (
             <>
-              You need <b className="text-fg">{fmtMp(short)}</b> more MX to enter. Top up below — you&apos;ll come straight back here to pick your squad.
+              You need <b className="text-fg">{fmtMp(short)}</b> more to enter. Top up below — you&apos;ll come straight back here to pick your squad.
             </>
           ) : (
-            "✓ You have enough MX. The fee is taken when you submit your squad, and refunded if you withdraw before the deadline."
+            "✓ You have enough credit. The fee is taken when you submit your squad, and refunded if you withdraw before the deadline."
           )}
         </span>
       </div>
       {short > 0 && (
         <div className="mt-4 border-t border-ink-700 pt-4">
-          <p className="mb-3 font-display text-2xl font-black uppercase italic">You need MX</p>
+          <p className="mb-3 font-display text-2xl font-black uppercase italic">Top up to enter</p>
           <DepositForm enabled={depositsOn && pay.ready} initial={bundleForShortfall(short).code} returnTo={`/competitions/${competitionId}`} />
           <p className="mt-2 text-center text-xs text-faint">
-            Or earn MX free: swap XP in your <Link href="/account/wallet#xp" className="underline">wallet</Link>, or sell a player.
+            Or earn credit free: swap XP in your <Link href="/account/wallet#xp" className="underline">wallet</Link>, or sell a player.
           </p>
         </div>
       )}

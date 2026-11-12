@@ -9,7 +9,7 @@ import { credit, creditXp } from "./wallet";
 /**
  * Gifts (admin "Gifts & free packs"): for a window (24 hours by default) every manager who logs in
  * can claim the gift once — any free pack (e.g. Choice of Gold, Gift: Gold Pack), or a credit of
- * XP or earned MX. Claims are idempotent: packs via the entitlement's unique sourceRef, credits via
+ * XP or earned credit. Claims are idempotent: packs via the entitlement's unique sourceRef, credits via
  * the wallet entry's unique refId (both `drop:<id>:<userId>`), so double taps never grant twice.
  */
 export const DropSchema = z
@@ -29,7 +29,7 @@ type Gift = { giftType: string; skuCode: string | null; amount: number | null };
 /** "Choice of Gold", "250 XP", "5.00 MX"… */
 export function giftLabel(g: Gift) {
   if (g.giftType === "XP") return `${(g.amount ?? 0).toLocaleString("en-GB")} XP`;
-  if (g.giftType === "MX") return `${((g.amount ?? 0) / 100).toFixed(2)} MX`;
+  if (g.giftType === "MX") return `£${((g.amount ?? 0) / 100).toFixed(2)}`;
   return FOOTBALL_PACKS.find((p) => p.code === g.skuCode)?.name ?? "Free pack";
 }
 

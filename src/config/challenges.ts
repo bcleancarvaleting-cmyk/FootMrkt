@@ -30,7 +30,7 @@ export const DEFAULT_CHALLENGES: ChallengeSeed[] = [
   {
     code: "discard-team",
     name: "Clear the bench",
-    description: "Hand in any 7 cards — a full starting line-up — for 1 MX.",
+    description: "Hand in any 7 cards — a full starting line-up — for £1.",
     criteria: { count: 7 },
     rewardMinor: 100,
   },
@@ -60,7 +60,7 @@ export const DEFAULT_CHALLENGES: ChallengeSeed[] = [
   {
     code: "silver-trio",
     name: "Silver service",
-    description: "3 Silver cards for 3 MX.",
+    description: "3 Silver cards for £3.",
     criteria: { count: 3, tiers: ["SILVER"] },
     rewardMinor: 300,
   },

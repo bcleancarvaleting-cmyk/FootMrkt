@@ -45,16 +45,16 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
       <PageHeader
         eyebrow="Buy &amp; sell"
         title="Transfer list"
-        intro="Player-to-player transfers: buy from other managers or make an offer, in earned MX. The seller pays a 5% fee when a card sells. Prices are capped at 100 MX, except Rubies, Diamonds and Rainbows, which their owners can price far higher. New players from MATCHX are released as Player drops."
+        intro="Player-to-player transfers: buy from other managers or make an offer, in earned credit. The seller pays a 5% fee when a card sells. Prices are capped at 100 MX, except Rubies, Diamonds and Rainbows, which their owners can price far higher. New players from MATCHX are released as Player drops."
       />
 
       <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-ink-700 bg-ink-900 px-4 py-3 text-sm">
         <span className="mr-auto">
-          <span className="text-muted">Earned MX to spend</span> <b className="ml-1 tabular-nums">{fmtMp(bal.earned)}</b>
+          <span className="text-muted">Earned credit to spend</span> <b className="ml-1 tabular-nums">{fmtMp(bal.earned)}</b>
           <span className="ml-3 text-faint">· {bal.xp.toLocaleString("en-GB")} XP</span>
         </span>
-        <span className="text-xs text-faint">The Transfer list uses earned MX: from XP, challenges and selling cards.</span>
-        <Link href="/account/wallet#xp" className="btn-ghost px-3 py-1.5 text-[11px]">Swap XP for MX</Link>
+        <span className="text-xs text-faint">The Transfer list uses earned credit: from XP, challenges and selling cards.</span>
+        <Link href="/account/wallet#xp" className="btn-ghost px-3 py-1.5 text-[11px]">Swap XP for £</Link>
       </div>
 
       {!tradeableNow && (
@@ -65,7 +65,7 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
           <span className="rounded-md bg-accent px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-accent-ink">Coming soon</span>
           <p className="mt-4 font-display text-3xl font-bold uppercase italic">The Transfer Market</p>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted">
-            Buy players from MATCHX and other managers with earned MX, make offers, and sell to build a better squad. Opening soon — keep earning XP in the meantime.
+            Buy players from MATCHX and other managers with earned credit, make offers, and sell to build a better squad. Opening soon — keep earning XP in the meantime.
           </p>
         </div>
       )}
@@ -162,7 +162,7 @@ export default async function TransfersPage({ searchParams }: { searchParams: Pr
         </>
       )}
       <p className="mt-6 text-xs text-faint">
-        Card values go up and down and past prices don&apos;t predict future ones. MX from sales is earned MX: it stays in the game for cards, packs and matches.
+        Card values go up and down and past prices don&apos;t predict future ones. Money from sales is earned credit: it stays in the game for cards, packs and matches.
       </p>
     </div>
   );

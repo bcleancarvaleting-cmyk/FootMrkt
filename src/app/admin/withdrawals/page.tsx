@@ -6,7 +6,7 @@ export const metadata = { title: "Admin · Withdrawals" };
 export default function Page() {
   return (
     <>
-      <AdminTitle title="Withdrawals" intro="Only £ winnings can be withdrawn, never MX." />
+      <AdminTitle title="Withdrawals" intro="Only £ winnings can be withdrawn, never spend-only credit." />
       <EconomySections only={["withdrawals"]} />
     </>
   );

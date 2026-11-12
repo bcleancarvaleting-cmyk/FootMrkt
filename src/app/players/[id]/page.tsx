@@ -51,7 +51,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
           const mp = values.get(`${player.id}:${t.category}`);
           return (
             <span key={t.id} className="chip">
-              {t.category} card · {mp ? `${mp} MX` : "no value yet"}
+              {t.category} card · {mp ? `£${mp.toFixed(2)}` : "no value yet"}
               {t.maxSupply ? ` · ${(issued.get(t.id) ?? 0).toLocaleString("en-GB")} of ${t.maxSupply.toLocaleString("en-GB")} issued` : ""}
             </span>
           );

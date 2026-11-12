@@ -15,7 +15,7 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
         🤕
       </p>
       <h1 className="text-4xl leading-none">Something went wrong</h1>
-      <p className="text-sm text-muted">Sorry — that page hit a problem. We&apos;ve been told automatically and will fix it. Your club, cards and MX are safe.</p>
+      <p className="text-sm text-muted">Sorry — that page hit a problem. We&apos;ve been told automatically and will fix it. Your club, cards and balance are safe.</p>
       <div className="flex gap-2">
         <button type="button" onClick={reset} className="btn-primary px-6">
           Try again

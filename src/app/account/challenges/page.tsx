@@ -37,7 +37,7 @@ export default async function ChallengesPage({ searchParams }: { searchParams: P
           <p className="eyebrow">Keep your squad moving</p>
           <h1 className="mt-1 text-4xl leading-none sm:text-5xl">Challenges</h1>
           <p className="mt-2 max-w-2xl text-sm text-muted">
-            Hand in cards you don&apos;t need for MX or packs. Cards you hand in go back into the packs for someone else to pull. Rewards are bonus MX — spend it on packs and match entries.
+            Hand in cards you don&apos;t need for £ credit or packs. Cards you hand in go back into the packs for someone else to pull. Rewards are bonus credit — spend it on packs and match entries.
           </p>
         </div>
         {completed && (
@@ -107,10 +107,10 @@ export default async function ChallengesPage({ searchParams }: { searchParams: P
                     <span className="text-xs font-bold text-lime">✓ Claimed</span>
                   ) : x.complete ? (
                     <ActionButton action={claimOwnedSetAction.bind(null, x.code)} className="btn-primary px-3 py-1.5 text-[11px]">
-                      Claim {x.rewardMinor / 100} MX
+                      Claim £{x.rewardMinor / 100}
                     </ActionButton>
                   ) : (
-                    <span className="text-xs text-faint">{x.rewardMinor / 100} MX reward</span>
+                    <span className="text-xs text-faint">£{x.rewardMinor / 100} reward</span>
                   )}
                 </span>
               </div>
@@ -133,7 +133,7 @@ export default async function ChallengesPage({ searchParams }: { searchParams: P
         <section>
           <h2 className="mb-1 text-3xl">Binders &amp; sets</h2>
           <p className="mb-4 text-sm text-muted">
-            Every club has a 5-player binder. Collect them all to earn 10 earned MX. Any copy counts, free and untradeable cards included (free copies are used first). Cards that are listed or in a squad don&apos;t count.
+            Every club has a 5-player binder. Collect them all to earn 10 earned credit. Any copy counts, free and untradeable cards included (free copies are used first). Cards that are listed or in a squad don&apos;t count.
           </p>
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-faint">
             Showing {shown.length} you&apos;ve started{rest > 0 ? ` · ${rest} more to find` : ""}
@@ -150,7 +150,7 @@ export default async function ChallengesPage({ searchParams }: { searchParams: P
                     </span>
                     <span className="w-16 text-right text-sm font-bold tabular-nums">{have}/{requirements.length}</span>
                     <span className="w-32 text-right">
-                      {complete ? <CompleteSetButton setId={set.id} setName={set.name} cardCount={requirements.reduce((s, r) => s + r.requirement.quantity, 0)} /> : <span className="text-xs text-faint">10 MX reward</span>}
+                      {complete ? <CompleteSetButton setId={set.id} setName={set.name} cardCount={requirements.reduce((s, r) => s + r.requirement.quantity, 0)} /> : <span className="text-xs text-faint">£10 reward</span>}
                     </span>
                   </div>
                   <div className="h-1 overflow-hidden rounded-full bg-ink-700">

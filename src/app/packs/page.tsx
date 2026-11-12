@@ -178,7 +178,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
             <span>The pack shop opens soon. Until then your free packs arrive automatically — check above for what&apos;s next.</span>
             {user.role === "ADMIN" && (
               <Link href="/admin/settings#flags" className="basis-full text-xs font-semibold text-lime underline">
-                Admin: XP, MX and card buttons are hidden because the &ldquo;Pack shop&rdquo; switch is off. Turn it on in Admin → Settings → Feature flags.
+                Admin: XP, credit and card buttons are hidden because the &ldquo;Pack shop&rdquo; switch is off. Turn it on in Admin → Settings → Feature flags.
               </Link>
             )}
           </p>
@@ -186,7 +186,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
           <p className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-accent/40 bg-accent/5 px-4 py-3 text-sm">
             <span className="rounded-md bg-accent px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-accent-ink">Coming soon</span>
             <span>
-              Buying packs by card. In the beta, open packs with MX you&apos;ve earned. Cards you get during the beta are yours to keep and play, but can&apos;t be resold.
+              Buying packs by card. In the beta, open packs with credit you&apos;ve earned. Cards you get during the beta are yours to keep and play, but can&apos;t be resold.
             </span>
           </p>
         )}
@@ -245,7 +245,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
                         <div className="mt-auto grid grid-cols-2 gap-2 pt-5">
                           {flags.PACK_SHOP ? (
                             <>
-                              {/* XP | MX side by side, then card payment full width. */}
+                              {/* XP | £ side by side, then card payment full width. */}
                               <XpPackButton skuCode={s.code} xp={xpPriceFor(s.priceMinor, xpRate)} affordable={bal.xp >= xpPriceFor(s.priceMinor, xpRate)} />
                               <CreditPackButton skuCode={s.code} price={fmtMp(s.priceMinor)} affordable={bal.total >= s.priceMinor} />
                               <div className="col-span-2 grid">

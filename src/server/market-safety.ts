@@ -43,7 +43,7 @@ export async function assertSensiblePrice(askingMinor: number, guideMinor: numbe
   if (askingMinor >= guideMinor * multiple) {
     throw new DomainError(
       "HIGH_PRICE",
-      `That's ${(askingMinor / guideMinor).toFixed(1)}× the guide price of ${(guideMinor / 100).toFixed(2)} MX. Tick "I'm sure" to list it anyway.`,
+      `That's ${(askingMinor / guideMinor).toFixed(1)}× the guide price of £${(guideMinor / 100).toFixed(2)}. Tick "I'm sure" to list it anyway.`,
     );
   }
 }

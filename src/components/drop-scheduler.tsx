@@ -182,7 +182,7 @@ export function DropScheduler({ rows, tops, pointsLabel }: { rows: DbRow[]; tops
                   {q.name} <span className="text-xs text-faint">{q.tier.toLowerCase()}</span>
                 </span>
                 <label className="flex items-center gap-1 text-xs text-muted">
-                  MX
+                  £
                   <input type="number" step="0.01" min="0.10" max="100" className="input w-24 py-1.5" value={q.price} onChange={(e) => setQueue((all) => all.map((x, j) => (j === i ? { ...x, price: e.target.value } : x)))} aria-label={`Price for ${q.name}`} />
                 </label>
                 <input type="datetime-local" className="input w-auto py-1.5" value={q.liveAt || start} onChange={(e) => setQueue((all) => all.map((x, j) => (j === i ? { ...x, liveAt: e.target.value } : x)))} aria-label={`Go-live time for ${q.name}`} />

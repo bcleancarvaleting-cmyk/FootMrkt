@@ -163,7 +163,7 @@ export function toCardView(
 }
 
 export function mpLabel(mp: number | null): string {
-  return mp === null ? "— MX" : `${mp} MX`;
+  return mp === null ? "—" : `£${mp.toFixed(2)}`;
 }
 
 export function gbp(minor: number): string {

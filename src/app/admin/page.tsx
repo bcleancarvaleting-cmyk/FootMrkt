@@ -10,7 +10,7 @@ export default async function Dashboard() {
   const pct = (x: number | null) => (x === null ? "—" : `${Math.round(x * 100)}%`);
   const health: Array<[string, string, string, string]> = [
     ["Packs opened", h.packs.toLocaleString("en-GB"), "last 7 days", "/admin/packs"],
-    ["Transfers", h.trades.toLocaleString("en-GB"), `${(h.tradeVolumeMinor / 100).toLocaleString("en-GB", { maximumFractionDigits: 0 })} MX traded · 7 days`, "/admin/transfers"],
+    ["Transfers", h.trades.toLocaleString("en-GB"), `£${(h.tradeVolumeMinor / 100).toLocaleString("en-GB", { maximumFractionDigits: 0 })} traded · 7 days`, "/admin/transfers"],
     [h.gameweek ? `GW${h.gameweek} entries` : "Entries", h.entries.toLocaleString("en-GB"), `${h.draftEntries} in Free Draft`, "/admin/matches"],
     ["Rainbows found", `${h.rainbows}`, `of ${h.players.toLocaleString("en-GB")}`, "/hall-of-fame"],
     ["Referrals that play", pct(h.referralPlayRate), `${h.referred} referred sign-ups`, "/admin/users"],
@@ -26,7 +26,7 @@ export default async function Dashboard() {
     ["Managers", k.users.toLocaleString("en-GB"), `+${k.newToday} today · +${k.newWeek} this week`, "/admin/users"],
     ["Active this week", k.active7.toLocaleString("en-GB"), `${k.users ? Math.round((k.active7 / k.users) * 100) : 0}% of managers`, "/admin/users"],
     ["App installs", k.installs.toLocaleString("en-GB"), `${k.notif} with notifications on`, "/admin/app"],
-    ["Revenue this week", `£${(k.revenueWeekMinor / 100).toFixed(2)}`, "Packs and MX top-ups", "/admin/packs"],
+    ["Revenue this week", `£${(k.revenueWeekMinor / 100).toFixed(2)}`, "Packs and top-ups", "/admin/packs"],
     ["Cards in clubs", k.cardsHeld.toLocaleString("en-GB"), "Held by managers now", "/admin/packs"],
   ];
   const top = d.support.slice(0, 12);

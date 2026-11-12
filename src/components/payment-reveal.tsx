@@ -97,7 +97,7 @@ export function PaymentReveal({ orderId, cancelled = false }: { orderId: string;
             {step >= 1 && <Typewriter tone="red" text="No money has been taken" className="text-2xl sm:text-3xl" onDone={() => setStep((x) => Math.max(x, 2))} />}
             {step >= 2 && (
               <div className="mt-4 flex w-full flex-col items-center gap-3 animate-reveal">
-                <p className="max-w-xs text-sm text-muted">Your card was declined or the payment was cancelled. Try again, use another card, or open packs with MX or XP.</p>
+                <p className="max-w-xs text-sm text-muted">Your card was declined or the payment was cancelled. Try again, use another card, or open packs with your balance or XP.</p>
                 <Link href="/packs" onClick={close} className="btn-primary px-10 py-4">
                   Try again
                 </Link>

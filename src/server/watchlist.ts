@@ -13,7 +13,7 @@ import { fmtMp } from "./wallet";
 export const MAX_WATCHED = 100;
 
 export async function watchPlayer(userId: string, playerId: string, maxPriceMinor?: number | null) {
-  if (maxPriceMinor != null && (!Number.isInteger(maxPriceMinor) || maxPriceMinor < 10 || maxPriceMinor > 10_000)) throw new DomainError("RANGE", "Alert price: 0.10–100 MX.");
+  if (maxPriceMinor != null && (!Number.isInteger(maxPriceMinor) || maxPriceMinor < 10 || maxPriceMinor > 10_000)) throw new DomainError("RANGE", "Alert price: £0.10–£100.");
   if (!(await db.player.findUnique({ where: { id: playerId }, select: { id: true } }))) throw new DomainError("NOT_FOUND", "Player not found.");
   const existing = await db.watchItem.findUnique({ where: { userId_playerId: { userId, playerId } } });
   if (!existing && (await db.watchItem.count({ where: { userId } })) >= MAX_WATCHED) throw new DomainError("LIMIT", `You can watch up to ${MAX_WATCHED} players.`);
@@ -151,12 +151,12 @@ export async function alertValueMoves() {
     }
     const diff = v - w.baselineMp;
     const pct = Math.round((diff / w.baselineMp) * 100);
-    if (Math.abs(pct) < VALUE_ALERT_PCT || Math.abs(diff) < 1) continue;
+    if (Math.abs(pct) < VALUE_ALERT_PCT || Math.abs(diff) < 0.1) continue;
     const name = players.find((p) => p.id === w.playerId)?.displayName ?? "A watched player";
     await notify(w.userId, {
       kind: "value",
-      title: diff < 0 ? `▼ ${name} down ${Math.abs(pct)}% to ${v} MX` : `▲ ${name} up ${pct}% to ${v} MX`,
-      body: diff < 0 ? `Was ${w.baselineMp} MX — a buying chance if you've been waiting.` : `Was ${w.baselineMp} MX. Their value is rising.`,
+      title: diff < 0 ? `▼ ${name} down ${Math.abs(pct)}% to £${v.toFixed(2)}` : `▲ ${name} up ${pct}% to £${v.toFixed(2)}`,
+      body: diff < 0 ? `Was £${w.baselineMp.toFixed(2)} — a buying chance if you've been waiting.` : `Was £${w.baselineMp.toFixed(2)}. Their value is rising.`,
       href: `/players/${w.playerId}`,
       dedupeKey: `value:${w.id}:${w.baselineMp}:${v}`,
     });

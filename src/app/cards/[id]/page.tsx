@@ -116,7 +116,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
             </Info>
           ) : (
             <Info label="Indicative value">
-              <span className="text-2xl font-black text-lime">{latest ? `${latest.valueMp} MX` : "—"}</span>
+              <span className="text-2xl font-black text-lime">{latest ? `£${latest.valueMp.toFixed(2)}` : "—"}</span>
             </Info>
           )}
           <Info label={isOwner ? "You got it" : "Status"}>
@@ -146,7 +146,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
         ) : (
           <>
         <p className="text-xs text-faint">
-          MX is an indicative valuation based on supply, recent form, league and eligible completed sales. It is not cash, cannot be
+          The £ value is an indicative valuation based on supply, recent form, league and eligible completed sales. It is not cash, cannot be
           withdrawn, and is not a promise that this card can be sold for that amount.
         </p>
 
@@ -172,7 +172,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
               {sales.map((s, i) => (
                 <div key={i} className="flex justify-between text-muted">
                   <span>{s.soldAt ? fmtDate(s.soldAt) : ""}</span>
-                  <span>{((s.soldPriceMinor ?? 0) / 100).toFixed(2)} MX</span>
+                  <span>£{((s.soldPriceMinor ?? 0) / 100).toFixed(2)}</span>
                 </div>
               ))}
             </div>
@@ -247,14 +247,14 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
             {listing ? (
               <div className="flex items-center justify-between">
                 <span>
-                  Listed at <b>{(listing.askingPriceMinor / 100).toFixed(2)} MX</b> until {fmtDate(listing.expiresAt)}
+                  Listed at <b>£{(listing.askingPriceMinor / 100).toFixed(2)}</b> until {fmtDate(listing.expiresAt)}
                 </span>
               </div>
             ) : auction ? (
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <span>
                   In auction until <b>{fmtDate(auction.endsAt)}</b> · {auction._count.bids} bid{auction._count.bids === 1 ? "" : "s"}
-                  {auction.buyNowMinor ? ` · buy it now ${(auction.buyNowMinor / 100).toFixed(2)} MX` : ""}
+                  {auction.buyNowMinor ? ` · buy it now £${(auction.buyNowMinor / 100).toFixed(2)}` : ""}
                 </span>
                 <span className="text-xs text-faint">Auctions can&apos;t be cancelled: it runs until it sells or the time runs out.</span>
               </div>

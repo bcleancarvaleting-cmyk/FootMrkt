@@ -113,7 +113,7 @@ export async function EconomySections({ only }: { only: string[] }) {
       )}
 
       {show("house") && (
-      <Section title="MATCHX listings on Transfers" intro="List cards straight from circulation at buy-now prices (no offers). Unsold cards go back into packs when the listing ends. The MX goes to MATCHX.">
+      <Section title="MATCHX listings on Transfers" intro="List cards straight from circulation at buy-now prices (no offers). Unsold cards go back into packs when the listing ends. The money goes to MATCHX.">
         <p className="mb-4 text-sm">
           All transfers: <b>{fees._count}</b> sales · <b>{fmtMp(fees._sum.soldPriceMinor ?? 0)}</b> traded · <b>{fmtMp(fees._sum.feeMinor ?? 0)}</b> in 5% fees ·{" "}
           MATCHX: <b>{houseActive}</b> live · <b>{houseSold?._count._all ?? 0}</b> sold for <b>{fmtMp(houseSold?._sum.soldPriceMinor ?? 0)}</b>
@@ -160,7 +160,7 @@ export async function EconomySections({ only }: { only: string[] }) {
       )}
 
       {show("auctions") && (
-      <Section title="House auctions" intro="Takes one unowned copy out of the pack pool. Bids hold cash MX; the winner pays their bid to MATCHX. Unsold cards go back into packs.">
+      <Section title="House auctions" intro="Takes one unowned copy out of the pack pool. Bids hold credit; the winner pays their bid to MATCHX. Unsold cards go back into packs.">
         <AuctionForm />
         <ul className="mt-4 divide-y divide-ink-700 text-sm">
           {auctions.map((a) => (
@@ -177,7 +177,7 @@ export async function EconomySections({ only }: { only: string[] }) {
       )}
 
       {show("challenges") && (
-      <Section title="Challenges" intro="Managers hand in cards that match the rules for bonus MX and/or a pack. Tradeable cards go back into packs.">
+      <Section title="Challenges" intro="Managers hand in cards that match the rules for bonus credit and/or a pack. Tradeable cards go back into packs.">
         <ChallengeForm packs={packs} />
         <ul className="mt-4 divide-y divide-ink-700 text-sm">
           {challenges.map((c) => (
@@ -193,7 +193,7 @@ export async function EconomySections({ only }: { only: string[] }) {
       )}
 
       {show("matchrules") && (
-      <Section title="Match entry rules" intro="£ prizes are only allowed on free-entry matches with 'Free cards only', so nothing anyone bought can improve their chances of real money. Matches with an MX entry fee pay MX or pack prizes. MX entry fees are charged once PAID_ENTRY is cleared; fees can't change after someone has entered.">
+      <Section title="Match entry rules" intro="£ prizes are only allowed on free-entry matches with 'Free cards only', so nothing anyone bought can improve their chances of real money. Matches with an entry fee pay £ credit or pack prizes. Entry fees are charged once PAID_ENTRY is cleared; fees can't change after someone has entered.">
         <div className="space-y-5">
           <div className="rounded-xl border border-accent/40 p-4">
             <h3 className="mb-1 font-bold">Create a match</h3>
@@ -229,13 +229,13 @@ export async function EconomySections({ only }: { only: string[] }) {
       )}
 
       {show("withdrawals") && (
-      <Section title="Withdrawals" intro="Managers can only withdraw £ winnings from match prizes — never MX. Check identity and bank details with the payout provider, then mark paid. Rejecting returns the winnings.">
+      <Section title="Withdrawals" intro="Managers can only withdraw £ winnings from match prizes — never spend-only credit. Check identity and bank details with the payout provider, then mark paid. Rejecting returns the winnings.">
         <ul className="divide-y divide-ink-700 text-sm">
           {withdrawals.map((w) => (
             <li key={w.id} className="flex flex-wrap items-center justify-between gap-3 py-2">
               <span>
                 <b>{fmtGbp(w.amountMinor)}</b>{" "}
-                <span className={`chip ${w.source === "MX" ? "border-accent/60 text-lime" : ""}`}>{w.source === "MX" ? `MX cash-out · fee ${fmtGbp(w.feeMinor)}` : "Prize winnings"}</span> · {w.user.displayName} <span className="text-faint">({w.user.fullName ?? "no name"}, KYC {w.user.kycStatus.toLowerCase()}) · {fmtDate(w.createdAt)}</span>
+                <span className={`chip ${w.source === "MX" ? "border-accent/60 text-lime" : ""}`}>{w.source === "MX" ? `Credit cash-out · fee ${fmtGbp(w.feeMinor)}` : "Prize winnings"}</span> · {w.user.displayName} <span className="text-faint">({w.user.fullName ?? "no name"}, KYC {w.user.kycStatus.toLowerCase()}) · {fmtDate(w.createdAt)}</span>
               </span>
               <span className="flex gap-2">
                 <ActionButton action={processWithdrawalAction.bind(null, w.id, "REJECTED")} className="btn-ghost px-3 py-1.5 text-[11px]">Reject</ActionButton>

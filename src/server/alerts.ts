@@ -19,7 +19,7 @@ async function cardName(cardId: string) {
   return `${c.template.player.displayName} (${tier} #${c.serial})`;
 }
 
-const mx = (minor: number) => `${(minor / 100).toFixed(2)} MX`;
+const mx = (minor: number) => `£${(minor / 100).toFixed(2)}`;
 
 export const alerts = {
   async cardSold(sellerId: string | null, cardId: string, priceMinor: number, listingId: string) {
@@ -34,11 +34,11 @@ export const alerts = {
       buyerId,
       accepted
         ? { kind: "NEW_PLAYER", title: "✍️ New signing!", body: `Your offer was accepted — ${name} has joined your club.`, href: `/cards/${cardId}`, dedupeKey: `offer:${offerId}:answer` }
-        : { kind: "MARKET", title: "Offer declined", body: `Your offer for ${name} was declined. Your MX is back in your wallet.`, href: "/transfers/mine", dedupeKey: `offer:${offerId}:answer` },
+        : { kind: "MARKET", title: "Offer declined", body: `Your offer for ${name} was declined. Your money is back in your wallet.`, href: "/transfers/mine", dedupeKey: `offer:${offerId}:answer` },
     );
   },
   async outbid(userId: string, cardId: string, auctionId: string, bidId: string) {
-    await send(userId, { kind: "AUCTION", title: "⚠️ You've been outbid", body: `Someone bid more for ${await cardName(cardId)}. Your MX is back — bid again before it ends.`, href: "/transfers/auctions", dedupeKey: `outbid:${bidId}` });
+    await send(userId, { kind: "AUCTION", title: "⚠️ You've been outbid", body: `Someone bid more for ${await cardName(cardId)}. Your money is back — bid again before it ends.`, href: "/transfers/auctions", dedupeKey: `outbid:${bidId}` });
   },
   async auctionWon(userId: string, cardId: string, amountMinor: number, auctionId: string) {
     await send(userId, { kind: "AUCTION", title: "🔨 Auction won!", body: `${await cardName(cardId)} is yours for ${mx(amountMinor)}.`, href: `/cards/${cardId}`, dedupeKey: `auction:${auctionId}:won` });

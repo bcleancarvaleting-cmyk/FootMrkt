@@ -62,7 +62,7 @@ export async function checkoutBasket(userId: string) {
   const v = await basketView(userId);
   if (!v.rows.length) throw new DomainError("EMPTY", v.removed ? "Those players have already been signed by someone else." : "Your basket is empty.");
   if (v.shortMinor > 0) {
-    throw new DomainError("NEED_MX", `You need ${fmtMp(v.shortMinor)} more MX to pay for these players (total ${fmtMp(v.totalMinor)}, you have ${fmtMp(v.balanceMinor)}).`, { shortMinor: v.shortMinor });
+    throw new DomainError("NEED_MX", `You need ${fmtMp(v.shortMinor)} more to pay for these players (total ${fmtMp(v.totalMinor)}, you have ${fmtMp(v.balanceMinor)}).`, { shortMinor: v.shortMinor });
   }
   const signed: string[] = [];
   const missed: string[] = [];

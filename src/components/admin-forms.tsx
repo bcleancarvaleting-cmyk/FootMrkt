@@ -51,11 +51,11 @@ export function DropForm({ packs }: { packs: Array<{ code: string; name: string 
           </optgroup>
           <optgroup label="Credit">
             <option value="XP">XP credit</option>
-            <option value="MX">Earned MX credit</option>
+            <option value="MX">Earned credit credit</option>
           </optgroup>
         </select>
       </div>
-      <I name="amount" label="Amount (for XP or MX credit)" type="number" min="1" step="0.01" placeholder="e.g. 500 XP or 2.00 MX" />
+      <I name="amount" label="Amount (for XP or £ credit)" type="number" min="1" step="0.01" placeholder="e.g. 500 XP or £2.00" />
       <I name="startsAt" label="Goes live" type="datetime-local" defaultValue={localNow()} required />
       <I name="hours" label="Hours open" type="number" min="1" max="72" defaultValue="24" />
     </Form>
@@ -74,9 +74,9 @@ export function AuctionForm() {
           <option>BRONZE</option>
         </select>
       </div>
-      <I name="start" label="Start price (MX)" type="number" step="0.01" min="0.10" max="100" defaultValue="1.00" required />
-      <I name="increment" label="Min raise (MX)" type="number" step="0.01" min="0.01" defaultValue="0.10" />
-      <I name="reserve" label="Reserve (MX, optional)" type="number" step="0.01" min="0" max="100" />
+      <I name="start" label="Start price (£)" type="number" step="0.01" min="0.10" max="100" defaultValue="1.00" required />
+      <I name="increment" label="Min raise (£)" type="number" step="0.01" min="0.01" defaultValue="0.10" />
+      <I name="reserve" label="Reserve (£, optional)" type="number" step="0.01" min="0" max="100" />
       <I name="startsAt" label="Starts (blank = now)" type="datetime-local" />
       <I name="hours" label="Duration (hours)" type="number" min="1" max="168" defaultValue="24" />
     </Form>
@@ -88,13 +88,13 @@ export function ChallengeForm({ packs }: { packs: Array<{ code: string; name: st
     <Form action={createChallengeAction} submit="Create challenge">
       <I name="code" label="Code" placeholder="weekend-keepers" required />
       <I name="name" label="Name" placeholder="Safe hands" required />
-      <I name="description" label="Description" placeholder="Hand in 2 goalkeepers for 1 MX" required />
+      <I name="description" label="Description" placeholder="Hand in 2 goalkeepers for £1" required />
       <I name="count" label="Cards to hand in" type="number" min="1" max="11" defaultValue="3" required />
       <I name="tiers" label="Tiers (comma list)" placeholder="BRONZE,SILVER" />
       <I name="positions" label="Positions" placeholder="GK,DEF" />
       <I name="leagues" label="Leagues" placeholder="EPL,CHA,LG1,LG2" />
       <I name="maxPerClub" label="Max per club" type="number" min="1" />
-      <I name="reward" label="Reward (MX)" type="number" step="0.01" min="0" max="100" defaultValue="1.00" />
+      <I name="reward" label="Reward (£)" type="number" step="0.01" min="0" max="100" defaultValue="1.00" />
       <div>
         <label className="label" htmlFor="f-pack">Reward pack</label>
         <select id="f-pack" name="pack" className="input" defaultValue="">
@@ -186,8 +186,8 @@ export function CreateMatchForm({ gameweeks, leagues, fixtures }: { gameweeks: O
       <S name="cards" label="Which cards" options={[{ value: "ANY", label: "Any cards" }, { value: "FREE", label: "Free cards only (needed for £ prizes)" }]} />
       <S name="who" label="Who can enter" options={[{ value: "ALL", label: "Everyone" }, { value: "FOUNDERS", label: "Founding members only" }]} />
       <S name="maxPerClub" label="Players per club" options={PER_CLUB} />
-      <S name="budget" label="Free draft budget" options={[{ value: "", label: "Not a draft" }, ...[50, 70, 100, 150].map((n) => ({ value: String(n), label: `${n} MX` }))]} />
-      <S name="fee" label="Entry" options={[{ value: "0", label: "Free" }, ...[0.5, 1, 2, 5].map((n) => ({ value: String(n), label: `${n.toFixed(2)} MX` }))]} />
+      <S name="budget" label="Free draft budget" options={[{ value: "", label: "Not a draft" }, ...[50, 70, 100, 150].map((n) => ({ value: String(n), label: `£${n}` }))]} />
+      <S name="fee" label="Entry" options={[{ value: "0", label: "Free" }, ...[0.5, 1, 2, 5].map((n) => ({ value: String(n), label: `£${n.toFixed(2)}` }))]} />
       <S name="winnerPack" label="Winner's pack" options={PACK} />
       <S name="top3Pack" label={"Top 3's pack"} options={PACK} />
       <S name="everyonePack" label="Everyone else's pack" options={PACK} />
@@ -201,12 +201,12 @@ export function MatchRulesForm({ id, fee, req, prizes, leagues }: { id: string; 
   return (
     <Form action={competitionRulesAction} submit="Save">
       <input type="hidden" name="competitionId" value={id} />
-      <I name="fee" label="Entry fee (MX)" type="number" step="0.01" min="0" max="100" defaultValue={(fee / 100).toFixed(2)} />
+      <I name="fee" label="Entry fee (£)" type="number" step="0.01" min="0" max="100" defaultValue={(fee / 100).toFixed(2)} />
       <S name="tiers" label="Card tier" options={TIERS} defaultValue={req.tiers?.length === 1 ? req.tiers[0] : ""} />
       <S name="leagues" label="League" options={[{ value: "", label: "All leagues" }, ...leagues]} defaultValue={req.leagues?.length === 1 ? req.leagues[0] : ""} />
       <I name="clubs" label="Clubs only (e.g. CHE,MUN)" placeholder="CHE,MUN" defaultValue={req.clubs?.join(",")} />
       <S name="maxPerClub" label="Players per club" options={PER_CLUB} defaultValue={req.maxPerClub ? String(req.maxPerClub) : ""} />
-      <I name="maxValue" label="Max starters value (MX)" type="number" min="1" defaultValue={req.maxSquadValueMp} />
+      <I name="maxValue" label="Max starters value (£)" type="number" min="1" defaultValue={req.maxSquadValueMp} />
       <I name="prizes" label="£ prize pot by position (e.g. 1=10, 2=5, 3=3) — ties split" placeholder="1=10, 2=5, 3=3" defaultValue={prizes} />
       <label className="flex items-center gap-2 self-end pb-2.5 text-sm">
         <input type="checkbox" name="freeCardsOnly" defaultChecked={req.freeCardsOnly} className="accent-lime" /> Free cards only
@@ -246,9 +246,9 @@ export function HouseStockForm() {
         </select>
       </div>
       <I name="count" label="How many cards" type="number" min="1" max="200" defaultValue="20" required />
-      <I name="min" label="Price range: min (MX)" type="number" step="0.01" min="0.10" max="100" placeholder="1.00" />
-      <I name="max" label="Price range: max (MX)" type="number" step="0.01" min="0.10" max="100" placeholder="4.99" />
-      <I name="price" label="…or one fixed price (MX)" type="number" step="0.01" min="0.10" max="100" />
+      <I name="min" label="Price range: min (£)" type="number" step="0.01" min="0.10" max="100" placeholder="1.00" />
+      <I name="max" label="Price range: max (£)" type="number" step="0.01" min="0.10" max="100" placeholder="4.99" />
+      <I name="price" label="…or one fixed price (£)" type="number" step="0.01" min="0.10" max="100" />
       <I name="markup" label="…or recommended + markup (%)" type="number" min="-50" max="200" defaultValue="0" />
       <I name="days" label="Listed for (days)" type="number" min="1" max="30" defaultValue="7" />
       <I name="leagues" label="Leagues only (optional)" placeholder="EPL,CHA" />
@@ -334,7 +334,7 @@ export function AppGiveawayForm({ packs }: { packs: Array<{ code: string; name: 
           ))}
         </select>
       </div>
-      <I name="mx" label="Earned MX (optional)" type="number" step="0.01" min="0" max="100" placeholder="0.00" />
+      <I name="mx" label="Credit in £ (optional)" type="number" step="0.01" min="0" max="100" placeholder="0.00" />
       <I name="openDays" label="Keep open for new installs (days, 0 = current app users only)" type="number" min="0" max="60" defaultValue="0" />
     </Form>
   );

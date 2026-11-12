@@ -155,7 +155,7 @@ export function MobileMenu({ user, theme, unread = 0, wallet, waitlist = false }
             {user && wallet && (
               <div className="grid grid-cols-3 gap-2 pt-3">
                 <Link href="/account/wallet" className="min-w-0 rounded-xl border border-accent/50 bg-accent/5 px-2 py-2 text-center">
-                  <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-muted">MX wallet</span>
+                  <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-muted">Wallet</span>
                   <span className="block truncate font-display text-lg font-black tabular-nums">{wallet.mx}</span>
                   <span className="block truncate text-[10px] text-faint">{wallet.earned} earned</span>
                 </Link>
@@ -167,7 +167,7 @@ export function MobileMenu({ user, theme, unread = 0, wallet, waitlist = false }
                 <Link href="/account/wallet#xp" className="min-w-0 rounded-xl border border-ink-600 bg-ink-900 px-2 py-2 text-center">
                   <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-muted">XP</span>
                   <span className="block truncate font-display text-lg font-black tabular-nums">{wallet.xp}</span>
-                  <span className="block truncate text-[10px] text-faint">swap for MX</span>
+                  <span className="block truncate text-[10px] text-faint">swap for £</span>
                 </Link>
               </div>
             )}

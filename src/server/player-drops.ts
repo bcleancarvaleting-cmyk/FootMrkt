@@ -16,7 +16,7 @@ const NO_END = 10 * 365 * 86_400_000;
 
 export const DropItemSchema = z.object({
   playerId: z.string().uuid(),
-  priceMinor: z.number().int().min(10, "Minimum price is 0.10 MX").max(10_000, "Maximum price is 100 MX"),
+  priceMinor: z.number().int().min(10, "Minimum price is £0.10").max(10_000, "Maximum price is £100"),
   liveAt: z.coerce.date(),
 });
 

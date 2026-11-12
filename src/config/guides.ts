@@ -41,11 +41,11 @@ export const GUIDES: Guide[] = [
     title: "Matches & scoring",
     summary: "How matches work, who you can pick, and how points are scored.",
     steps: [
-      { title: "Choose a match", body: "Each gameweek has matches with their own rules: which cards they take (e.g. Bronze only, free cards, a free draft), the entry (free or MX) and the prize pot.", href: "/matches", cta: "See matches" },
+      { title: "Choose a match", body: "Each gameweek has matches with their own rules: which cards they take (e.g. Bronze only, free cards, a free draft), the entry (free or £) and the prize pot.", href: "/matches", cta: "See matches" },
       { title: "Pick 7 + a sub", body: "Pick a formation, a keeper, defenders, midfielders and attackers, and a sub who comes on automatically if a starter doesn't play." },
       { title: "Captain & vice", body: "Your captain scores double. If they don't play, your vice-captain takes the double instead." },
       { title: "The deadline", body: "Squads lock 10 minutes before the gameweek's first kick-off. Points come in live and are final once the data window closes." },
-      { title: "Paid matches", body: "If a match has an MX entry fee and you're short, the match page offers MX bundles and brings you straight back. Withdraw before the deadline and the fee is refunded." },
+      { title: "Paid matches", body: "If a match has an entry fee and you're short, the match page offers top-up bundles and brings you straight back. Withdraw before the deadline and the fee is refunded." },
     ],
   },
   {
@@ -65,20 +65,20 @@ export const GUIDES: Guide[] = [
     title: "Transfers, auctions & drops",
     summary: "Buy and sell with other managers, run auctions and sign MATCHX drops.",
     steps: [
-      { title: "Transfer list", body: "Buy from other managers or make offers, in earned MX. Sellers pay a 5% fee. Listings are final once posted.", href: "/transfers", cta: "Transfer list" },
+      { title: "Transfer list", body: "Buy from other managers or make offers, in earned credit. Sellers pay a 5% fee. Listings are final once posted.", href: "/transfers", cta: "Transfer list" },
       { title: "Auctions", body: "List a card for 3, 12 or 24 hours with a starting price, an optional buy-it-now and an optional minimum you'll accept.", href: "/transfers/auctions", cta: "Auctions" },
       { title: "MATCHX player drops", body: "New players released by MATCHX every day at 10am — one copy each, never in packs. Add the ones you want to your basket and pay for them all at once.", href: "/transfers/drops", cta: "Player drops" },
-      { title: "Your basket", body: "Players in your basket aren't held — whoever pays first signs them. If you're short of MX, the basket offers bundles and brings you back to finish.", href: "/transfers/basket", cta: "Basket" },
+      { title: "Your basket", body: "Players in your basket aren't held — whoever pays first signs them. If you're short of credit, the basket offers bundles and brings you back to finish.", href: "/transfers/basket", cta: "Basket" },
     ],
   },
   {
     slug: "money",
     icon: "💷",
-    title: "MX, XP & your wallet",
-    summary: "What MX and XP are, how to top up, and what can be withdrawn.",
+    title: "Your £ balance, XP & wallet",
+    summary: "What your balance and XP are, how to top up, and what can be withdrawn.",
     steps: [
-      { title: "MX", body: "MX is for building your club: buying players and packs and entering matches. Top up by card in bundles — bigger bundles include bonus MX. MX can't be withdrawn.", href: "/account/wallet#add", cta: "Add funds" },
-      { title: "XP", body: "Every point your players score earns XP. XP levels you up (free packs), and you can swap XP for MX or open packs with it.", href: "/account/wallet#xp", cta: "Swap XP" },
+      { title: "Your £ balance", body: "Your balance is in pounds, for building your club: buying players and packs and entering matches. Top up by card in bundles — bigger bundles include bonus credit. Your £ balance can't be withdrawn.", href: "/account/wallet#add", cta: "Add funds" },
+      { title: "XP", body: "Every point your players score earns XP. XP levels you up (free packs), and every 1,000 XP turns into £5 to spend, or open packs with it.", href: "/account/wallet#xp", cta: "Swap XP" },
       { title: "£ winnings", body: "Cash prizes won in matches go to your £ wallet and can be withdrawn to your bank (minimum £10) after an identity check.", href: "/account/wallet#withdraw", cta: "Wallet" },
       { title: "Your portfolio", body: "My Club shows your squad's total value, how it's moving and how many of your players play this week. Sell well and buy better to grow it.", href: "/account/club", cta: "My Club" },
     ],
@@ -121,6 +121,9 @@ export const guideBySlug = (slug: string) => GUIDES.find((g) => g.slug === slug)
 
 /** What's new on MATCHX (newest first). Shown at the top of Guides. */
 export const WHATS_NEW: Array<{ date: string; title: string; body: string; href?: string }> = [
+  { date: "2026-11-12", title: "Everything in £", body: "Your balance, prices and player values are now shown in pounds. Your balance is spend-only credit for players, packs and matches.", href: "/account/wallet" },
+  { date: "2026-11-12", title: "MATCHX market", body: "Every player in the game is on sale, priced by their form, real-world value and demand — up to £20. Only 5 copies each, and every sale makes the rest 2% dearer.", href: "/transfers/market" },
+  { date: "2026-11-12", title: "1,000 XP = £5", body: "Every 1,000 XP your players earn turns into £5 of credit automatically.", href: "/account/wallet#xp" },
   { date: "2026-11-12", title: "Mega League", body: "Every manager on one season-long table — your best score each gameweek adds up, live while games are on.", href: "/mega-league" },
   { date: "2026-11-12", title: "Man of the Match", body: "The top MATCHX scorer in every game gets +3 bonus points.", href: "/how-it-works" },
   { date: "2026-11-12", title: "Share my matchday", body: "Your score, rank and best players as a ready-to-post image or video.", href: "/matchday" },
@@ -142,7 +145,7 @@ export const WHATS_NEW: Array<{ date: string; title: string; body: string; href?
   { date: "2026-11-12", title: "Receipts", body: "Every card payment is listed in your Wallet with Stripe's receipt.", href: "/account/wallet#payments" },
   { date: "2026-11-11", title: "Transfer news", body: "When one of your players moves club in real life, you'll see the move, the reported fee and your card at its new club.", href: "/account/club" },
   { date: "2026-11-11", title: "Your portfolio", body: "My Club now shows your squad's total value, its trend and who's playing this week.", href: "/account/club" },
-  { date: "2026-11-11", title: "Basket & MX bundles", body: "Add MATCHX drops to a basket and pay for them all at once. Top up with bundles — bigger ones include bonus MX.", href: "/transfers/basket" },
+  { date: "2026-11-11", title: "Basket & top-up bundles", body: "Add MATCHX drops to a basket and pay for them all at once. Top up with bundles — bigger ones include bonus credit.", href: "/transfers/basket" },
   { date: "2026-11-11", title: "Achievement stages", body: "Achievements now come in five stages, each with a big XP bonus.", href: "/account/achievements" },
   { date: "2026-11-11", title: "There's only one…", body: "Rainbow cards now carry the chant — there's only one of each player.", href: "/hall-of-fame" },
 ];

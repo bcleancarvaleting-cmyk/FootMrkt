@@ -155,7 +155,7 @@ export function PlayerCard({ card, size = "md", className = "", showcase = false
           <CardNumber card={card} />
         </div>
 
-        {/* MX value · points won for you (left off posters) */}
+        {/* £ value · points won for you (left off posters) */}
         <div className={`mx-2.5 mb-2 mt-1.5 ${showcase ? "hidden" : "grid"} grid-cols-2 gap-1 border-t border-white/10 pt-1.5`}>
           {card.loan ? (
             <div className="min-w-0" title="Loan players are free, untradeable and have no value">

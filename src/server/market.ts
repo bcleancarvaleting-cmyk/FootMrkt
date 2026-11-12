@@ -206,7 +206,7 @@ export async function myCardPayments(userId: string) {
   const { bundleFor } = await import("@/config/bundles");
   return orders.map((o) => {
     const b = /^bundle:([a-z]+):(\d+)$/.exec(o.refId);
-    const item = o.kind === "PACK_PURCHASE" ? `${skus.get(o.refId) ?? "Pack"} pack` : o.kind === "DEPOSIT" ? (b ? `${bundleFor(b[1])?.name ?? "MX"} bundle · ${Number(b[2]) / 100} MX` : "MX top-up") : "Order";
+    const item = o.kind === "PACK_PURCHASE" ? `${skus.get(o.refId) ?? "Pack"} pack` : o.kind === "DEPOSIT" ? (b ? `${bundleFor(b[1])?.name ?? "MX"} bundle · £${Number(b[2]) / 100} credit` : "Top-up") : "Order";
     return { id: o.id, item, amountMinor: o.amountMinor, status: o.status, at: o.createdAt, test: o.provider !== "stripe", receipt: o.provider === "stripe" && o.status === "PAID" };
   });
 }

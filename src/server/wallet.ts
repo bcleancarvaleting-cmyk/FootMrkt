@@ -14,11 +14,11 @@ import { assertCanSpend } from "./safer-play";
  *
  * Balances (product decisions 10 Nov 2026):
  *  - MX, the in-game currency, in two kinds (the Ultimate Team model):
- *      bought MX (bucket CASH): added by card. Buys packs and pays match entries only.
- *      earned MX (bucket BONUS): from XP, challenges, sets and selling cards. Buys packs, pays
- *      entries AND trades on the Transfer list / auctions. Earned MX is spent first.
+ *      bought credit (bucket CASH): added by card. Buys packs and pays match entries only.
+ *      earned credit (bucket BONUS): from XP, challenges, sets and selling cards. Buys packs, pays
+ *      entries AND trades on the Transfer list / auctions. Earned credit is spent first.
  *    MX is never withdrawable.
- *  - XP (bucket XP): your players' match points. Converts into earned MX at XP_PER_MX.
+ *  - XP (bucket XP): your players' match points. Converts into earned credit at XP_PER_MX.
  *  - Winnings (bucket WINNINGS, £): prizes won in gameweek matches. The only money that can be
  *    withdrawn (minimum £10). It can't be spent in the game.
  *
@@ -65,7 +65,7 @@ export async function credit(
 }
 
 /**
- * Spend MX inside a transaction (call lockWallet first). Bonus MX is used before bought MX.
+ * Spend MX inside a transaction (call lockWallet first). Bonus MX is used before bought credit.
  * Never touches winnings. Writes one entry per bucket used: `${refId}:b` / `${refId}:c`.
  */
 export async function debit(
@@ -79,11 +79,11 @@ export async function debit(
   if (args.earnedOnly && fromCash > 0) {
     throw new DomainError(
       "EARNED_ONLY",
-      `Transfers use earned MX only — this needs ${fmtMp(args.amountMinor)} and you have ${fmtMp(Math.max(0, bal.bonus))} earned. Earn MX from XP, challenges and selling cards.`,
+      `Transfers use earned credit only — this needs ${fmtMp(args.amountMinor)} and you have ${fmtMp(Math.max(0, bal.bonus))} earned. Earn credit from XP, challenges and selling cards.`,
     );
   }
   if (fromCash > Math.max(0, bal.cash)) {
-    throw new DomainError("INSUFFICIENT_FUNDS", `Not enough MX — this needs ${fmtMp(args.amountMinor)} and you have ${fmtMp(Math.max(0, bal.total))}.`);
+    throw new DomainError("INSUFFICIENT_FUNDS", `Not enough credit — this needs ${fmtMp(args.amountMinor)} and you have ${fmtMp(Math.max(0, bal.total))}.`);
   }
   const rows = [];
   if (fromBonus > 0) rows.push({ userId: args.userId, kind: args.kind, bucket: "BONUS" as const, amountMinor: -fromBonus, refId: `${args.refId}:b`, note: args.note });
@@ -106,7 +106,7 @@ export async function creditXp(tx: Tx, args: { userId: string; xp: number; refId
   await tx.walletEntry.createMany({ data: [{ userId: args.userId, bucket: "XP", kind: "XP_EARNED", amountMinor: Math.round(args.xp), refId: args.refId, note: args.note }], skipDuplicates: true });
 }
 
-/** Exchange XP for earned MX at XP_PER_MX; any XP that doesn't make a whole hundredth stays as XP. */
+/** Exchange XP for earned credit at XP_PER_MX; any XP that doesn't make a whole hundredth stays as XP. */
 export async function convertXp(userId: string, xp: number) {
   const rate = await xpPerMx();
   if (!Number.isInteger(xp) || xp < rate) throw new DomainError("MIN", `Convert at least ${rate} XP.`);
@@ -121,6 +121,22 @@ export async function convertXp(userId: string, xp: number) {
     await credit(tx, { userId, amountMinor: minor, kind: "XP_CONVERT", bucket: "BONUS", refId: `${ref}:mx`, note: `${used} XP converted` });
     return { xpUsed: used, mxMinor: minor };
   });
+}
+
+/** Every 1,000 XP turns into credit automatically (1,000 XP = £5 at the default rate of 200 XP per £1). */
+export const XP_AUTO_BLOCK = 1000;
+
+/** Convert whole blocks of 1,000 XP into credit. Safe to call any time; returns the XP converted. */
+export async function autoConvertXp(userId: string) {
+  const bal = await balancesFor(userId);
+  const blocks = Math.floor(bal.xp / XP_AUTO_BLOCK);
+  if (blocks < 1) return 0;
+  const xp = blocks * XP_AUTO_BLOCK;
+  const r = await convertXp(userId, xp).catch(() => null);
+  if (!r) return 0;
+  const { notify } = await import("./notifications");
+  await notify(userId, { kind: "XP", title: `⚡ ${xp.toLocaleString("en-GB")} XP → ${fmtMp(r.mxMinor)}`, body: "Your XP turned into credit — spend it on players, packs and matches.", href: "/account/wallet#xp" });
+  return r.xpUsed;
 }
 
 /** Credit £ winnings (match prizes). Idempotent on refId. */
@@ -181,7 +197,7 @@ export const DepositSchema = z.object({
   acceptRisk: z.literal(true, { message: "Please confirm you understand card values can go down as well as up" }),
 });
 
-/** Start a card top-up: buy an MX bundle. Credited as MX when the payment provider confirms (verified webhook). */
+/** Start a card top-up: buy a top-up bundle. Credited as MX when the payment provider confirms (verified webhook). */
 export async function startDeposit(userId: string, input: z.input<typeof DepositSchema>, clientKey: string, given?: PaymentProvider, returnPath?: string) {
   const back = returnPath && /^\/[A-Za-z0-9/_\-?=&.]*$/.test(returnPath) && !returnPath.startsWith("//") ? returnPath : undefined;
   await requireFlag("DEPOSITS");
@@ -197,7 +213,7 @@ export async function startDeposit(userId: string, input: z.input<typeof Deposit
   const idempotencyKey = `deposit:${userId}:${clientKey}`;
   const existing = await db.order.findUnique({ where: { idempotencyKey } });
   const order = existing ?? (await db.order.create({ data: { userId, kind: "DEPOSIT", refId: `bundle:${bundle.code}:${bundle.mxMinor}`, amountMinor: bundle.priceMinor, provider: provider.name, idempotencyKey } }));
-  const checkout = await provider.createCheckout({ id: order.id, amountMinor: order.amountMinor, currency: order.currency, returnPath: back, name: `MATCHX · ${bundle.name} bundle · ${bundle.mxMinor / 100} MX` });
+  const checkout = await provider.createCheckout({ id: order.id, amountMinor: order.amountMinor, currency: order.currency, returnPath: back, name: `MATCHX · ${bundle.name} bundle · £${(bundle.mxMinor / 100).toFixed(2)} credit` });
   if (!order.providerRef) await db.order.update({ where: { id: order.id }, data: { providerRef: checkout.providerRef } });
   return { orderId: order.id, checkoutUrl: checkout.checkoutUrl };
 }
@@ -208,11 +224,11 @@ export async function fulfilDeposit(tx: Tx, order: { id: string; userId: string;
   const m = /^bundle:([a-z]+):(\d+)$/.exec(order.refId ?? "");
   const mx = m ? Number(m[2]) : order.amountMinor;
   const name = m ? (bundleFor(m[1])?.name ?? "MX") : null;
-  // What was paid for is bought MX; a bundle's bonus is credited as earned (reward) MX.
+  // What was paid for is bought credit; a bundle's bonus is credited as earned (reward) MX.
   const bought = Math.min(mx, order.amountMinor);
   const label = `${name ? `${name} bundle: ` : ""}${fmtMp(mx)} for £${(order.amountMinor / 100).toFixed(2)} by card`;
   await credit(tx, { userId: order.userId, amountMinor: bought, kind: "DEPOSIT", bucket: "CASH", refId: `deposit:${order.id}`, note: label });
-  if (mx > bought) await credit(tx, { userId: order.userId, amountMinor: mx - bought, kind: "DEPOSIT", bucket: "BONUS", refId: `deposit:${order.id}:bonus`, note: `${name ?? "Bundle"} bonus MX` });
+  if (mx > bought) await credit(tx, { userId: order.userId, amountMinor: mx - bought, kind: "DEPOSIT", bucket: "BONUS", refId: `deposit:${order.id}:bonus`, note: `${name ?? "Bundle"} bonus credit` });
 }
 
 // ───────────── Withdrawals ─────────────
@@ -270,7 +286,7 @@ export async function processWithdrawal(adminId: string, withdrawalId: string, d
 }
 
 export function fmtMp(minor: number): string {
-  return `${(minor / 100).toFixed(2)} MX`;
+  return `£${(minor / 100).toFixed(2)}`;
 }
 
 export function fmtGbp(minor: number): string {

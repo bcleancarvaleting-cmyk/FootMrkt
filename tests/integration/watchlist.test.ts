@@ -60,7 +60,7 @@ describe("watchlist and alerts", () => {
     expect(await alertValueMoves()).toBe(1); // 15% down from 20
     expect(await alertValueMoves()).toBe(0); // told once
     const n = await db.notification.findFirstOrThrow({ where: { userId: u.userId, kind: "value" } });
-    expect(n.title).toContain("down 15% to 17 MX");
+    expect(n.title).toContain("down 15% to £17.00");
   });
 
   it("tells watchers when a player comes onto any market (MATCHX buy now, auctions), once; cards show how many are watching", async () => {

@@ -6,7 +6,7 @@ import { AdminTitle } from "../_parts/title";
 export const metadata = { title: "Admin · Money" };
 
 const gbp = (m: number) => `£${(m / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const mx = (m: number) => `${(m / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MX`;
+const mx = (m: number) => `£${(m / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export default async function MoneyPage() {
   const m = await moneyDashboard();
@@ -18,7 +18,7 @@ export default async function MoneyPage() {
         <table className="w-full min-w-[560px] text-sm">
           <thead className="bg-ink-850 text-left text-[11px] uppercase tracking-[0.12em] text-faint">
             <tr>
-              {["Card payments", "Taken", "Payments", "Packs", "MX bundles", "Refunded"].map((h) => (
+              {["Card payments", "Taken", "Payments", "Packs", "top-up bundles", "Refunded"].map((h) => (
                 <th key={h} className="px-3 py-2 font-semibold">{h}</th>
               ))}
             </tr>
@@ -61,15 +61,15 @@ export default async function MoneyPage() {
           />
         </div>
         <div className="panel p-5">
-          <h2 className="mb-3 text-2xl">MX economy</h2>
+          <h2 className="mb-3 text-2xl">£ credit economy</h2>
           <Rows
             rows={[
-              ["Bought MX in wallets", mx(m.mx.boughtMinor), "Not withdrawable"],
-              ["Earned MX in wallets", mx(m.mx.earnedMinor), "Rewards, XP swaps and sales"],
+              ["Bought credit in wallets", mx(m.mx.boughtMinor), "Not withdrawable"],
+              ["Earned credit in wallets", mx(m.mx.earnedMinor), "Rewards, XP swaps and sales"],
               ["Transfer fees · 30 days", mx(m.mx.p2pFeesMinor), `5% of ${mx(m.mx.p2pVolumeMinor)} over ${m.mx.p2pSales} sales`, "/admin/transfers"],
               ["Player drops sold · 30 days", mx(m.mx.dropsMinor), `${m.mx.drops} drops`, "/admin/players"],
-              ["MX spent on packs · 30 days", mx(m.mx.packsMinor)],
-              ["MX spent on entries · 30 days", mx(m.mx.entriesMinor), "After refunds", "/admin/matches"],
+              ["Credit spent on packs · 30 days", mx(m.mx.packsMinor)],
+              ["Credit spent on entries · 30 days", mx(m.mx.entriesMinor), "After refunds", "/admin/matches"],
             ]}
           />
         </div>

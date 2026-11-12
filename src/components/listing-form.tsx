@@ -31,23 +31,23 @@ export function ListingForm({
       <input type="hidden" name="cardId" value={cardId} />
       {finishLabel ? (
         <p className="rounded-xl border border-ink-700 bg-ink-850 px-3 py-2 text-xs text-muted">
-          This is a <b className="text-fg">{finishLabel}</b>, so you set the price: it&apos;s worth whatever a manager will pay. Up to {(maxMinor / 100).toLocaleString("en-GB")} MX.
+          This is a <b className="text-fg">{finishLabel}</b>, so you set the price: it&apos;s worth whatever a manager will pay. Up to £{(maxMinor / 100).toLocaleString("en-GB")}.
         </p>
       ) : (
       <div className="flex flex-wrap gap-2 text-xs">
         <button type="button" onClick={() => setPrice(mp(guidance.recommendedMinor))} className="chip border-accent/50 px-3 py-1.5 text-fg">
-          Recommended {mp(guidance.recommendedMinor)} MX
+          Recommended £{mp(guidance.recommendedMinor)}
         </button>
         {guidance.avgMinor !== null && (
           <span className="chip px-3 py-1.5">
-            Avg sold {mp(guidance.avgMinor)} MX · {guidance.sales} sale{guidance.sales === 1 ? "" : "s"}
+            Avg sold £{mp(guidance.avgMinor)} · {guidance.sales} sale{guidance.sales === 1 ? "" : "s"}
           </span>
         )}
       </div>
       )}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="label" htmlFor="price">Buy-now price (MX)</label>
+          <label className="label" htmlFor="price">Buy-now price (£)</label>
           <input id="price" className="input tabular-nums" name="price" type="number" min="0.10" max={maxMinor / 100} step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} required />
         </div>
         <div>
@@ -62,7 +62,7 @@ export function ListingForm({
         </div>
       </div>
       <p className="text-xs text-muted">
-        If it sells you get <b className="text-fg">{mp(Math.max(0, minor - (minor ? fee(minor) : 0)))} MX</b> (5% fee {minor ? mp(fee(minor)) : "0.00"} MX). Max price {(maxMinor / 100).toLocaleString("en-GB")} MX. Buyers can also send you offers.
+        If it sells you get <b className="text-fg">£{mp(Math.max(0, minor - (minor ? fee(minor) : 0)))}</b> (5% fee £{minor ? mp(fee(minor)) : "0.00"}). Max price £{(maxMinor / 100).toLocaleString("en-GB")}. Buyers can also send you offers.
       </p>
       {state && !state.ok && /I'm sure/.test(state.error) && (
         <label className="flex items-center gap-2 rounded-xl border border-warn/40 bg-warn/10 px-3 py-2 text-sm">
@@ -89,15 +89,15 @@ export function AuctionListForm({ cardId, enabled, maxMinor = 10_000, suggestedM
       </p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div>
-          <label className="label" htmlFor="a-start">Starting bid (MX)</label>
+          <label className="label" htmlFor="a-start">Starting bid (£)</label>
           <input id="a-start" className="input tabular-nums" name="start" type="number" min="0.10" max={maxMinor / 100} step="0.01" defaultValue={mp(Math.max(10, Math.round(suggestedMinor * 0.6)))} required />
         </div>
         <div>
-          <label className="label" htmlFor="a-reserve">Minimum you&apos;ll accept (MX, optional)</label>
+          <label className="label" htmlFor="a-reserve">Minimum you&apos;ll accept (£, optional)</label>
           <input id="a-reserve" className="input tabular-nums" name="reserve" type="number" min="0.10" max={maxMinor / 100} step="0.01" placeholder="No minimum" />
         </div>
         <div>
-          <label className="label" htmlFor="a-buynow">Buy it now (MX, optional)</label>
+          <label className="label" htmlFor="a-buynow">Buy it now (£, optional)</label>
           <input id="a-buynow" className="input tabular-nums" name="buyNow" type="number" min="0.11" max={maxMinor / 100} step="0.01" placeholder={mp(suggestedMinor)} />
         </div>
         <div>
@@ -111,7 +111,7 @@ export function AuctionListForm({ cardId, enabled, maxMinor = 10_000, suggestedM
       </div>
       <p className="text-xs text-muted">
         The highest bid at or above your minimum wins when the time runs out, or anyone can take the player straight away at your buy-it-now price. Bidders see whether
-        your minimum has been reached, not the amount. You&apos;re paid in bonus MX, minus the 5% fee. <b>Once started, an auction can&apos;t be cancelled</b>: it runs until it sells or the time runs out.
+        your minimum has been reached, not the amount. You&apos;re paid in bonus credit, minus the 5% fee. <b>Once started, an auction can&apos;t be cancelled</b>: it runs until it sells or the time runs out.
       </p>
       <button className="btn-gold" disabled={pending || !enabled}>
         {pending ? "Starting…" : "Start auction"}

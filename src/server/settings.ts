@@ -7,9 +7,9 @@ import { DomainError } from "./errors";
  */
 export const SETTINGS = {
   xpPerMx: {
-    label: "XP needed for 1 MX",
-    help: "The XP exchange rate: how much XP equals 1 MX — both when swapping XP for MX and when paying for a pack with XP (a 2.99 MX pack at 500 = 1,495 XP). Higher = slower. A typical manager earns roughly 100–200 XP a week.",
-    default: 500,
+    label: "XP needed for £1",
+    help: "The XP exchange rate: how much XP equals £1 of credit — both when XP converts to credit and when paying for a pack with XP (a £2.99 pack at 200 = 598 XP). Higher = slower. A typical manager earns roughly 100–200 XP a week.",
+    default: 200,
     min: 50,
     max: 100_000,
   },

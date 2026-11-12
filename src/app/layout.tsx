@@ -101,7 +101,7 @@ function SiteFooter({ loggedIn, credit }: { loggedIn: boolean; credit: string })
         <div className="space-y-3">
           <Logo height={20} />
           <p className="max-w-xs text-xs leading-relaxed text-faint">
-            Player values go up and down. MX is an in-game valuation, not an investment. 18+ only. {credit}
+            Player values go up and down. Card values are indicative, not an investment; your balance is spend-only. 18+ only. {credit}
           </p>
         </div>
         {cols.map(([h, links]) => (

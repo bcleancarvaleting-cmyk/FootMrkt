@@ -13,7 +13,7 @@ import { credit, fmtMp } from "./wallet";
  *  - Welcome, about an hour after installing.
  *  - "Boosters land in an hour" each Monday-night-into-Tuesday, before the 9am booster drop.
  *  - (Entrants already get "locks in under an hour" from the weekly rhythm.)
- *  - App-user giveaways: packs and/or earned MX from Admin → App & notifications.
+ *  - App-user giveaways: packs and/or earned credit from Admin → App & notifications.
  */
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -106,7 +106,7 @@ export const GiveawaySchema = z
     mxMinor: z.number().int().min(0).max(10_000),
     openDays: z.number().int().min(0).max(60),
   })
-  .refine((d) => d.packSku || d.mxMinor > 0, "Give a pack, some MX, or both.");
+  .refine((d) => d.packSku || d.mxMinor > 0, "Give a pack, some credit, or both.");
 
 export async function createAppGiveaway(adminId: string, input: z.input<typeof GiveawaySchema>, now = new Date()) {
   const d = GiveawaySchema.parse(input);

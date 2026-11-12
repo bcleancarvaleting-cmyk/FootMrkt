@@ -59,7 +59,7 @@ export default async function AppAdmin() {
       <section className="panel space-y-4 p-5">
         <div>
           <h2 className="text-2xl">App users&apos; giveaway</h2>
-          <p className="mt-1 text-sm text-muted">Give everyone who has installed the app a free pack, some earned MX, or both — with a notification. Keep it open for a few days to reward new installs too.</p>
+          <p className="mt-1 text-sm text-muted">Give everyone who has installed the app a free pack, some earned credit, or both — with a notification. Keep it open for a few days to reward new installs too.</p>
         </div>
         <AppGiveawayForm packs={giftPacks()} />
         {giveaways.length > 0 && (
@@ -70,7 +70,7 @@ export default async function AppAdmin() {
                   <span className="min-w-0">
                     <b>{g.title}</b>
                     <span className="block text-xs text-faint">
-                      {fmtDate(g.createdAt)} · {g.recipients} received · {[g.packSku ? giftPacks().find((p) => p.code === g.packSku)?.name ?? g.packSku : null, g.mxMinor ? `${(g.mxMinor / 100).toFixed(2)} MX` : null].filter(Boolean).join(" + ")}
+                      {fmtDate(g.createdAt)} · {g.recipients} received · {[g.packSku ? giftPacks().find((p) => p.code === g.packSku)?.name ?? g.packSku : null, g.mxMinor ? `£${(g.mxMinor / 100).toFixed(2)}` : null].filter(Boolean).join(" + ")}
                       {g.cancelledAt ? " · closed" : g.open && g.openUntil ? ` · open to new installs until ${fmtDate(g.openUntil)}` : ""}
                     </span>
                   </span>

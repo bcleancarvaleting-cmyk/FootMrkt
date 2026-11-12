@@ -66,7 +66,7 @@ export default async function MyClubPage({ searchParams }: { searchParams: Promi
             {(filters.category || filters.q || filters.status || filters.duplicates) && (
               <>
                 {" "}
-                · showing <b className="text-fg">{squadValue.toFixed(2)} MX</b>
+                · showing <b className="text-fg">£{squadValue.toFixed(2)}</b>
               </>
             )}
           </p>
@@ -85,7 +85,7 @@ export default async function MyClubPage({ searchParams }: { searchParams: Promi
           <div className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full bg-accent/10 blur-3xl" aria-hidden="true" />
           <p className="eyebrow text-lime">Portfolio value</p>
           <div className="mt-1 flex flex-wrap items-end gap-x-4 gap-y-1">
-            <span className="font-display text-5xl font-black tabular-nums leading-none">{pf.value.toFixed(2)} MX</span>
+            <span className="font-display text-5xl font-black tabular-nums leading-none">£{pf.value.toFixed(2)}</span>
             {pf.changePct !== null && (
               <span className={`mb-1 text-sm font-bold tabular-nums ${pf.changePct > 0 ? "text-mint" : pf.changePct < 0 ? "text-danger" : "text-faint"}`}>
                 {pf.changePct > 0 ? "▲" : pf.changePct < 0 ? "▼" : "–"} {Math.abs(pf.changePct)}%
@@ -93,12 +93,12 @@ export default async function MyClubPage({ searchParams }: { searchParams: Promi
             )}
           </div>
           <p className="mt-1 text-sm text-muted">
-            ≈ <b className="text-fg">£{pf.value.toFixed(2)}</b> at today&apos;s prices <span className="text-faint">· 1 MX ≈ £1 to buy · MX can&apos;t be withdrawn</span>
+            at today&apos;s prices <span className="text-faint">· your £ balance is spend-only and can&apos;t be withdrawn</span>
           </p>
           <div className="mt-3">{pf.series.length > 1 ? <Sparkline points={pf.series} width={280} height={44} /> : <span className="text-xs text-faint">The graph fills in as the market revalues your players.</span>}</div>
         </div>
         <Tile label="Playing in the next 7 days" value={`${pf.playingSoon} player${pf.playingSoon === 1 ? "" : "s"}`} sub={pf.firstKick ? `First kick-off ${fmtDate(pf.firstKick, { weekday: "short", hour: "2-digit", minute: "2-digit" })}` : "No fixtures this week"} href="/matches" tone="text-lime" />
-        <Tile label="Most valuable" value={pf.top ? `${pf.top.valueMp ?? 0} MX` : "—"} sub={pf.top ? `${pf.top.name}${pf.top.finish ? ` · ${pf.top.finish.toLowerCase()}` : ""}` : "Open a pack to start"} href={pf.top ? `/cards/${pf.top.id}` : "/packs"} tone="text-gold" />
+        <Tile label="Most valuable" value={pf.top ? `£${(pf.top.valueMp ?? 0).toFixed(2)}` : "—"} sub={pf.top ? `${pf.top.name}${pf.top.finish ? ` · ${pf.top.finish.toLowerCase()}` : ""}` : "Open a pack to start"} href={pf.top ? `/cards/${pf.top.id}` : "/packs"} tone="text-gold" />
         <Tile label="Points for you" value={`${pf.points.toLocaleString("en-GB")} pts`} sub="Scored by your players in matches" href="/account/achievements" />
         <Tile label="Specials" value={`${pf.finishes.RAINBOW + pf.finishes.DIAMOND + pf.finishes.RUBY}`} sub={`Rainbow ${pf.finishes.RAINBOW} · Diamond ${pf.finishes.DIAMOND} · Ruby ${pf.finishes.RUBY}`} href="/account/club" tone="rainbow-name" />
         <Tile label="In your squads" value={`${pf.inSquads} card${pf.inSquads === 1 ? "" : "s"}`} sub={pf.listed ? `${pf.listed} listed on Transfers` : "None listed"} href="/transfers/mine" />

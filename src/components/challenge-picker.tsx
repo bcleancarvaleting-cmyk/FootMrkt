@@ -48,7 +48,7 @@ export function ChallengePicker({ challengeId, count, maxPerClub, cards }: { cha
                   <span className="block truncate font-display text-lg font-bold uppercase">{c.name}</span>
                   <span className="block truncate text-xs text-muted">{c.clubName} · {c.category.toLowerCase()}{c.tradeable ? "" : " · free card"}</span>
                 </span>
-                <span className="w-20 text-right font-bold tabular-nums">{c.valueMp ?? "—"} MX</span>
+                <span className="w-20 text-right font-bold tabular-nums">{c.valueMp != null ? `£${c.valueMp.toFixed(2)}` : "—"}</span>
               </button>
             </li>
           );

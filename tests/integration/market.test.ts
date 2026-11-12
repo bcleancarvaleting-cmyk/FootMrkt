@@ -88,7 +88,7 @@ describe("P2P transfers in MX", () => {
     const starter = await openPack(userId, starterEntitlementId);
     await expect(createListing(userId, { cardId: starter.cards[0].cardId, askingPriceMinor: 500 })).rejects.toMatchObject({ code: "NOT_TRADEABLE" });
     const card = await tradeableCard(userId);
-    await expect(createListing(userId, { cardId: card, askingPriceMinor: 10_001 })).rejects.toThrow(/100 MX/);
+    await expect(createListing(userId, { cardId: card, askingPriceMinor: 10_001 })).rejects.toThrow(/£100/);
     const listing = await createListing(userId, { cardId: card, askingPriceMinor: 500 });
     expect(listing.currency).toBe("MX");
     expect((await db.cardInstance.findUniqueOrThrow({ where: { id: card } })).lock).toBe("LISTED");

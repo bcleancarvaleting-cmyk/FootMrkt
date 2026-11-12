@@ -104,7 +104,7 @@ export type SetReward = Prisma.JsonValue;
 /**
  * Club binders (product decision 10 Nov 2026): a 5-player set for every club — its best
  * goalkeeper, defender, midfielder and attacker plus the next most valuable player, in their
- * current tiers. Completing one pays SET_REWARD_MP_MINOR earned MX. Creates only missing binders.
+ * current tiers. Completing one pays SET_REWARD_MP_MINOR earned credit. Creates only missing binders.
  */
 export async function ensureClubBinders() {
   const sport = await db.sport.findUniqueOrThrow({ where: { code: "football" } });

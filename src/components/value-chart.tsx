@@ -34,10 +34,10 @@ export function ValueChart({ points, width = 560, height = 180 }: { points: Arra
           {latestUp ? "▲" : "▼"} {Math.abs(latestChange)}%
         </span>
         <span className="text-muted">
-          since last valuation · {up ? "up" : "down"} {Math.abs(change)}% overall ({first} → {last} MX over {points.length} valuations)
+          since last valuation · {up ? "up" : "down"} {Math.abs(change)}% overall (£{first} → £{last} over {points.length} valuations)
         </span>
       </figcaption>
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full max-w-full" role="img" aria-label={`MX value ${up ? "rising" : "falling"} from ${first} to ${last}`}>
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full max-w-full" role="img" aria-label={`Value ${up ? "rising" : "falling"} from £${first} to £${last}`}>
         {ticks.map((t) => (
           <g key={t}>
             <line x1={pad.l} x2={width - pad.r} y1={y(t)} y2={y(t)} stroke="var(--color-ink-700)" strokeDasharray="3 4" />
@@ -50,7 +50,7 @@ export function ValueChart({ points, width = 560, height = 180 }: { points: Arra
         <path d={line} fill="none" stroke={colour} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
         {points.map((p, i) => (
           <circle key={i} cx={x(i)} cy={y(p.mp)} r={i === points.length - 1 ? 4 : 2.5} fill={colour}>
-            <title>{`${fmtDate(p.at, { dateStyle: "medium" })}: ${p.mp} MX`}</title>
+            <title>{`${fmtDate(p.at, { dateStyle: "medium" })}: £${p.mp}`}</title>
           </circle>
         ))}
         <text x={pad.l} y={height - 6} fontSize="10" fill="var(--color-faint)">

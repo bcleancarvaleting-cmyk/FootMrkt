@@ -38,7 +38,7 @@ export async function buyNowAction(listingId: string): Promise<ActionResult> {
 
 export async function makeOfferAction(_: ActionResult | null, form: FormData): Promise<ActionResult> {
   const user = await requireUser();
-  const res = await attempt(async () => makeOffer(user.id, String(form.get("listingId")), mpToMinor(form.get("amount"))), "Offer sent — your MX is held until the seller responds");
+  const res = await attempt(async () => makeOffer(user.id, String(form.get("listingId")), mpToMinor(form.get("amount"))), "Offer sent — your money is held until the seller responds");
   if (res.ok) {
     const o = await db.marketOffer.findUnique({ where: { id: res.data.id }, include: { buyer: { select: { displayName: true } }, listing: { include: { card: { include: { template: { include: { player: true } } } } } } } });
     if (o?.listing.sellerId) await emailUser(o.listing.sellerId, "offerReceived", { player: o.listing.card.template.player.displayName, amount: fmtMp(o.amountMinor), buyer: o.buyer.displayName }, `offer:${o.id}`);
@@ -133,7 +133,7 @@ export async function answerCounterAction(offerId: string, accept: boolean): Pro
   const { answerCounter } = await import("@/server/transfers");
   const res = await attempt(async () => {
     await answerCounter(user.id, offerId, accept);
-  }, accept ? "Signed! The player is in your club." : "Counter declined — your MX is back.");
+  }, accept ? "Signed! The player is in your club." : "Counter declined — your money is back.");
   refresh();
   return res;
 }

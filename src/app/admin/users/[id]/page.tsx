@@ -94,7 +94,7 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
                 ) : (
                   <BlockUserForm userId={u.id} name={u.displayName} />
                 )}
-                <p className="mt-2 text-xs text-faint">Blocking keeps their cards, MX and history, so unblocking puts everything back as it was.</p>
+                <p className="mt-2 text-xs text-faint">Blocking keeps their cards, balance and history, so unblocking puts everything back as it was.</p>
               </div>
             </>
           )}

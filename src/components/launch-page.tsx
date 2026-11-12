@@ -190,7 +190,7 @@ export async function LaunchPage({ sp }: { sp: LaunchParams }) {
         <p className="relative mx-auto mt-3 max-w-md text-muted">One email when we open. Your free players and {gift} will be waiting.</p>
         <a href="#join" className="btn-primary relative mt-6 px-8 py-4 text-sm">{mine ? "See my place" : "Save my place"}</a>
         <p className="relative mt-4 text-xs text-faint">
-          Already testing with us? <Link href="/login" className="underline">Log in</Link>. 18+ only. MX is an in-game balance, not an investment.
+          Already testing with us? <Link href="/login" className="underline">Log in</Link>. 18+ only. Your MATCHX balance is spend-only, not an investment.
         </p>
       </section>
     </div>

@@ -44,7 +44,7 @@ export function CardRow({ card, href, children, sub, below, showValue = false }:
         </span>
         {showValue && !card.loan && (
           <span className="mt-1 flex items-center gap-2 md:hidden">
-            <span className="text-sm font-bold tabular-nums text-fg">{card.valueMp !== null ? `${card.valueMp} MX` : "—"}</span>
+            <span className="text-sm font-bold tabular-nums text-fg">{card.valueMp !== null ? `£${card.valueMp.toFixed(2)}` : "—"}</span>
             <ValueChange history={card.history} />
             {card.history && card.history.length > 1 && <Sparkline points={card.history} width={64} height={18} />}
           </span>
@@ -78,7 +78,7 @@ export function CardRow({ card, href, children, sub, below, showValue = false }:
         ) : (
           <>
             <span className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">Value</span>
-            <span className="font-bold tabular-nums">{card.valueMp !== null ? `${card.valueMp} MX` : "—"}</span>
+            <span className="font-bold tabular-nums">{card.valueMp !== null ? `£${card.valueMp.toFixed(2)}` : "—"}</span>
             {showValue ? <ValueChange history={card.history} className="block" /> : <Trend pct={card.trendPct} className="ml-1" />}
           </>
         )}
@@ -100,7 +100,7 @@ export function Sparkline({ points, width = 96, height = 30 }: { points: number[
   const d = points.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
   const up = points[points.length - 1] >= points[0];
   const flat = points[points.length - 1] === points[0];
-  const label = `Value ${up ? "up" : "down"} from ${points[0]} to ${points[points.length - 1]} MX`;
+  const label = `Value ${up ? "up" : "down"} from £${points[0]} to £${points[points.length - 1]}`;
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label}>
       <title>{label}</title>

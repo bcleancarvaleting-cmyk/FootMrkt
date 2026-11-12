@@ -22,22 +22,22 @@ export const LEGAL_DOCS: LegalDoc[] = [
       [
         "MX (MATCHX credits)",
         [
-          "MX is the in-game balance. You buy MX by card in bundles (bigger bundles include bonus MX — the MX you get is shown before you pay). You can also earn MX from challenges, sets, promotions and selling cards.",
-          "MX is only for buying players and packs, bidding in auctions and entering matches. It can't be withdrawn, refunded, exchanged for cash or transferred to another account.",
-          "MX is not a deposit account, e-money or an investment and earns no interest.",
+          "Your MATCHX balance is in pounds (£). You add to it by card in bundles (bigger bundles include bonus credit — the amount you get is shown before you pay). You can also earn credit from challenges, sets, promotions and selling cards.",
+          "Your balance is only for buying players and packs, bidding in auctions and entering matches. It can't be withdrawn, refunded, exchanged for cash or transferred to another account.",
+          "Your balance is spend-only credit: it is not a deposit account, e-money or an investment, and earns no interest.",
         ],
       ],
       [
         "Winnings",
         [
-          "Some matches pay £ prizes, shown before you enter. Prizes go into your Winnings balance, which is separate from MX.",
+          "Some matches pay £ prizes, shown before you enter. Prizes go into your Winnings balance, which is separate from your spend-only balance.",
           "Winnings can be withdrawn to a UK bank account in your own name (minimum £10) once withdrawals are available. We check your identity first.",
         ],
       ],
       [
         "Packs",
         [
-          "Packs cost the price shown (for example £2.99 by card or 2.99 MX). The odds for every pack are published on the Packs page and fixed for each pack version.",
+          "Packs cost the price shown (for example £2.99, by card or from your balance). The odds for every pack are published on the Packs page and fixed for each pack version.",
           "Pack contents are 100% random. Each slot is rolled by a cryptographically secure random number generator when the pack is opened, and the player is then drawn at random from every eligible card. Nobody at MATCHX selects, builds or adjusts the contents of any pack, and every draw is recorded so it can be audited.",
           "What you get from a pack is random. Card values shown are estimates and can go down as well as up.",
           "Free and starter packs are untradeable.",
@@ -47,14 +47,14 @@ export const LEGAL_DOCS: LegalDoc[] = [
       [
         "Transfers and auctions",
         [
-          "You can list tradeable cards for 0.10–100 MX. When a card sells, we take a 5% fee from the seller. MATCHX also lists cards from circulation at fixed buy-now prices.",
-          "Offers and bids hold the MX immediately. Held MX is returned if an offer is declined, withdrawn or lapses, or if you are outbid.",
+          "You can list tradeable cards for £0.10–£100. When a card sells, we take a 5% fee from the seller. MATCHX also lists cards from circulation at fixed buy-now prices.",
+          "Offers and bids hold the money immediately. Held money is returned if an offer is declined, withdrawn or lapses, or if you are outbid.",
           "A completed transfer is final. We may reverse transfers linked to fraud, mistakes or abuse.",
         ],
       ],
       ["Matches", ["Match points come from real-life player performance data. Results are final once a gameweek is settled, except for data corrections announced in-game. Entry fees and prizes are shown before you enter."]],
       ["Your content and chat", ["Be respectful. No hate, harassment, scams, links or personal information. Moderators can remove messages and we may suspend accounts."]],
-      ["Closing your account", ["You can close your account at any time. We'll pay out any winnings after checks. MX and cards are lost on closure."]],
+      ["Closing your account", ["You can close your account at any time. We'll pay out any winnings after checks. Your spend-only balance and cards are lost on closure."]],
       ["Liability", ["We provide MATCHX as is. Nothing in these terms limits liability that can't be limited by law."]],
     ],
   },
@@ -66,13 +66,13 @@ export const LEGAL_DOCS: LegalDoc[] = [
       [
         "Values go down as well as up",
         [
-          "Every card has an estimated MX value based on real-world performance and how often it trades. It changes every gameweek and can fall sharply — for example after an injury, a transfer or a bad run of form.",
+          "Every card has an estimated £ value based on real-world performance and how often it trades. It changes every gameweek and can fall sharply — for example after an injury, a transfer or a bad run of form.",
           "Past values and average selling prices don't predict future ones.",
         ],
       ],
       ["Packs are random", ["The cards in a pack are random. A pack can be worth less than you paid for it."]],
       ["No guaranteed resale", ["There's no guarantee anyone will buy your card, or buy it at the price you want. A 5% fee applies to every sale."]],
-      ["MX can't be cashed out", ["MX you add or earn can only be spent in the game. It can't be withdrawn or refunded. Only £ winnings from match prizes can be withdrawn (minimum £10)."]],
+      ["Your balance can't be cashed out", ["Credit you add or earn can only be spent in the game. It can't be withdrawn or refunded. Only £ winnings from match prizes can be withdrawn (minimum £10)."]],
       ["Only spend what you can afford", ["MATCHX is entertainment, not an investment or a way to make money. Set a deposit limit in Wallet → Responsible play."]],
     ],
   },

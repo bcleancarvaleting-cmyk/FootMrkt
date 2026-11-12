@@ -14,25 +14,25 @@ export const FLAG_DEFINITIONS = {
     env: "FLAG_MARKET",
     default: false,
     legalGate: true,
-    description: "Transfers: P2P trading in MX (5% fee) and house auctions. Blocked until legal approval.",
+    description: "Transfers: P2P trading with £ credit (5% fee) and house auctions. Blocked until legal approval.",
   },
   DEPOSITS: {
     env: "FLAG_DEPOSITS",
     default: false,
     legalGate: true,
-    description: "Add funds: managers top up MX by card. Needs payment-provider approval and UK legal sign-off.",
+    description: "Add funds: managers top up their £ balance by card. Needs payment-provider approval and UK legal sign-off.",
   },
   WITHDRAWALS: {
     env: "FLAG_WITHDRAWALS",
     default: false,
     legalGate: true,
-    description: "Withdraw cash MX to a bank account (minimum £10). Needs legal sign-off, KYC/AML and payout approval.",
+    description: "Withdraw £ winnings to a bank account (minimum £10). Needs legal sign-off, KYC/AML and payout approval.",
   },
   PAID_ENTRY: {
     env: "FLAG_PAID_ENTRY",
     default: false,
     legalGate: true,
-    description: "Charge MX entry fees for matches with prizes. Needs legal sign-off (prize competitions / pool betting).",
+    description: "Charge entry fees for matches with prizes. Needs legal sign-off (prize competitions / pool betting).",
   },
   BETA: {
     env: "FLAG_BETA",
@@ -44,7 +44,7 @@ export const FLAG_DEFINITIONS = {
     env: "FLAG_PACK_SHOP",
     default: false,
     legalGate: false,
-    description: "Pack shop: buy packs with MX (and by card once Paid packs is cleared). Shown as 'Coming soon' while off; free packs still arrive.",
+    description: "Pack shop: buy packs with credit (and by card once Paid packs is cleared). Shown as 'Coming soon' while off; free packs still arrive.",
   },
   AUCTIONS: {
     env: "FLAG_AUCTIONS",

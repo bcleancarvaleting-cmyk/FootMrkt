@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { clearHouseAction } from "@/app/actions/economy";
+import { releaseMarketAction } from "@/app/actions/economy";
 import { ActionButton } from "@/components/action-button";
 import { db } from "@/server/db";
 import { fmtMp } from "@/server/wallet";
@@ -11,7 +11,7 @@ export const metadata = { title: "Admin · Transfers" };
 /**
  * The two ways cards reach managers after packs:
  * - Player drops: released by MATCHX at a set price, no fee (managed on the player database page).
- * - Transfer list: player-to-player sales in earned MX; the seller pays a 5% fee.
+ * - Transfer list: player-to-player sales in earned credit; the seller pays a 5% fee.
  */
 export default async function Page() {
   const week = hoursAgo(7 * 24);
@@ -40,7 +40,7 @@ export default async function Page() {
     <>
       <AdminTitle
         title="Transfer listings"
-        intro="Two ways cards get out and change hands. Player drops: MATCHX releases players at a set price, no fee, paid in any MX. Transfer list: managers sell to each other in earned MX, and the seller pays a 5% fee."
+        intro="Two ways cards get out and change hands. Player drops: MATCHX releases players at a set price, no fee, paid from any credit. Transfer list: managers sell to each other in earned credit, and the seller pays a 5% fee."
       />
       <section className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-ink-700 bg-ink-700 lg:grid-cols-4">
         {tiles.map(([k, v, s]) => (
@@ -56,16 +56,24 @@ export default async function Page() {
         Schedule and withdraw drops on <Link href="/admin/players" className="text-lime underline">Player database &amp; drops</Link>.
       </p>
 
-      {legacy > 0 && (
-        <section className="panel flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
-          <span>
-            <b>{legacy}</b> older MATCHX listings from the pack pool are still active. They no longer show on the Transfer list. Withdraw them to send the cards back into packs.
-          </span>
-          <ActionButton action={clearHouseAction} className="btn-ghost px-3 py-1.5 text-[11px]" confirm="Withdraw the older MATCHX listings? Player drops are not affected.">
-            Withdraw older listings
+      <section className="panel space-y-3 p-5">
+        <div>
+          <h2 className="text-2xl">MATCHX market</h2>
+          <p className="mt-1 text-sm text-muted">
+            Up to 5 copies of every player at their base tier, on sale from MATCHX at their £ value for 14 days. Each sale makes that player&apos;s remaining copies 2% dearer.
+            Unsold copies go back into packs when the batch ends. <b className="text-fg">{legacy.toLocaleString("en-GB")}</b> copies on sale now.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <ActionButton action={releaseMarketAction.bind(null, true)} className="btn-primary" confirm="Launch the market? Every player is re-priced from scratch (form this season, real-world value, demand and sales; £0.50–£20) and up to 5 copies of each go on sale.">
+            Launch market (fresh prices)
           </ActionButton>
-        </section>
-      )}
+          <ActionButton action={releaseMarketAction.bind(null, false)} className="btn-ghost" confirm="Release a new batch? Copies still on sale are re-priced to current values and every player is topped back up to 5.">
+            Release a new batch (current prices)
+          </ActionButton>
+        </div>
+        <p className="text-xs text-faint">Managers see it on Transfers → MATCHX market.</p>
+      </section>
 
       <section className="panel p-5">
         <h2 className="mb-3 text-2xl">Recent player-to-player sales</h2>

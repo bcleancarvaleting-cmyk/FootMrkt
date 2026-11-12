@@ -83,7 +83,7 @@ export async function claimOwnedSet(userId: string, code: string) {
       await credit(tx, { userId, amountMinor: set.rewardMinor, kind: "SET_REWARD", bucket: "BONUS", refId: `owned-set:${code}:${userId}`, note: `Set complete: ${set.name}` });
       return c;
     });
-    await notify(userId, { kind: "SET_COMPLETE", title: `Set complete: ${set.name}`, body: `+${(set.rewardMinor / 100).toFixed(0)} MX and a badge on your club page. You keep every card.`, href: "/collections" }).catch(() => {});
+    await notify(userId, { kind: "SET_COMPLETE", title: `Set complete: ${set.name}`, body: `+£${(set.rewardMinor / 100).toFixed(0)} credit and a badge on your club page. You keep every card.`, href: "/collections" }).catch(() => {});
     return claim;
   } catch (e) {
     if (isUniqueViolation(e)) throw new DomainError("ALREADY_CLAIMED", "You've already claimed this set.");

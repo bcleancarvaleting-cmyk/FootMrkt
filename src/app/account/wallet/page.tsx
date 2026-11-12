@@ -29,7 +29,7 @@ const KIND_LABEL: Record<string, string> = {
   ENTRY_REFUND: "Entry refund",
   PRIZE: "Match prize",
   XP_EARNED: "XP from a match",
-  XP_CONVERT: "XP swapped for MX",
+  XP_CONVERT: "XP turned into credit",
 };
 const W_TONE: Record<string, string> = { REQUESTED: "text-warn", PAID: "text-mint", REJECTED: "text-danger" };
 
@@ -59,17 +59,17 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
 
       <section className="grid gap-px overflow-hidden rounded-2xl border border-ink-700 bg-ink-700 sm:grid-cols-2 lg:grid-cols-4">
         <div className="bg-ink-900 p-5">
-          <p className="eyebrow">MX balance</p>
+          <p className="eyebrow">£ balance</p>
           <p className="mt-1 font-display text-5xl font-extrabold italic tabular-nums">{fmtMp(bal.total)}</p>
-          <p className="mt-1 text-xs text-faint">MatchX&apos;s in-game currency. Not withdrawable.</p>
+          <p className="mt-1 text-xs text-faint">Spend-only credit for players, packs and matches. Can&apos;t be withdrawn.</p>
         </div>
         <div className="bg-ink-900 p-5">
-          <p className="eyebrow">Earned MX</p>
+          <p className="eyebrow">Earned credit</p>
           <p className="mt-1 font-display text-3xl font-extrabold italic tabular-nums text-lime">{fmtMp(bal.earned)}</p>
           <p className="mt-1 text-xs text-faint">From XP, challenges, sets and selling cards. Packs, entries <b className="text-muted">and the Transfer list</b>. Spent first.</p>
         </div>
         <div className="bg-ink-900 p-5">
-          <p className="eyebrow">Bought MX</p>
+          <p className="eyebrow">Bought credit</p>
           <p className="mt-1 font-display text-3xl font-extrabold italic tabular-nums">{fmtMp(bal.bought)}</p>
           <p className="mt-1 text-xs text-faint">Added by card. Packs and match entries.</p>
         </div>
@@ -84,7 +84,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
         <div className="min-w-0 flex-1">
           <p className="eyebrow">XP</p>
           <p className="mt-1 font-display text-4xl font-extrabold italic tabular-nums">{bal.xp.toLocaleString("en-GB")} XP</p>
-          <p className="mt-1 text-sm text-muted">Every point your players score in a match is XP. Swap {XP_PER_MX} XP for 1 earned MX.</p>
+          <p className="mt-1 text-sm text-muted">Every point your players score in a match is XP. Every 1,000 XP turns into £{(1000 / XP_PER_MX).toFixed(2)} of credit automatically — or swap any amount now.</p>
         </div>
         <ConvertXpForm xp={bal.xp} perMx={XP_PER_MX} />
       </section>
@@ -98,14 +98,14 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
             </Link>
           )}
           <h2 className="mb-1 text-2xl">Add funds</h2>
-          <p className="mb-4 text-sm text-muted">Buy MX by card — the bigger bundles come with bonus MX. Packs cost the same in £ or MX; use MX for player drops too.</p>
+          <p className="mb-4 text-sm text-muted">Top up by card — the bigger bundles come with bonus credit. Use your balance for packs, player drops too.</p>
           {(!depositsOn || !cardReady) && <GateNotice>Coming soon. Adding funds by card opens after the beta, once our payment provider is live.</GateNotice>}
           <DepositForm enabled={depositsOn && cardReady} initial={bundle} />
         </div>
         <div id="withdraw" className="panel scroll-mt-24 p-5">
           <h2 className="mb-1 text-2xl">Withdraw winnings</h2>
           <p className="mb-4 text-sm text-muted">
-            Cash out £ you&apos;ve won in matches — minimum £10. You can withdraw up to <b className="text-fg">{fmtGbp(bal.withdrawable)}</b>. MX can&apos;t be withdrawn — it&apos;s for building your club.
+            Cash out £ you&apos;ve won in matches — minimum £10. You can withdraw up to <b className="text-fg">{fmtGbp(bal.withdrawable)}</b>. Your £ balance can&apos;t be withdrawn — it&apos;s for building your club.
           </p>
           {!withdrawalsOn && <GateNotice>Coming soon. Your winnings are safe here; withdrawals open once identity checks and payouts are set up.</GateNotice>}
           {gaps.length > 0 && (
@@ -180,7 +180,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
                 <span className="text-faint"> · {fmtDate(e.createdAt)}</span>
               </span>
               <span className="flex shrink-0 items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-faint">{e.bucket === "WINNINGS" ? "£ winnings" : e.bucket === "XP" ? "XP" : e.bucket === "BONUS" ? "earned MX" : "bought MX"}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-faint">{e.bucket === "WINNINGS" ? "£ winnings" : e.bucket === "XP" ? "XP" : e.bucket === "BONUS" ? "earned credit" : "bought credit"}</span>
                 <b className={`tabular-nums ${e.amountMinor > 0 ? "text-mint" : "text-muted"}`}>
                   {e.amountMinor > 0 ? "+" : ""}
                   {e.bucket === "WINNINGS" ? fmtGbp(e.amountMinor) : e.bucket === "XP" ? `${e.amountMinor} XP` : fmtMp(e.amountMinor)}
@@ -188,7 +188,7 @@ export default async function WalletPage({ searchParams }: { searchParams: Promi
               </span>
             </li>
           ))}
-          {!ledger.length && <li className="px-4 py-4 text-faint">No activity yet. Complete a challenge to earn your first MX.</li>}
+          {!ledger.length && <li className="px-4 py-4 text-faint">No activity yet. Complete a challenge to earn your first credit.</li>}
         </ul>
       </section>
     </div>

@@ -60,7 +60,7 @@ export async function submitDraftEntry(userId: string, competitionId: string, in
       return p ? draftPrice(p.valueMp, p.category, p.marketValueGbp) : 0;
     };
     const spent = ids.reduce((n, id) => n + cost(id), 0);
-    if (spent > req.draftBudgetMx) issues.push({ code: "UNKNOWN_CARD", message: `Your squad costs ${spent} MX — the budget is ${req.draftBudgetMx} MX` });
+    if (spent > req.draftBudgetMx) issues.push({ code: "UNKNOWN_CARD", message: `Your squad costs £${spent} — the budget is £${req.draftBudgetMx}` });
     if (req.maxPerClub) {
       const perClub = new Map<string, number>();
       for (const id of ids) {

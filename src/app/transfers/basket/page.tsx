@@ -64,7 +64,7 @@ export default async function BasketPage({ searchParams }: { searchParams: Promi
                 <b className="tabular-nums">{fmtMp(v.totalMinor)}</b>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted">Your MX</span>
+                <span className="text-muted">Your balance</span>
                 <span className="tabular-nums">{fmtMp(v.balanceMinor)}</span>
               </div>
               <p className="text-xs text-faint">No fees on MATCHX drops: you pay exactly the price shown.</p>
@@ -74,14 +74,14 @@ export default async function BasketPage({ searchParams }: { searchParams: Promi
             ) : (
               <div className="space-y-3">
                 <div className="rounded-xl border border-accent/60 bg-accent/10 p-3 text-center">
-                  <p className="font-display text-2xl font-black uppercase italic">You need MX</p>
+                  <p className="font-display text-2xl font-black uppercase italic">Top up to enter</p>
                   <p className="text-sm">
                     You&apos;re <b>{fmtMp(v.shortMinor)}</b> short. Top up below, then come back and pay for all.
                   </p>
                 </div>
                 <DepositForm enabled={depositsOn && pay.ready} initial={v.bundle?.code} returnTo="/transfers/basket" />
                 <p className="text-center text-xs text-faint">
-                  Or earn MX free: swap XP in your <Link href="/account/wallet#xp" className="underline">wallet</Link>, or sell a player.
+                  Or earn credit free: swap XP in your <Link href="/account/wallet#xp" className="underline">wallet</Link>, or sell a player.
                 </p>
               </div>
             )}

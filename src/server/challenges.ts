@@ -145,7 +145,7 @@ export const ChallengeAdminSchema = z.object({
 
 export async function createChallenge(adminId: string, input: z.input<typeof ChallengeAdminSchema>) {
   const d = ChallengeAdminSchema.parse(input);
-  if (d.rewardMinor === 0 && !d.rewardPackSku) throw new DomainError("NO_REWARD", "Give the challenge an MX reward, a pack, or both.");
+  if (d.rewardMinor === 0 && !d.rewardPackSku) throw new DomainError("NO_REWARD", "Give the challenge a £ reward, a pack, or both.");
   return withTx(async (tx) => {
     const ch = await tx.challenge.create({ data: { ...d, criteria: d.criteria as never } });
     await audit(tx, { actorId: adminId, action: "challenge.create", entityType: "Challenge", entityId: ch.id, after: ch });

@@ -18,7 +18,7 @@ function layout(o: { preheader: string; title: string; paragraphs: string[]; cta
 <tr><td style="padding:8px 24px 0;font-size:24px;font-weight:800;line-height:1.2">${esc(o.title)}</td></tr>
 ${o.paragraphs.map((p) => `<tr><td style="padding:12px 24px 0;font-size:15px;line-height:1.55;color:#c9cdc6">${p}</td></tr>`).join("")}
 ${o.cta ? `<tr><td style="padding:22px 24px 4px"><a href="${o.cta.href}" style="display:inline-block;background:#adfc07;color:#0a0d02;text-decoration:none;font-weight:800;font-size:14px;letter-spacing:.06em;text-transform:uppercase;padding:13px 22px;border-radius:12px">${esc(o.cta.label)}</a></td></tr>` : ""}
-<tr><td style="padding:22px 24px 24px;font-size:12px;line-height:1.5;color:#6c726a">${o.footnote ? `${esc(o.footnote)}<br>` : ""}You're getting this because you have a MATCHX account. MX is an in-game currency and can't be withdrawn. 18+.${o.unsubscribe ? `<br><a href="${o.unsubscribe}" style="color:#9aa096">Unsubscribe from this email</a>` : ""}</td></tr>
+<tr><td style="padding:22px 24px 24px;font-size:12px;line-height:1.5;color:#6c726a">${o.footnote ? `${esc(o.footnote)}<br>` : ""}You're getting this because you have a MATCHX account. Your MATCHX £ balance is spend-only and can't be withdrawn. 18+.${o.unsubscribe ? `<br><a href="${o.unsubscribe}" style="color:#9aa096">Unsubscribe from this email</a>` : ""}</td></tr>
 </table></td></tr></table></body></html>`;
   const text = [o.title, "", ...o.paragraphs.map((p) => p.replace(/<[^>]+>/g, "")), "", o.cta ? `${o.cta.label}: ${o.cta.href}` : "", "", "— MATCHX", o.unsubscribe ? `Unsubscribe: ${o.unsubscribe}` : ""].join("\n");
   return { subject: o.title, html, text };
@@ -60,14 +60,14 @@ export const EMAILS = {
     layout({
       preheader: `${d.player} sold for ${d.price}.`,
       title: `${d.player} has been sold`,
-      paragraphs: [`${esc(d.name)}, ${esc(d.buyer)} signed ${b(d.player)} for ${b(d.price)}. You received ${b(d.youGet)} of earned MX after the 5% fee.`],
+      paragraphs: [`${esc(d.name)}, ${esc(d.buyer)} signed ${b(d.player)} for ${b(d.price)}. You received ${b(d.youGet)} of earned credit after the 5% fee.`],
       cta: { label: "My transfers", href: `${APP_URL}/transfers/mine` },
     }),
   offerReceived: (d: { name: string; player: string; amount: string; buyer: string }) =>
     layout({
       preheader: `${d.buyer} offered ${d.amount} for ${d.player}.`,
       title: `New offer for ${d.player}`,
-      paragraphs: [`${esc(d.buyer)} has offered ${b(d.amount)} for ${b(d.player)}. Their MX is held, so accepting completes the transfer straight away.`],
+      paragraphs: [`${esc(d.buyer)} has offered ${b(d.amount)} for ${b(d.player)}. Their money is held, so accepting completes the transfer straight away.`],
       cta: { label: "Review the offer", href: `${APP_URL}/transfers/mine` },
     }),
   offerAccepted: (d: { name: string; player: string; amount: string }) =>
@@ -153,7 +153,7 @@ export const EMAILS = {
         ...(d.players.length
           ? [d.players.map((p) => `${b(p.name)} <span style="color:#9aa096">${esc(p.vs)} · ${esc(p.when)}</span>`).join("<br>") + (d.playing > d.players.length ? `<br><span style="color:#9aa096">+${d.playing - d.players.length} more</span>` : "")]
           : []),
-        `Club value: ${b(`${d.value.toFixed(2)} MX`)}${d.changePct !== null ? ` <span style="color:${d.changePct > 0 ? "#5ee6a8" : d.changePct < 0 ? "#ff6b6b" : "#9aa096"}">${d.changePct > 0 ? "▲" : d.changePct < 0 ? "▼" : "–"} ${Math.abs(d.changePct)}%</span>` : ""}`,
+        `Club value: ${b(`£${d.value.toFixed(2)}`)}${d.changePct !== null ? ` <span style="color:${d.changePct > 0 ? "#5ee6a8" : d.changePct < 0 ? "#ff6b6b" : "#9aa096"}">${d.changePct > 0 ? "▲" : d.changePct < 0 ? "▼" : "–"} ${Math.abs(d.changePct)}%</span>` : ""}`,
         ...(d.deadline
           ? [d.entered ? `You're in ${b(`${d.entered} of ${d.openMatches}`)} open matches. Deadline ${b(d.deadline)}.` : `${b(`${d.openMatches} matches`)} are open — the Freeroll is free. Deadline ${b(d.deadline)}.`]
           : []),

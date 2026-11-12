@@ -318,3 +318,13 @@ export async function startLaunchEmailsAction(): Promise<ActionResult> {
   done();
   return res.ok ? { ok: true, data: undefined, message: "Launch emails are going out — 200 now, the rest every 5 minutes." } : res;
 }
+
+export async function releaseMarketAction(launch: boolean): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const res = await attempt(async () => {
+    const { releaseMarketBatch } = await import("@/server/transfers");
+    return releaseMarketBatch(admin.id, { perPlayer: 5, days: 14, resetValues: launch });
+  });
+  done();
+  return res.ok ? { ok: true, data: undefined, message: `${res.data.listed.toLocaleString("en-GB")} copies listed · ${res.data.repriced.toLocaleString("en-GB")} re-priced · ${res.data.players.toLocaleString("en-GB")} players` } : res;
+}

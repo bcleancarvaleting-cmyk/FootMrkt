@@ -14,7 +14,7 @@ export default async function SettingsPage() {
     <>
       <AdminTitle title="Settings & flags" intro="Game settings, feature switches (pack shop, transfers, auctions, beta…) and the audit log.">
         <ActionButton action={runJobsAction}>Run scheduled jobs</ActionButton>
-        <ActionButton action={revalueAction}>Revalue MX</ActionButton>
+        <ActionButton action={revalueAction}>Revalue players</ActionButton>
       </AdminTitle>
       <section className="panel space-y-4 p-5">
         <h2 className="text-2xl">Game settings</h2>

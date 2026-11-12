@@ -164,7 +164,7 @@ export async function settleCompetition(competitionId: string, actorId: string |
         }
       }
     }
-    // XP: every manager earns their match points as XP (converts to earned MX).
+    // XP: every manager earns their match points as XP (converts to earned credit).
     for (const t of totals) await creditXp(tx, { userId: t.userId, xp: t.total, refId: `xp:${competitionId}:${t.userId}`, note: `${t.total} pts` });
     // £ prize pot: dead-heat rule — tied managers split the prizes for the positions they share.
     const shares = splitPrizePot(totals, rewards);
@@ -197,7 +197,12 @@ export async function settleCompetition(competitionId: string, actorId: string |
     await stampCompetition(competitionId);
     // Achievements and level-up packs for everyone who played.
     const { refreshProgress } = await import("./progression");
-    for (const e of await db.competitionEntry.findMany({ where: { competitionId }, select: { userId: true } })) await refreshProgress(e.userId);
+    const { autoConvertXp } = await import("./wallet");
+    for (const e of await db.competitionEntry.findMany({ where: { competitionId }, select: { userId: true } })) {
+      await refreshProgress(e.userId);
+      // Every 1,000 XP turns into £5 of credit.
+      await autoConvertXp(e.userId).catch(() => 0);
+    }
   }
   return result;
 }

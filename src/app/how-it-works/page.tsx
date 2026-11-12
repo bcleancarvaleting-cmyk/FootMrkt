@@ -39,7 +39,7 @@ export default function HowItWorks() {
         </p>
         <p>
           Gold Packs always contain at least <b>2 Gold</b> top-flight players — sometimes 3 or 4 — with the rest Bronze or Silver.
-          Complete a collection set to earn <b>10 MX credit</b> to spend on packs and build a stronger squad.
+          Complete a collection set to earn <b>£10 of credit</b> to spend on packs and build a stronger squad.
         </p>
       </Section>
 
@@ -83,14 +83,14 @@ export default function HowItWorks() {
         </p>
       </Section>
 
-      <Section title="4. Indicative value (MX)">
+      <Section title="4. Indicative value (£)">
         <p>
           Every card shows whether its value is <b className="text-mint">▲ rising</b> or <b className="text-danger">▼ falling</b>, a value
           graph, and how you got it — <b>Starter</b>, <b>Packed</b>, or what you paid.
         </p>
         <p>
           Each card shows an indicative value in MX, MATCHX&apos;s in-game points currency. It
-          reflects supply, recent form, league level and eligible completed sales. <b>MX is not cash</b>, cannot be withdrawn or redeemed,
+          reflects supply, recent form, league level and eligible completed sales. <b>Values are not cash</b>, cannot be withdrawn or redeemed,
           and is not a promise of what a card could sell for.
         </p>
       </Section>

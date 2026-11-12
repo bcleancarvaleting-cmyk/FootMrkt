@@ -6,7 +6,7 @@ import { useActionState, useState } from "react";
 import { convertXpAction, depositAction, updateProfileAction, withdrawAction } from "@/app/actions/account";
 import { ResultText } from "./action-button";
 
-/** Buy an MX bundle by card (wallet, and the basket when MX is short). */
+/** Buy a top-up bundle by card (wallet, and the basket when MX is short). */
 export function DepositForm({ enabled, initial = "squad", returnTo }: { enabled: boolean; initial?: string; returnTo?: string }) {
   const [state, action, pending] = useActionState(depositAction, null);
   const [key] = useState(() => crypto.randomUUID());
@@ -17,7 +17,7 @@ export function DepositForm({ enabled, initial = "squad", returnTo }: { enabled:
       <input type="hidden" name="clientKey" value={key} />
       <input type="hidden" name="bundle" value={pick} />
       {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="MX bundles">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="top-up bundles">
         {MX_BUNDLES.map((b) => {
           const on = pick === b.code;
           const bonus = bonusPct(b);
@@ -32,21 +32,21 @@ export function DepositForm({ enabled, initial = "squad", returnTo }: { enabled:
             >
               {b.best && <span className="absolute -top-2.5 rounded-full bg-gold px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.14em] text-ink-950">Best value</span>}
               <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted">{b.name}</span>
-              <span className="mt-1 font-display text-3xl font-black italic tabular-nums">{b.mxMinor / 100} MX</span>
+              <span className="mt-1 font-display text-3xl font-black italic tabular-nums">£{b.mxMinor / 100}</span>
               <span className="text-sm font-bold">£{(b.priceMinor / 100).toFixed(2)}</span>
-              <span className={`mt-1 text-[10px] font-semibold ${bonus > 0 ? "text-lime" : "text-faint"}`}>{bonus > 0 ? `+${bonus}% bonus MX` : "Entry bundle"}</span>
+              <span className={`mt-1 text-[10px] font-semibold ${bonus > 0 ? "text-lime" : "text-faint"}`}>{bonus > 0 ? `+${bonus}% bonus credit` : "Entry bundle"}</span>
             </button>
           );
         })}
       </div>
       <p className="text-center text-xs text-faint">{chosen.note}</p>
       <div className="rounded-xl border border-warn/40 bg-warn/10 p-3 text-xs leading-relaxed text-fg">
-        <b>MX can&apos;t be withdrawn or refunded</b> — it&apos;s for buying players and packs and entering matches. Only £ prizes won in matches can be
+        <b>Your balance can&apos;t be withdrawn or refunded</b> — it&apos;s for buying players and packs and entering matches. Only £ prizes won in matches can be
         withdrawn. What you pull from a pack is random and player values go down as well as up. Only add what you can afford to spend. Not an investment.
       </div>
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" name="acceptRisk" className="mt-1 accent-lime" required />
-        <span>I understand MX can&apos;t be withdrawn and player values go up and down.</span>
+        <span>I understand my balance can&apos;t be withdrawn and player values go up and down.</span>
       </label>
       <label className="flex items-start gap-2 text-sm">
         <input type="checkbox" name="acceptTerms" className="mt-1 accent-lime" required />
@@ -57,7 +57,7 @@ export function DepositForm({ enabled, initial = "squad", returnTo }: { enabled:
         </span>
       </label>
       <button className="btn-primary w-full" disabled={!enabled || pending}>
-        {!enabled ? "Card top-ups coming soon" : pending ? "Starting checkout…" : `Pay £${(chosen.priceMinor / 100).toFixed(2)} by card → ${chosen.mxMinor / 100} MX`}
+        {!enabled ? "Card top-ups coming soon" : pending ? "Starting checkout…" : `Pay £${(chosen.priceMinor / 100).toFixed(2)} by card → £${chosen.mxMinor / 100} credit`}
       </button>
       {state && <ResultText result={state} />}
     </form>
@@ -156,7 +156,7 @@ export function ConvertXpForm({ xp, perMx }: { xp: number; perMx: number }) {
     <form action={action} className="flex flex-col items-end gap-1">
       <span className="flex items-center gap-2">
         <input name="xp" type="number" min={perMx} step={perMx} max={Math.max(perMx, max)} value={amount} onChange={(e) => setAmount(e.target.value)} className="input w-28 text-right tabular-nums" aria-label="XP to swap" />
-        <button className="btn-primary" disabled={pending || xp < perMx}>{pending ? "Swapping…" : `Swap for ${((Number(amount) || 0) / perMx).toFixed(2)} MX`}</button>
+        <button className="btn-primary" disabled={pending || xp < perMx}>{pending ? "Swapping…" : `Swap for £${((Number(amount) || 0) / perMx).toFixed(2)}`}</button>
       </span>
       {state && <ResultText result={state} />}
     </form>

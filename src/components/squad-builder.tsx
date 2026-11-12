@@ -472,7 +472,7 @@ export function SquadBuilder({
               <div className="flex justify-between text-[11px]">
                 <span className="font-semibold">Budget</span>
                 <span className={spent > draft.budgetMx ? "font-bold text-danger" : "text-muted"}>
-                  {spent} / {draft.budgetMx} MX · {draft.budgetMx - spent} left
+                  £{spent} / £{draft.budgetMx} · £{draft.budgetMx - spent} left
                 </span>
               </div>
               <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-ink-800">
@@ -510,7 +510,7 @@ export function SquadBuilder({
                   </span>
                   <span className="text-right text-[11px]">
                     <span className="block font-bold text-lime">{f === null ? "–" : f.toFixed(1)}</span>
-                    <span className="block text-faint">{draft ? `${price(c)} MX` : c.loan ? `Loan · ${c.loan.left} of ${c.loan.total} uses` : mpLabel(c.valueMp)}</span>
+                    <span className="block text-faint">{draft ? `£${price(c)}` : c.loan ? `Loan · ${c.loan.left} of ${c.loan.total} uses` : mpLabel(c.valueMp)}</span>
                   </span>
                 </button>
               </li>

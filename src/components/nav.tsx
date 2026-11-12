@@ -62,7 +62,7 @@ export async function Header({ theme, unopenedPacks }: { theme: Theme; unopenedP
               <Link
                 href="/account/wallet"
                 className="flex items-center gap-2 whitespace-nowrap rounded-xl border border-ink-700 bg-ink-900 px-3 py-1.5 text-sm font-bold tabular-nums hover:border-ink-600"
-                title="Your MX balance"
+                title="Your £ balance"
               >
                 <span className="h-2 w-2 rounded-full bg-accent" aria-hidden="true" />
                 {fmtMp(bal.total)}

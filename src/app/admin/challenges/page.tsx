@@ -8,7 +8,7 @@ export const metadata = { title: "Admin · Challenges" };
 export default function Page() {
   return (
     <>
-      <AdminTitle title="Challenges & binders" intro="Hand-in challenges for MX and packs, and a 5-player binder for every club.">
+      <AdminTitle title="Challenges & binders" intro="Hand-in challenges for £ credit and packs, and a 5-player binder for every club.">
         <ActionButton action={clubBindersAction}>Create missing club binders</ActionButton>
       </AdminTitle>
       <EconomySections only={["challenges"]} />

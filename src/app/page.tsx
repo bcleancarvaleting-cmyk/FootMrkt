@@ -85,14 +85,14 @@ async function Landing() {
                 <span className="text-[#adfc07]">make offers.</span>
               </>
             }
-            body="Trade players with other managers using MX you've earned from XP, challenges and sales. See every player's value graph before you buy."
-            points={["Earn XP from every point your players score", "Swap 100 XP for 1 MX", "Opening soon"]}
+            body="Trade players with other managers using credit you've earned from XP, challenges and sales. See every player's value graph before you buy."
+            points={["Earn XP from every point your players score", "1,000 XP = £5 to spend", "Opening soon"]}
             visual={
               <ul className="w-full max-w-lg space-y-2 text-left">
                 {market.map((c) => (
                   <CardRow key={c.id} card={c}>
                     <RowStat label="Buy now" className="w-20">
-                      <span className="text-lime">{c.valueMp ?? 1} MX</span>
+                      <span className="text-lime">£{(c.valueMp ?? 1).toFixed(2)}</span>
                     </RowStat>
                   </CardRow>
                 ))}
@@ -163,7 +163,7 @@ async function Landing() {
       {/* Feature rows */}
       <section className="grid gap-4 lg:grid-cols-2">
         <Feature eyebrow="Transfers" title="Buy, sell, make offers" body="Trade cards with other managers in MX. See the average selling price and the all-time value graph before you buy. Plus daily player drops: new players released by MATCHX, never found in packs." href="/register" cta="Start trading" />
-        <Feature eyebrow="Challenges" title="Keep your squad moving" body="Hand in cards you don't need for MX and packs. They go back into the packs for someone else to pull." href="/register" cta="See challenges" />
+        <Feature eyebrow="Challenges" title="Keep your squad moving" body="Hand in cards you don't need for £ credit and packs. They go back into the packs for someone else to pull." href="/register" cta="See challenges" />
         <Feature eyebrow="Matches" title="Every gameweek, a new table" body="Open leagues, Bronze-only cups and more. Squads lock 10 minutes before the first kick-off." href="/register" cta="Enter a match" />
         <Feature eyebrow="Free packs" title="Drop days" body="We drop free packs on big matchdays. Claim within 24 hours — keep an eye on the Packs page." href="/register" cta="Join free" />
       </section>
@@ -180,7 +180,7 @@ async function Landing() {
         <Link href="/register" className="btn-primary relative mt-6 px-8 py-4 text-sm">
           Create my club
         </Link>
-        <p className="relative mt-4 text-xs text-faint">Player values go up and down. MX is an in-game balance, not an investment.</p>
+        <p className="relative mt-4 text-xs text-faint">Player values go up and down. Your MATCHX balance is spend-only, not an investment.</p>
       </section>
     </div>
   );
@@ -337,9 +337,9 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
             ["Transfers", marketOn ? "Buy · sell · bid" : "Opens soon", marketOn ? `${playerDrops} MATCHX buy-nows · ${auctions} auction${auctions === 1 ? "" : "s"} live` : "MATCHX buy-nows and auctions", "/transfers", "text-gold"],
             ["Packs", unopened ? `${unopened} to open` : "Pack shop", "Starters, boosters, gifts and the shop", "/packs", ""],
             ["Matches", comps.length ? `${entered}/${comps.length} entered` : "No matches yet", comps.length ? (entered === comps.length ? "All entered ✓" : `${comps.length - entered} still to enter`) : "Next gameweek coming", "/matches", comps.length && entered === comps.length ? "text-mint" : "text-danger"],
-            ["Wallet", fmtMp(bal.total), "MX and £ winnings", "/account/wallet", ""],
+            ["Wallet", fmtMp(bal.total), "Balance and £ winnings", "/account/wallet", ""],
             ["Leagues", leagues ? `${leagues} league${leagues === 1 ? "" : "s"}` : "Start one", "Private leagues with friends", "/leagues", ""],
-            ["Challenges", "Hand in", "Earn MX and packs", "/account/challenges", ""],
+            ["Challenges", "Hand in", "Earn £ credit and packs", "/account/challenges", ""],
             ["Chat", "Managers", "Talk tactics and pack pulls", "/chat", ""],
           ] as const
         ).map(([k, v, s, href, tone]) => (

@@ -9,8 +9,9 @@ export function TransfersTabs({ drops, offers, auctions, basket }: { drops: numb
     <SectionTabs
       active={path}
       tabs={[
+        { href: "/transfers/market", label: "MATCHX market" },
         { href: "/transfers", label: "Transfer list" },
-        { href: "/transfers/drops", label: "MATCHX buy now", badge: drops },
+        { href: "/transfers/drops", label: "Player drops", badge: drops },
         { href: "/transfers/auctions", label: "Auctions", badge: auctions },
         { href: "/transfers/movers", label: "Market movers" },
         { href: "/transfers/basket", label: "Basket", badge: basket },

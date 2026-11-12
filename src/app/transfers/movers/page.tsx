@@ -52,7 +52,7 @@ export default async function MoversPage() {
                 <Who id={t.playerId} p={t.player} n={i + 1} />
                 <span className="shrink-0 text-right">
                   <span className="block font-bold tabular-nums">
-                    {t.nowMp} → <span className="text-mint">{t.nextMp} MX</span>
+                    £{t.nowMp.toFixed(2)} → <span className="text-mint">£{t.nextMp.toFixed(2)}</span>
                   </span>
                   <span className="block text-xs font-bold tabular-nums text-mint">▲ ~{t.pct}%</span>
                 </span>
@@ -65,7 +65,7 @@ export default async function MoversPage() {
             <li key={`${r.playerId}${r.category}`} className="flex items-center gap-3 px-4 py-2.5">
               <Who id={r.playerId} p={r.player} n={i + 1} />
               <span className="shrink-0 text-right">
-                <span className="block font-bold tabular-nums">{r.now} MX</span>
+                <span className="block font-bold tabular-nums">£{r.now.toFixed(2)}</span>
                 <span className="block text-xs font-bold tabular-nums text-mint">▲ {r.pct}%</span>
               </span>
             </li>
@@ -76,7 +76,7 @@ export default async function MoversPage() {
             <li key={`${r.playerId}${r.category}`} className="flex items-center gap-3 px-4 py-2.5">
               <Who id={r.playerId} p={r.player} n={i + 1} />
               <span className="shrink-0 text-right">
-                <span className="block font-bold tabular-nums">{r.now} MX</span>
+                <span className="block font-bold tabular-nums">£{r.now.toFixed(2)}</span>
                 <span className="block text-xs font-bold tabular-nums text-danger">▼ {Math.abs(r.pct)}%</span>
               </span>
             </li>

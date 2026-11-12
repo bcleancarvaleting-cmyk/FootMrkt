@@ -495,7 +495,7 @@ model WatchItem {
   playerId      String   @db.Uuid
   maxPriceMinor Int?
   // Value alerts: the card value (MX) last told to the manager; they're alerted on a 10%+ move from it.
-  baselineMp    Int?
+  baselineMp    Float?
   createdAt     DateTime @default(now())
 
   @@unique([userId, playerId])
@@ -549,8 +549,9 @@ model MPValuation {
   playerId   String       @db.Uuid
   player     Player       @relation(fields: [playerId], references: [id])
   category   CardCategory
-  valueMp    Int
-  method     String // algorithm id + version, e.g. "mp-v1"
+  // £ value (pounds, to the penny) since value-v2 (12 Nov 2026); whole MX before.
+  valueMp    Float
+  method     String // algorithm id + version, e.g. "value-v2"
   signals    Json // every input used, so the number is explainable/auditable
   computedAt DateTime     @default(now())
 

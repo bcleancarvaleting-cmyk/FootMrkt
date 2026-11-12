@@ -7,15 +7,15 @@ import { topMovers } from "@/server/movers";
  * "Market movers" on the market pages: tap to open the top 5 movers this week — value graph, value
  * now, 7-day change and expected value — each one tap from buying.
  */
-export async function MoversPanel() {
-  const rows = await topMovers(5).catch(() => []);
+export async function MoversPanel({ n = 5, open = false, guest = false }: { n?: number; open?: boolean; guest?: boolean } = {}) {
+  const rows = await topMovers(n).catch(() => []);
   return (
-    <details className="group rounded-2xl border border-ink-700 bg-ink-900">
+    <details open={open} className="group rounded-2xl border border-ink-700 bg-ink-900">
       <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
         <span className="text-xl" aria-hidden="true">📈</span>
         <span className="min-w-0 flex-1">
           <b className="block font-display text-xl font-black uppercase italic leading-none">Market movers</b>
-          <span className="text-xs text-muted">Top 5 this week · graphs, prices and expected values</span>
+          <span className="text-xs text-muted">Top {n} this week · graphs, prices and expected values</span>
         </span>
         <span className="text-xs font-bold text-lime group-open:hidden">Show ▾</span>
         <span className="hidden text-xs font-bold text-lime group-open:inline">Hide ▴</span>
@@ -29,7 +29,7 @@ export async function MoversPanel() {
               <span className="w-4 shrink-0 text-center font-display text-base font-black text-faint">{i + 1}</span>
               <KitShirt kit={r.player.kit} number={r.player.squadNumber} id={`mp-${r.playerId}`} label={`${r.player.club} shirt`} className="h-9 w-auto shrink-0" />
               <span className="min-w-0 flex-1">
-                <Link href={`/players/${r.playerId}`} className="line-clamp-2 block font-semibold leading-tight hover:text-lime">{r.player.name}</Link>
+                <Link href={guest ? "/register" : `/players/${r.playerId}`} className="line-clamp-2 block font-semibold leading-tight hover:text-lime">{r.player.name}</Link>
                 <span className="block truncate text-[11px] text-muted">
                   {r.player.position} · {r.player.club} · {r.category.toLowerCase()}
                 </span>
@@ -45,13 +45,13 @@ export async function MoversPanel() {
                 {r.pct !== 0 && <span className={`block text-[11px] font-bold tabular-nums ${r.pct > 0 ? "text-mint" : "text-danger"}`}>{r.pct > 0 ? "▲" : "▼"} {Math.abs(r.pct)}% 7d</span>}
                 <span className="block text-[10px] text-faint">{r.expected ? <>expected <b className="text-fg">£{r.expected.value.toFixed(2)}</b></> : "expected —"}</span>
               </span>
-              <Link href={`/transfers/find/${r.playerId}`} className="btn-primary shrink-0 px-3 py-2 text-[10px]">Buy</Link>
+              <Link href={guest ? "/register" : `/transfers/find/${r.playerId}`} className="btn-primary shrink-0 px-3 py-2 text-[10px]">Buy</Link>
             </li>
           ))}
         </ol>
       )}
       <div className="border-t border-ink-700 px-4 py-2 text-right">
-        <Link href="/transfers/movers" className="text-xs font-bold text-lime">All market movers →</Link>
+        <Link href={guest ? "/register" : "/transfers/movers"} className="text-xs font-bold text-lime">{guest ? "Join free to trade →" : "All market movers →"}</Link>
       </div>
     </details>
   );

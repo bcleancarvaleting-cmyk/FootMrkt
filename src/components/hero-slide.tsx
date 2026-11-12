@@ -14,6 +14,7 @@ export function HeroSlide({
   points,
   visual,
   ctas,
+  heading = "h2",
 }: {
   background?: React.ReactNode;
   eyebrow: string;
@@ -23,7 +24,9 @@ export function HeroSlide({
   points: React.ReactNode[];
   visual?: React.ReactNode;
   ctas: Array<{ href: string; label: string; tone?: "primary" | "ghost" | "gold" | "sim" }>;
+  heading?: "h1" | "h2";
 }) {
+  const H = heading;
   const btn = { primary: "btn-primary", ghost: "btn border border-white/30 text-white hover:border-white/70", gold: "btn-gold", sim: "btn bg-[#8fe3ff] text-[#04121a]" } as const;
   return (
     <div className="relative h-full overflow-hidden bg-[#0b0e0c] lg:rounded-[28px]">
@@ -32,11 +35,11 @@ export function HeroSlide({
       <div className="relative grid min-h-[600px] content-start gap-5 px-5 pb-10 pt-8 text-[#f4f5f2] sm:gap-8 sm:px-10 sm:pt-12 lg:grid-cols-[1.05fr_1fr] lg:grid-rows-[auto_1fr] lg:gap-x-10 lg:gap-y-5">
         <div className="space-y-3">
           <span className="tag border-white/25 text-white/80">{eyebrow}</span>
-          <h2 className="text-[52px] leading-[0.86] sm:text-7xl">
+          <H className="text-[52px] leading-[0.86] sm:text-7xl">
             {title}
             <br />
             <span className="text-[#adfc07]">{accent}</span>
-          </h2>
+          </H>
         </div>
         {visual && <div className="flex justify-center lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:items-center">{visual}</div>}
         <div className="max-w-xl space-y-5">

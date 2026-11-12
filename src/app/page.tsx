@@ -15,6 +15,10 @@ import { Sparkline } from "@/components/card-row";
 import { LaunchPage, type LaunchParams } from "@/components/launch-page";
 import { HeroCarousel } from "@/components/hero-carousel";
 import { HubHero } from "@/components/hub-hero";
+import { HeroSlide } from "@/components/hero-slide";
+import { MoversPanel } from "@/components/movers-panel";
+import { PackWrapper } from "@/components/pack-wrapper";
+import { starCards } from "@/server/showcase";
 import { LiveGamesList } from "@/components/live-games-list";
 import { PromoBanner } from "@/components/promo-banner";
 import { HERO_PHOTOS, PhotoBackground } from "@/components/hero-background";
@@ -40,59 +44,59 @@ export default async function Home({ searchParams }: { searchParams: Promise<Lau
 }
 
 async function Landing() {
-  const showcase = await cardViews(
-    // Showcase: the No. 1 Gold of top-flight players (wherever the card is now).
-    { template: { category: "GOLD", edition: "STANDARD", player: { club: { league: { isTopFlight: true } } } }, serial: 1 },
-    [{ template: { player: { squadNumber: "asc" } } }],
-    40,
-  );
-  const picks = [showcase[3], showcase[0], showcase[11]].filter(Boolean);
-  const market = [showcase[5], showcase[8], showcase[14], showcase[20]].filter(Boolean);
-  const [players, clubs] = await Promise.all([db.player.count({ where: { active: true } }), db.club.count()]);
+  // Front page: the game's best-known players, the real packs and what's on now.
+  const [stars, marketStars, packSkus, players, clubs] = await Promise.all([
+    starCards("GOLD", 3),
+    starCards("GOLD", 7).then((c) => c.slice(3, 7)),
+    db.packSku.findMany({ where: { code: { in: ["football-eng-bronze", "football-eng-silver", "football-eng-gold"] } }, select: { code: true, priceMinor: true } }),
+    db.player.count({ where: { active: true } }),
+    db.club.count(),
+  ]);
+  const picks = stars.length === 3 ? [stars[1], stars[0], stars[2]] : stars;
+  const priceOf = (t: string) => {
+    const sku = packSkus.find((k) => k.code === `football-eng-${t}`);
+    return sku ? `£${(sku.priceMinor / 100).toFixed(2)}` : undefined;
+  };
+  const ctas = [
+    { href: "/register", label: "Play free — 32 players + 4 app picks" },
+    { href: "/how-it-works", label: "How it works", tone: "ghost" as const },
+  ];
 
   return (
-    <div className="-mt-6 space-y-20">
-      {/* Hero: swipe between the three things you do on MATCHX */}
+    <div className="-mt-6 space-y-14">
+      {/* Hero: swipe between the three things you do on MATCHX — title first on every slide */}
       <div className="-mx-4 sm:-mx-6 lg:mx-0">
         <HeroCarousel labels={["Manage your team", "Transfer market", "Buy packs"]}>
-          <Slide
+          <HeroSlide
+            heading="h1"
             background={<PhotoBackground src={HERO_PHOTOS.floodlight} position="50% 40%" />}
             eyebrow="Manage your team"
-            title={
-              <>
-                Your club
-                <br />
-                <span className="text-[#adfc07]">starts here.</span>
-              </>
-            }
-            body="Pick seven real English footballers from your club, choose a formation and score points from what they do on the pitch every weekend."
-            points={["2-2-2, 2-3-1, 3-2-1 or 3-1-2", "A sub comes on if a starter doesn't play", "Free matches every gameweek, with prizes"]}
+            title="Your club"
+            accent="starts here."
+            body="Pick seven real English footballers, choose a formation and score points from what they do on the pitch every weekend."
+            points={["2-2-2, 2-3-1, 3-2-1 or 3-1-2", "A sub comes on if a starter doesn't play", "Free matches every gameweek, with £ prizes"]}
             visual={
-              <div className="relative flex h-[330px] items-center justify-center sm:h-[380px]">
+              <div className="relative flex h-[300px] w-full items-center justify-center sm:h-[380px]">
                 {picks.map((c, i) => (
-                  <div key={c.id} className="absolute" style={{ transform: `translateX(${(i - 1) * 130}px) translateY(${i === 1 ? -10 : 18}px) rotate(${(i - 1) * 8}deg)`, zIndex: i === 1 ? 2 : 1 }}>
-                    <PlayerCard card={c} size={i === 1 ? "lg" : "md"} />
+                  <div key={c.id} className="absolute" style={{ transform: `translateX(${(i - 1) * 118}px) translateY(${i === 1 ? -6 : 20}px) rotate(${(i - 1) * 8}deg) scale(${i === 1 ? 1 : 0.86})`, zIndex: i === 1 ? 2 : 1 }}>
+                    <PlayerCard card={c} size="md" showcase />
                   </div>
                 ))}
               </div>
             }
+            ctas={ctas}
           />
-          <Slide
+          <HeroSlide
             background={<PhotoBackground src={HERO_PHOTOS.nightStadium} />}
             eyebrow="Transfer market"
-            title={
-              <>
-                Buy, sell,
-                <br />
-                <span className="text-[#adfc07]">make offers.</span>
-              </>
-            }
+            title="Buy, sell &"
+            accent="make offers."
             body="Trade players with other managers using credit you've earned from XP, challenges and sales. See every player's value graph before you buy."
-            points={["Earn XP from every point your players score", "Turn XP into £ credit to spend", "See every player's value graph"]}
+            points={["Earn XP from every point your players score", "Turn XP into £ credit to spend", "Auctions, offers and buy-it-now"]}
             visual={
               <ul className="w-full max-w-lg space-y-2 text-left">
-                {market.map((c) => (
-                  <CardRow key={c.id} card={c}>
+                {marketStars.map((c) => (
+                  <CardRow key={c.id} card={c} find={false} href="/register">
                     <RowStat label="Buy now" className="w-20">
                       <span className="text-lime">£{(c.valueMp ?? 1).toFixed(2)}</span>
                     </RowStat>
@@ -100,34 +104,30 @@ async function Landing() {
                 ))}
               </ul>
             }
+            ctas={ctas}
           />
-          <Slide
+          <HeroSlide
             background={<PhotoBackground src={HERO_PHOTOS.ballBoots} position="60% 50%" />}
             eyebrow="Buy packs"
-            title={
-              <>
-                Rip packs,
-                <br />
-                <span className="text-[#adfc07]">pull Golds.</span>
-              </>
-            }
-            body="32 free players to start your MatchX journey: a starting seven and a sub for the Premier League, Championship, League One and League Two. Get the app for 4 more top-performer picks. Plus a free booster every week."
-            points={["England Bronze, Silver and Gold packs", "Published odds on every pack", "Pack shop coming soon"]}
+            title="Pack"
+            accent="luck."
+            body="Start with 32 free players across all four leagues, plus 4 top-performer picks in the app and a free booster every week. Then rip England Bronze, Silver and Gold packs."
+            points={["Every card a numbered copy of a real player", "Published odds on every pack", "Rare Ruby, Diamond and 1-of-1 Rainbow cards"]}
             visual={
-              <div className="flex items-end justify-center gap-4">
+              <div className="flex items-end justify-center gap-3 pb-4 sm:gap-5">
                 {(["bronze", "silver", "gold"] as const).map((t, i) => (
-                  <div key={t} className={`card-premium ${t === "gold" ? "is-gold" : ""} foil-${t} relative flex h-48 w-32 items-end overflow-hidden rounded-2xl p-3 shadow-2xl sm:h-60 sm:w-40`} style={{ transform: `translateY(${i === 2 ? -16 : 0}px)` }}>
-                    <span className="sheen" aria-hidden="true" />
-                    {t === "gold" && <span className="holo" aria-hidden="true" />}
-                    <span className="absolute left-3 top-3 text-[10px] font-extrabold uppercase italic tracking-[0.2em] text-black/60">England</span>
-                    <span className="relative font-display text-3xl font-extrabold uppercase italic leading-none text-black/75 sm:text-4xl">{t}</span>
-                  </div>
+                  <PackWrapper key={t} tier={t} price={priceOf(t)} className="h-48 w-[100px] sm:h-64 sm:w-36" style={{ transform: `translateY(${i === 2 ? -18 : i === 1 ? -6 : 0}px) rotate(${(i - 1) * 4}deg)` }} />
                 ))}
               </div>
             }
+            ctas={ctas}
           />
         </HeroCarousel>
       </div>
+
+      {/* A taste of the game: what's on now and who's moving */}
+      <LiveGamesList userId={null} />
+      <MoversPanel n={3} open guest />
 
       {/* Proof bar */}
       <section className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-ink-700 bg-ink-700 sm:grid-cols-4">
@@ -185,37 +185,6 @@ async function Landing() {
         </Link>
         <p className="relative mt-4 text-xs text-faint">Player values go up and down. Your MATCHX balance is spend-only, not an investment.</p>
       </section>
-    </div>
-  );
-}
-
-function Slide({ background, eyebrow, title, body, points, visual }: { background?: React.ReactNode; eyebrow: string; title: React.ReactNode; body: string; points: string[]; visual: React.ReactNode }) {
-  return (
-    <div className="relative h-full overflow-hidden bg-[#0b0e0c] lg:rounded-[28px]">
-      {background ?? <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_80%_20%,rgb(173_252_7/0.14),transparent_60%)]" aria-hidden="true" />}
-      <div className="relative grid min-h-[600px] items-center gap-4 px-5 pb-10 pt-8 sm:gap-10 sm:px-10 sm:pt-20 lg:grid-cols-[1.05fr_1fr] lg:pt-14">
-        <div className="max-w-xl space-y-5 text-[#f4f5f2]">
-          <span className="tag border-white/25 text-white/80">{eyebrow}</span>
-          <h1 className="text-[56px] leading-[0.86] sm:text-7xl">{title}</h1>
-          <p className="max-w-md text-lg text-white/75">{body}</p>
-          <ul className="space-y-1.5 text-sm text-white/80">
-            {points.map((p) => (
-              <li key={p} className="flex items-center gap-2">
-                <span className="text-[#adfc07]">✓</span> {p}
-              </li>
-            ))}
-          </ul>
-          <div className="flex flex-col gap-3 pt-1 sm:flex-row">
-            <Link href="/register" className="btn-primary px-7 py-4 text-sm">
-              Play free — 32 players + 4 app picks
-            </Link>
-            <Link href="/how-it-works" className="btn border border-white/30 px-7 py-4 text-sm text-white hover:border-white/70">
-              How it works
-            </Link>
-          </div>
-        </div>
-        <div className="order-first flex origin-top scale-[0.8] justify-center sm:scale-100 lg:order-last">{visual}</div>
-      </div>
     </div>
   );
 }

@@ -8,7 +8,8 @@ import { db } from "@/server/db";
 const gbp = (m: number) => `£${(m / 100).toFixed(m % 100 ? 2 : 0)}`;
 const ukWhen = (d: Date) => d.toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
 
-export async function LiveGamesList({ userId }: { userId: string }) {
+export async function LiveGamesList({ userId }: { userId: string | null }) {
+  const guest = !userId;
   const now = new Date();
   const games = await db.competition.findMany({
     where: { status: { in: ["UPCOMING", "OPEN", "LOCKED", "PROVISIONAL"] } },
@@ -23,17 +24,17 @@ export async function LiveGamesList({ userId }: { userId: string }) {
       rewards: true,
       gameweek: { select: { id: true, simulated: true, startsAt: true } },
       _count: { select: { entries: { where: { status: "ACTIVE" } } } },
-      entries: { where: { userId, status: "ACTIVE" }, select: { id: true } },
+      entries: { where: { userId: userId ?? "00000000-0000-0000-0000-000000000000", status: "ACTIVE" }, select: { id: true } },
     },
   });
   return (
     <section>
       <div className="mb-3 flex items-end justify-between gap-2">
         <div>
-          <p className="eyebrow text-lime">Enter now</p>
-          <h2 className="text-3xl leading-none">Live games</h2>
+          <p className="eyebrow text-lime">{guest ? "Free to enter" : "Enter now"}</p>
+          <h2 className="text-3xl leading-none">{guest ? "Upcoming games" : "Live games"}</h2>
         </div>
-        <Link href="/matches" className="text-xs font-bold uppercase tracking-[0.14em] text-lime">All matches →</Link>
+        <Link href={guest ? "/register" : "/matches"} className="text-xs font-bold uppercase tracking-[0.14em] text-lime">{guest ? "Join free →" : "All matches →"}</Link>
       </div>
       {games.length === 0 ? (
         <p className="panel p-5 text-sm text-muted">No games open right now — new ones are added all the time.</p>
@@ -53,7 +54,9 @@ export async function LiveGamesList({ userId }: { userId: string }) {
             const playing = g.status === "PROVISIONAL" || g.status === "LOCKED" || (!open && g.locksAt <= now);
             const mine = g.entries.length > 0;
             const pot = ((g.rewards as Array<{ cashMinor?: number; rankFrom: number; rankTo: number }>) ?? []).reduce((s, r) => s + (r.cashMinor ?? 0) * (r.rankTo - r.rankFrom + 1), 0);
-            const action = playing
+            const action = guest
+              ? { href: "/register", label: playing ? "Join to play" : "Enter now", cls: "bg-accent text-accent-ink" }
+              : playing
               ? { href: sim ? `/watch?gw=${g.gameweek.id}` : "/watch?scope=real", label: "● Watch", cls: sim ? "bg-[#8fe3ff] text-[#04121a]" : "bg-danger text-white" }
               : mine
                 ? { href: `/competitions/${g.id}`, label: "Edit team", cls: "border border-mint/70 text-mint" }

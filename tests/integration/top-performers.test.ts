@@ -3,7 +3,7 @@ import { CURRENT_SCORING_RULES, getScoringRules, scorePlayer, toStatLine } from 
 import { db } from "@/server/db";
 import { createGameweek, simulateFixturesNow } from "@/server/gameweeks";
 import { playerDatabase } from "@/server/player-drops";
-import { performanceTable, topPerLeague } from "@/server/top-performers";
+import { formGuide, performanceTable, topPerLeague } from "@/server/top-performers";
 import { buildWorld, resetDb } from "./fixtures";
 
 beforeEach(async () => {
@@ -86,5 +86,18 @@ describe("daily player drops", () => {
     }
     expect(new Set(drops.map((d) => d.card.template.player.club?.league.code)).size).toBeGreaterThan(1);
     expect((await todaysDrops(at)).length).toBe(n);
+  });
+
+  it("form guide: each player's last 4 club games with real points, oldest first", async () => {
+    for (let n = 1; n <= 5; n++) {
+      const gw = await playedGameweek(n);
+      await db.fixture.updateMany({ where: { gameweekId: gw.id }, data: { status: "FINISHED", kickoffAt: new Date(Date.now() - (10 - n) * 86_400_000) } });
+    }
+    const season = await performanceTable({ window: "season" });
+    const top = season[0];
+    const f = (await formGuide([top.playerId])).get(top.playerId)!;
+    expect(f.games.length).toBe(4);
+    const last4 = top.byGameweek.slice(-4).reduce((a, b) => a + b, 0);
+    expect(f.total).toBeCloseTo(last4, 1);
   });
 });

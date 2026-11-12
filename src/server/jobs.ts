@@ -27,6 +27,7 @@ export async function tick() {
     ["weekly reminders & results", weeklyRhythm],
     ["head-to-head", settleH2H],
     ["watchlist value alerts", async () => (await import("./watchlist")).alertValueMoves()],
+    ["app messages & giveaways", async () => (await import("./app-messages")).appMessages()],
     ["team of the week", async () => (await import("./totw")).pickTeamOfTheWeek()],
     ["friday digest", async () => (await import("./digest")).sendWeeklyDigests()],
     ["mini-league winners", async () => (await import("./alerts")).announceLeagueWinners()],

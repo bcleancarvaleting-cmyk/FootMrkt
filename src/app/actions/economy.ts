@@ -293,3 +293,21 @@ export async function setTextSettingAction(_: ActionResult | null, f: FormData):
   done();
   return res;
 }
+
+export async function appGiveawayAction(_: ActionResult | null, f: FormData): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const res = await attempt(async () => {
+    const { createAppGiveaway } = await import("@/server/app-messages");
+    const r = await createAppGiveaway(admin.id, { title: str(f, "title"), message: str(f, "message"), packSku: str(f, "packSku") || undefined, mxMinor: mp(f, "mx"), openDays: Number(str(f, "openDays") || 0) });
+    return r.sent;
+  }, "Giveaway sent");
+  done();
+  return res.ok ? { ok: true, data: undefined, message: `Sent to ${res.data} app user${res.data === 1 ? "" : "s"}` } : res;
+}
+
+export async function closeAppGiveawayAction(id: string): Promise<ActionResult> {
+  const admin = await requireAdmin();
+  const res = await attempt(async () => (await import("@/server/app-messages")).closeAppGiveaway(admin.id, id), "Giveaway closed");
+  done();
+  return res;
+}

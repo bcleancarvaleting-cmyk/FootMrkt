@@ -6,12 +6,40 @@ import { db } from "./db";
  * `npx web-push generate-vapid-keys`) in VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY, plus VAPID_SUBJECT
  * (mailto: or https: contact). Without them, push is simply off and in-app notifications still work.
  */
-export const pushPublicKey = () => process.env.VAPID_PUBLIC_KEY ?? null;
-const configured = () => !!(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
+// Keys come from the environment, or are generated once and stored (private key encrypted) so
+// push works with no setup. Changing keys means phones must re-subscribe, so they're never rotated.
+let keys: { publicKey: string; privateKey: string } | null = null;
+async function vapidKeys() {
+  if (keys) return keys;
+  if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) return (keys = { publicKey: process.env.VAPID_PUBLIC_KEY, privateKey: process.env.VAPID_PRIVATE_KEY });
+  const { readSecret, saveSecret } = await import("./secrets");
+  const pub = await db.appSetting.findUnique({ where: { key: "push.vapid.public" } }).catch(() => null);
+  const priv = await readSecret("vapid.private").catch(() => null);
+  if (typeof pub?.value === "string" && priv) return (keys = { publicKey: pub.value, privateKey: priv });
+  const made = webpush.generateVAPIDKeys();
+  // Only the first writer wins, so two servers starting together agree on one pair.
+  const created = await db.appSetting.create({ data: { key: "push.vapid.public", value: made.publicKey } }).catch(() => null);
+  if (!created) {
+    keys = null;
+    const again = await db.appSetting.findUnique({ where: { key: "push.vapid.public" } });
+    const p2 = await readSecret("vapid.private");
+    if (typeof again?.value === "string" && p2) return (keys = { publicKey: again.value, privateKey: p2 });
+    return null;
+  }
+  await saveSecret("vapid.private", made.privateKey, null);
+  return (keys = made);
+}
+
+export async function pushPublicKey() {
+  return (await vapidKeys().catch(() => null))?.publicKey ?? null;
+}
+
 let ready = false;
-function setup() {
-  if (ready || !configured()) return configured();
-  webpush.setVapidDetails(process.env.VAPID_SUBJECT ?? "mailto:hello@playmatchx.com", process.env.VAPID_PUBLIC_KEY!, process.env.VAPID_PRIVATE_KEY!);
+async function setup() {
+  if (ready) return true;
+  const k = await vapidKeys().catch(() => null);
+  if (!k) return false;
+  webpush.setVapidDetails(process.env.VAPID_SUBJECT ?? "mailto:hello@playmatchx.com", k.publicKey, k.privateKey);
   ready = true;
   return true;
 }
@@ -28,7 +56,7 @@ export const removeSubscription = (endpoint: string) => db.pushSubscription.dele
 
 /** Send to every device a manager has push on. Dead subscriptions are removed. Never throws. */
 export async function sendPush(userId: string, msg: { title: string; body: string; url?: string }, send = webpush.sendNotification) {
-  if (!setup()) return 0;
+  if (!(await setup())) return 0;
   const subs = await db.pushSubscription.findMany({ where: { userId } });
   let sent = 0;
   for (const s of subs) {

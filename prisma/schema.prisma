@@ -376,14 +376,14 @@ enum CardFinishKind {
 }
 
 model CardFinish {
-  id        String         @id @default(uuid()) @db.Uuid
-  kind      CardFinishKind
-  playerId  String         @db.Uuid
-  player    Player         @relation(fields: [playerId], references: [id])
-  serial    Int
-  cardId    String         @unique @db.Uuid
-  card      CardInstance   @relation(fields: [cardId], references: [id])
-  createdAt DateTime       @default(now())
+  id           String         @id @default(uuid()) @db.Uuid
+  kind         CardFinishKind
+  playerId     String         @db.Uuid
+  player       Player         @relation(fields: [playerId], references: [id])
+  serial       Int
+  cardId       String         @unique @db.Uuid
+  card         CardInstance   @relation(fields: [cardId], references: [id])
+  createdAt    DateTime       @default(now())
   // Social studio queue: null = waiting for a decision; "POSTED" or "SKIPPED" once handled.
   socialStatus String?
   socialAt     DateTime?
@@ -454,8 +454,8 @@ model MiniLeagueMember {
   id       String     @id @default(uuid()) @db.Uuid
   leagueId String     @db.Uuid
   league   MiniLeague @relation(fields: [leagueId], references: [id], onDelete: Cascade)
-  userId   String   @db.Uuid
-  joinedAt DateTime @default(now())
+  userId   String     @db.Uuid
+  joinedAt DateTime   @default(now())
 
   @@unique([leagueId, userId])
   @@index([userId])
@@ -903,23 +903,23 @@ enum SelectionSlot {
 }
 
 model CompetitionSelection {
-  id        String           @id @default(uuid()) @db.Uuid
-  entryId   String           @db.Uuid
-  entry     CompetitionEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  id            String           @id @default(uuid()) @db.Uuid
+  entryId       String           @db.Uuid
+  entry         CompetitionEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
   // Null in free draft matches, where managers pick players without owning their cards.
-  cardId    String?          @db.Uuid
-  card      CardInstance?    @relation(fields: [cardId], references: [id])
-  playerId  String           @db.Uuid
-  player    Player           @relation(fields: [playerId], references: [id])
-  slot      SelectionSlot
-  position  Position
-  order     Int // starters: pitch order; bench: 1..4 = Sub 1..Sub 4
+  cardId        String?          @db.Uuid
+  card          CardInstance?    @relation(fields: [cardId], references: [id])
+  playerId      String           @db.Uuid
+  player        Player           @relation(fields: [playerId], references: [id])
+  slot          SelectionSlot
+  position      Position
+  order         Int // starters: pitch order; bench: 1..4 = Sub 1..Sub 4
   // Captain: this player's points count double (up or down). One per entry, starters only.
-  isCaptain Boolean          @default(false)
+  isCaptain     Boolean          @default(false)
   // Vice-captain: doubles instead if the captain doesn't play. One per entry, starters only.
-  isViceCaptain Boolean      @default(false)
+  isViceCaptain Boolean          @default(false)
   // Carries the entry's weekly booster (one per entry, chosen by the manager).
-  isBoosted     Boolean      @default(false)
+  isBoosted     Boolean          @default(false)
 
   @@unique([entryId, cardId])
   @@unique([entryId, slot, order])
@@ -993,18 +993,18 @@ enum OfferStatus {
 // An offer below the asking price. The buyer's MP is held when the offer is made and released if
 // it isn't accepted, so an accepted offer can always be paid.
 model MarketOffer {
-  id          String        @id @default(uuid()) @db.Uuid
-  listingId   String        @db.Uuid
-  listing     MarketListing @relation(fields: [listingId], references: [id])
-  buyerId     String        @db.Uuid
-  buyer       User          @relation(fields: [buyerId], references: [id])
-  amountMinor Int
-  status      OfferStatus   @default(PENDING)
+  id           String        @id @default(uuid()) @db.Uuid
+  listingId    String        @db.Uuid
+  listing      MarketListing @relation(fields: [listingId], references: [id])
+  buyerId      String        @db.Uuid
+  buyer        User          @relation(fields: [buyerId], references: [id])
+  amountMinor  Int
+  status       OfferStatus   @default(PENDING)
   // Seller's counter-price (status COUNTERED). The buyer's original offer stays held meanwhile.
   counterMinor Int?
   counteredAt  DateTime?
-  createdAt   DateTime      @default(now())
-  respondedAt DateTime?
+  createdAt    DateTime      @default(now())
+  respondedAt  DateTime?
 
   @@index([listingId, status])
   @@index([buyerId, status])
@@ -1369,12 +1369,12 @@ model OwnedSetClaim {
 
 // Web push: one row per browser/phone a manager allowed notifications on.
 model PushSubscription {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @db.Uuid
-  endpoint  String   @unique
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  endpoint  String    @unique
   p256dh    String
   auth      String
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   lastOkAt  DateTime?
 
   @@index([userId])
@@ -1471,4 +1471,19 @@ model TeamOfTheWeek {
   expiresAt  DateTime
 
   @@index([expiresAt])
+}
+
+// "App users" giveaways: packs and/or earned MX for everyone who has installed the MATCHX app.
+// Optionally stays open so anyone who installs before openUntil gets it too (an install incentive).
+model AppGiveaway {
+  id          String    @id @default(uuid()) @db.Uuid
+  title       String
+  message     String
+  packSku     String?
+  mxMinor     Int       @default(0)
+  openUntil   DateTime?
+  recipients  Int       @default(0)
+  createdBy   String?   @db.Uuid
+  createdAt   DateTime  @default(now())
+  cancelledAt DateTime?
 }

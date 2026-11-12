@@ -25,5 +25,5 @@ export async function DELETE(req: Request) {
 /** The public key browsers need to subscribe (null = push not set up on this server). */
 export async function GET() {
   const { pushPublicKey } = await import("@/server/push");
-  return Response.json({ key: pushPublicKey() });
+  return Response.json({ key: await pushPublicKey() });
 }

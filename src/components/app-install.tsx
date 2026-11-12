@@ -84,6 +84,7 @@ export function TakeItOnTheGo({ compact = false }: { compact?: boolean }) {
         <p className="eyebrow text-lime">Take MatchX on the go</p>
         <h2 className="text-3xl leading-none">MATCHX on your home screen</h2>
         <p className="text-sm text-muted">Open your club in one tap, full screen, and get a nudge before the deadline, when free packs land and when results are in.</p>
+        <p className="rounded-xl border border-accent/40 bg-accent/5 px-3 py-2 text-sm">🎁 <b>App users get special giveaways</b> — free packs and MX that web players don&apos;t.</p>
         <div className="flex flex-wrap gap-2 pt-1">
           {installed ? (
             <span className="tag text-lime">Installed ✓</span>

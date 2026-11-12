@@ -133,3 +133,62 @@ export async function pointsByPlayer(window: PerformanceWindow = "5") {
   const rows = await performanceTable({ window });
   return new Map(rows.map((r) => [r.playerId, r.points]));
 }
+
+export interface FormGame {
+  opponent: string;
+  home: boolean;
+  points: number;
+  minutes: number;
+  goals: number;
+  assists: number;
+  cleanSheet: boolean;
+}
+
+/**
+ * Form guide: each player's last 4 finished matches for their club (a match they missed shows
+ * 0 minutes), with the MATCHX points each one scored — from real stats, same rules as matches.
+ */
+export async function formGuide(playerIds: string[], games = 4) {
+  const out = new Map<string, { games: FormGame[]; total: number; avg: number | null; hot: boolean }>();
+  if (!playerIds.length) return out;
+  const players = await db.player.findMany({ where: { id: { in: playerIds } }, select: { id: true, position: true, clubId: true } });
+  const clubIds = [...new Set(players.map((p) => p.clubId).filter((c): c is string => !!c))];
+  const fixtures = await db.fixture.findMany({
+    where: { status: "FINISHED", OR: [{ homeClubId: { in: clubIds } }, { awayClubId: { in: clubIds } }] },
+    orderBy: { kickoffAt: "desc" },
+    take: Math.max(40, clubIds.length * games * 2),
+    select: { id: true, homeClubId: true, awayClubId: true, homeClub: { select: { code: true } }, awayClub: { select: { code: true } } },
+  });
+  const stats = await db.playerMatchStat.findMany({
+    where: { isCurrent: true, playerId: { in: playerIds }, fixtureId: { in: fixtures.map((f) => f.id) } },
+    select: { playerId: true, fixtureId: true, stats: true },
+  });
+  const rules = getScoringRules(CURRENT_SCORING_RULES);
+  for (const p of players) {
+    if (!p.clubId) continue;
+    const mine = fixtures.filter((f) => f.homeClubId === p.clubId || f.awayClubId === p.clubId).slice(0, games);
+    const list: FormGame[] = mine
+      .map((f) => {
+        const home = f.homeClubId === p.clubId;
+        const s = stats.find((x) => x.playerId === p.id && x.fixtureId === f.id);
+        const line = s ? toStatLine(s.stats) : null;
+        const played = !!line && line.minutes > 0;
+        return {
+          opponent: home ? f.awayClub.code : f.homeClub.code,
+          home,
+          points: played ? round1(scorePlayer(rules, p.position, [line!]).points) : 0,
+          minutes: played ? line!.minutes : 0,
+          goals: played ? line!.goals : 0,
+          assists: played ? line!.assists : 0,
+          cleanSheet: played && line!.minutes >= 60 && line!.goalsConceded === 0 && p.position !== "ATT",
+        };
+      })
+      .reverse(); // oldest first, so the newest game is on the right
+    if (!list.length) continue;
+    const playedGames = list.filter((g) => g.minutes > 0);
+    const total = round1(list.reduce((s, g) => s + g.points, 0));
+    const avg = playedGames.length ? round1(total / playedGames.length) : null;
+    out.set(p.id, { games: list, total, avg, hot: playedGames.length >= 3 && (avg ?? 0) >= 6 });
+  }
+  return out;
+}

@@ -12,7 +12,7 @@ export const POS_ORDER = { GK: 0, DEF: 1, MID: 2, ATT: 3 } as const;
  * One card as a full-width row: tier border · shirt · name/club · position · value. Pages put their
  * own columns (price, offers, actions) in `children`, which sit on the right.
  */
-export function CardRow({ card, href, children, sub, showValue = false }: { card: CardView; href?: string; children?: React.ReactNode; sub?: React.ReactNode; showValue?: boolean }) {
+export function CardRow({ card, href, children, sub, below, showValue = false }: { card: CardView; href?: string; children?: React.ReactNode; sub?: React.ReactNode; below?: React.ReactNode; showValue?: boolean }) {
   const body = (
     <>
       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-ink-850">
@@ -43,7 +43,7 @@ export function CardRow({ card, href, children, sub, showValue = false }: { card
     </>
   );
   return (
-    <li className={`row-item tier-${card.finish?.kind ?? card.category} gap-3 sm:gap-4 ${card.loan?.ended ? "loan-ended" : ""}`}>
+    <li className={`row-item ${below ? "flex-wrap gap-y-1" : ""} tier-${card.finish?.kind ?? card.category} gap-3 sm:gap-4 ${card.loan?.ended ? "loan-ended" : ""}`}>
       <span className="hidden w-9 shrink-0 text-center text-[11px] font-extrabold tracking-[0.12em] text-muted sm:block">{card.position}</span>
       {href ? (
         <Link href={href} className="flex min-w-0 flex-1 items-center gap-3 hover:opacity-90">
@@ -74,6 +74,7 @@ export function CardRow({ card, href, children, sub, showValue = false }: { card
         )}
       </span>
       {children}
+      {below && <div className="w-full basis-full sm:pl-[104px]">{below}</div>}
     </li>
   );
 }

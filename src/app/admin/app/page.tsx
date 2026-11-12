@@ -1,11 +1,16 @@
 import { db } from "@/server/db";
 import { fmtDate } from "@/lib/view";
 import { AdminTitle } from "../_parts/title";
+import { AppGiveawayForm } from "@/components/admin-forms";
+import { ActionButton } from "@/components/action-button";
+import { closeAppGiveawayAction } from "@/app/actions/economy";
+import { appGiveaways } from "@/server/app-messages";
+import { giftPacks } from "@/server/welcome";
 
 export const metadata = { title: "Admin · App" };
 
 export default async function AppAdmin() {
-  const [total, installed, byPlatform, notif, recent] = await Promise.all([
+  const [total, installed, byPlatform, notif, recent, giveaways] = await Promise.all([
     db.user.count(),
     db.user.count({ where: { appInstalledAt: { not: null } } }),
     db.user.groupBy({ by: ["appPlatform"], _count: { _all: true }, where: { appInstalledAt: { not: null } } }),
@@ -16,6 +21,7 @@ export default async function AppAdmin() {
       take: 200,
       select: { id: true, displayName: true, appInstalledAt: true, appPlatform: true, notificationsEnabled: true, notificationsUpdatedAt: true },
     }),
+    appGiveaways(),
   ]);
   const pct = (n: number) => (total ? `${Math.round((n / total) * 100)}%` : "0%");
   const plat = (p: string) => byPlatform.find((b) => b.appPlatform === p)?._count._all ?? 0;
@@ -40,6 +46,42 @@ export default async function AppAdmin() {
           </div>
         ))}
       </section>
+      <section className="panel space-y-2 p-5">
+        <h2 className="text-2xl">Automatic app messages</h2>
+        <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
+          <li><b className="text-fg">Welcome to MATCHX</b> — about an hour after a manager installs the app.</li>
+          <li><b className="text-fg">⚡ Boosters land in an hour</b> — every Tuesday at 8am, before the 9am booster drop.</li>
+          <li><b className="text-fg">Locks in under an hour</b> — to managers who&apos;ve entered, before the deadline (and a last call to recent players who haven&apos;t).</li>
+        </ul>
+        <p className="text-xs text-faint">They go to the phone when notifications are on, and always to the bell in the app. Each is sent once.</p>
+      </section>
+
+      <section className="panel space-y-4 p-5">
+        <div>
+          <h2 className="text-2xl">App users&apos; giveaway</h2>
+          <p className="mt-1 text-sm text-muted">Give everyone who has installed the app a free pack, some earned MX, or both — with a notification. Keep it open for a few days to reward new installs too.</p>
+        </div>
+        <AppGiveawayForm packs={giftPacks()} />
+        {giveaways.length > 0 && (
+          <ul className="divide-y divide-ink-700 text-sm">
+            {giveaways.map((g) => {
+              return (
+                <li key={g.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+                  <span className="min-w-0">
+                    <b>{g.title}</b>
+                    <span className="block text-xs text-faint">
+                      {fmtDate(g.createdAt)} · {g.recipients} received · {[g.packSku ? giftPacks().find((p) => p.code === g.packSku)?.name ?? g.packSku : null, g.mxMinor ? `${(g.mxMinor / 100).toFixed(2)} MX` : null].filter(Boolean).join(" + ")}
+                      {g.cancelledAt ? " · closed" : g.open && g.openUntil ? ` · open to new installs until ${fmtDate(g.openUntil)}` : ""}
+                    </span>
+                  </span>
+                  {g.open && <ActionButton action={closeAppGiveawayAction.bind(null, g.id)} className="btn-ghost px-3 py-1.5 text-[11px]">Close</ActionButton>}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
       <div className="overflow-x-auto rounded-2xl border border-ink-700">
         <table className="stack w-full text-sm sm:min-w-[560px]">
           <thead className="bg-ink-850 text-left text-[11px] uppercase tracking-[0.12em] text-faint">

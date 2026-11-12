@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { setSettingAction, setTextSettingAction, addWelcomeGiftAction, competitionRulesAction, createAuctionAction, createMatchAction, createChallengeAction, pinnedListingsAction, scheduleDropAction, stockHouseAction } from "@/app/actions/economy";
+import { appGiveawayAction, setSettingAction, setTextSettingAction, addWelcomeGiftAction, competitionRulesAction, createAuctionAction, createMatchAction, createChallengeAction, pinnedListingsAction, scheduleDropAction, stockHouseAction } from "@/app/actions/economy";
 import type { ActionResult } from "@/app/actions/result";
 import { ResultText } from "./action-button";
 
@@ -319,3 +319,23 @@ export function TextSettingForm({ settingKey, label, help, value, options, place
 /** Generic admin form + input, for pages that bring their own server action. */
 export const AdminForm = Form;
 export const AdminInput = I;
+
+export function AppGiveawayForm({ packs }: { packs: Array<{ code: string; name: string }> }) {
+  return (
+    <Form action={appGiveawayAction} submit="Send giveaway">
+      <I name="title" label="Title (shown in the notification)" maxLength={60} placeholder="App users' weekend treat" required />
+      <I name="message" label="Message" maxLength={200} placeholder="Thanks for installing MATCHX — here's a free pack on us." required />
+      <div>
+        <label className="label" htmlFor="f-packSku">Free pack (optional)</label>
+        <select id="f-packSku" name="packSku" className="input" defaultValue="">
+          <option value="">No pack</option>
+          {packs.map((p) => (
+            <option key={p.code} value={p.code}>{p.name}</option>
+          ))}
+        </select>
+      </div>
+      <I name="mx" label="Earned MX (optional)" type="number" step="0.01" min="0" max="100" placeholder="0.00" />
+      <I name="openDays" label="Keep open for new installs (days, 0 = current app users only)" type="number" min="0" max="60" defaultValue="0" />
+    </Form>
+  );
+}

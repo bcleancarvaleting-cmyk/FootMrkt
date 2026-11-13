@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ClubCrest } from "@/components/club-crest";
-import { HERO_PHOTOS, PhotoBackground } from "@/components/hero-background";
+import { PhotoBackground } from "@/components/hero-background";
+import { heroPhotos } from "@/server/site-images";
 import { HeroCarousel } from "@/components/hero-carousel";
 import { HeroSlide } from "@/components/hero-slide";
 import { PlayerCard } from "@/components/player-card";
@@ -22,6 +23,7 @@ const ukWhen = (d: Date) => d.toLocaleString("en-GB", { weekday: "short", hour: 
 
 export async function HubHero({ userId, name, unopened, marketOn, buyNows, auctions, watch }: { userId: string; name: string; unopened: number; marketOn: boolean; buyNows: number; auctions: number; watch: { sim: boolean; real: boolean } }) {
   const now = new Date();
+  const photos = await heroPhotos();
   const [user, cards, pf, market, games, challenges] = await Promise.all([
     db.user.findUniqueOrThrow({ where: { id: userId }, select: { clubName: true, crest: true } }),
     binder(userId),
@@ -153,7 +155,7 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
         </Frame>
 
         <HeroSlide
-          background={<PhotoBackground src={HERO_PHOTOS.ballBoots} position="60% 50%" />}
+          background={<PhotoBackground src={photos.ballBoots} position="60% 50%" />}
           eyebrow="Buy packs"
           title="Pack"
           accent="Luck."
@@ -164,7 +166,7 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
         />
 
         <HeroSlide
-          background={<PhotoBackground src={HERO_PHOTOS.bootBall} position="50% 45%" />}
+          background={<PhotoBackground src={photos.bootBall} position="50% 45%" />}
           eyebrow="Transfer list"
           title="Buy, Sell &"
           accent="Make Offers."
@@ -175,7 +177,7 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
         />
 
         <HeroSlide
-          background={<PhotoBackground src={HERO_PHOTOS.nightStadium} />}
+          background={<PhotoBackground src={photos.nightStadium} />}
           eyebrow="Matches"
           title="Pick your"
           accent="teams."
@@ -190,7 +192,7 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
         />
 
         <HeroSlide
-          background={<PhotoBackground src={HERO_PHOTOS.floodlight} position="50% 40%" />}
+          background={<PhotoBackground src={photos.floodlight} position="50% 40%" />}
           eyebrow="Challenges"
           title="Challenge"
           accent="Yourself."

@@ -35,7 +35,7 @@ export const ADMIN_MENU: Array<{ group: string; items: Array<{ href: string; lab
       { href: "/admin/support", label: "Support inbox" },
     ],
   },
-  { group: "Marketing", items: [{ href: "/admin/social", label: "Social content" }] },
+  { group: "Marketing", items: [{ href: "/admin/images", label: "Images" }, { href: "/admin/social", label: "Social content" }] },
   { group: "System", items: [{ href: "/admin/integrations", label: "Integrations" }, { href: "/admin/emails", label: "Emails" }, { href: "/admin/errors", label: "Errors" }, { href: "/admin/settings", label: "Settings & flags" }] },
 ];
 

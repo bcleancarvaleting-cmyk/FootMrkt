@@ -1572,3 +1572,14 @@ model PromoClaim {
 
   @@unique([userId, code])
 }
+
+// Images uploaded in Admin → Images (homepage photos, player photos, club badges, league logos),
+// served from /api/images/<id>. Kept in the database so they survive redeploys.
+model SiteImage {
+  id          String   @id @default(uuid()) @db.Uuid
+  bytes       Bytes
+  contentType String
+  name        String
+  createdById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+}

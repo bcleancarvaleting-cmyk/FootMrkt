@@ -21,7 +21,7 @@ import { PackWrapper } from "@/components/pack-wrapper";
 import { starCards } from "@/server/showcase";
 import { LiveGamesList } from "@/components/live-games-list";
 import { PromoBanner } from "@/components/promo-banner";
-import { HERO_PHOTOS, PhotoBackground } from "@/components/hero-background";
+import { PhotoBackground } from "@/components/hero-background";
 import { TakeItOnTheGo } from "@/components/app-install";
 import { CommunityLinks } from "@/components/community-links";
 import { EndedLoansBanner } from "@/components/loan-banner";
@@ -45,14 +45,22 @@ export default async function Home({ searchParams }: { searchParams: Promise<Lau
 
 async function Landing() {
   // Front page: the game's best-known players, the real packs and what's on now.
-  const [stars, marketStars, packSkus, players, clubs] = await Promise.all([
+  const { heroCardLooks, dress, heroPhotos } = await import("@/server/site-images");
+  const [looks, photos] = await Promise.all([heroCardLooks(), heroPhotos()]);
+  const [stars, marketStars, packSkus, players, clubs, chosen] = await Promise.all([
     starCards("GOLD", 3),
     starCards("GOLD", 7).then((c) => c.slice(3, 7)),
     db.packSku.findMany({ where: { code: { in: ["football-eng-bronze", "football-eng-silver", "football-eng-gold"] } }, select: { code: true, priceMinor: true } }),
     db.player.count({ where: { active: true } }),
     db.club.count(),
+    // The homepage cards picked in Admin → Images (No. 1 Gold of each, in the chosen look).
+    (await import("@/server/views")).cardViews({ serial: 1, finish: null, template: { category: "GOLD", edition: "STANDARD", player: { displayName: { in: looks.map((l) => l.name) } } } }, undefined, 10),
   ]);
-  const picks = stars.length === 3 ? [stars[1], stars[0], stars[2]] : stars;
+  const picked = looks.flatMap((l) => {
+    const c = chosen.find((x) => x.name === l.name);
+    return c ? [dress(c, l.look)] : [];
+  });
+  const picks = picked.length === 3 ? picked : stars.length === 3 ? [stars[1], stars[0], stars[2]] : stars;
   const packLeagues = await (await import("@/server/pack-leagues")).packLeagueBadges(["football-eng-bronze", "football-eng-silver", "football-eng-gold"]).catch(() => ({}) as Record<string, never[]>);
   const priceOf = (t: string) => {
     const sku = packSkus.find((k) => k.code === `football-eng-${t}`);
@@ -70,7 +78,7 @@ async function Landing() {
         <HeroCarousel labels={["Manage your team", "Transfer market", "Buy packs"]}>
           <HeroSlide
             heading="h1"
-            background={<PhotoBackground src={HERO_PHOTOS.floodlight} position="50% 40%" />}
+            background={<PhotoBackground src={photos.floodlight} position="50% 40%" />}
             eyebrow="Manage your team"
             title="Your club"
             accent="starts here."
@@ -88,7 +96,7 @@ async function Landing() {
             ctas={ctas}
           />
           <HeroSlide
-            background={<PhotoBackground src={HERO_PHOTOS.nightStadium} />}
+            background={<PhotoBackground src={photos.nightStadium} />}
             eyebrow="Transfer market"
             title="Buy, sell &"
             accent="make offers."
@@ -108,7 +116,7 @@ async function Landing() {
             ctas={ctas}
           />
           <HeroSlide
-            background={<PhotoBackground src={HERO_PHOTOS.ballBoots} position="60% 50%" />}
+            background={<PhotoBackground src={photos.ballBoots} position="60% 50%" />}
             eyebrow="Buy packs"
             title="Pack"
             accent="luck."

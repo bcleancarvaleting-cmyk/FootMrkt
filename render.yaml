@@ -28,12 +28,15 @@ services:
         generateValue: true
       - key: CRON_SECRET
         generateValue: true
+      # Live switchover (13 Nov 2026): no longer a test site — the new-trader wait applies again.
       - key: TEST_SITE
-        value: "true"
+        value: "false"
       - key: RUN_JOBS_IN_APP
         value: "true"
+      # Real card payments. The switch in Admin → Integrations still has the final say; Stripe keys
+      # saved there (encrypted in the database) are untouched by deploys.
       - key: PAYMENTS_PROVIDER
-        value: sandbox
+        value: stripe
       - key: LEGAL_GATES_CLEARED
         value: PAID_PACKS,MARKET,DEPOSITS,WITHDRAWALS,PAID_ENTRY,AUCTIONS
       - key: FLAG_PACK_SHOP
@@ -48,8 +51,9 @@ services:
         value: "true"
       - key: FLAG_WITHDRAWALS
         value: "true"
+      # Off for launch: no free dev packs or pretend checkout for players.
       - key: FLAG_DEV_TOOLS
-        value: "true"
+        value: "false"
       - key: FLAG_SIMULATED_DATA
         value: "true"
 

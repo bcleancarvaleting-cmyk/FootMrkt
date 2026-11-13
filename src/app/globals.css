@@ -1101,3 +1101,46 @@ h2 {
 @keyframes photo-glint { 0%, 55% { transform: translateX(-60%); } 100% { transform: translateX(60%); } }
 @keyframes photo-rainbow { to { background-position: 300% 0; } }
 @media (prefers-reduced-motion: reduce) { .photo-diamond::after, .photo-rainbow .photo-tint { animation: none; } }
+
+/* Bronze, Silver and Gold: a gentle light sweep across the foil and a soft glint over the photo —
+   the same idea as the Ruby / Diamond / Rainbow effects, just quieter (Bronze quietest, Gold
+   brightest). Moves a light band with transform only, so a page of cards stays smooth. */
+@media (prefers-reduced-motion: no-preference) {
+  .card-premium.foil-bronze::after,
+  .card-premium.foil-silver::after,
+  .card-premium.foil-gold::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: -20% -80%;
+    z-index: 3;
+    background: linear-gradient(105deg, transparent 44%, rgb(255 255 255 / var(--glint, 0.18)) 50%, transparent 56%);
+    mix-blend-mode: soft-light;
+    animation: tier-glint var(--glint-time, 7s) ease-in-out infinite;
+    animation-delay: var(--glint-delay, 0s);
+  }
+  .card-premium.foil-bronze { --glint: 0.22; --glint-time: 9s; }
+  .card-premium.foil-silver { --glint: 0.3; --glint-time: 8s; --glint-delay: 1.5s; }
+  .card-premium.foil-gold { --glint: 0.42; --glint-time: 6.5s; --glint-delay: 0.8s; }
+  /* The silver and bronze foils get the soft sheen too (gold already has it). */
+  .card-premium.foil-silver .sheen { animation: sheen 6s ease-in-out infinite; opacity: 0.75; }
+  .card-premium.foil-bronze .sheen { animation: sheen 7.5s ease-in-out infinite; opacity: 0.6; }
+  /* A soft glint across the player photo. */
+  .photo-gold::after,
+  .photo-silver::after,
+  .photo-bronze::after {
+    content: "";
+    position: absolute;
+    inset: -40% -60%;
+    pointer-events: none;
+    background: linear-gradient(115deg, transparent 44%, rgb(255 255 255 / var(--photo-glint, 0.2)) 50%, transparent 56%);
+    animation: photo-glint var(--photo-glint-time, 7s) ease-in-out infinite;
+  }
+  .photo-gold { --photo-glint: 0.28; --photo-glint-time: 6.5s; }
+  .photo-silver { --photo-glint: 0.2; --photo-glint-time: 8s; }
+  .photo-bronze { --photo-glint: 0.14; --photo-glint-time: 9s; }
+}
+@keyframes tier-glint {
+  0%, 60% { transform: translateX(-45%); }
+  100% { transform: translateX(45%); }
+}

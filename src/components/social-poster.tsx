@@ -23,8 +23,12 @@ const BG: Record<string, string> = {
   LIME: "radial-gradient(70% 55% at 50% 30%, rgba(173,252,7,.22), transparent 70%), #07080a",
 };
 
+/** Images from other sites go through our own relay, so the poster can be saved as a picture. */
+export const sameSite = (url: string | null) => (url && /^https?:\/\//.test(url) ? `/api/img?u=${encodeURIComponent(url)}` : url);
+
 /** A card scaled up for the poster (the card itself is 240px wide at size "lg"). */
-function BigCard({ card, width }: { card: CardView; width: number }) {
+function BigCard({ card: raw, width }: { card: CardView; width: number }) {
+  const card = { ...raw, imageUrl: sameSite(raw.imageUrl), crestUrl: sameSite(raw.crestUrl) };
   const scale = width / 240;
   return (
     <div style={{ width, height: width * 1.4 }}>

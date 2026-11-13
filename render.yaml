@@ -7,7 +7,9 @@ services:
   - type: web
     name: matchx-test
     runtime: node
-    plan: free
+    # Paid from launch (13 Nov 2026) — keep this in step with the plan picked in Render, or a
+    # Blueprint sync would put the site back on the free plan.
+    plan: starter
     branch: claude/football-manager-game-mode-b8ib5b
     buildCommand: npm ci && npx next build
     # Database tables, then the starter data (leagues, clubs, players, packs — skipped once loaded), then the app.
@@ -59,5 +61,6 @@ services:
 
 databases:
   - name: matchx-test-db
-    plan: free
+    # Paid from launch: free databases are deleted after 30 days.
+    plan: basic-256mb
     databaseName: matchx

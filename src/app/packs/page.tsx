@@ -334,6 +334,9 @@ function PackArt({ code, name, small, leagues }: { code: string; name?: string; 
   return (
     <div className={`card-premium ${tier === "gold" || rare ? "is-gold" : ""} ${rare ? "rainbow-halo" : ""} relative flex shrink-0 overflow-hidden ${small ? "h-14 w-11 rounded-lg" : "h-44 w-full items-end p-5"} ${foil}`}>
       {england && <EnglandCross />}
+      {/* gloss + inner foil edge */}
+      <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(160deg,rgba(255,255,255,0.4)_0%,rgba(255,255,255,0.06)_30%,transparent_48%,rgba(0,0,0,0.2)_100%)]" aria-hidden="true" />
+      {!small && <span className="pointer-events-none absolute inset-2.5 rounded-xl ring-1 ring-white/35" aria-hidden="true" />}
       <span className="sheen" aria-hidden="true" />
       {tier === "gold" && <span className="holo" aria-hidden="true" />}
       {!small && (
@@ -350,7 +353,14 @@ function PackArt({ code, name, small, leagues }: { code: string; name?: string; 
           </span>
           <span className="absolute right-4 top-3 font-display text-3xl font-extrabold italic text-black/25">X</span>
           <span className="relative flex flex-col gap-2">
-            <span className="font-display text-5xl font-extrabold uppercase italic leading-none text-black/75">{(name ?? "").replace("England ", "").replace(" Pack", "")}</span>
+            <span className="self-start rounded-lg bg-black/70 px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] backdrop-blur-sm">
+              <span
+                className="block bg-clip-text font-display text-5xl font-extrabold uppercase italic leading-none text-transparent"
+                style={{ backgroundImage: tier === "bronze" ? "linear-gradient(180deg,#ffd6b0,#e0a46a 45%,#9a5a2c)" : tier === "silver" ? "linear-gradient(180deg,#fff,#d9dee4 45%,#8d96a1)" : tier === "gold" ? "linear-gradient(180deg,#fff5c4,#f2cf63 45%,#a87a1e)" : rare ? "linear-gradient(90deg,#ff5f9e,#ffb35c,#f6ff6b,#5dffa8,#5cc8ff,#a66bff)" : "linear-gradient(180deg,#f4ffd6,#adfc07)" }}
+              >
+                {(name ?? "").replace("England ", "").replace(" Pack", "")}
+              </span>
+            </span>
             {leagues?.length ? (
               <PackLeagueLogos leagues={leagues} />
             ) : m?.leagues && (

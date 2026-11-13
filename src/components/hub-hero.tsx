@@ -40,7 +40,7 @@ export async function HubHero({ userId, name, unopened, marketOn, buyNows, aucti
         locksAt: true,
         gameweek: { select: { id: true, simulated: true, startsAt: true } },
         _count: { select: { entries: true } },
-        entries: { where: { userId, status: "ACTIVE" }, select: { provisionalPoints: true, selections: { where: { slot: "STARTER" }, orderBy: { order: "asc" }, select: { isCaptain: true, player: { select: { displayName: true, lastName: true, position: true } } } } } },
+        entries: { where: { userId, status: "ACTIVE" }, select: { provisionalPoints: true, selections: { where: { slot: "STARTER" }, orderBy: { order: "asc" }, select: { isCaptain: true, player: { select: { displayName: true, lastName: true, position: true, imageUrl: true, club: { select: { primaryColour: true } } } } } } } },
       },
     }),
     challengeBoard(userId, now).catch(() => []),
@@ -284,7 +284,7 @@ function CardStack({ cards }: { cards: CardView[] }) {
 }
 
 /** Your seven on a pitch (or empty spots to fill). */
-function TeamPitch({ name, picks }: { name: string | null; picks: Array<{ isCaptain: boolean; player: { displayName: string; lastName: string; position: string } }> }) {
+function TeamPitch({ name, picks }: { name: string | null; picks: Array<{ isCaptain: boolean; player: { displayName: string; lastName: string; position: string; imageUrl?: string | null; club?: { primaryColour: string } | null } }> }) {
   const rows: Array<["ATT" | "MID" | "DEF" | "GK", number]> = [["ATT", 2], ["MID", 2], ["DEF", 2], ["GK", 1]];
   const byPos = (p: string) => picks.filter((s) => s.player.position === p);
   return (
@@ -310,8 +310,13 @@ function TeamPitch({ name, picks }: { name: string | null; picks: Array<{ isCapt
                   const s = got[k];
                   return (
                     <span key={k} className="flex w-20 flex-col items-center gap-1">
-                      <span className={`relative flex h-10 w-10 items-center justify-center rounded-full border-2 text-[10px] font-black ${s ? "border-white bg-[#0b0e0c] text-[#adfc07]" : "border-dashed border-white/50 bg-black/20 text-white/60"}`}>
-                        {pos}
+                      <span className={`relative flex h-10 w-10 items-center justify-center rounded-full border-2 text-[10px] font-black ${s ? "border-white bg-[#0b0e0c] text-[#adfc07]" : "border-dashed border-white/50 bg-black/20 text-white/60"}`} style={s?.player.imageUrl ? { background: s.player.club?.primaryColour } : undefined}>
+                        {s?.player.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={s.player.imageUrl} alt="" className="h-full w-full rounded-full object-cover object-top" loading="lazy" />
+                        ) : (
+                          pos
+                        )}
                         {s?.isCaptain && <span className="absolute -right-1 -top-1 rounded-full bg-[#adfc07] px-1 text-[9px] font-black text-[#0a0d02]">C</span>}
                       </span>
                       <span className="w-full truncate rounded bg-black/55 px-1 text-center text-[10px] font-bold text-white">{s ? s.player.lastName || s.player.displayName : "Pick"}</span>

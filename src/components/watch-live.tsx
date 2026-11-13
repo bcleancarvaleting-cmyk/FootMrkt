@@ -421,8 +421,13 @@ function PlayerToken({ p }: { p: WatchPlayer }) {
           {gain.d > 0 ? `+${gain.d}` : gain.d}
         </span>
       )}
-      <span className="relative flex h-11 w-11 items-center justify-center rounded-full border-2 border-white/80 text-[11px] font-black text-white shadow-lg sm:h-12 sm:w-12" style={{ background: p.colour }}>
-        {p.club}
+      <span className="relative flex h-11 w-11 items-center justify-center rounded-full border-2 border-white/80 text-[11px] font-black text-white shadow-lg sm:h-12 sm:w-12" style={{ background: p.imageUrl ? `radial-gradient(circle at 50% 30%, ${p.colour}, #0b0d0e 90%)` : p.colour }}>
+        {p.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={p.imageUrl} alt={p.name} className="h-full w-full rounded-full object-cover object-top" loading="lazy" />
+        ) : (
+          p.club
+        )}
         {p.captain && <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#adfc07] text-[10px] font-black text-[#0a0d02]">C</span>}
         {p.playing && <span className="absolute -bottom-0.5 -left-0.5 h-2.5 w-2.5 animate-pulse rounded-full border border-black bg-danger" title="Playing now" />}
       </span>

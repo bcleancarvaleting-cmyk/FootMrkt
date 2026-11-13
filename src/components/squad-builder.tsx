@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { PlayerFace } from "./player-face";
 import { submitDraftEntryAction, submitEntryAction, withdrawEntryAction } from "@/app/actions/game";
 import type { ActionResult } from "@/app/actions/result";
 import type { CardView, Pos } from "@/lib/view";
@@ -513,7 +514,10 @@ export function SquadBuilder({
                   onClick={() => place(c.id)}
                   className={`flex w-full items-center gap-3 px-3 py-2 text-left text-sm ${ok ? "hover:bg-ink-850" : "opacity-40"} ${inUse ? "bg-lime/5" : ""}`}
                 >
-                  <span className={`w-9 rounded text-center text-[10px] font-black ${tierStyle(c.category).text} bg-ink-800 py-0.5`}>{c.position}</span>
+                  <span className="relative shrink-0">
+                    <PlayerFace imageUrl={c.imageUrl} kit={c.kit} number={c.squadNumber} id={`pick-${c.id}`} label={c.name} size="h-10" />
+                    <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 rounded px-1 text-[9px] font-black ${tierStyle(c.category).text} bg-ink-800`}>{c.position}</span>
+                  </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5 truncate font-semibold">
                       <CategoryDot category={c.category} /> {c.name}
@@ -575,12 +579,13 @@ function PitchSlot({
         onClick={onSelect}
         style={target ? ({ ...boostStyle, "--boost": target } as React.CSSProperties) : boostStyle}
         title={boost && card ? `${boost.name} booster` : undefined}
-        className={`${target ? "boost-target " : ""}flex h-20 w-[72px] flex-col items-center justify-center rounded-xl border text-center transition sm:w-24 ${
+        className={`${target ? "boost-target " : ""}flex ${card?.imageUrl ? "h-24" : "h-20"} w-[72px] flex-col items-center justify-center rounded-xl border text-center transition sm:w-24 ${
           selected ? "border-lime bg-lime/15 ring-2 ring-lime/40" : card ? "border-white/15 bg-ink-950/70" : "border-dashed border-white/25 bg-ink-950/30 hover:border-lime/60"
         }`}
       >
         {card ? (
           <>
+            {card.imageUrl && <PlayerFace imageUrl={card.imageUrl} kit={card.kit} number={card.squadNumber} id={`slot-${card.id}`} label={card.name} size="h-8" round className="mb-0.5" />}
             <span className={`flex items-center gap-1 text-[10px] font-black ${t!.text}`}>
               {card.position}
               {card.start && <StartChip s={card.start} compact />}

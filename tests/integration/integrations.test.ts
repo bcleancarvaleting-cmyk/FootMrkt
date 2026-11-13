@@ -104,6 +104,10 @@ describe("Rebuild from Sportmonks", () => {
     // A photo added by hand (another licensed source) is never replaced by the sync.
     const handPicked = await db.player.findFirstOrThrow({ where: { displayName: "Player 2-3" } });
     await db.player.update({ where: { id: handPicked.id }, data: { imageUrl: "https://images.example.com/p23.jpg", imageCredit: "Club media" } });
+    // An old duplicate record nobody linked to Sportmonks ("N. Signing" at Gillingham).
+    const sport = await db.sport.findFirstOrThrow();
+    const gil = await db.club.findFirstOrThrow({ where: { name: "Gillingham" } });
+    const dup = await db.player.create({ data: { sportId: sport.id, clubId: gil.id, firstName: "", lastName: "Signing", displayName: "N. Signing", position: "MID", nationality: "ENG" } });
     transferWindow = true;
     const r = await syncSquads(owner.id);
     expect(r).toEqual({ moved: 1, added: 1, missing: 1 });
@@ -120,6 +124,10 @@ describe("Rebuild from Sportmonks", () => {
     expect((await db.player.findFirstOrThrow({ where: { displayName: "Player 2-15" } })).imageUrl).toBeNull();
     expect((await db.player.findUniqueOrThrow({ where: { id: handPicked.id } })).imageUrl).toBe("https://images.example.com/p23.jpg");
     expect(signing.imageUrl).toBe("https://cdn.sportmonks.com/images/soccer/players/299.png");
+    // The unlinked duplicate gets the same person's photo, without taking their Sportmonks id.
+    const dupAfter = await db.player.findUniqueOrThrow({ where: { id: dup.id } });
+    expect(dupAfter.imageUrl).toBe("https://cdn.sportmonks.com/images/soccer/players/299.png");
+    expect(dupAfter.providerRefs).toEqual({});
     expect((await db.club.findFirstOrThrow({ where: { name: "Arsenal" } })).crestUrl).toBe("https://cdn.sportmonks.com/images/soccer/teams/1/1.png");
     expect((await db.club.findFirstOrThrow({ where: { name: "Gillingham" } })).crestUrl).toBeNull();
     const report = await lastSquadSync();

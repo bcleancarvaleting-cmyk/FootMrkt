@@ -43,12 +43,12 @@ export async function marketMovers(now = new Date()) {
   const tips = [...(await (await import("./valuation")).priceTips()).values()].slice(0, 10);
   const ids = [...new Set([...risers, ...fallers].map((r) => r.playerId).concat(traded.map((t) => t.playerId), records.map((r) => r.playerId), tips.map((t) => t.playerId)))];
   const players = new Map(
-    (await db.player.findMany({ where: { id: { in: ids } }, select: { id: true, displayName: true, position: true, squadNumber: true, club: { select: { name: true, shortName: true, kit: true, primaryColour: true, secondaryColour: true } } } })).map((p) => [
+    (await db.player.findMany({ where: { id: { in: ids } }, select: { id: true, displayName: true, position: true, squadNumber: true, imageUrl: true, club: { select: { name: true, shortName: true, kit: true, primaryColour: true, secondaryColour: true } } } })).map((p) => [
       p.id,
-      { name: p.displayName, position: p.position, squadNumber: p.squadNumber, club: p.club?.name ?? "Free agent", kit: toKit(p.club?.kit, p.club?.primaryColour ?? "#444", p.club?.secondaryColour ?? "#fff") },
+      { name: p.displayName, position: p.position, squadNumber: p.squadNumber, imageUrl: p.imageUrl, club: p.club?.name ?? "Free agent", kit: toKit(p.club?.kit, p.club?.primaryColour ?? "#444", p.club?.secondaryColour ?? "#fff") },
     ]),
   );
-  const who = (id: string) => players.get(id) ?? { name: "Unknown", position: "MID", squadNumber: null, club: "—", kit: toKit(null, "#444", "#fff") };
+  const who = (id: string) => players.get(id) ?? { name: "Unknown", position: "MID", squadNumber: null, imageUrl: null as string | null, club: "—", kit: toKit(null, "#444", "#fff") };
   return {
     risers: risers.map((r) => ({ ...r, player: who(r.playerId) })),
     fallers: fallers.map((r) => ({ ...r, player: who(r.playerId) })),

@@ -96,7 +96,7 @@ export function PlayerCard({ card, size = "md", className = "", showcase = false
         <div className={`relative min-h-0 flex-1 basis-0 overflow-hidden rounded-xl ${small ? "mx-2 mt-1" : "mx-2.5 mt-1.5"} ${gem ? "bg-gradient-to-b from-white/15 to-transparent" : "bg-gradient-to-b from-white/5 to-transparent"}`}>
           {/* Pinned inside its box: the kit can never push the name and info off the card. */}
           <div className="absolute inset-0 flex items-end justify-center">
-            <PlayerImage card={card} />
+            <PlayerImage card={card} small={small} />
           </div>
         </div>
 
@@ -206,7 +206,7 @@ function CardNumber({ card, small }: { card: CardView; small: boolean }) {
  * Diamond and Rainbow cards tint the photo red, ice-blue or shifting rainbow. Without a photo: the
  * player's home shirt with their squad number.
  */
-export function PlayerImage({ card }: { card: CardView }) {
+export function PlayerImage({ card, small = false }: { card: CardView; /** Small cards: a smaller kit and badge tucked into the corners, so they never cover the face. */ small?: boolean }) {
   if (card.imageUrl) {
     const look = card.finish ? card.finish.kind.toLowerCase() : card.category.toLowerCase();
     return (
@@ -215,13 +215,13 @@ export function PlayerImage({ card }: { card: CardView }) {
           <ClubBadge short={card.clubShort} primary={card.clubPrimary} secondary={card.clubSecondary} kit={card.kit} crestUrl={card.crestUrl} size={160} />
         </span>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={card.imageUrl} alt={card.name} className="photo-img relative h-full w-full object-cover object-top" title={card.imageCredit ? `Photo: ${card.imageCredit}` : undefined} loading="lazy" />
+        <img src={card.imageUrl} alt={card.name} className="photo-img relative h-full w-full object-contain object-bottom" title={card.imageCredit ? `Photo: ${card.imageCredit}` : undefined} loading="lazy" />
         <span className="photo-tint" aria-hidden="true" />
-        <span className="absolute bottom-[4%] left-[5%] h-[30%] max-h-14 drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)]">
+        <span className={`absolute drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)] ${small ? "bottom-[3%] left-[3%] h-[22%] max-h-6" : "bottom-[4%] left-[5%] h-[30%] max-h-14"}`}>
           <KitShirt kit={card.kit} number={card.squadNumber} id={`${card.id}-mini`} label={`${card.clubName ?? "Club"} home shirt`} className="h-full w-auto" />
         </span>
-        <span className="absolute bottom-[5%] right-[5%] drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)]">
-          <ClubBadge short={card.clubShort} primary={card.clubPrimary} secondary={card.clubSecondary} kit={card.kit} crestUrl={card.crestUrl} size={26} title={card.clubName ?? undefined} />
+        <span className={`absolute drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)] ${small ? "bottom-[3%] right-[3%]" : "bottom-[5%] right-[5%]"}`}>
+          <ClubBadge short={card.clubShort} primary={card.clubPrimary} secondary={card.clubSecondary} kit={card.kit} crestUrl={card.crestUrl} size={small ? 16 : 26} title={card.clubName ?? undefined} />
         </span>
       </div>
     );

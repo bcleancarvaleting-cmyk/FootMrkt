@@ -1,9 +1,9 @@
 import Link from "next/link";
+import { PlayerFace } from "./player-face";
 import type { CardView } from "@/lib/view";
 import { Sparkline } from "./card-row";
 import { ClubBadge } from "./club-badge";
 import { Gem, FINISH_STYLE } from "./finish-art";
-import { KitShirt } from "./kit-shirt";
 
 const TIER_TEXT = { GOLD: "text-gold", SILVER: "text-silver", BRONZE: "text-bronze" } as const;
 const POS_NAME = { GK: "GK", DEF: "DEF", MID: "MID", ATT: "ATT" } as const;
@@ -47,7 +47,7 @@ export function TradeRow({
   return (
     <li className={`tier-${card.finish?.kind ?? card.category} relative flex gap-3 overflow-hidden rounded-xl border border-ink-700 bg-ink-900 py-2.5 pl-3.5 pr-3 transition hover:border-ink-600`}>
       <span className="flex h-12 w-11 shrink-0 items-center justify-center self-center rounded-lg bg-ink-850">
-        <KitShirt kit={card.kit} number={card.squadNumber} id={`tr-kit-${card.id}`} label={`${card.clubName ?? "Club"} shirt`} className="h-9 w-auto" />
+        <PlayerFace imageUrl={card.imageUrl} kit={card.kit} number={card.squadNumber} id={`tr-kit-${card.id}`} label={card.imageUrl ? card.name : `${card.clubName ?? "Club"} shirt`} size={card.imageUrl ? "h-11" : "h-9"} />
       </span>
       <div className="min-w-0 flex-1 space-y-1">
         {/* 1: name · price */}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PlayerFace } from "@/components/player-face";
 import { TeamOfTheWeek } from "@/components/totw";
 import { currentTeamOfTheWeek } from "@/server/totw";
 import { PredictionButtons } from "@/components/daily-panel";
@@ -9,7 +10,6 @@ import { CardRow } from "@/components/card-row";
 import { Countdown } from "@/components/countdown";
 import { PlayerCard } from "@/components/player-card";
 import { ClubBadge } from "@/components/club-badge";
-import { KitShirt } from "@/components/kit-shirt";
 import { MatchCard } from "@/components/match-card";
 import { Sparkline } from "@/components/card-row";
 import { LaunchPage, type LaunchParams } from "@/components/launch-page";
@@ -315,7 +315,7 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
                   >
                     <span className="pointer-events-none absolute inset-x-0 top-0 h-24 opacity-30" style={{ background: `radial-gradient(70% 100% at 50% 0%, ${r.clubPrimary}, transparent)` }} aria-hidden="true" />
                     <span className={`relative font-display text-sm font-black ${i === 1 ? "text-gold" : i === 0 ? "text-silver" : "text-bronze"}`}>{i === 1 ? "1st" : i === 0 ? "2nd" : "3rd"}</span>
-                    <KitShirt kit={r.kit} number={r.squadNumber} id={`top-${r.playerId}`} label={`${r.club ?? "Club"} shirt`} className={`relative mt-1 w-auto ${i === 1 ? "h-16 sm:h-20" : "h-12 sm:h-16"}`} />
+                    <PlayerFace imageUrl={r.imageUrl} kit={r.kit} number={r.squadNumber} id={`top-${r.playerId}`} label={r.name} size={i === 1 ? "h-16 sm:h-20" : "h-12 sm:h-16"} className="relative mt-1" />
                     <span className="relative mt-2 line-clamp-2 font-display text-sm font-bold uppercase leading-tight sm:text-lg">{r.name}</span>
                     <span className="relative mt-0.5 flex max-w-full items-center gap-1 text-[10px] text-muted sm:text-xs">
                       <ClubBadge short={r.clubShort} primary={r.clubPrimary} secondary={r.clubSecondary} kit={r.kit} size={12} title={r.club ?? undefined} />
@@ -336,7 +336,7 @@ async function Hub({ userId, name }: { userId: string; name: string }) {
                 <li key={r.playerId}>
                   <Link href={`/players/${r.playerId}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-ink-850">
                     <span className="w-5 text-center font-display text-base font-black text-muted">{i + 4}</span>
-                    <KitShirt kit={r.kit} number={r.squadNumber} id={`top-row-${r.playerId}`} label={`${r.club ?? "Club"} shirt`} className="h-8 w-auto shrink-0" />
+                    <PlayerFace imageUrl={r.imageUrl} kit={r.kit} number={r.squadNumber} id={`top-row-${r.playerId}`} label={r.name} size="h-9" className="shrink-0" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-semibold">{r.name}</span>
                       <span className="block truncate text-xs text-muted">

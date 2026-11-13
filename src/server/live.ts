@@ -42,6 +42,8 @@ export interface LivePlayer {
   playerId: string;
   name: string;
   club: string;
+  imageUrl?: string | null;
+  colour?: string;
   points: number;
   goals: number;
   assists: number;
@@ -148,7 +150,7 @@ async function myLive(userId: string, scope: LiveScope) {
     select: {
       provisionalPoints: true,
       competition: { select: { id: true, name: true, gameweekId: true, _count: { select: { entries: true } } } },
-      selections: { select: { playerId: true, isCaptain: true, slot: true, player: { select: { displayName: true, position: true, club: { select: { code: true } } } } } },
+      selections: { select: { playerId: true, isCaptain: true, slot: true, player: { select: { displayName: true, position: true, imageUrl: true, club: { select: { code: true, primaryColour: true } } } } } },
     },
   });
   if (!entries.length) return null;
@@ -158,11 +160,11 @@ async function myLive(userId: string, scope: LiveScope) {
     ),
   );
   const gwIds = [...new Set(entries.map((e) => e.competition.gameweekId))];
-  const picked = new Map<string, { name: string; club: string; position: string; captain: boolean }>();
+  const picked = new Map<string, { name: string; club: string; position: string; captain: boolean; imageUrl: string | null; colour: string }>();
   for (const e of entries)
     for (const s of e.selections) {
       const prev = picked.get(s.playerId);
-      picked.set(s.playerId, { name: s.player.displayName, club: s.player.club?.code ?? "", position: s.player.position, captain: (prev?.captain ?? false) || s.isCaptain });
+      picked.set(s.playerId, { name: s.player.displayName, club: s.player.club?.code ?? "", position: s.player.position, captain: (prev?.captain ?? false) || s.isCaptain, imageUrl: s.player.imageUrl, colour: s.player.club?.primaryColour ?? "#2a2f38" });
     }
   const stats = await db.playerMatchStat.findMany({
     where: { isCurrent: true, playerId: { in: [...picked.keys()] }, fixture: { gameweekId: { in: gwIds } } },
@@ -177,6 +179,8 @@ async function myLive(userId: string, scope: LiveScope) {
       playerId,
       name: p.name,
       club: p.club,
+      imageUrl: p.imageUrl,
+      colour: p.colour,
       points,
       goals: lines.reduce((s, l) => s + l.goals, 0),
       assists: lines.reduce((s, l) => s + l.assists, 0),

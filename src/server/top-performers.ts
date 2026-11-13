@@ -18,6 +18,8 @@ export interface PerformerRow {
   name: string;
   position: Position;
   squadNumber: number | null;
+  /** Photo (Sportmonks or Admin → Images), if any. */
+  imageUrl: string | null;
   club: string | null;
   clubShort: string | null;
   clubPrimary: string;
@@ -81,6 +83,7 @@ export async function performanceTable(f: { window?: PerformanceWindow; league?:
       displayName: true,
       position: true,
       squadNumber: true,
+      imageUrl: true,
       club: { select: { name: true, shortName: true, primaryColour: true, secondaryColour: true, kit: true, league: { select: { code: true, name: true } } } },
       templates: { where: { active: true, edition: "STANDARD" }, select: { category: true }, orderBy: { version: "desc" }, take: 1 },
     },
@@ -96,6 +99,7 @@ export async function performanceTable(f: { window?: PerformanceWindow; league?:
       name: p.displayName,
       position: p.position,
       squadNumber: p.squadNumber,
+      imageUrl: p.imageUrl,
       club: p.club?.name ?? null,
       clubShort: p.club?.shortName ?? null,
       clubPrimary: p.club?.primaryColour ?? "#2a2f38",

@@ -1,6 +1,6 @@
 import Link from "next/link";
+import { PlayerFace } from "./player-face";
 import { Sparkline } from "@/components/card-row";
-import { KitShirt } from "@/components/kit-shirt";
 import { topMovers } from "@/server/movers";
 
 /**
@@ -27,7 +27,7 @@ export async function MoversPanel({ n = 5, open = false, guest = false }: { n?: 
           {rows.map((r, i) => (
             <li key={`${r.playerId}${r.category}`} className="flex items-center gap-3 px-4 py-3">
               <span className="w-4 shrink-0 text-center font-display text-base font-black text-faint">{i + 1}</span>
-              <KitShirt kit={r.player.kit} number={r.player.squadNumber} id={`mp-${r.playerId}`} label={`${r.player.club} shirt`} className="h-9 w-auto shrink-0" />
+              <PlayerFace imageUrl={r.player.imageUrl} kit={r.player.kit} number={r.player.squadNumber} id={`mp-${r.playerId}`} label={r.player.name} size="h-10" className="shrink-0" />
               <span className="min-w-0 flex-1">
                 <Link href={guest ? "/register" : `/players/${r.playerId}`} className="line-clamp-2 block font-semibold leading-tight hover:text-lime">{r.player.name}</Link>
                 <span className="block truncate text-[11px] text-muted">

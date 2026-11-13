@@ -1,6 +1,6 @@
 import Link from "next/link";
+import { PlayerFace } from "@/components/player-face";
 import { ClubBadge } from "@/components/club-badge";
-import { KitShirt } from "@/components/kit-shirt";
 import { EmptyState, PageHeader } from "@/components/page-header";
 import { TeamOfTheWeek } from "@/components/totw";
 import { currentTeamOfTheWeek } from "@/server/totw";
@@ -39,7 +39,7 @@ function FormBars({ points, label }: { points: number[]; label: string }) {
 }
 
 function Shirt({ r, size = "h-9" }: { r: PerformerRow; size?: string }) {
-  return <KitShirt kit={r.kit} number={r.squadNumber} id={`tp-${r.playerId}`} label={`${r.club ?? "Club"} home shirt`} className={`${size} w-auto`} />;
+  return <PlayerFace imageUrl={r.imageUrl} kit={r.kit} number={r.squadNumber} id={`tp-${r.playerId}`} label={r.imageUrl ? r.name : `${r.club ?? "Club"} home shirt`} size={size} />;
 }
 
 export default async function TopPerformersPage({ searchParams }: { searchParams: Promise<SP> }) {

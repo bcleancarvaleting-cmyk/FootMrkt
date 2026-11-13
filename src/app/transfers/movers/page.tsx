@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { KitShirt } from "@/components/kit-shirt";
+import { PlayerFace } from "@/components/player-face";
 import { PageHeader } from "@/components/page-header";
 import type { Kit } from "@/lib/kit";
 import { requireUser } from "@/server/auth/session";
@@ -9,13 +9,13 @@ import { fmtMp } from "@/server/wallet";
 export const metadata = { title: "Market movers" };
 export const dynamic = "force-dynamic";
 
-type P = { name: string; position: string; squadNumber: number | null; club: string; kit: Kit };
+type P = { name: string; position: string; squadNumber: number | null; club: string; kit: Kit; imageUrl?: string | null };
 
 function Who({ id, p, n }: { id: string; p: P; n: number }) {
   return (
     <Link href={`/players/${id}`} className="flex min-w-0 flex-1 items-center gap-3">
       <span className="w-5 shrink-0 text-center font-display text-base font-black text-faint">{n}</span>
-      <KitShirt kit={p.kit} number={p.squadNumber} id={`mv-${id}-${n}`} label={`${p.club} shirt`} className="h-8 w-auto shrink-0" />
+      <PlayerFace imageUrl={p.imageUrl} kit={p.kit} number={p.squadNumber} id={`mv-${id}-${n}`} label={p.name} size="h-10" className="shrink-0" />
       <span className="min-w-0">
         <span className="block truncate font-semibold">{p.name}</span>
         <span className="block truncate text-xs text-muted">

@@ -49,6 +49,8 @@ export interface WatchPlayer {
   position: "GK" | "DEF" | "MID" | "ATT";
   club: string;
   colour: string;
+  /** Photo, if any (shown in the pitch token instead of the club code). */
+  imageUrl?: string | null;
   captain: boolean;
   sub: boolean;
   points: number;
@@ -245,7 +247,7 @@ export async function watchTeams(entryIds: string[], tables: WatchTable[] = []):
       competition: { select: { id: true, name: true, gameweekId: true, scoringRules: true, status: true, _count: { select: { entries: true } } } },
       selections: {
         orderBy: [{ slot: "asc" }, { order: "asc" }],
-        select: { playerId: true, slot: true, position: true, isCaptain: true, player: { select: { displayName: true, club: { select: { code: true, primaryColour: true } } } } },
+        select: { playerId: true, slot: true, position: true, isCaptain: true, player: { select: { displayName: true, imageUrl: true, club: { select: { code: true, primaryColour: true } } } } },
       },
     },
   });
@@ -268,6 +270,7 @@ export async function watchTeams(entryIds: string[], tables: WatchTable[] = []):
         position: s.position as WatchPlayer["position"],
         club: s.player.club?.code ?? "",
         colour: s.player.club?.primaryColour ?? "#2a2f38",
+        imageUrl: s.player.imageUrl,
         captain: s.isCaptain,
         sub: s.slot === "BENCH",
         points: lines.length ? Math.round(scorePlayer(rules, s.position as WatchPlayer["position"], lines).points * 10) / 10 : 0,

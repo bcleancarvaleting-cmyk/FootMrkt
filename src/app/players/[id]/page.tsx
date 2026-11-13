@@ -23,7 +23,18 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   const age = ageFrom(player.dateOfBirth);
   return (
     <div className="space-y-6">
-      <div>
+      <div className="flex flex-wrap items-end gap-5">
+        {player.imageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={player.imageUrl}
+            alt={`${player.firstName} ${player.lastName}`}
+            title={player.imageCredit ? `Photo: ${player.imageCredit}` : undefined}
+            className="h-32 w-32 shrink-0 rounded-2xl object-contain object-bottom ring-1 ring-white/15 sm:h-40 sm:w-40"
+            style={{ background: `radial-gradient(110% 90% at 50% 20%, ${player.club?.primaryColour ?? "#2a2f38"}, #0b0d0e 85%)` }}
+          />
+        )}
+        <div className="min-w-0">
         <p className="eyebrow">{POSITION_LABEL[player.position]}</p>
         <h1 className="text-5xl font-extrabold">
           {player.firstName} {player.lastName}
@@ -38,6 +49,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
           <Link href={`/transfers/find/${player.id}`} className="btn-primary px-4 py-2 text-xs">🔍 Find to buy</Link>
           <WatchButton playerId={player.id} initial={await isWatching(user.id, player.id)} />
           <WatchedBy count={(await watcherCounts([player.id])).get(player.id) ?? 0} />
+        </div>
         </div>
       </div>
 

@@ -1,8 +1,8 @@
 import Link from "next/link";
+import { PlayerFace } from "./player-face";
 import { FinishPill } from "./finish-art";
 import type { CardView } from "@/lib/view";
 import { ClubBadge } from "./club-badge";
-import { KitShirt } from "./kit-shirt";
 import { FindPlayer } from "./find-player";
 import { Trend } from "./player-card";
 
@@ -17,7 +17,7 @@ export function CardRow({ card, href, children, sub, below, showValue = false, f
   const body = (
     <>
       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-ink-850">
-        <KitShirt kit={card.kit} number={card.squadNumber} id={`row-${card.id}`} label={`${card.clubName ?? "Club"} home shirt`} className="h-9 w-auto" />
+        <PlayerFace imageUrl={card.imageUrl} kit={card.kit} number={card.squadNumber} id={`row-${card.id}`} label={card.imageUrl ? card.name : `${card.clubName ?? "Club"} home shirt`} size={card.imageUrl ? "h-11" : "h-9"} />
       </span>
       <span className="min-w-0 flex-1">
         {/* The name is the key thing: shown in full, over two lines if it needs them. */}

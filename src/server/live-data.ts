@@ -397,6 +397,13 @@ export function smImage(path: string | null | undefined): string | null {
     return null;
   }
 }
+/** "Ashley Maynard-Brewer" and "A. Maynard-Brewer" at the same club are the same person. */
+export function personKey(clubId: string, name: string) {
+  const parts = nameKey(name).replace(/\./g, " ").split(/\s+/).filter(Boolean);
+  if (!parts.length) return `${clubId}|`;
+  const last = parts.length > 1 ? parts.slice(1).join(" ") : parts[0];
+  return `${clubId}|${parts.length > 1 ? parts[0][0] : ""}|${last}`;
+}
 const fromSportmonks = (url: string | null) => !!url && /(^|\.)sportmonks\.com$/i.test(new URL(url, "https://x").hostname);
 
 /**
@@ -419,7 +426,9 @@ export async function syncSquads(actorId: string | null = null) {
   const sport = await footballSport();
   const clubs = await db.club.findMany({ include: { league: true } });
   const clubName = new Map(clubs.map((c) => [c.id, c.name]));
-  const players = await db.player.findMany({ where: { active: true }, select: { id: true, clubId: true, providerRefs: true, displayName: true, squadNumber: true, imageUrl: true, imageCredit: true } });
+  const players = await db.player.findMany({ where: { active: true }, select: { id: true, clubId: true, providerRefs: true, displayName: true, firstName: true, lastName: true, squadNumber: true, imageUrl: true, imageCredit: true } });
+  // Same person, matched loosely (club + surname + first initial), for players our data never linked.
+  const photosByPerson = new Map<string, { photo: string }>();
   const byRef = new Map(players.flatMap((p) => (refOf(p.providerRefs, src.name) ? [[refOf(p.providerRefs, src.name)!, p] as const] : [])));
   const seen = new Set<string>();
   const report: SquadSyncReport = { at: new Date().toISOString(), by: actorId, moved: [], added: [], missing: [], numbers: 0, photos: 0, badges: 0, failedClubs: [] };
@@ -472,6 +481,8 @@ export async function syncSquads(actorId: string | null = null) {
       seen.add(ref);
       const ours = byRef.get(ref);
       const photo = smImage(r.player?.image_path);
+      const smName = r.player?.display_name ?? r.player?.common_name ?? r.player?.name;
+      if (photo && smName) photosByPerson.set(personKey(club.id, smName), { photo });
       if (ours) {
         const data: { clubId?: string; squadNumber?: number | null; imageUrl?: string; imageCredit?: string } = {};
         if (ours.clubId !== club.id) data.clubId = club.id;
@@ -519,6 +530,16 @@ export async function syncSquads(actorId: string | null = null) {
       await audit(db, { actorId, action: "player.add", entityType: "Player", entityId: player.id, after: { name, club: club.code, via: "sportmonks" } });
       report.added.push({ name, club: club.name, tier: category });
     }
+  }
+  // Players our data has but Sportmonks never linked (e.g. a duplicate from the original squad file):
+  // give them the same person's photo. (They aren't linked: the Sportmonks id belongs to the real record.)
+  for (const p of players) {
+    const own = refOf(p.providerRefs, src.name);
+    if (!p.clubId || (own && seen.has(own)) || (p.imageUrl && p.imageCredit !== SPORTMONKS_IMAGE_CREDIT)) continue;
+    const hit = photosByPerson.get(personKey(p.clubId, p.firstName && p.lastName ? `${p.firstName} ${p.lastName}` : p.displayName)) ?? photosByPerson.get(personKey(p.clubId, p.displayName));
+    if (!hit || p.imageUrl === hit.photo) continue;
+    await db.player.update({ where: { id: p.id }, data: { imageUrl: hit.photo, imageCredit: SPORTMONKS_IMAGE_CREDIT } });
+    report.photos!++;
   }
   // Only call players "gone" when every squad loaded — a failed download mustn't look like an exodus.
   if (!report.failedClubs.length) {

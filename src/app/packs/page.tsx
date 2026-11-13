@@ -14,6 +14,8 @@ import { FOOTBALL_PACKS } from "@/config/packs";
 import { advertisedGuarantee, cardCount, parsePackConfig } from "@/domain/packs/config";
 import { requireUser } from "@/server/auth/session";
 import { db } from "@/server/db";
+import { packLeagueBadges, type PackLeague } from "@/server/pack-leagues";
+import { PackLeagueLogos } from "@/components/pack-league-logos";
 import { dropStatus } from "@/server/drops";
 import { upcomingWelcomePacks } from "@/server/welcome";
 import { isPick } from "@/server/picks";
@@ -56,6 +58,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
     const r = meta(s.code)?.region ?? "All leagues";
     regions.set(r, [...(regions.get(r) ?? []), s]);
   }
+  const leagueBadges = await packLeagueBadges(skus.map((s) => s.code)).catch(() => ({}) as Record<string, PackLeague[]>);
   const order = [...regions.keys()].sort((a, b) => (a === "England" ? -1 : b === "England" ? 1 : a.localeCompare(b)));
 
   return (
@@ -208,7 +211,7 @@ export default async function PacksPage({ searchParams }: { searchParams: Promis
                   const g = advertisedGuarantee(cfg);
                   return (
                     <div key={s.id} className="panel flex flex-col overflow-hidden">
-                      <PackArt code={s.code} name={s.name} />
+                      <PackArt code={s.code} name={s.name} leagues={leagueBadges[s.code]} />
                       <div className="flex flex-1 flex-col p-5">
                         <div className="flex items-baseline justify-between gap-2">
                           <h4 className="font-display text-2xl font-bold uppercase italic">{s.name}</h4>
@@ -311,7 +314,7 @@ function EnglandCross() {
   );
 }
 
-function PackArt({ code, name, small }: { code: string; name?: string; small?: boolean }) {
+function PackArt({ code, name, small, leagues }: { code: string; name?: string; small?: boolean; /** League logos for this pack (only leagues it really holds). */ leagues?: PackLeague[] }) {
   const rare = code.includes("rare");
   const tier = rare ? "rainbow" : code.includes("gold") ? "gold" : code.includes("silver") ? "silver" : code.includes("bronze") ? "bronze" : null;
   const foil = tier ? `foil-${tier}` : "bg-gradient-to-br from-[#d8ff6a] via-accent to-[#5f8f00]";
@@ -348,7 +351,9 @@ function PackArt({ code, name, small }: { code: string; name?: string; small?: b
           <span className="absolute right-4 top-3 font-display text-3xl font-extrabold italic text-black/25">X</span>
           <span className="relative flex flex-col gap-2">
             <span className="font-display text-5xl font-extrabold uppercase italic leading-none text-black/75">{(name ?? "").replace("England ", "").replace(" Pack", "")}</span>
-            {m?.leagues && (
+            {leagues?.length ? (
+              <PackLeagueLogos leagues={leagues} />
+            ) : m?.leagues && (
               <span className="flex flex-wrap gap-1">
                 {m.leagues.map((l) => (
                   <span key={l} className="rounded-sm bg-black/70 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.12em] text-white">

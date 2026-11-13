@@ -53,7 +53,7 @@ describe("Rebuild from Sportmonks", () => {
         const url = new URL(String(input));
         const json = (data: unknown) => new Response(JSON.stringify({ data, pagination: { has_more: false } }), { status: 200 });
         const league = url.pathname.match(/\/leagues\/(\d+)$/);
-        if (league) return json({ id: Number(league[1]), currentseason: { id: Number(league[1]) * 100 } });
+        if (league) return json({ id: Number(league[1]), currentseason: { id: Number(league[1]) * 100 }, image_path: league[1] === "8" ? "https://cdn.sportmonks.com/images/soccer/leagues/8/8.png" : null });
         const teams = url.pathname.match(/\/teams\/seasons\/(\d+)$/);
         if (teams) return json(teams[1] === "800" ? [{ id: 1, name: "Arsenal", short_code: "ARS", image_path: "https://cdn.sportmonks.com/images/soccer/teams/1/1.png" }, { id: 2, name: "Gillingham", short_code: "GIL", image_path: "https://cdn.sportmonks.com/images/soccer/placeholder.png" }] : []);
         const squad = url.pathname.match(/\/squads\/seasons\/\d+\/teams\/(\d+)$/);
@@ -123,7 +123,8 @@ describe("Rebuild from Sportmonks", () => {
     expect((await db.club.findFirstOrThrow({ where: { name: "Arsenal" } })).crestUrl).toBe("https://cdn.sportmonks.com/images/soccer/teams/1/1.png");
     expect((await db.club.findFirstOrThrow({ where: { name: "Gillingham" } })).crestUrl).toBeNull();
     const report = await lastSquadSync();
-    expect(report?.badges).toBe(1);
+    expect(report?.badges).toBe(2); // Arsenal's badge and the Premier League logo
+    expect((await db.league.findUniqueOrThrow({ where: { code: "EPL" } })).logoUrl).toBe("https://cdn.sportmonks.com/images/soccer/leagues/8/8.png");
     expect(report?.moved).toEqual([{ name: "Player 1-0", from: "Arsenal", to: "Gillingham" }]);
     expect(report?.missing.map((m) => m.name)).toEqual(["Player 1-15"]);
     // Running it again changes nothing and tells nobody twice.

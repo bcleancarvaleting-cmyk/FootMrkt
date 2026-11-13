@@ -200,6 +200,8 @@ model League {
   country     String
   tier        Int // 1 = top flight
   isTopFlight Boolean
+  // League logo (from Sportmonks), shown on the packs that hold this league's players.
+  logoUrl     String?
 
   clubs Club[]
 }

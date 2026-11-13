@@ -1,3 +1,5 @@
+import { PackLeagueLogos } from "./pack-league-logos";
+
 /**
  * A sealed MATCHX pack, drawn like the real thing: foil wrapper with crimped ends, the England
  * flag, the tier in big italic type and a price tag.
@@ -10,7 +12,7 @@ const crimp = (() => {
   return `polygon(${pts.join(",")})`;
 })();
 
-export function PackWrapper({ tier, price, className = "", style }: { tier: "bronze" | "silver" | "gold"; price?: string; className?: string; style?: React.CSSProperties }) {
+export function PackWrapper({ tier, price, className = "", style, leagues }: { tier: "bronze" | "silver" | "gold"; price?: string; className?: string; style?: React.CSSProperties; /** League logos (only leagues the pack really holds). */ leagues?: Array<{ code: string; name: string; logoUrl: string | null }> }) {
   return (
     <div className={`relative ${className}`} style={style}>
       <div className={`card-premium ${tier === "gold" ? "is-gold" : ""} foil-${tier} relative flex h-full w-full flex-col overflow-hidden shadow-[0_24px_50px_-18px_rgba(0,0,0,0.85)]`} style={{ clipPath: crimp }}>
@@ -28,6 +30,11 @@ export function PackWrapper({ tier, price, className = "", style }: { tier: "bro
           England
         </span>
         <span className="relative mt-[10%] text-center font-display text-[44px] font-black italic leading-none text-black/20 sm:text-[56px]">X</span>
+        {leagues?.some((l) => l.logoUrl) && (
+          <span className="relative mt-[6%] flex justify-center px-2">
+            <PackLeagueLogos leagues={leagues.filter((l) => l.logoUrl)} size="sm" />
+          </span>
+        )}
         <span className="relative mt-auto mb-[16%] text-center">
           <span className="block font-display text-2xl font-black uppercase italic leading-none text-black/80 sm:text-3xl">{tier}</span>
           <span className="mt-1 block text-[9px] font-black uppercase tracking-[0.2em] text-black/55">MATCHX pack</span>

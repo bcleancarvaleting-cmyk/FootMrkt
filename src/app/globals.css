@@ -1078,3 +1078,26 @@ h2 {
 @keyframes promo-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(240, 203, 90, 0); } 50% { box-shadow: 0 0 22px 2px rgba(240, 203, 90, 0.35); } }
 .promo-glow { animation: promo-glow 2.4s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .promo-glow { animation: none; } }
+
+/* Card art with a player photo: club colours behind, a big faint crest, the photo fading into the
+   card at the bottom where the kit and badge sit. Ruby / Diamond / Rainbow tint the photo. */
+.photo-art {
+  background:
+    radial-gradient(120% 85% at 50% 18%, color-mix(in srgb, var(--kit-a) 70%, transparent), transparent 72%),
+    linear-gradient(180deg, color-mix(in srgb, var(--kit-a) 38%, #0b0d0e), color-mix(in srgb, var(--kit-b) 10%, #0b0d0e));
+}
+.photo-watermark { position: absolute; left: 50%; top: 4%; transform: translateX(-50%); width: 92%; aspect-ratio: 1; opacity: 0.16; display: flex; align-items: center; justify-content: center; filter: saturate(0.6); }
+.photo-watermark > * { width: 100% !important; height: 100% !important; }
+.photo-img { -webkit-mask-image: linear-gradient(180deg, #000 64%, transparent 97%); mask-image: linear-gradient(180deg, #000 64%, transparent 97%); }
+.photo-tint { position: absolute; inset: 0; pointer-events: none; opacity: 0; }
+.photo-gold .photo-tint { opacity: 1; background: linear-gradient(180deg, rgba(242, 207, 99, 0.18), transparent 40%); mix-blend-mode: soft-light; }
+.photo-ruby .photo-img { filter: grayscale(1) contrast(1.18) brightness(1.04); }
+.photo-ruby .photo-tint { opacity: 0.88; background: linear-gradient(160deg, #ff4d74 0%, #c4002e 55%, #4a0012 100%); mix-blend-mode: color; }
+.photo-diamond .photo-img { filter: grayscale(1) contrast(1.12) brightness(1.16); }
+.photo-diamond .photo-tint { opacity: 0.82; background: linear-gradient(160deg, #e6fbff 0%, #8fe3ff 45%, #2f6fd6 100%); mix-blend-mode: color; }
+.photo-diamond::after { content: ""; position: absolute; inset: -40% -60%; pointer-events: none; background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.45) 50%, transparent 58%); animation: photo-glint 4.5s ease-in-out infinite; }
+.photo-rainbow .photo-img { filter: contrast(1.08) saturate(1.2); }
+.photo-rainbow .photo-tint { opacity: 0.6; background: linear-gradient(115deg, #ff3d6e, #ffb13d, #f6ff3d, #3dff8f, #3dc8ff, #8a3dff, #ff3d6e); background-size: 300% 300%; mix-blend-mode: color; animation: photo-rainbow 7s linear infinite; }
+@keyframes photo-glint { 0%, 55% { transform: translateX(-60%); } 100% { transform: translateX(60%); } }
+@keyframes photo-rainbow { to { background-position: 300% 0; } }
+@media (prefers-reduced-motion: reduce) { .photo-diamond::after, .photo-rainbow .photo-tint { animation: none; } }

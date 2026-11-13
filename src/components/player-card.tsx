@@ -51,9 +51,8 @@ export function tierStyle(c: CardView["category"]) {
 /**
  * A MATCHX card face, the same everywhere: position (top left) and card number (top right), the kit,
  * the name, then Type | Club | League, one line of status, and £ value · Find · points for you.
- * Nothing sits on the kit. No FIFA-style ratings (spec §4.1).
- * The image is the licensed headshot when one is set (Player.imageUrl); until image rights are
- * in place it shows the player's shirt in club colours with their squad number.
+ * No FIFA-style ratings (spec §4.1). The art is the player's photo with their kit and club badge
+ * when a photo is set (Player.imageUrl, from Sportmonks); otherwise their shirt with squad number.
  */
 export function PlayerCard({ card, size = "md", className = "", showcase = false }: { card: CardView; size?: "sm" | "md" | "lg"; className?: string; /** Posters: no prices, points or status badges. */ showcase?: boolean }) {
   // Ruby and Diamond are finishes on a Gold: same card in every way, it just looks the part.
@@ -201,11 +200,31 @@ function CardNumber({ card, small }: { card: CardView; small: boolean }) {
 }
 
 
-/** Licensed headshot if one is set; otherwise the player's home shirt with their squad number. */
+/**
+ * The card art. With a photo (from Sportmonks): the player in front of their club's colours and a
+ * big faint crest, with the kit (squad number) bottom left and the club badge bottom right. Ruby,
+ * Diamond and Rainbow cards tint the photo red, ice-blue or shifting rainbow. Without a photo: the
+ * player's home shirt with their squad number.
+ */
 export function PlayerImage({ card }: { card: CardView }) {
   if (card.imageUrl) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover object-top" title={card.imageCredit ?? undefined} />;
+    const look = card.finish ? card.finish.kind.toLowerCase() : card.category.toLowerCase();
+    return (
+      <div className={`photo-art photo-${look} absolute inset-0 overflow-hidden`} style={{ "--kit-a": card.clubPrimary, "--kit-b": card.clubSecondary } as React.CSSProperties}>
+        <span className="photo-watermark" aria-hidden="true">
+          <ClubBadge short={card.clubShort} primary={card.clubPrimary} secondary={card.clubSecondary} kit={card.kit} crestUrl={card.crestUrl} size={160} />
+        </span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={card.imageUrl} alt={card.name} className="photo-img relative h-full w-full object-cover object-top" title={card.imageCredit ? `Photo: ${card.imageCredit}` : undefined} loading="lazy" />
+        <span className="photo-tint" aria-hidden="true" />
+        <span className="absolute bottom-[4%] left-[5%] h-[30%] max-h-14 drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)]">
+          <KitShirt kit={card.kit} number={card.squadNumber} id={`${card.id}-mini`} label={`${card.clubName ?? "Club"} home shirt`} className="h-full w-auto" />
+        </span>
+        <span className="absolute bottom-[5%] right-[5%] drop-shadow-[0_4px_8px_rgba(0,0,0,0.6)]">
+          <ClubBadge short={card.clubShort} primary={card.clubPrimary} secondary={card.clubSecondary} kit={card.kit} crestUrl={card.crestUrl} size={26} title={card.clubName ?? undefined} />
+        </span>
+      </div>
+    );
   }
   return <KitShirt kit={card.kit} number={card.squadNumber} id={card.id} label={`${card.name} — ${card.clubName ?? "club"} home shirt`} className="h-[86%] w-auto max-w-full drop-shadow-[0_8px_14px_rgba(0,0,0,0.5)]" />;
 }

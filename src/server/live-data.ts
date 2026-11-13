@@ -429,6 +429,19 @@ export async function syncSquads(actorId: string | null = null) {
     const leagueId = src.leagues[code];
     if (!leagueId) continue;
     try {
+      // The league's own logo, for the packs that hold its players.
+      const lg = await smGetOne<{ image_path?: string | null }>(`/leagues/${leagueId}`);
+      const leagueLogo = smImage(lg?.image_path);
+      const ours = clubs.find((c) => c.league.code === code)!.league;
+      if (leagueLogo && leagueLogo !== ours.logoUrl && (!ours.logoUrl || fromSportmonks(ours.logoUrl))) {
+        await db.league.update({ where: { id: ours.id }, data: { logoUrl: leagueLogo } });
+        ours.logoUrl = leagueLogo;
+        report.badges!++;
+      }
+    } catch {
+      // Logos are a nice-to-have.
+    }
+    try {
       const teams = await smGet<{ id: number; image_path?: string | null }>(`/teams/seasons/${await sportmonksSeasonId(leagueId)}`);
       for (const t of teams) {
         const img = smImage(t.image_path);

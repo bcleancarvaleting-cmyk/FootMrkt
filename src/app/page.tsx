@@ -53,6 +53,7 @@ async function Landing() {
     db.club.count(),
   ]);
   const picks = stars.length === 3 ? [stars[1], stars[0], stars[2]] : stars;
+  const packLeagues = await (await import("@/server/pack-leagues")).packLeagueBadges(["football-eng-bronze", "football-eng-silver", "football-eng-gold"]).catch(() => ({}) as Record<string, never[]>);
   const priceOf = (t: string) => {
     const sku = packSkus.find((k) => k.code === `football-eng-${t}`);
     return sku ? `£${(sku.priceMinor / 100).toFixed(2)}` : undefined;
@@ -116,7 +117,7 @@ async function Landing() {
             visual={
               <div className="flex items-end justify-center gap-3 pb-4 sm:gap-5">
                 {(["bronze", "silver", "gold"] as const).map((t, i) => (
-                  <PackWrapper key={t} tier={t} price={priceOf(t)} className="h-48 w-[100px] sm:h-64 sm:w-36" style={{ transform: `translateY(${i === 2 ? -18 : i === 1 ? -6 : 0}px) rotate(${(i - 1) * 4}deg)` }} />
+                  <PackWrapper key={t} tier={t} price={priceOf(t)} leagues={packLeagues[`football-eng-${t}`]} className="h-48 w-[100px] sm:h-64 sm:w-36" style={{ transform: `translateY(${i === 2 ? -18 : i === 1 ? -6 : 0}px) rotate(${(i - 1) * 4}deg)` }} />
                 ))}
               </div>
             }

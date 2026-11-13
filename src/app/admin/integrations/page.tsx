@@ -159,7 +159,7 @@ export default async function Integrations() {
           Now: <b>{on ? "Sportmonks" : "development data (Wikipedia squads, simulated matches)"}</b>
           {process.env.DATA_PROVIDER ? " — set on the server (DATA_PROVIDER)" : ""}.
         </p>
-        <p className="text-sm text-muted">Live scores, the nightly transfer check and the &ldquo;Football data powered by Sportmonks&rdquo; credit follow this switch. The rebuild switches it on for you.</p>
+        <p className="text-sm text-muted">Live scores, the nightly squad check (with player photos and club badges) and the &ldquo;Football data and images powered by Sportmonks&rdquo; credit follow this switch. The rebuild switches it on for you.</p>
         {!process.env.DATA_PROVIDER && (
           <ActionButton action={setSportmonksOnAction.bind(null, !on)} className="btn-ghost px-4 py-2 text-xs" disabled={!on && !hasToken}>
             {on ? "Switch back to development data" : "Switch data to Sportmonks"}

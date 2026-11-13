@@ -55,7 +55,7 @@ describe("Rebuild from Sportmonks", () => {
         const league = url.pathname.match(/\/leagues\/(\d+)$/);
         if (league) return json({ id: Number(league[1]), currentseason: { id: Number(league[1]) * 100 } });
         const teams = url.pathname.match(/\/teams\/seasons\/(\d+)$/);
-        if (teams) return json(teams[1] === "800" ? [{ id: 1, name: "Arsenal", short_code: "ARS" }, { id: 2, name: "Gillingham", short_code: "GIL" }] : []);
+        if (teams) return json(teams[1] === "800" ? [{ id: 1, name: "Arsenal", short_code: "ARS", image_path: "https://cdn.sportmonks.com/images/soccer/teams/1/1.png" }, { id: 2, name: "Gillingham", short_code: "GIL", image_path: "https://cdn.sportmonks.com/images/soccer/placeholder.png" }] : []);
         const squad = url.pathname.match(/\/squads\/seasons\/\d+\/teams\/(\d+)$/);
         if (squad) {
           const team = Number(squad[1]);
@@ -63,11 +63,16 @@ describe("Rebuild from Sportmonks", () => {
             player_id: team * 100 + i,
             jersey_number: i + 1,
             position_id: [24, 25, 25, 25, 25, 26, 26, 26, 26, 27, 27, 27, 24, 25, 26, 27][i],
-            player: { display_name: `Player ${team}-${i}`, nationality: { fifa_name: "ENG" } },
+            player: {
+              display_name: `Player ${team}-${i}`,
+              nationality: { fifa_name: "ENG" },
+              // Every player has a photo except the last, who has Sportmonks' placeholder.
+              image_path: i < 15 ? `https://cdn.sportmonks.com/images/soccer/players/${team * 100 + i}.png` : "https://cdn.sportmonks.com/images/soccer/placeholder.png",
+            },
           }));
           if (!transferWindow) return json(rows);
           if (team === 1) return json(rows.filter((r) => r.player_id !== 100 && r.player_id !== 115));
-          return json([...rows, { ...rows[0], player_id: 100, jersey_number: 77, player: { display_name: "Player 1-0" } }, { ...rows[5], player_id: 299, jersey_number: 30, player: { display_name: "New Signing" } }]);
+          return json([...rows, { ...rows[0], player_id: 100, jersey_number: 77, player: { display_name: "Player 1-0" } }, { ...rows[5], player_id: 299, jersey_number: 30, player: { display_name: "New Signing", image_path: "https://cdn.sportmonks.com/images/soccer/players/299.png" } }]);
         }
         void t;
         return json([]);
@@ -96,6 +101,9 @@ describe("Rebuild from Sportmonks", () => {
     const owner = await db.user.findFirstOrThrow({ where: { role: "ADMIN" } });
     const card = await db.cardInstance.findFirstOrThrow({ where: { templateId: mover.templates[0].id } });
     await db.cardInstance.update({ where: { id: card.id }, data: { ownerId: owner.id, supplyState: "HELD" } });
+    // A photo added by hand (another licensed source) is never replaced by the sync.
+    const handPicked = await db.player.findFirstOrThrow({ where: { displayName: "Player 2-3" } });
+    await db.player.update({ where: { id: handPicked.id }, data: { imageUrl: "https://images.example.com/p23.jpg", imageCredit: "Club media" } });
     transferWindow = true;
     const r = await syncSquads(owner.id);
     expect(r).toEqual({ moved: 1, added: 1, missing: 1 });
@@ -107,11 +115,20 @@ describe("Rebuild from Sportmonks", () => {
     expect(await db.notification.count({ where: { userId: owner.id, title: { contains: "has moved to Gillingham" } } })).toBe(1);
     const signing = await db.player.findFirstOrThrow({ where: { displayName: "New Signing" }, include: { templates: true } });
     expect(signing.templates).toHaveLength(1);
+    // Photos and badges come from Sportmonks; placeholders are skipped.
+    expect((await db.player.findFirstOrThrow({ where: { displayName: "Player 2-1" } })).imageUrl).toBe("https://cdn.sportmonks.com/images/soccer/players/201.png");
+    expect((await db.player.findFirstOrThrow({ where: { displayName: "Player 2-15" } })).imageUrl).toBeNull();
+    expect((await db.player.findUniqueOrThrow({ where: { id: handPicked.id } })).imageUrl).toBe("https://images.example.com/p23.jpg");
+    expect(signing.imageUrl).toBe("https://cdn.sportmonks.com/images/soccer/players/299.png");
+    expect((await db.club.findFirstOrThrow({ where: { name: "Arsenal" } })).crestUrl).toBe("https://cdn.sportmonks.com/images/soccer/teams/1/1.png");
+    expect((await db.club.findFirstOrThrow({ where: { name: "Gillingham" } })).crestUrl).toBeNull();
     const report = await lastSquadSync();
+    expect(report?.badges).toBe(1);
     expect(report?.moved).toEqual([{ name: "Player 1-0", from: "Arsenal", to: "Gillingham" }]);
     expect(report?.missing.map((m) => m.name)).toEqual(["Player 1-15"]);
     // Running it again changes nothing and tells nobody twice.
     expect(await syncSquads(owner.id)).toEqual({ moved: 0, added: 0, missing: 1 });
+    expect((await lastSquadSync())?.photos).toBe(0);
     expect(await db.notification.count({ where: { userId: owner.id, title: { contains: "has moved" } } })).toBe(1);
   });
 });

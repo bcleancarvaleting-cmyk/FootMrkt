@@ -72,6 +72,11 @@ export default async function PlayersAdmin({ searchParams }: { searchParams: Pro
             />
           </div>
         )}
+        {sync && (sync.photos != null || sync.badges != null) && (
+          <p className="text-xs text-muted">
+            Last sync: {sync.photos ?? 0} player photos and {sync.badges ?? 0} club badges updated from Sportmonks.
+          </p>
+        )}
         {sync && sync.failedClubs.length > 0 && <p className="text-xs text-warn">Couldn&apos;t load: {sync.failedClubs.join(", ")}. Run it again shortly.</p>}
       </section>
       <form action="/admin/players" className="flex flex-wrap items-center gap-2">

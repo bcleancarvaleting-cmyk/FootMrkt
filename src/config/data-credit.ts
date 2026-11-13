@@ -9,5 +9,5 @@ export async function usingSportmonks() {
 }
 
 export async function dataCredit() {
-  return (await usingSportmonks()) ? "Football data powered by Sportmonks." : "Development build: squads from Wikipedia (CC BY-SA), match data simulated.";
+  return (await usingSportmonks()) ? "Football data and images powered by Sportmonks." : "Development build: squads from Wikipedia (CC BY-SA), match data simulated.";
 }

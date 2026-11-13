@@ -377,8 +377,27 @@ export type SquadSyncReport = {
   added: Array<{ name: string; club: string; tier: string }>;
   missing: Array<{ name: string; club: string }>;
   numbers: number;
+  /** Player photos and club badges newly set or updated from Sportmonks. */
+  photos?: number;
+  badges?: number;
   failedClubs: string[];
 };
+
+/** Credit stored with a player photo that came from Sportmonks (so a sync may update it). */
+export const SPORTMONKS_IMAGE_CREDIT = "Sportmonks";
+
+/** A usable Sportmonks image URL, or null for an empty or placeholder image. */
+export function smImage(path: string | null | undefined): string | null {
+  if (!path) return null;
+  try {
+    const u = new URL(path);
+    if (u.protocol !== "https:" || /placeholder/i.test(u.pathname)) return null;
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+const fromSportmonks = (url: string | null) => !!url && /(^|\.)sportmonks\.com$/i.test(new URL(url, "https://x").hostname);
 
 /**
  * Squad sync from Sportmonks (nightly, or Admin → Players → "Run squad sync now"):
@@ -387,6 +406,8 @@ export type SquadSyncReport = {
  *  - a player new to the English leagues is added with a card design in their tier, so they can be
  *    packed, dropped and valued like everyone else;
  *  - shirt numbers are kept up to date;
+ *  - player photos and club badges come from Sportmonks (placeholders skipped; a photo added by
+ *    hand from another source is never overwritten);
  *  - players no longer in any squad (left the English leagues) are listed for an admin to review.
  * The report is saved for the admin page. Safe to run again: it only changes what's different.
  */
@@ -398,15 +419,35 @@ export async function syncSquads(actorId: string | null = null) {
   const sport = await footballSport();
   const clubs = await db.club.findMany({ include: { league: true } });
   const clubName = new Map(clubs.map((c) => [c.id, c.name]));
-  const players = await db.player.findMany({ where: { active: true }, select: { id: true, clubId: true, providerRefs: true, displayName: true, squadNumber: true } });
+  const players = await db.player.findMany({ where: { active: true }, select: { id: true, clubId: true, providerRefs: true, displayName: true, squadNumber: true, imageUrl: true, imageCredit: true } });
   const byRef = new Map(players.flatMap((p) => (refOf(p.providerRefs, src.name) ? [[refOf(p.providerRefs, src.name)!, p] as const] : [])));
   const seen = new Set<string>();
-  const report: SquadSyncReport = { at: new Date().toISOString(), by: actorId, moved: [], added: [], missing: [], numbers: 0, failedClubs: [] };
+  const report: SquadSyncReport = { at: new Date().toISOString(), by: actorId, moved: [], added: [], missing: [], numbers: 0, photos: 0, badges: 0, failedClubs: [] };
+  // Club badges: one call per league (the season's teams carry their logo).
+  const logos = new Map<string, string>();
+  for (const code of new Set(clubs.map((c) => c.league.code))) {
+    const leagueId = src.leagues[code];
+    if (!leagueId) continue;
+    try {
+      const teams = await smGet<{ id: number; image_path?: string | null }>(`/teams/seasons/${await sportmonksSeasonId(leagueId)}`);
+      for (const t of teams) {
+        const img = smImage(t.image_path);
+        if (img) logos.set(String(t.id), img);
+      }
+    } catch {
+      // Badges are a nice-to-have: squads still sync without them.
+    }
+  }
   for (const club of clubs) {
     const teamId = refOf(club.providerRefs, src.name);
     const leagueId = src.leagues[club.league.code];
     if (!teamId || !leagueId) continue;
-    let rows: Array<{ player_id: number; jersey_number?: number | null; position_id?: number | null; player?: { display_name?: string; common_name?: string; name?: string; position_id?: number | null } }>;
+    const logo = logos.get(teamId);
+    if (logo && logo !== club.crestUrl && (!club.crestUrl || fromSportmonks(club.crestUrl))) {
+      await db.club.update({ where: { id: club.id }, data: { crestUrl: logo } });
+      report.badges!++;
+    }
+    let rows: Array<{ player_id: number; jersey_number?: number | null; position_id?: number | null; player?: { display_name?: string; common_name?: string; name?: string; position_id?: number | null; image_path?: string | null } }>;
     try {
       rows = await smGet(`/squads/seasons/${await sportmonksSeasonId(leagueId)}/teams/${teamId}`, { include: "player" });
     } catch {
@@ -417,10 +458,18 @@ export async function syncSquads(actorId: string | null = null) {
       const ref = String(r.player_id);
       seen.add(ref);
       const ours = byRef.get(ref);
+      const photo = smImage(r.player?.image_path);
       if (ours) {
-        const data: { clubId?: string; squadNumber?: number | null } = {};
+        const data: { clubId?: string; squadNumber?: number | null; imageUrl?: string; imageCredit?: string } = {};
         if (ours.clubId !== club.id) data.clubId = club.id;
         if (r.jersey_number != null && r.jersey_number !== ours.squadNumber) data.squadNumber = r.jersey_number;
+        if (photo && photo !== ours.imageUrl && (!ours.imageUrl || ours.imageCredit === SPORTMONKS_IMAGE_CREDIT)) {
+          data.imageUrl = photo;
+          data.imageCredit = SPORTMONKS_IMAGE_CREDIT;
+          ours.imageUrl = photo;
+          ours.imageCredit = SPORTMONKS_IMAGE_CREDIT;
+          report.photos!++;
+        }
         if (!Object.keys(data).length) continue;
         await db.player.update({ where: { id: ours.id }, data });
         if (data.clubId) {
@@ -429,7 +478,7 @@ export async function syncSquads(actorId: string | null = null) {
           report.moved.push({ name: ours.displayName, from, to: club.name });
           await tellOwnersOfMove(ours.id, ours.displayName, from, club.name, club.id);
           ours.clubId = club.id;
-        } else report.numbers++;
+        } else if (data.squadNumber !== undefined) report.numbers++;
         continue;
       }
       const position = positionOf({ position_id: r.position_id ?? r.player?.position_id });
@@ -448,8 +497,10 @@ export async function syncSquads(actorId: string | null = null) {
           nationality: "",
           rightsStatus: "PENDING",
           providerRefs: { [src.name]: ref },
+          ...(photo ? { imageUrl: photo, imageCredit: SPORTMONKS_IMAGE_CREDIT } : {}),
         },
       });
+      if (photo) report.photos!++;
       const category = tierFor(club.league.tier, r.jersey_number ?? null);
       await db.cardTemplate.create({ data: { playerId: player.id, category, maxSupply: MAX_SUPPLY[category] } });
       await audit(db, { actorId, action: "player.add", entityType: "Player", entityId: player.id, after: { name, club: club.code, via: "sportmonks" } });

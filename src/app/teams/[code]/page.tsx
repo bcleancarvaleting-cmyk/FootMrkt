@@ -34,8 +34,12 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
     <div className="space-y-8">
       <section className="relative overflow-hidden rounded-3xl border border-ink-700 bg-ink-900 p-6 sm:p-8">
         <div className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full opacity-40 blur-3xl" style={{ background: club.primaryColour }} aria-hidden="true" />
-        <div className="relative flex flex-wrap items-center gap-5">
-          <ClubBadge short={club.shortName} primary={club.primaryColour} secondary={club.secondaryColour} kit={club.kit} crestUrl={club.crestUrl} size={64} title={club.name} />
+        {/* Phones: crest + name on one line, the button full width underneath. Wider: all on one row. */}
+        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
+          <div className="flex min-w-0 flex-1 items-center gap-4 sm:gap-5">
+          <span className="shrink-0">
+            <ClubBadge short={club.shortName} primary={club.primaryColour} secondary={club.secondaryColour} kit={club.kit} crestUrl={club.crestUrl} size={64} title={club.name} />
+          </span>
           <div className="min-w-0 flex-1">
             <p className="eyebrow">{club.league.name}</p>
             <h1 className="mt-1 text-4xl leading-none sm:text-5xl">{club.name}</h1>
@@ -48,11 +52,12 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
               )}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          </div>
+          <div className="shrink-0">
             {user ? (
-              <Link href={`/transfers?q=${encodeURIComponent(club.name)}`} className="btn-primary">Find {club.name} players</Link>
+              <Link href={`/transfers?q=${encodeURIComponent(club.name)}`} className="btn-primary w-full text-center sm:w-auto">Find {club.name} players</Link>
             ) : (
-              <Link href={`/register?club=${club.code}`} className="btn-primary">Join free as a {club.name} fan</Link>
+              <Link href={`/register?club=${club.code}`} className="btn-primary w-full text-center sm:w-auto">Join free as a {club.name} fan</Link>
             )}
           </div>
         </div>

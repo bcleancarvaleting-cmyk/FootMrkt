@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PlayerFace } from "./player-face";
+import { PhotoTile, PlayerFace } from "./player-face";
 import { FinishPill } from "./finish-art";
 import type { CardView } from "@/lib/view";
 import { ClubBadge } from "./club-badge";
@@ -16,9 +16,13 @@ export const POS_ORDER = { GK: 0, DEF: 1, MID: 2, ATT: 3 } as const;
 export function CardRow({ card, href, children, sub, below, showValue = false, find = true }: { card: CardView; href?: string; children?: React.ReactNode; sub?: React.ReactNode; below?: React.ReactNode; showValue?: boolean; /** 🔍 find this player to buy (off where the row is already for sale). */ find?: boolean }) {
   const body = (
     <>
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-ink-850">
-        <PlayerFace imageUrl={card.imageUrl} kit={card.kit} number={card.squadNumber} id={`row-${card.id}`} label={card.imageUrl ? card.name : `${card.clubName ?? "Club"} home shirt`} size={card.imageUrl ? "h-11" : "h-9"} />
-      </span>
+      {card.imageUrl ? (
+        <PhotoTile imageUrl={card.imageUrl} kit={card.kit} number={card.squadNumber} id={`row-${card.id}`} name={card.name} primary={card.clubPrimary} secondary={card.clubSecondary} tier={card.finish?.kind ?? card.category} />
+      ) : (
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-ink-850">
+          <PlayerFace kit={card.kit} number={card.squadNumber} id={`row-${card.id}`} label={`${card.clubName ?? "Club"} home shirt`} />
+        </span>
+      )}
       <span className="min-w-0 flex-1">
         {/* The name is the key thing: shown in full, over two lines if it needs them. */}
         <span className="line-clamp-2 break-words font-display text-base font-bold uppercase leading-tight tracking-wide sm:text-lg">{card.name}</span>

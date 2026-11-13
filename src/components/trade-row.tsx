@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PlayerFace } from "./player-face";
+import { PhotoTile, PlayerFace } from "./player-face";
 import type { CardView } from "@/lib/view";
 import { Sparkline } from "./card-row";
 import { ClubBadge } from "./club-badge";
@@ -46,9 +46,13 @@ export function TradeRow({
   const name = <span className="block truncate font-display text-[17px] font-black uppercase italic leading-tight tracking-wide">{card.name}</span>;
   return (
     <li className={`tier-${card.finish?.kind ?? card.category} relative flex gap-3 overflow-hidden rounded-xl border border-ink-700 bg-ink-900 py-2.5 pl-3.5 pr-3 transition hover:border-ink-600`}>
-      <span className="flex h-12 w-11 shrink-0 items-center justify-center self-center rounded-lg bg-ink-850">
-        <PlayerFace imageUrl={card.imageUrl} kit={card.kit} number={card.squadNumber} id={`tr-kit-${card.id}`} label={card.imageUrl ? card.name : `${card.clubName ?? "Club"} shirt`} size={card.imageUrl ? "h-11" : "h-9"} />
-      </span>
+      {card.imageUrl ? (
+        <PhotoTile imageUrl={card.imageUrl} kit={card.kit} number={card.squadNumber} id={`tr-kit-${card.id}`} name={card.name} primary={card.clubPrimary} secondary={card.clubSecondary} tier={card.finish?.kind ?? card.category} className="h-[76px] w-[60px] self-center" />
+      ) : (
+        <span className="flex h-12 w-11 shrink-0 items-center justify-center self-center rounded-lg bg-ink-850">
+          <PlayerFace kit={card.kit} number={card.squadNumber} id={`tr-kit-${card.id}`} label={`${card.clubName ?? "Club"} shirt`} />
+        </span>
+      )}
       <div className="min-w-0 flex-1 space-y-1">
         {/* 1: name · price */}
         <div className="flex items-baseline justify-between gap-2">

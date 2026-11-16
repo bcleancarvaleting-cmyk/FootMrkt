@@ -1,0 +1,69 @@
+# MATCHX LIVE SITE on Render, in Frankfurt (EU) — fast for UK players. A separate Blueprint from the
+# old US test site: Render dashboard → New → Blueprint → this repository and branch, and set the
+# Blueprint file path to render-eu.yaml. Paid plans: the site doesn't sleep, the database is backed up.
+# Render dashboard → New → Blueprint → pick this repository and branch. You'll be asked for an
+# admin password; then wait for the first deploy (about 5–10 minutes). Then connect Sportmonks from
+# the site itself: Admin → Integrations (see docs/DEPLOY.md, step 8).
+services:
+  - type: web
+    name: matchx
+    region: frankfurt
+    runtime: node
+    # Paid from launch (13 Nov 2026) — keep this in step with the plan picked in Render, or a
+    # Blueprint sync would put the site back on the free plan.
+    plan: starter
+    branch: claude/football-manager-game-mode-b8ib5b
+    buildCommand: npm ci && npx next build
+    # Database tables, then the starter data (leagues, clubs, players, packs — skipped once loaded), then the app.
+    startCommand: npx prisma migrate deploy && npx tsx prisma/seed.ts && npx next start -p $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: matchx-db
+          property: connectionString
+      - key: SEED_ADMIN_PASSWORD
+        sync: false # you choose it when creating the blueprint; log in as admin@matchx.dev
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: IP_HASH_SALT
+        generateValue: true
+      - key: CRON_SECRET
+        generateValue: true
+      # Live switchover (13 Nov 2026): no longer a test site — the new-trader wait applies again.
+      - key: TEST_SITE
+        value: "false"
+      - key: RUN_JOBS_IN_APP
+        value: "true"
+      # Real card payments. The switch in Admin → Integrations still has the final say; Stripe keys
+      # saved there (encrypted in the database) are untouched by deploys.
+      - key: PAYMENTS_PROVIDER
+        value: stripe
+      - key: LEGAL_GATES_CLEARED
+        value: PAID_PACKS,MARKET,DEPOSITS,WITHDRAWALS,PAID_ENTRY,AUCTIONS
+      - key: FLAG_PACK_SHOP
+        value: "true"
+      - key: FLAG_PAID_PACKS
+        value: "true"
+      - key: FLAG_DEPOSITS
+        value: "true"
+      - key: FLAG_MARKET
+        value: "true"
+      - key: FLAG_AUCTIONS
+        value: "true"
+      - key: FLAG_WITHDRAWALS
+        value: "true"
+      # Off for launch: no free dev packs or pretend checkout for players.
+      - key: FLAG_DEV_TOOLS
+        value: "false"
+      - key: FLAG_SIMULATED_DATA
+        value: "true"
+
+databases:
+  - name: matchx-db
+    region: frankfurt
+    # Paid from launch: free databases are deleted after 30 days.
+    plan: basic-256mb
+    databaseName: matchx

@@ -15,7 +15,7 @@ services:
     branch: claude/football-manager-game-mode-b8ib5b
     buildCommand: npm ci && npx next build
     # Database tables, then the starter data (leagues, clubs, players, packs — skipped once loaded), then the app.
-    startCommand: npx prisma migrate deploy && npx tsx prisma/seed.ts && npx next start -p $PORT
+    startCommand: npx prisma migrate deploy && npx tsx scripts/copy-from-old-db.ts && npx tsx prisma/seed.ts && npx next start -p $PORT
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
@@ -30,6 +30,10 @@ services:
         sync: false # paste the value from the old site, so saved keys and logins carry over
       - key: IP_HASH_SALT
         sync: false # paste the value from the old site, so saved keys and logins carry over
+      # Moving from the old (US) site: paste the OLD database's External Database URL here and
+      # deploy — users, cards, balances and saved keys are copied across once. Leave empty otherwise.
+      - key: OLD_DATABASE_URL
+        sync: false
       - key: CRON_SECRET
         generateValue: true
       # Live switchover (13 Nov 2026): no longer a test site — the new-trader wait applies again.

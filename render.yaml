@@ -1,5 +1,4 @@
-# MATCHX TEST SITE on Render (free plan). Everything switched on, pretend card payments, simulated
-# match data. NOT for real money: no real payment provider is connected.
+# MATCHX on Render — ORIGINAL (US, Oregon) site. The live site moves to render-eu.yaml (Frankfurt).
 # Render dashboard → New → Blueprint → pick this repository and branch. You'll be asked for an
 # admin password; then wait for the first deploy (about 5–10 minutes). Then connect Sportmonks from
 # the site itself: Admin → Integrations (see docs/DEPLOY.md, step 8).

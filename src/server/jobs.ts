@@ -31,6 +31,7 @@ export async function tick() {
     ["simulated matchdays (play)", async () => (await import("./sim-matchday")).playSimMatchdays()],
     ["real gameweeks: settle 90 min after full time", async () => (await import("./gameweeks")).autoSettleRealGameweeks()],
     ["gameweeks 4 weeks ahead", async () => (await import("./live-data")).dailyGameweeksAhead()],
+    ["new games alert (an hour after they're added)", async () => (await import("./game-alerts")).announceNewGames()],
     ["admin daily report", async () => (await import("./admin-report")).sendDailyReport()],
     ["price tips", async () => (await import("./valuation")).refreshPriceTips()],
     ["watchlist: players on the market", async () => (await import("./watchlist")).announceWatchedMarket()],

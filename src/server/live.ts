@@ -25,7 +25,7 @@ export interface LiveFixture {
   motm: string | null;
   /** A simulated matchday game (results generated from real form). */
   sim: boolean;
-  /** Simulated games: the feed so far — goals (with assists), cards, missed penalties — newest first. */
+  /** The feed so far — goals (with assists), cards, missed penalties — newest first (sim and real games). */
   events: LiveEvent[];
 }
 
@@ -128,7 +128,7 @@ async function tickerFixtures(now: Date, scope: LiveScope) {
     (f): LiveFixture => ({
       motm: f.motmPlayerId ? (names.get(f.motmPlayerId) ?? null) : null,
       sim: f.gameweek.simulated,
-      events: f.gameweek.simulated ? [...((f.simEvents as LiveEvent[] | null) ?? [])].reverse() : [],
+      events: [...((f.simEvents as LiveEvent[] | null) ?? [])].reverse(),
       id: f.id,
       home: { code: f.homeClub.code, name: f.homeClub.name, colour: f.homeClub.primaryColour },
       away: { code: f.awayClub.code, name: f.awayClub.name, colour: f.awayClub.primaryColour },

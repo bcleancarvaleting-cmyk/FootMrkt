@@ -60,9 +60,10 @@ export default async function OpeningPage({ params }: { params: Promise<{ id: st
             Send to club
           </Link>
         )}
-        <Link href="/packs" className="btn-ghost">
+        {/* A plain link: always takes you back, even while the next page is loading. */}
+        <a href="/packs" className="btn-ghost">
           Back to packs
-        </Link>
+        </a>
         {(best || counts.GOLD > 0) && (
           <Link href={`/packs/opening/${opening.id}/share`} className={best ? "btn-diamond px-6 py-3" : "btn-gold px-6 py-3"}>
             📸 Share your pull

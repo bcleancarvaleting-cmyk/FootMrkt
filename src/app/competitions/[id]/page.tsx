@@ -44,6 +44,11 @@ export default async function CompetitionPage({ params, searchParams }: { params
   const scoring = getScoringRules(comp.scoringRules);
   const board = await leaderboard(id);
   const open = comp.status === "OPEN" && comp.locksAt > new Date();
+  // While the game is live: what each manager would win if it ended now (ties split evenly).
+  const liveNow = comp.status === "LOCKED" || comp.status === "PROVISIONAL";
+  const { projectedWins } = await import("@/domain/football/prizes");
+  const { prizeRules } = await import("@/server/competitions");
+  const liveWins = liveNow && board.some((r) => r.points > 0) ? projectedWins(board.map((r) => ({ userId: r.userId, points: r.points, rank: r.rank, house: r.house })), await prizeRules(comp.rewards)) : new Map<string, { cashMinor: number; packs: string[] }>();
 
   return (
     <div className="space-y-8">
@@ -102,7 +107,7 @@ export default async function CompetitionPage({ params, searchParams }: { params
       <section>
         <h2 className="mb-3 text-xl font-bold">
           Leaderboard{" "}
-          <span className="text-sm font-normal text-faint">{comp.status === "SETTLED" ? "· final" : comp.status === "OPEN" ? "· entries so far" : "· provisional"}</span>
+          <span className="text-sm font-normal text-faint">{comp.status === "SETTLED" ? "· final" : comp.status === "OPEN" ? "· entries so far" : "· live"}</span>
         </h2>
         <div className="panel divide-y divide-ink-700/60">
           {board.map((r) => (
@@ -119,6 +124,11 @@ export default async function CompetitionPage({ params, searchParams }: { params
                 {r.clubName && <span className="block truncate text-xs text-faint">{r.clubName}</span>}
               </span>
               {r.prizeMinor > 0 && <span className="font-bold text-lime">£{(r.prizeMinor / 100).toFixed(2)}</span>}
+              {!r.prizeMinor && (liveWins.get(r.userId)?.cashMinor ?? 0) > 0 && (
+                <span className="whitespace-nowrap rounded-full border border-gold/60 bg-gold/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-gold" title="If it ended now — ties split the prize">
+                  Wins £{(liveWins.get(r.userId)!.cashMinor / 100).toFixed(2)}
+                </span>
+              )}
               <span className="font-bold">{comp.status === "OPEN" ? "" : `${r.points} pts`}</span>
               {(comp.status !== "OPEN" || r.userId === user.id) && (
                 <Link href={`/competitions/${comp.id}/team/${r.entryId}`} className="rounded-lg border border-ink-700 px-2.5 py-1 text-xs font-semibold text-muted hover:text-fg" aria-label={`See ${r.displayName}'s team`}>
@@ -175,11 +185,13 @@ async function Builder({
     const loanEnded = !sim && !!c.loan && c.loan.left === 0 && !enteredThisGw;
     const free = sim ? c.lock !== "LISTED" && !simTaken.has(c.id) : c.lock === "NONE" || !!mine;
     const wrongLeague = !!leagueNames && !leagueNames.has(c.leagueName ?? "");
-    const available = free && !notFree && !wrongClub && !wrongLeague && !loanEnded;
+    // Real gameweeks: a player whose club has no game this week (e.g. postponed) can't be picked.
+    const noGame = !sim && !fixtureFor(c.clubCode);
+    const available = free && !notFree && !wrongClub && !wrongLeague && !loanEnded && !noGame;
     return {
       ...c,
       available,
-      unavailableReason: available ? undefined : loanEnded ? "loan ended" : wrongLeague ? "league not in this game" : wrongClub ? "not in this match" : notFree ? "not a free card" : c.lock === "LISTED" ? "listed on market" : sim ? "in another sim match" : "in another squad",
+      unavailableReason: available ? undefined : noGame && free ? "no game this week (postponed or no fixture)" : loanEnded ? "loan ended" : wrongLeague ? "league not in this game" : wrongClub ? "not in this match" : notFree ? "not a free card" : c.lock === "LISTED" ? "listed on market" : sim ? "in another sim match" : "in another squad",
       form: form.get(c.playerId) ?? [],
       fixture: fixtureFor(c.clubCode),
       start: startGuide?.get(c.playerId),
@@ -376,8 +388,8 @@ async function Result({ entryId, settled }: { entryId: string; settled: boolean 
             : "No substitutions needed."}
         </p>
         <p className="text-xs text-faint">
-          Calculated with {calc.ruleVersion} at {fmtDate(calc.createdAt)}. Scores can be recalculated from the stored match events.
-          {!settled && " Provisional — stat corrections may still change these numbers."}
+          Updated {fmtDate(calc.createdAt)}.
+          {!settled && " Live — scores can still change until the game settles."}
         </p>
       </aside>
     </section>

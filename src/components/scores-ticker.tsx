@@ -186,6 +186,17 @@ function TickerItem({ f }: { f: LiveFixture }) {
       <span className="h-3 w-1 rounded-sm" style={{ background: f.away.colour }} aria-hidden="true" />
       {live && <span className="text-[10px] font-extrabold text-[#e5173f]">{f.clock}</span>}
       {done && <span className="text-[10px] font-extrabold text-white/40">FT</span>}
+      {/* Scorers: newest in white, older ones in grey. */}
+      {f.events
+        .filter((e) => e.type === "goal" || e.type === "own_goal")
+        .slice(0, 4)
+        .map((e, i) => (
+          <span key={`${e.minute}-${e.player}-${i}`} className={`flex items-center gap-1 whitespace-nowrap normal-case ${i === 0 ? "text-white" : "text-white/40"}`}>
+            <span aria-hidden="true">⚽</span>
+            {e.player.split(" ").slice(-1)[0]}
+            {e.type === "own_goal" ? " (og)" : ""} {e.minute}&apos;
+          </span>
+        ))}
     </li>
   );
 }

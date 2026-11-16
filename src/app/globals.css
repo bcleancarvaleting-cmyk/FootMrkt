@@ -1144,3 +1144,11 @@ h2 {
   0%, 60% { transform: translateX(-45%); }
   100% { transform: translateX(45%); }
 }
+
+/* Grids of many cards (the pack reveal): no idle shimmer, so phones stay smooth. The big card
+   being revealed keeps all its effects. */
+.calm-cards .card-premium::after,
+.calm-cards .photo-art::after,
+.calm-cards .sheen,
+.calm-cards .photo-rainbow .photo-tint { animation: none !important; }
+.calm-cards .animate-gold { animation-iteration-count: 1 !important; }

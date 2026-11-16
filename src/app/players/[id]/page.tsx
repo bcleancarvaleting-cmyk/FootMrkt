@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SeasonPanel } from "@/components/season-panel";
 import { notFound } from "next/navigation";
 import { WatchButton } from "@/components/watch-button";
 import { isWatching, watcherCounts } from "@/server/watchlist";
@@ -52,6 +53,8 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
         </div>
         </div>
       </div>
+
+      <SeasonPanel playerId={player.id} />
 
       <div className="grid gap-4 sm:grid-cols-4">
         <Kpi label="Apps (last 20)" value={played.length} />

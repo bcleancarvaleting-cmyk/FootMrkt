@@ -40,7 +40,7 @@ interface LiveSource {
   leagues: Record<string, number>;
   teams(leagueId: number, season: string): Promise<Array<{ id: string; name: string }>>;
   squad(teamId: string, season: string, leagueId?: number): Promise<Array<{ id: string; name: string }>>;
-  fixturesBetween(leagueId: number, season: string, from: string, to: string): Promise<Array<{ id: string; date: string; home: string; away: string }>>;
+  fixturesBetween(leagueId: number, season: string, from: string, to: string): Promise<Array<{ id: string; date: string; home: string; away: string; /** Short status, e.g. NS, PST (postponed), ABD. */ status?: string }>>;
   fullFixtures(ids: string[]): Promise<AfFixture[]>;
   batch: number;
 }
@@ -60,7 +60,7 @@ const apiFootballSource: LiveSource = {
   },
   async fixturesBetween(leagueId, season, from, to) {
     const rows = await apiFootballGet<AfFixture>("/fixtures", { league: leagueId, season: seasonYear(season), from, to });
-    return rows.map((f) => ({ id: String(f.fixture.id), date: f.fixture.date, home: String(f.teams.home.id), away: String(f.teams.away.id) }));
+    return rows.map((f) => ({ id: String(f.fixture.id), date: f.fixture.date, home: String(f.teams.home.id), away: String(f.teams.away.id), status: f.fixture.status?.short }));
   },
   async fullFixtures(ids) {
     return apiFootballGet<AfFixture>("/fixtures", { ids: ids.join("-") });
@@ -95,10 +95,10 @@ const sportmonksSource: LiveSource = {
     return rows.map((r) => ({ id: String(r.player_id), name: r.player?.display_name ?? r.player?.common_name ?? r.player?.name ?? String(r.player_id) }));
   },
   async fixturesBetween(leagueId, _season, from, to) {
-    const rows = await smGet<SmFixture>(`/fixtures/between/${from}/${to}`, { include: "participants", filters: `fixtureLeagues:${leagueId}` });
+    const rows = await smGet<SmFixture>(`/fixtures/between/${from}/${to}`, { include: "participants;state", filters: `fixtureLeagues:${leagueId}` });
     return rows.map((f) => {
       const s = toSharedFixture(f);
-      return { id: String(f.id), date: s.fixture.date, home: String(s.teams.home.id), away: String(s.teams.away.id) };
+      return { id: String(f.id), date: s.fixture.date, home: String(s.teams.home.id), away: String(s.teams.away.id), status: s.fixture.status?.short };
     });
   },
   async fullFixtures(ids) {
@@ -254,12 +254,37 @@ export async function syncLiveGameweek(gameweekId: string, actorId: string | nul
   const messages = [];
   for (let i = 0; i < due.length; i += src.batch) {
     const rows = await src.fullFixtures(due.slice(i, i + src.batch).map((f) => f.providerFixtureId));
-    for (const f of rows) messages.push(...messagesForFixture(f));
+    for (const f of rows) {
+      messages.push(...messagesForFixture(f));
+      // The goal / card feed for the live ticker and Watch live (same shape as simulated games).
+      const feed = feedFor(f);
+      await db.fixture.updateMany({ where: { provider: src.name, providerFixtureId: String(f.fixture.id) }, data: { simEvents: feed as never } });
+    }
   }
   const report = await ingestMessages(src.provider, messages);
   if (gw.status !== "SETTLED") await db.gameweek.update({ where: { id: gameweekId }, data: { status: "PROVISIONAL" } });
   await refreshProvisional(gameweekId);
   return { fixtures: due.length, ...report };
+}
+
+/** Goals, cards and missed penalties from a provider fixture, oldest first. */
+export function feedFor(f: AfFixture) {
+  const out: Array<{ minute: number; type: "goal" | "own_goal" | "yellow" | "red" | "pen_miss"; side: "home" | "away"; player: string; assist?: string | null }> = [];
+  for (const e of f.events ?? []) {
+    const minute = (e.time?.elapsed ?? 0) + (e.time?.extra ?? 0);
+    const side = e.team?.id === f.teams.home.id ? "home" : "away";
+    const player = e.player?.name ?? "";
+    if (!player) continue;
+    const t = (e.type ?? "").toLowerCase();
+    const d = (e.detail ?? "").toLowerCase();
+    if (t === "goal") {
+      if (d.includes("missed")) out.push({ minute, type: "pen_miss", side, player });
+      else out.push({ minute, type: d.includes("own") ? "own_goal" : "goal", side, player, assist: e.assist?.name ?? null });
+    } else if (t === "card") {
+      out.push({ minute, type: d.includes("yellow") && !d.includes("second") ? "yellow" : "red", side, player });
+    }
+  }
+  return out.sort((a, b) => a.minute - b.minute);
 }
 
 /** Scheduled job: sync every unsettled live-data gameweek. */
@@ -648,14 +673,20 @@ export async function ensureGameweeksAhead(weeks = 4, now = new Date(), actorId:
   const iso = (d: Date) => d.toISOString().slice(0, 10);
   const end = new Date(now.getTime() + (weeks * 7 + 7) * DAY);
   const all: Array<{ id: string; at: Date; home: string; away: string }> = [];
+  const off = new Set<string>(); // postponed / cancelled / abandoned
   for (const leagueId of Object.values(src.leagues)) {
     for (const f of await src.fixturesBetween(leagueId, season, iso(now), iso(end))) {
+      if (f.status && OFF_STATUSES.has(f.status)) {
+        off.add(f.id);
+        continue;
+      }
       const home = clubByTeam.get(f.home);
       const away = clubByTeam.get(f.away);
       const at = new Date(f.date);
       if (home && away && at.getTime() > now.getTime() + 3600_000 && !all.some((x) => x.id === f.id)) all.push({ id: f.id, at, home, away });
     }
   }
+  const removed = await dropPostponed(src.name, off, all, now);
   const known = new Set((await db.fixture.findMany({ where: { provider: src.name, providerFixtureId: { in: all.map((f) => f.id) } }, select: { providerFixtureId: true } })).map((f) => f.providerFixtureId));
   const weekStart = (d: Date) => {
     const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
@@ -681,7 +712,34 @@ export async function ensureGameweeksAhead(weeks = 4, now = new Date(), actorId:
     await insertGameweek({ season, number: await nextGameweekNumber(season), opensAt: now, actorId, provider: src.name, fixtures: fresh.map((f) => ({ providerFixtureId: f.id, homeClubId: f.home, awayClubId: f.away, kickoffAt: f.at })) });
     created++;
   }
-  return { created, added, provider: src.name };
+  return { created, added, postponed: removed, provider: src.name };
+}
+
+/** Provider statuses for a match that won't be played as scheduled. */
+const OFF_STATUSES = new Set(["PST", "ABD", "CANC", "SUSP", "TBD", "INT", "AWD", "WO"]);
+
+/**
+ * Postponed or cancelled matches come out of gameweeks that haven't played them (their players have
+ * no game that week, so they can't be picked for it). A match moved to another week comes out too and
+ * is added to its new week by the same sync; a new kick-off time in the same week is just updated.
+ */
+async function dropPostponed(provider: string, off: Set<string>, upcoming: Array<{ id: string; at: Date }>, now: Date) {
+  const moved = new Map(upcoming.map((f) => [f.id, f.at]));
+  const ours = await db.fixture.findMany({
+    where: { provider, providerFixtureId: { in: [...off, ...moved.keys()] }, status: "SCHEDULED", kickoffAt: { gt: now }, gameweek: { status: { not: "SETTLED" } } },
+    select: { id: true, providerFixtureId: true, kickoffAt: true, gameweek: { select: { startsAt: true, endsAt: true } } },
+  });
+  let removed = 0;
+  for (const f of ours) {
+    const at = moved.get(f.providerFixtureId);
+    const outOfWeek = at && (at < new Date(f.gameweek.startsAt.getTime() - 3 * 86_400_000) || at > new Date(f.gameweek.endsAt.getTime() + 86_400_000));
+    if (off.has(f.providerFixtureId) || outOfWeek) {
+      await db.fixture.delete({ where: { id: f.id } }).then(() => removed++).catch(() => null);
+    } else if (at && Math.abs(at.getTime() - f.kickoffAt.getTime()) > 60_000) {
+      await db.fixture.update({ where: { id: f.id }, data: { kickoffAt: at } });
+    }
+  }
+  return removed;
 }
 
 /** Once a day from the scheduled job. */

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FINISH_STYLE, FinishPill, RainbowChant } from "./finish-art";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CardView } from "@/lib/view";
 import { PlayerCard } from "./player-card";
 
@@ -13,7 +13,7 @@ import { PlayerCard } from "./player-card";
  */
 export function PackReveal({ cards }: { cards: CardView[] }) {
   // Reveal lowest tiers first so the best card lands last.
-  const order = [...cards].sort((a, b) => rank(a) - rank(b));
+  const order = useMemo(() => [...cards].sort((a, b) => rank(a) - rank(b)), [cards]);
   const [shown, setShown] = useState(0);
   // A Rainbow (one of one) gets its own full-screen moment once it's been revealed.
   const rainbowAt = order.findIndex((c) => c.finish?.kind === "RAINBOW");
@@ -40,7 +40,7 @@ export function PackReveal({ cards }: { cards: CardView[] }) {
         </button>
       )}
       {/* Every card sits in the same-sized cell with a label underneath, so rows line up neatly. */}
-      <div className={`flex flex-wrap items-start justify-center gap-x-4 gap-y-5 sm:grid sm:justify-center ${columns(order.length)}`}>
+      <div className={`calm-cards flex flex-wrap items-start justify-center gap-x-4 gap-y-5 sm:grid sm:justify-center ${columns(order.length)}`}>
         {order.map((c, i) => (
           <div key={c.id} className={`flex w-44 flex-col items-center gap-3 ${i < shown ? "animate-land" : "hidden sm:invisible sm:flex"}`}>
             <Link href={`/cards/${c.id}`}>

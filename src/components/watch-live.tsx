@@ -136,9 +136,8 @@ export function WatchLive({ initial, gw = null, autoReplay = false }: { initial:
         <MatchSheet board={board} now={now} />
       ) : (
         <>
-          <MyTeams teams={view.mine} enterHref={replay ? null : board.enterHref} />
-          <Vidiprinter feed={view.feed} live={view.phase === "live"} />
           <LiveTables tables={view.tables} replay={replay} replayView={view} />
+          <Vidiprinter feed={view.feed} live={view.phase === "live"} />
         </>
       )}
 
@@ -151,7 +150,7 @@ export function WatchLive({ initial, gw = null, autoReplay = false }: { initial:
       <details className="group rounded-2xl border border-ink-700 bg-ink-900">
         <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 font-bold">
           <span>
-            All scores <span className="text-sm font-normal text-muted">· {view.fixtures.length} games</span>
+            View all fixtures <span className="text-sm font-normal text-muted">· {view.fixtures.length} games</span>
           </span>
           <span className="text-muted transition group-open:rotate-180">▾</span>
         </summary>
@@ -161,6 +160,9 @@ export function WatchLive({ initial, gw = null, autoReplay = false }: { initial:
           ))}
         </ul>
       </details>
+
+      {/* Your squad last: the table and the scores come first. */}
+      {!pre && <MyTeams teams={view.mine} enterHref={replay ? null : board.enterHref} />}
     </div>
   );
 }
@@ -465,6 +467,9 @@ function LiveTables({ tables, replay, replayView }: { tables: WatchTable[]; repl
   );
 }
 
+/** The live table shows the top ten, with your own position pinned above if you're further down. */
+const TOP = 10;
+
 function Table({ t, replay, replayView }: { t: WatchTable; replay: Replay | null; replayView: View }) {
   const prev = useRef(new Map<string, number>());
   const [moves, setMoves] = useState(new Map<string, number>());
@@ -505,13 +510,25 @@ function Table({ t, replay, replayView }: { t: WatchTable; replay: Replay | null
   const team = !open ? null : replay ? replayTeam(replay, replayView, open) : liveTeam?.entryId === open ? liveTeam : null;
 
   const canOpen = t.locked || !!replay;
-  const rows = t.rows;
+  const [all, setAll] = useState(false);
+  const rows = all ? t.rows : t.rows.slice(0, TOP);
+  const meRow = t.rows.find((r) => r.me);
+  const meHidden = !!meRow && !rows.includes(meRow);
   // What each manager would win if it ended now (ties split the £, everyone tied on a pack place gets one).
-  const wins = t.locked && rows.some((r) => r.points > 0) ? projectedWins(rows, t.prizes ?? []) : new Map<string, { cashMinor: number; packs: string[] }>();
+  const wins = t.locked && t.rows.some((r) => r.points > 0) ? projectedWins(t.rows, t.prizes ?? []) : new Map<string, { cashMinor: number; packs: string[] }>();
   const settled = t.status === "SETTLED";
   return (
     <div className="p-3">
       {t.pot && <p className="mb-2 text-xs font-black text-lime">{t.pot.replace(" pot", " Pot")} — winner takes it, ties split</p>}
+      {meHidden && (
+        <div className="mb-2 flex items-center gap-3 rounded-xl border border-lime/70 bg-lime/10 px-3 py-2.5">
+          <span className="text-[10px] font-black uppercase tracking-[0.14em] text-lime">Your position</span>
+          <span className="font-display text-2xl font-black italic tabular-nums">{meRow!.rank}</span>
+          <span className="min-w-0 flex-1 truncate font-semibold">{meRow!.name}</span>
+          {wins.get(meRow!.userId) && <WinChip w={wins.get(meRow!.userId)!} settled={settled} />}
+          <span className="font-display text-2xl font-black italic tabular-nums text-lime">{meRow!.points}</span>
+        </div>
+      )}
       {rows.length === 0 ? (
         <p className="text-sm text-muted">No one has entered yet.</p>
       ) : (
@@ -549,6 +566,11 @@ function Table({ t, replay, replayView }: { t: WatchTable; replay: Replay | null
             );
           })}
         </div>
+      )}
+      {t.rows.length > TOP && (
+        <button type="button" onClick={() => setAll((a) => !a)} className="btn-ghost mt-2 w-full py-2 text-xs">
+          {all ? "Show top 10" : `View all ${t.rows.length}`}
+        </button>
       )}
       {canOpen ? (
         <p className="mt-2 text-center text-[11px] text-faint">Tap a manager to see their team</p>

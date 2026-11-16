@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SeasonPanel } from "@/components/season-panel";
 import { maxPriceFor } from "@/server/transfers";
 import { WatchButton } from "@/components/watch-button";
 import { isWatching, watcherCounts } from "@/server/watchlist";
@@ -150,6 +151,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
           withdrawn, and is not a promise that this card can be sold for that amount.
         </p>
 
+        <SeasonPanel playerId={card.template.playerId} />
         <section className="panel p-5">
           <h2 className="mb-3 font-bold">Value history</h2>
           <ValueChart points={valuations.map((v) => ({ at: v.computedAt, mp: v.valueMp }))} />

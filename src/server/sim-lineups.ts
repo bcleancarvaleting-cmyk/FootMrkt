@@ -67,6 +67,34 @@ export interface StartGuide {
   apps: number;
   games: number;
   form: number;
+  /** Real games: injured or suspended over the kick-off (from Sportmonks) — 0% to start. */
+  out?: { kind: "INJURY" | "SUSPENSION"; reason: string; until: string | null };
+}
+
+/**
+ * Real gameweeks: how likely each player is to start, from their real appearances (minutes in the
+ * club's last 6 games) and form — and 0% if Sportmonks lists them injured or suspended over the
+ * kick-off. Never 100%: a real line-up isn't known until an hour before kick-off.
+ */
+export async function realStartGuide(playerIds: string[], kickoff: Date, now = new Date()): Promise<Map<string, StartGuide>> {
+  const out = new Map<string, StartGuide>();
+  if (!playerIds.length) return out;
+  const [scores, players] = await Promise.all([
+    startScores(playerIds, now),
+    db.player.findMany({ where: { id: { in: playerIds } }, select: { id: true, sidelinedKind: true, sidelinedReason: true, sidelinedUntil: true } }),
+  ]);
+  for (const p of players) {
+    const a = scores.get(p.id);
+    const base = { apps: a?.apps ?? 0, games: a?.games ?? 0, form: a?.form ?? 0 };
+    const missing = p.sidelinedKind && (!p.sidelinedUntil || p.sidelinedUntil >= kickoff);
+    if (missing) {
+      out.set(p.id, { ...base, pct: 0, out: { kind: p.sidelinedKind as "INJURY" | "SUSPENSION", reason: p.sidelinedReason ?? (p.sidelinedKind === "SUSPENSION" ? "Suspended" : "Injured"), until: p.sidelinedUntil?.toISOString() ?? null } });
+      continue;
+    }
+    // Minutes share × form, scaled so a nailed-on starter reads ~95%.
+    out.set(p.id, { ...base, pct: a ? Math.min(95, Math.round(a.score * 100)) : 0 });
+  }
+  return out;
 }
 
 const RUNS = 400;

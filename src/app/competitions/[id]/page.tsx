@@ -186,7 +186,10 @@ async function Builder({
   const simTaken = sim ? await simCardsInUse(db, userId, competition.gameweekId, competition.id, entry?.id ?? null) : new Set<string>();
   // Sim games: how likely each player is to start (so managers aren't picking blind).
   const simKickoff = sim ? ((await db.gameweek.findUnique({ where: { id: competition.gameweekId }, select: { startsAt: true } }))?.startsAt ?? new Date()) : null;
-  const startGuide = sim ? await (await import("@/server/sim-lineups")).simStartGuide([...new Set(cards.map((c) => c.playerId))], simKickoff!) : null;
+  // Real gameweeks: appearances × form, and 0% for anyone injured or suspended over the first kick-off.
+  const realKickoff = sim ? null : ((await db.fixture.findFirst({ where: { gameweekId: competition.gameweekId }, orderBy: { kickoffAt: "asc" }, select: { kickoffAt: true } }))?.kickoffAt ?? new Date());
+  const lineups = await import("@/server/sim-lineups");
+  const startGuide = sim ? await lineups.simStartGuide([...new Set(cards.map((c) => c.playerId))], simKickoff!) : await lineups.realStartGuide([...new Set(cards.map((c) => c.playerId))], realKickoff!);
   const fixtures = await db.fixture.findMany({
     where: { gameweekId: competition.gameweekId },
     include: { homeClub: true, awayClub: true },

@@ -262,6 +262,10 @@ model Player {
   // Licensed headshot. Null until image rights are confirmed (spec §10); cards show a kit graphic instead.
   imageUrl          String?
   imageCredit       String?
+  // Injured or suspended right now (Sportmonks' sidelined list, refreshed by the squad sync).
+  sidelinedKind     String? // "INJURY" | "SUSPENSION"
+  sidelinedReason   String?
+  sidelinedUntil    DateTime?
   nationality       String
   dateOfBirth       DateTime?
   rightsStatus      RightsStatus @default(PLACEHOLDER)

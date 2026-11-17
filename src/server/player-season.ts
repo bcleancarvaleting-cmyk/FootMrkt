@@ -7,7 +7,7 @@ import { currentSeason } from "./season";
  * club's last five competitive results with the minutes they played in each, and the next game.
  */
 export async function playerSeason(playerId: string, now = new Date()) {
-  const player = await db.player.findUnique({ where: { id: playerId }, select: { id: true, position: true, clubId: true, club: { select: { code: true, name: true } } } });
+  const player = await db.player.findUnique({ where: { id: playerId }, select: { id: true, position: true, clubId: true, sidelinedKind: true, sidelinedReason: true, sidelinedUntil: true, club: { select: { code: true, name: true } } } });
   if (!player) return null;
   const season = await currentSeason();
   const stats = await db.playerMatchStat.findMany({
@@ -54,6 +54,7 @@ export async function playerSeason(playerId: string, now = new Date()) {
     : null;
   return {
     season,
+    out: player.sidelinedKind ? { kind: player.sidelinedKind, reason: player.sidelinedReason, until: player.sidelinedUntil } : null,
     apps: played.length,
     minutes: sum("minutes"),
     goals: sum("goals"),

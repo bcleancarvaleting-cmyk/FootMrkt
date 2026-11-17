@@ -404,9 +404,33 @@ export type SquadSyncReport = {
   numbers: number;
   /** Player photos and club badges newly set or updated from Sportmonks. */
   photos?: number;
+  /** Players whose injury / suspension changed. */
+  sidelined?: number;
   badges?: number;
   failedClubs: string[];
 };
+
+/** Sportmonks' "sidelined" entry: an injury or suspension. */
+export interface SmSidelined {
+  category?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  completed?: boolean | null;
+  games_missed?: number | null;
+  type?: { name?: string | null; developer_name?: string | null } | null;
+}
+
+/** The injury or suspension a player has right now, if any. */
+export function currentSidelined(list: SmSidelined[] | null | undefined, now = new Date()): { kind: "INJURY" | "SUSPENSION"; reason: string; until: Date | null } | null {
+  const today = now.toISOString().slice(0, 10);
+  const open = (list ?? []).filter((x) => !x.completed && (!x.start_date || x.start_date.slice(0, 10) <= today) && (!x.end_date || x.end_date.slice(0, 10) >= today));
+  if (!open.length) return null;
+  // The one that keeps them out longest (no end date = open-ended).
+  const s = open.sort((a, b) => (b.end_date ?? "9999").localeCompare(a.end_date ?? "9999"))[0];
+  const name = s.type?.name ?? s.category ?? "Injury";
+  const suspended = /suspen|red card|ban/i.test(`${s.category ?? ""} ${name} ${s.type?.developer_name ?? ""}`);
+  return { kind: suspended ? "SUSPENSION" : "INJURY", reason: name, until: s.end_date ? new Date(`${s.end_date.slice(0, 10)}T23:59:00Z`) : null };
+}
 
 /** Credit stored with a player photo that came from Sportmonks (so a sync may update it). */
 export const SPORTMONKS_IMAGE_CREDIT = "Sportmonks";
@@ -451,7 +475,7 @@ export async function syncSquads(actorId: string | null = null) {
   const sport = await footballSport();
   const clubs = await db.club.findMany({ include: { league: true } });
   const clubName = new Map(clubs.map((c) => [c.id, c.name]));
-  const players = await db.player.findMany({ where: { active: true }, select: { id: true, clubId: true, providerRefs: true, displayName: true, firstName: true, lastName: true, squadNumber: true, imageUrl: true, imageCredit: true } });
+  const players = await db.player.findMany({ where: { active: true }, select: { id: true, clubId: true, providerRefs: true, displayName: true, firstName: true, lastName: true, squadNumber: true, imageUrl: true, imageCredit: true, sidelinedKind: true, sidelinedReason: true, sidelinedUntil: true } });
   // Same person, matched loosely (club + surname + first initial), for players our data never linked.
   const photosByPerson = new Map<string, { photo: string }>();
   const byRef = new Map(players.flatMap((p) => (refOf(p.providerRefs, src.name) ? [[refOf(p.providerRefs, src.name)!, p] as const] : [])));
@@ -494,9 +518,9 @@ export async function syncSquads(actorId: string | null = null) {
       await db.club.update({ where: { id: club.id }, data: { crestUrl: logo } });
       report.badges!++;
     }
-    let rows: Array<{ player_id: number; jersey_number?: number | null; position_id?: number | null; player?: { display_name?: string; common_name?: string; name?: string; position_id?: number | null; image_path?: string | null } }>;
+    let rows: Array<{ player_id: number; jersey_number?: number | null; position_id?: number | null; player?: { display_name?: string; common_name?: string; name?: string; position_id?: number | null; image_path?: string | null; sidelined?: SmSidelined[] | null } }>;
     try {
-      rows = await smGet(`/squads/seasons/${await sportmonksSeasonId(leagueId)}/teams/${teamId}`, { include: "player" });
+      rows = await smGet(`/squads/seasons/${await sportmonksSeasonId(leagueId)}/teams/${teamId}`, { include: "player.sidelined.type" });
     } catch {
       report.failedClubs.push(club.name);
       continue;
@@ -509,7 +533,15 @@ export async function syncSquads(actorId: string | null = null) {
       const smName = r.player?.display_name ?? r.player?.common_name ?? r.player?.name;
       if (photo && smName) photosByPerson.set(personKey(club.id, smName), { photo });
       if (ours) {
-        const data: { clubId?: string; squadNumber?: number | null; imageUrl?: string; imageCredit?: string } = {};
+        const data: { clubId?: string; squadNumber?: number | null; imageUrl?: string; imageCredit?: string; sidelinedKind?: string | null; sidelinedReason?: string | null; sidelinedUntil?: Date | null } = {};
+        // Injured or suspended now (or back again): kept up to date for the start guide.
+        const out = currentSidelined(r.player?.sidelined);
+        if ((out?.kind ?? null) !== ours.sidelinedKind || (out?.reason ?? null) !== ours.sidelinedReason || (out?.until?.getTime() ?? null) !== (ours.sidelinedUntil?.getTime() ?? null)) {
+          data.sidelinedKind = out?.kind ?? null;
+          data.sidelinedReason = out?.reason ?? null;
+          data.sidelinedUntil = out?.until ?? null;
+          report.sidelined = (report.sidelined ?? 0) + 1;
+        }
         if (ours.clubId !== club.id) data.clubId = club.id;
         if (r.jersey_number != null && r.jersey_number !== ours.squadNumber) data.squadNumber = r.jersey_number;
         if (photo && photo !== ours.imageUrl && (!ours.imageUrl || ours.imageCredit === SPORTMONKS_IMAGE_CREDIT)) {
@@ -521,6 +553,7 @@ export async function syncSquads(actorId: string | null = null) {
         }
         if (!Object.keys(data).length) continue;
         await db.player.update({ where: { id: ours.id }, data });
+        if (data.sidelinedKind !== undefined && Object.keys(data).every((k) => k.startsWith("sidelined"))) continue;
         if (data.clubId) {
           await audit(db, { actorId, action: "player.move", entityType: "Player", entityId: ours.id, before: { clubId: ours.clubId }, after: { clubId: club.id, via: "sportmonks" } });
           const from = (ours.clubId && clubName.get(ours.clubId)) || "—";
@@ -547,6 +580,7 @@ export async function syncSquads(actorId: string | null = null) {
           rightsStatus: "PENDING",
           providerRefs: { [src.name]: ref },
           ...(photo ? { imageUrl: photo, imageCredit: SPORTMONKS_IMAGE_CREDIT } : {}),
+          ...((o) => (o ? { sidelinedKind: o.kind, sidelinedReason: o.reason, sidelinedUntil: o.until } : {}))(currentSidelined(r.player?.sidelined)),
         },
       });
       if (photo) report.photos!++;

@@ -14,12 +14,23 @@ export interface BuilderCard extends CardView {
   unavailableReason?: string;
   form: number[];
   fixture: string | null; // "vs ABC (H)"
-  /** Sim games: chance of starting (0–100), from real appearances × form. */
-  start?: { pct: number; apps: number; games: number; form: number };
+  /** Chance of starting (0–100), from real appearances × form; real games also show injuries and suspensions. */
+  start?: { pct: number; apps: number; games: number; form: number; out?: { kind: "INJURY" | "SUSPENSION"; reason: string; until: string | null } };
 }
 
 /** Green "likely to start" / red "unlikely to start" for sim games. */
 export function StartChip({ s, compact = false }: { s: NonNullable<BuilderCard["start"]>; compact?: boolean }) {
+  if (s.out) {
+    const label = s.out.kind === "SUSPENSION" ? "Suspended" : "Injured";
+    const until = s.out.until ? ` · back ${new Date(s.out.until).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : "";
+    if (compact) return <span className="inline-block rounded bg-danger px-1 text-[8px] font-black text-white" title={`${label}: ${s.out.reason}${until}`}>{s.out.kind === "SUSPENSION" ? "SUS" : "INJ"}</span>;
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-danger/60 bg-danger/10 px-1.5 py-px text-[9px] font-black uppercase tracking-wide text-danger" title={`${s.out.reason}${until}`}>
+        {s.out.kind === "SUSPENSION" ? "⛔" : "🚑"} {label} 0%
+        <span className="font-bold normal-case opacity-80">· {s.out.reason}{until}</span>
+      </span>
+    );
+  }
   const likely = s.pct >= 50;
   const tone = likely ? "border-mint/60 bg-mint/10 text-mint" : "border-danger/60 bg-danger/10 text-danger";
   if (compact) return <span className={`inline-block h-2 w-2 rounded-full ${likely ? "bg-mint" : "bg-danger"}`} title={`${s.pct}% likely to start`} aria-label={likely ? "Likely to start" : "Unlikely to start"} />;
@@ -548,7 +559,7 @@ export function SquadBuilder({
           {!picker.length && <li className="p-4 text-sm text-faint">{draft || q ? "No players match." : "No players for this position. Open more packs!"}</li>}
         </ul>
         <div className="border-t border-ink-700 p-2 text-[10px] text-faint">
-          Form = avg points over recent gameweeks{cards.some((c) => c.start) ? " · Start chance = real appearances × form, as of kick-off — 100% always start; it updates as real games are played · apps = games played of their club's last 6" : ""}
+          Form = avg points over recent gameweeks{cards.some((c) => c.start) ? " · Start chance = real appearances × form, as of kick-off (0% if injured or suspended); it updates as real games are played · apps = games played of their club's last 6" : ""}
         </div>
       </aside>
     </div>

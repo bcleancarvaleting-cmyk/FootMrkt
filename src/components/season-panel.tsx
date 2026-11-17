@@ -17,6 +17,12 @@ export async function SeasonPanel({ playerId }: { playerId: string }) {
         <p className="text-xs text-faint">{s.season} · real matches</p>
       </div>
 
+      {s.out && (
+        <p className="rounded-xl border border-danger/50 bg-danger/10 px-3 py-2 text-sm font-semibold text-danger">
+          {s.out.kind === "SUSPENSION" ? "⛔ Suspended" : "🚑 Injured"}: {s.out.reason ?? ""}
+          {s.out.until ? ` · expected back ${s.out.until.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : ""}
+        </p>
+      )}
       <div className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-ink-700 bg-ink-700 sm:grid-cols-6">
         {[
           ["Points", s.points, `${s.perGame} a game`],

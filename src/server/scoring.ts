@@ -137,7 +137,7 @@ export async function settleCompetition(competitionId: string, actorId: string |
     if (open > 0) throw new DomainError("FIXTURES_PENDING", `${open} fixture(s) are not finished yet`);
 
     const entries = await tx.competitionEntry.findMany({ where: { competitionId, status: "ACTIVE" } });
-    const totals: Array<{ id: string; userId: string; total: number }> = [];
+    const totals: Array<{ id: string; userId: string; entryNo: number; total: number }> = [];
     for (const e of entries) {
       const score = await scoreEntry(tx, e.id);
       await tx.scoreCalculation.create({ data: calcData(e.id, "FINAL", score) });
@@ -149,9 +149,11 @@ export async function settleCompetition(competitionId: string, actorId: string |
           .map((sel) => ({ userId: e.userId, cardId: sel.cardId, playerId: sel.playerId, entryId: e.id, points: sel.points })),
         skipDuplicates: true,
       });
-      totals.push({ id: e.id, userId: e.userId, total: score.total });
+      totals.push({ id: e.id, userId: e.userId, entryNo: e.entryNo, total: score.total });
     }
     totals.sort((a, b) => b.total - a.total);
+    // A manager's 2nd, 3rd… team (paid games) gets its own prizes: references carry the team number.
+    const ref = (t: { userId: string; entryNo: number }) => (t.entryNo > 1 ? `${t.userId}:${t.entryNo}` : t.userId);
     const rewards = (comp.rewards as RewardRule[]) ?? [];
     // The MATCHX house account (admins) plays for bragging rights only: shown in their real place,
     // but never wins a prize — prizes go to the next managers (ties split as usual).
@@ -168,21 +170,29 @@ export async function settleCompetition(competitionId: string, actorId: string |
       const t = prizeTotals[i];
       for (const [ri, r] of rewards.entries()) {
         if (prizeRank >= r.rankFrom && prizeRank <= r.rankTo) {
-          if (r.packSkuCode) await grantPack(tx, { userId: t.userId, skuCode: r.packSkuCode, source: "REWARD", sourceRef: `reward:${competitionId}:${ri}:${t.userId}` });
+          if (r.packSkuCode) await grantPack(tx, { userId: t.userId, skuCode: r.packSkuCode, source: "REWARD", sourceRef: `reward:${competitionId}:${ri}:${ref(t)}` });
         }
       }
     }
     // XP: every manager earns their match points as XP (converts to earned credit). Not on simulated matchdays.
     const sim = (await tx.gameweek.findUnique({ where: { id: comp.gameweekId }, select: { simulated: true } }))?.simulated ?? false;
-    if (!sim) for (const t of totals) await creditXp(tx, { userId: t.userId, xp: t.total, refId: `xp:${competitionId}:${t.userId}`, note: `${t.total} pts` });
+    // XP from each manager's best team only, so extra entries don't earn extra XP.
+    const xpDone = new Set<string>();
+    if (!sim)
+      for (const t of totals) {
+        if (xpDone.has(t.userId)) continue;
+        xpDone.add(t.userId);
+        await creditXp(tx, { userId: t.userId, xp: t.total, refId: `xp:${competitionId}:${t.userId}`, note: `${t.total} pts` });
+      }
     // £ prize pot: dead-heat rule — tied managers split the prizes for the positions they share.
-    const shares = splitPrizePot(prizeTotals, rewards);
+    // Split per team (keyed by entry), so two teams of the same manager are paid separately.
+    const shares = splitPrizePot(prizeTotals.map((t) => ({ userId: t.id, total: t.total })), rewards);
     for (const t of prizeTotals) {
-      const share = shares.get(t.userId);
+      const share = shares.get(t.id);
       if (!share) continue;
       const rank = 1 + prizeTotals.findIndex((x) => x.total === t.total);
       const tied = prizeTotals.filter((x) => x.total === t.total).length;
-      await creditWinnings(tx, { userId: t.userId, amountMinor: share, refId: `prize:${competitionId}:${t.userId}`, note: `${tied > 1 ? "Joint " : ""}#${rank}${tied > 1 ? ` of ${tied}` : ""}` });
+      await creditWinnings(tx, { userId: t.userId, amountMinor: share, refId: `prize:${competitionId}:${ref(t)}`, note: `${t.entryNo > 1 ? `Team ${t.entryNo} · ` : ""}${tied > 1 ? "Joint " : ""}#${rank}${tied > 1 ? ` of ${tied}` : ""}` });
     }
     // Release competition locks held by this competition's entries.
     await tx.cardInstance.updateMany({

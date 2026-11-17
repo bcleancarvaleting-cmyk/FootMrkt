@@ -81,8 +81,9 @@ export async function matchdayResults(gameweekId: string) {
     });
     if (!entries.length) continue;
     const prizes = settled ? await prizesPaid(c.id) : new Map<string, number>();
-    const byEntry = await db.competitionEntry.findMany({ where: { id: { in: entries.map((e) => e.id) } }, select: { id: true, userId: true } });
-    const userOf = new Map(byEntry.map((e) => [e.id, e.userId]));
+    const byEntry = await db.competitionEntry.findMany({ where: { id: { in: entries.map((e) => e.id) } }, select: { id: true, userId: true, entryNo: true } });
+    // Prizes are paid per team: "userId" for a manager's first team, "userId:2" for their second…
+    const userOf = new Map(byEntry.map((e) => [e.id, e.entryNo > 1 ? `${e.userId}:${e.entryNo}` : e.userId]));
     let rank = 0;
     const table = entries.map((e, i) => {
       const pts = Math.round(((settled ? e.finalPoints : e.provisionalPoints) ?? 0) * 10) / 10;

@@ -859,6 +859,8 @@ model Competition {
   status        CompetitionStatus @default(UPCOMING)
   settledAt     DateTime?
   createdAt     DateTime          @default(now())
+  // Paid games: how many teams one manager may enter (each paid for). Free games stay at 1.
+  maxEntries    Int               @default(1)
 
   entries CompetitionEntry[]
 
@@ -883,6 +885,8 @@ model CompetitionEntry {
   rank              Int?
   // Weekly booster played on this entry (see src/config/boosters.ts), if any.
   boosterKind       String?
+  // A manager's 1st, 2nd, 3rd… team in the same paid game (free games: always 1).
+  entryNo           Int         @default(1)
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
@@ -890,7 +894,8 @@ model CompetitionEntry {
   calculations ScoreCalculation[]
   cardPoints   CardPoints[]
 
-  @@unique([competitionId, userId])
+  @@unique([competitionId, userId, entryNo])
+  @@index([competitionId, userId])
 }
 
 // Points a card actually counted for its manager in a settled competition ("points won for you").

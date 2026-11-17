@@ -66,6 +66,8 @@ export const SquadSubmissionSchema = z.object({
   boosterId: z.string().uuid().nullable().optional(),
   /** Card id of the player carrying the booster. */
   boostedOn: z.string().uuid().nullable().optional(),
+  /** Paid games with more than one entry allowed: which of this manager's teams (1, 2, 3…). */
+  entryNo: z.number().int().min(1).max(100).optional(),
 });
 
 export class SquadInvalidError extends DomainError {
@@ -83,8 +85,8 @@ export async function submitEntry(userId: string, competitionId: string, input: 
   const submission = SquadSubmissionSchema.parse(input);
   return withTx(async (tx) => {
     const [comp] = await tx.$queryRaw<
-      Array<{ id: string; status: string; locksAt: Date; format: string; rosterRules: string; entryFeeMinor: number; requirements: unknown; gameweekId: string; rewards: unknown; simulated: boolean }>
-    >`SELECT c.id, c.status, c."locksAt", c.format, c."rosterRules", c."entryFeeMinor", c.requirements, c."gameweekId", c.rewards, g.simulated
+      Array<{ id: string; status: string; locksAt: Date; format: string; rosterRules: string; entryFeeMinor: number; requirements: unknown; gameweekId: string; rewards: unknown; simulated: boolean; maxEntries: number }>
+    >`SELECT c.id, c.status, c."locksAt", c.format, c."rosterRules", c."entryFeeMinor", c.requirements, c."gameweekId", c.rewards, g.simulated, c."maxEntries"
       FROM "Competition" c JOIN "Gameweek" g ON g.id = c."gameweekId" WHERE c.id = ${competitionId}::uuid FOR SHARE OF c`;
     if (!comp) throw new DomainError("NOT_FOUND", "Competition not found.");
     if (comp.status !== "OPEN" || comp.locksAt <= new Date()) {
@@ -98,7 +100,15 @@ export async function submitEntry(userId: string, competitionId: string, input: 
       const u = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { foundingNumber: true } });
       if (!u.foundingNumber) throw new DomainError("FOUNDERS_ONLY", "This match is for Founding Members only.");
     }
-    const existing = await tx.competitionEntry.findUnique({ where: { competitionId_userId: { competitionId, userId } } });
+    // Free games: one team each. Paid games: up to the game's limit, each one paid for.
+    const entryNo = submission.entryNo ?? 1;
+    const allowed = comp.entryFeeMinor > 0 ? Math.max(1, comp.maxEntries) : 1;
+    if (entryNo > allowed) throw new DomainError("MAX_ENTRIES", allowed === 1 ? "This game is one team per manager." : `This game allows up to ${allowed} teams per manager.`);
+    const existing = await tx.competitionEntry.findUnique({ where: { competitionId_userId_entryNo: { competitionId, userId, entryNo } } });
+    if (!existing && entryNo > 1) {
+      const have = await tx.competitionEntry.count({ where: { competitionId, userId } });
+      if (have < entryNo - 1) throw new DomainError("ENTRY_ORDER", `Enter team ${have + 1} first.`);
+    }
 
     const cardIds = [...submission.starters.map((s) => s.cardId), ...submission.bench];
     const rows = await tx.$queryRaw<
@@ -113,7 +123,7 @@ export async function submitEntry(userId: string, competitionId: string, input: 
     const unavailable: SquadIssue[] = [];
     // Simulated matchdays don't lock cards: the same card can play in a real squad and a sim squad,
     // but only in one match per simulated matchday.
-    const simTaken = comp.simulated ? await simCardsInUse(tx, userId, comp.gameweekId, competitionId) : new Set<string>();
+    const simTaken = comp.simulated ? await simCardsInUse(tx, userId, comp.gameweekId, competitionId, existing?.id) : new Set<string>();
     for (const r of rows) {
       const lockedElsewhere = comp.simulated
         ? r.lock === "LISTED" || simTaken.has(r.id)
@@ -148,7 +158,7 @@ export async function submitEntry(userId: string, competitionId: string, input: 
     if (!existing) await rewardReferrer(tx, userId);
     const entry = existing
       ? await tx.competitionEntry.update({ where: { id: existing.id }, data: { formation: submission.formation, status: "ACTIVE" } })
-      : await tx.competitionEntry.create({ data: { competitionId, userId, formation: submission.formation } });
+      : await tx.competitionEntry.create({ data: { competitionId, userId, formation: submission.formation, entryNo } });
 
     // Entry fee (set by admins) — charged once, on first entry, and only once PAID_ENTRY is legally cleared.
     if (!existing && comp.entryFeeMinor > 0) {
@@ -192,19 +202,23 @@ export async function submitEntry(userId: string, competitionId: string, input: 
 }
 
 /** Cards this manager already has in another match on the same simulated matchday. */
-export async function simCardsInUse(client: Pick<typeof db, "competitionSelection">, userId: string, gameweekId: string, exceptCompetitionId: string) {
+export async function simCardsInUse(client: Pick<typeof db, "competitionSelection">, userId: string, gameweekId: string, _competitionId: string, exceptEntryId?: string | null) {
+  // Cards in your other teams on this sim matchday — other matches, and your other teams in this one.
   const rows = await client.competitionSelection.findMany({
-    where: { cardId: { not: null }, entry: { userId, status: "ACTIVE", competition: { gameweekId, id: { not: exceptCompetitionId } } } },
+    where: {
+      cardId: { not: null },
+      entry: { userId, status: "ACTIVE", competition: { gameweekId }, ...(exceptEntryId ? { id: { not: exceptEntryId } } : {}) },
+    },
     select: { cardId: true },
   });
   return new Set(rows.map((r) => r.cardId!));
 }
 
-export async function withdrawEntry(userId: string, competitionId: string) {
+export async function withdrawEntry(userId: string, competitionId: string, entryNo = 1) {
   return withTx(async (tx) => {
     const comp = await tx.competition.findUniqueOrThrow({ where: { id: competitionId } });
     if (comp.status !== "OPEN" || comp.locksAt <= new Date()) throw new DomainError("LOCKED", "This competition is locked.");
-    const entry = await tx.competitionEntry.findUnique({ where: { competitionId_userId: { competitionId, userId } } });
+    const entry = await tx.competitionEntry.findUnique({ where: { competitionId_userId_entryNo: { competitionId, userId, entryNo } } });
     if (!entry) return;
     if (comp.entryFeeMinor > 0) {
       await lockWallet(tx, userId);
@@ -358,6 +372,8 @@ export const NewMatchSchema = z.object({
   maxPerClub: z.number().int().min(1).max(7).optional(),
   draftBudgetMx: z.number().int().min(10).max(1000).optional(),
   entryFeeMinor: z.number().int().min(0).max(10_000).default(0),
+  /** Paid games only: teams one manager may enter (each paid for). Free games are always 1. */
+  maxEntries: z.number().int().min(1).max(20).default(1),
   winnerPack: z.enum(["BRONZE", "SILVER", "GOLD"]).optional(),
   top3Pack: z.enum(["BRONZE", "SILVER", "GOLD"]).optional(),
   everyonePack: z.enum(["BRONZE", "SILVER", "GOLD"]).optional(),
@@ -423,6 +439,7 @@ export async function createMatch(adminId: string, input: z.input<typeof NewMatc
         rewards: rewards as never,
         requirements: requirements as never,
         entryFeeMinor: m.entryFeeMinor,
+        maxEntries: m.entryFeeMinor > 0 ? m.maxEntries : 1,
         entryOpensAt: opensAt,
         locksAt,
         status: opensAt <= new Date() ? "OPEN" : "UPCOMING",
@@ -471,14 +488,15 @@ export async function leaderboard(competitionId: string, limit = 100) {
     return {
       entryId: e.id,
       userId: e.userId,
-      displayName: e.user.displayName,
+      entryNo: e.entryNo,
+      displayName: e.entryNo > 1 ? `${e.user.displayName} · team ${e.entryNo}` : e.user.displayName,
       foundingNumber: e.user.foundingNumber,
       clubName: e.user.clubName,
       crest: toCrest(e.user.crest),
       points: pts ?? 0,
       rank: settled ? e.rank ?? i + 1 : rank,
       final: settled,
-      prizeMinor: prizes.get(e.userId) ?? 0,
+      prizeMinor: prizes.get(e.entryNo > 1 ? `${e.userId}:${e.entryNo}` : e.userId) ?? 0,
       /** The MATCHX house account (admins): plays for bragging rights, never wins prizes. */
       house: e.user.role === "ADMIN",
     };
@@ -486,9 +504,10 @@ export async function leaderboard(competitionId: string, limit = 100) {
 }
 
 /** £ actually paid out per manager for a settled match. */
+/** £ prizes paid in a match, by manager — and "userId:2" for a manager's 2nd team, and so on. */
 export async function prizesPaid(competitionId: string) {
-  const rows = await db.walletEntry.findMany({ where: { kind: "PRIZE", refId: { startsWith: `prize:${competitionId}:` } }, select: { userId: true, amountMinor: true } });
-  return new Map(rows.map((r) => [r.userId, r.amountMinor]));
+  const rows = await db.walletEntry.findMany({ where: { kind: "PRIZE", refId: { startsWith: `prize:${competitionId}:` } }, select: { userId: true, amountMinor: true, refId: true } });
+  return new Map(rows.map((r) => [r.refId.slice(`prize:${competitionId}:`.length), r.amountMinor]));
 }
 
 /** Top three for each settled match (ties included), with prizes. */
@@ -499,7 +518,7 @@ export async function podiums(competitionIds: string[]) {
       db.competitionEntry.findMany({ where: { competitionId: id, status: "ACTIVE", rank: { lte: 3 } }, orderBy: [{ rank: "asc" }, { createdAt: "asc" }], take: 6, include: { user: { select: { displayName: true, foundingNumber: true } } } }),
       prizesPaid(id),
     ]);
-    out.set(id, entries.map((e) => ({ rank: e.rank ?? 0, displayName: e.user.displayName, foundingNumber: e.user.foundingNumber, points: e.finalPoints ?? 0, prizeMinor: prizes.get(e.userId) ?? 0 })));
+    out.set(id, entries.map((e) => ({ rank: e.rank ?? 0, displayName: e.user.displayName, foundingNumber: e.user.foundingNumber, points: e.finalPoints ?? 0, prizeMinor: prizes.get(e.entryNo > 1 ? `${e.userId}:${e.entryNo}` : e.userId) ?? 0 })));
   }
   return out;
 }

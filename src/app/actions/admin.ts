@@ -231,7 +231,7 @@ export async function createSimMatchdayAction(_: ActionResult | null, f: FormDat
       kickoffAt,
       copyFrom: f.get("copy") === "on" ? "latest" : null,
       match: s("name")
-        ? { name: s("name"), tier: tier("tier"), freeCardsOnly: f.get("freeOnly") === "on", entryFeeMinor: Math.round(fee * 100), prizes: s("prizes") || undefined, winnerPack: tier("winnerPack") }
+        ? { name: s("name"), tier: tier("tier"), freeCardsOnly: f.get("freeOnly") === "on", entryFeeMinor: Math.round(fee * 100), maxEntries: Number(s("maxEntries") || 1), prizes: s("prizes") || undefined, winnerPack: tier("winnerPack") }
         : null,
     });
   });

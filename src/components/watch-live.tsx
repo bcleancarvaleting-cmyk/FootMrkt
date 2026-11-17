@@ -515,7 +515,7 @@ function Table({ t, replay, replayView }: { t: WatchTable; replay: Replay | null
   const meRow = t.rows.find((r) => r.me);
   const meHidden = !!meRow && !rows.includes(meRow);
   // What each manager would win if it ended now (ties split the £, everyone tied on a pack place gets one).
-  const wins = t.locked && t.rows.some((r) => r.points > 0) ? projectedWins(t.rows, t.prizes ?? []) : new Map<string, { cashMinor: number; packs: string[] }>();
+  const wins = t.locked && t.rows.some((r) => r.points > 0) ? projectedWins(t.rows.map((r) => ({ ...r, userId: r.entryId })), t.prizes ?? []) : new Map<string, { cashMinor: number; packs: string[] }>();
   const settled = t.status === "SETTLED";
   return (
     <div className="p-3">
@@ -525,7 +525,7 @@ function Table({ t, replay, replayView }: { t: WatchTable; replay: Replay | null
           <span className="text-[10px] font-black uppercase tracking-[0.14em] text-lime">Your position</span>
           <span className="font-display text-2xl font-black italic tabular-nums">{meRow!.rank}</span>
           <span className="min-w-0 flex-1 truncate font-semibold">{meRow!.name}</span>
-          {wins.get(meRow!.userId) && <WinChip w={wins.get(meRow!.userId)!} settled={settled} />}
+          {wins.get(meRow!.entryId) && <WinChip w={wins.get(meRow!.entryId)!} settled={settled} />}
           <span className="font-display text-2xl font-black italic tabular-nums text-lime">{meRow!.points}</span>
         </div>
       )}
@@ -560,7 +560,7 @@ function Table({ t, replay, replayView }: { t: WatchTable; replay: Replay | null
                     r.club && <span className="block truncate text-[11px] text-faint">{r.club}</span>
                   )}
                 </span>
-                {!r.house && wins.get(r.userId) && <WinChip w={wins.get(r.userId)!} settled={settled} />}
+                {!r.house && wins.get(r.entryId) && <WinChip w={wins.get(r.entryId)!} settled={settled} />}
                 <span key={r.points} className="pts-pop font-display text-2xl font-black italic tabular-nums text-lime">{r.points}</span>
               </button>
             );

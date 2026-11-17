@@ -64,7 +64,10 @@ export function SquadBuilder({
   draft,
   boosters,
   benchSize = 4,
+  entryNo = 1,
 }: {
+  /** Paid games with several teams allowed: which of your teams this is. */
+  entryNo?: number;
   competitionId: string;
   formations: Formation[];
   allowedCategories: string[];
@@ -237,7 +240,7 @@ export function SquadBuilder({
       setResult(
         draft
           ? await submitDraftEntryAction(competitionId, { formation: formationId, starters: starters.map((x) => ({ playerId: x.cardId, position: x.position })), bench, captain: cap, viceCaptain: vc, boosterId, boostedOn: boosterId ? boostTarget : null })
-          : await submitEntryAction(competitionId, { formation: formationId, starters, bench, captain: cap, viceCaptain: vc, boosterId, boostedOn: boosterId ? boostTarget : null }),
+          : await submitEntryAction(competitionId, { formation: formationId, starters, bench, captain: cap, viceCaptain: vc, boosterId, boostedOn: boosterId ? boostTarget : null, entryNo }),
       ),
     );
   }
@@ -453,7 +456,7 @@ export function SquadBuilder({
               className="btn-ghost"
               disabled={pending}
               onClick={() => {
-                if (confirm("Withdraw from this competition? Your cards will be unlocked.")) start(async () => setResult(await withdrawEntryAction(competitionId)));
+                if (confirm("Withdraw from this competition? Your cards will be unlocked.")) start(async () => setResult(await withdrawEntryAction(competitionId, entryNo)));
               }}
             >
               Withdraw

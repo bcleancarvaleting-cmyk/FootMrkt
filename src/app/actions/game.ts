@@ -67,9 +67,9 @@ export async function submitDraftEntryAction(competitionId: string, submission: 
   return res;
 }
 
-export async function withdrawEntryAction(competitionId: string): Promise<ActionResult> {
+export async function withdrawEntryAction(competitionId: string, entryNo = 1): Promise<ActionResult> {
   const user = await requireUser();
-  const res = await attempt(() => withdrawEntry(user.id, competitionId), "Entry withdrawn");
+  const res = await attempt(() => withdrawEntry(user.id, competitionId, Number(entryNo) || 1), "Entry withdrawn");
   revalidatePath(`/competitions/${competitionId}`);
   return res;
 }
@@ -136,8 +136,9 @@ export async function claimWeeklyPackAction(): Promise<ActionResult<{ entitlemen
 
 /** Team-sheet confirmation, and the referrer's reward email the first time a referred manager plays. */
 async function afterEntryEmails(userId: string, competitionId: string) {
-  const entry = await db.competitionEntry.findUnique({
-    where: { competitionId_userId: { competitionId, userId } },
+  const entry = await db.competitionEntry.findFirst({
+    where: { competitionId, userId },
+    orderBy: { updatedAt: "desc" },
     include: { competition: true, selections: { where: { isCaptain: true }, include: { player: { select: { displayName: true } } } } },
   });
   if (!entry) return;

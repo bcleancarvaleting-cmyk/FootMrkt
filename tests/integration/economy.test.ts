@@ -153,6 +153,46 @@ describe("match entry fees and requirements", () => {
     expect(await balancesFor(userId)).toMatchObject({ bonus: 150, cash: 100 });
   });
 
+  it("paid games can take several teams per manager (each paid, own players); free games one", async () => {
+    const admin = await makeUser("adm-multi");
+    const { userId } = await makeUser();
+    process.env.LEGAL_GATES_CLEARED = "PAID_ENTRY";
+    process.env.FLAG_PAID_ENTRY = "true";
+    const sub = await squad(userId);
+    // Free game: a second team is refused.
+    const free = await openComp();
+    await submitEntry(userId, free.id, sub);
+    await expect(submitEntry(userId, free.id, { ...sub, entryNo: 2 })).rejects.toMatchObject({ code: "MAX_ENTRIES" });
+    await withdrawEntry(userId, free.id);
+    // Paid game, up to 2 teams.
+    const comp = await db.competition.create({ data: { sportId: free.sportId, gameweekId: free.gameweekId, code: "multi-paid", name: "Paid Cup", format: "OPEN", rosterRules: "football-roster-v4", scoringRules: "football-scoring-v2-draft", entryOpensAt: new Date(), locksAt: new Date(Date.now() + 86_400_000), status: "OPEN" } });
+    await updateCompetitionRules(admin.userId, comp.id, { entryFeeMinor: 100, requirements: {} });
+    await db.competition.update({ where: { id: comp.id }, data: { maxEntries: 2 } });
+    await withTx((tx) => credit(tx, { userId, amountMinor: 500, kind: "DEPOSIT", bucket: "CASH", refId: "multi-cash" }));
+    await submitEntry(userId, comp.id, sub);
+    // Team 2 can't reuse team 1's cards…
+    await expect(submitEntry(userId, comp.id, { ...sub, entryNo: 2 })).rejects.toMatchObject({ code: "SQUAD_INVALID" });
+    // …so give it its own players.
+    const used = new Set([...sub.starters.map((x) => x.cardId), ...sub.bench]);
+    const picked = new Set<string>();
+    const spare = async (pos: string, n: number) => {
+      const got = await db.cardInstance.findMany({ where: { supplyState: "AVAILABLE", template: { category: "BRONZE", playerId: { notIn: [...picked] }, player: { position: pos as never } } }, distinct: ["templateId"], take: n, include: { template: { include: { player: true } } } });
+      for (const c of got) picked.add(c.template.playerId);
+      await db.cardInstance.updateMany({ where: { id: { in: got.map((c) => c.id) } }, data: { ownerId: userId, supplyState: "HELD" } });
+      return got;
+    };
+    const two = [...(await spare("GK", 1)), ...(await spare("DEF", 2)), ...(await spare("MID", 2)), ...(await spare("ATT", 2))].filter((c) => !used.has(c.id));
+    const sub2Bench = (await spare("MID", 1)).filter((c) => !used.has(c.id));
+    const sub2 = { formation: "2-2-2", starters: two.map((c) => ({ cardId: c.id, position: c.template.player.position })), bench: sub2Bench.map((c) => c.id), entryNo: 2 };
+    await submitEntry(userId, comp.id, sub2);
+    await expect(submitEntry(userId, comp.id, { ...sub2, entryNo: 3 })).rejects.toMatchObject({ code: "MAX_ENTRIES" });
+    const entries = await db.competitionEntry.findMany({ where: { competitionId: comp.id, userId }, orderBy: { entryNo: "asc" } });
+    expect(entries.map((e) => e.entryNo)).toEqual([1, 2]);
+    expect((await balancesFor(userId)).cash).toBe(300); // £1 charged for each team
+    await withdrawEntry(userId, comp.id, 2);
+    expect((await balancesFor(userId)).cash).toBe(400); // team 2 refunded, team 1 stays in
+  });
+
   it("admin requirements (e.g. Bronze only, max per club) are enforced", async () => {
     const admin = await makeUser("adm3");
     const { userId } = await makeUser();

@@ -146,6 +146,7 @@ export async function createMatchAction(_: ActionResult | null, f: FormData): Pr
       maxPerClub: opt("maxPerClub") ? Number(str(f, "maxPerClub")) : undefined,
       draftBudgetMx: opt("budget") ? Number(str(f, "budget")) : undefined,
       entryFeeMinor: mp(f, "fee"),
+      maxEntries: Number(str(f, "maxEntries") || 1),
       winnerPack: opt("winnerPack") as "BRONZE" | "SILVER" | "GOLD" | undefined,
       top3Pack: opt("top3Pack") as "BRONZE" | "SILVER" | "GOLD" | undefined,
       everyonePack: opt("everyonePack") as "BRONZE" | "SILVER" | "GOLD" | undefined,

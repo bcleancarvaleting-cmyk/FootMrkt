@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MatchesTabs } from "@/components/matches-tabs";
 import { SimBadge } from "@/components/sim-badge";
 import { resultsList } from "@/server/results";
 import { fmtDate } from "@/lib/view";
@@ -11,6 +12,7 @@ export default async function ResultsPage() {
   const days = await resultsList();
   return (
     <div className="space-y-6">
+      <MatchesTabs active="/results" />
       <div>
         <p className="eyebrow">Every matchday</p>
         <h1 className="mt-1 text-4xl leading-none sm:text-5xl">Results</h1>

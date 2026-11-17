@@ -28,16 +28,21 @@ import { type Pos, fmtDate, relativeTime } from "@/lib/view";
 
 export const metadata = { title: "Competition" };
 
-export default async function CompetitionPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ paid?: string }> }) {
+export default async function CompetitionPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ paid?: string; team?: string }> }) {
   const user = await requireUser();
   const { id } = await params;
-  const { paid } = await searchParams;
+  const { paid, team } = await searchParams;
   if (paid && /^[0-9a-f-]{36}$/.test(paid)) await confirmOrderWithProvider(user.id, paid).catch(() => null);
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const comp = await db.competition.findUnique({ where: { id }, include: { gameweek: true } });
   if (!comp) notFound();
+  // Paid games can allow several teams per manager (free games: one).
+  const maxTeams = comp.entryFeeMinor > 0 ? Math.max(1, comp.maxEntries) : 1;
+  const myEntries = await db.competitionEntry.findMany({ where: { competitionId: id, userId: user.id }, select: { entryNo: true }, orderBy: { entryNo: "asc" } });
+  const nextTeam = Math.min(maxTeams, myEntries.length + 1);
+  const entryNo = Math.min(Math.max(1, Number(team) || 1), nextTeam);
   const entry = await db.competitionEntry.findUnique({
-    where: { competitionId_userId: { competitionId: id, userId: user.id } },
+    where: { competitionId_userId_entryNo: { competitionId: id, userId: user.id, entryNo } },
     include: { selections: true },
   });
   const rules = getRosterRules(comp.rosterRules);
@@ -48,7 +53,7 @@ export default async function CompetitionPage({ params, searchParams }: { params
   const liveNow = comp.status === "LOCKED" || comp.status === "PROVISIONAL";
   const { projectedWins } = await import("@/domain/football/prizes");
   const { prizeRules } = await import("@/server/competitions");
-  const liveWins = liveNow && board.some((r) => r.points > 0) ? projectedWins(board.map((r) => ({ userId: r.userId, points: r.points, rank: r.rank, house: r.house })), await prizeRules(comp.rewards)) : new Map<string, { cashMinor: number; packs: string[] }>();
+  const liveWins = liveNow && board.some((r) => r.points > 0) ? projectedWins(board.map((r) => ({ userId: r.entryId, points: r.points, rank: r.rank, house: r.house })), await prizeRules(comp.rewards)) : new Map<string, { cashMinor: number; packs: string[] }>();
 
   return (
     <div className="space-y-8">
@@ -90,13 +95,29 @@ export default async function CompetitionPage({ params, searchParams }: { params
         )}
       </div>
 
+      {maxTeams > 1 && (myEntries.length > 0 || open) && (
+        <nav className="flex flex-wrap items-center gap-2" aria-label="Your teams">
+          {myEntries.map((e) => (
+            <Link key={e.entryNo} href={`?team=${e.entryNo}`} className={`chip ${e.entryNo === entryNo ? "border-accent text-fg" : ""}`}>
+              Team {e.entryNo} ✓
+            </Link>
+          ))}
+          {open && myEntries.length < maxTeams && (
+            <Link href={`?team=${myEntries.length + 1}`} className={`chip ${entryNo === myEntries.length + 1 ? "border-accent text-fg" : "text-lime"}`}>
+              + Add team {myEntries.length + 1} · £{(comp.entryFeeMinor / 100).toFixed(2)}
+            </Link>
+          )}
+          <span className="text-xs text-faint">Up to {maxTeams} teams · each needs its own players</span>
+        </nav>
+      )}
+
       {open && comp.entryFeeMinor > 0 && !entry && <EntryFee userId={user.id} competitionId={comp.id} feeMinor={comp.entryFeeMinor} />}
 
       {open ? (
         ((comp.requirements ?? {}) as Requirements).draftBudgetMx ? (
           <DraftBuilder userId={user.id} competition={comp} entry={entry} />
         ) : (
-          <Builder userId={user.id} competition={comp} entry={entry} />
+          <Builder userId={user.id} competition={comp} entry={entry} entryNo={entryNo} />
         )
       ) : entry ? (
         <Result entryId={entry.id} settled={comp.status === "SETTLED"} />
@@ -124,9 +145,9 @@ export default async function CompetitionPage({ params, searchParams }: { params
                 {r.clubName && <span className="block truncate text-xs text-faint">{r.clubName}</span>}
               </span>
               {r.prizeMinor > 0 && <span className="font-bold text-lime">£{(r.prizeMinor / 100).toFixed(2)}</span>}
-              {!r.prizeMinor && (liveWins.get(r.userId)?.cashMinor ?? 0) > 0 && (
+              {!r.prizeMinor && (liveWins.get(r.entryId)?.cashMinor ?? 0) > 0 && (
                 <span className="whitespace-nowrap rounded-full border border-gold/60 bg-gold/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-gold" title="If it ended now — ties split the prize">
-                  Wins £{(liveWins.get(r.userId)!.cashMinor / 100).toFixed(2)}
+                  Wins £{(liveWins.get(r.entryId)!.cashMinor / 100).toFixed(2)}
                 </span>
               )}
               <span className="font-bold">{comp.status === "OPEN" ? "" : `${r.points} pts`}</span>
@@ -149,8 +170,10 @@ async function Builder({
   userId,
   competition,
   entry,
+  entryNo = 1,
 }: {
   userId: string;
+  entryNo?: number;
   competition: { id: string; gameweekId: string; rosterRules: string; format: "OPEN" | "BRONZE_ONLY" | "SILVER_ONLY" | "GOLD_ONLY"; requirements: unknown; rewards: unknown };
   entry: { id: string; formation: string; selections: Array<{ cardId: string | null; slot: string; position: string; order: number; isCaptain: boolean; isViceCaptain: boolean; isBoosted: boolean }> } | null;
 }) {
@@ -160,7 +183,7 @@ async function Builder({
   // A loan with no gameweeks left can still play in a gameweek this manager has already entered.
   const enteredThisGw = (await db.competitionEntry.count({ where: { userId, status: "ACTIVE", competition: { gameweekId: competition.gameweekId } } })) > 0;
   const sim = (await db.gameweek.findUnique({ where: { id: competition.gameweekId }, select: { simulated: true } }))?.simulated ?? false;
-  const simTaken = sim ? await simCardsInUse(db, userId, competition.gameweekId, competition.id) : new Set<string>();
+  const simTaken = sim ? await simCardsInUse(db, userId, competition.gameweekId, competition.id, entry?.id ?? null) : new Set<string>();
   // Sim games: how likely each player is to start (so managers aren't picking blind).
   const simKickoff = sim ? ((await db.gameweek.findUnique({ where: { id: competition.gameweekId }, select: { startsAt: true } }))?.startsAt ?? new Date()) : null;
   const startGuide = sim ? await (await import("@/server/sim-lineups")).simStartGuide([...new Set(cards.map((c) => c.playerId))], simKickoff!) : null;
@@ -215,6 +238,7 @@ async function Builder({
       cards={builderCards}
       initial={initial}
       hasEntry={!!entry}
+      entryNo={entryNo}
       boosters={await boosterChoices(userId, entry?.id ?? null)}
         benchSize={rules.bench}
     />

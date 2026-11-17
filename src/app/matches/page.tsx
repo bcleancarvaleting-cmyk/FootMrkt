@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MatchesTabs } from "@/components/matches-tabs";
 import { MatchCard } from "@/components/match-card";
 import { SimBadge } from "@/components/sim-badge";
 import { SimTickerScope, TickerMode } from "@/components/scores-ticker";
@@ -45,6 +46,7 @@ export default async function MatchesPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="space-y-10">
+      <MatchesTabs active="/matches" />
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow">{gw.simulated ? "Simulated matchday" : `${gw.season} season`}</p>

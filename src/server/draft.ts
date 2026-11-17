@@ -76,7 +76,7 @@ export async function submitDraftEntry(userId: string, competitionId: string, in
     }
     if (issues.length) throw new SquadInvalidError(issues);
 
-    const existing = await tx.competitionEntry.findUnique({ where: { competitionId_userId: { competitionId, userId } } });
+    const existing = await tx.competitionEntry.findUnique({ where: { competitionId_userId_entryNo: { competitionId, userId, entryNo: 1 } } });
     const entry = existing
       ? await tx.competitionEntry.update({ where: { id: existing.id }, data: { formation: sub.formation, status: "ACTIVE" } })
       : await tx.competitionEntry.create({ data: { competitionId, userId, formation: sub.formation } });

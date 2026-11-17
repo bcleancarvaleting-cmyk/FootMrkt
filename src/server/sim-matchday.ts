@@ -131,6 +131,8 @@ export interface SimMatchSpec {
   tier?: "BRONZE" | "SILVER" | "GOLD";
   freeCardsOnly?: boolean;
   entryFeeMinor?: number;
+  /** Paid matches: teams per manager. */
+  maxEntries?: number;
   /** £ prizes, e.g. "1=10, 2-3=5". */
   prizes?: string;
   winnerPack?: "BRONZE" | "SILVER" | "GOLD";
@@ -195,6 +197,7 @@ export async function createSimMatchday(
             rewards: c.rewards as Prisma.InputJsonValue,
             requirements: req as Prisma.InputJsonValue,
             entryFeeMinor: c.entryFeeMinor,
+            maxEntries: c.maxEntries,
             entryOpensAt: now,
             locksAt,
             status: "OPEN",

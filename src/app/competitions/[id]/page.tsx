@@ -59,7 +59,7 @@ export default async function CompetitionPage({ params, searchParams }: { params
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <Link href={`/matches?gw=${comp.gameweekId}`} className="text-xs text-faint hover:text-fg">
+          <Link href="/matches" className="text-xs text-faint hover:text-fg">
             ← {comp.gameweek.simulated ? `Simulated matchday ${comp.gameweek.number}` : `Gameweek ${comp.gameweek.number}`}
           </Link>
           {comp.gameweek.simulated && <SimTickerScope />}

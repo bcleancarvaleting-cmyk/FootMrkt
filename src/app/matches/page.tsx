@@ -52,12 +52,16 @@ export default async function MatchesPage() {
           <p className="eyebrow">Every game you can enter</p>
           <h1 className="mt-1 text-4xl leading-none sm:text-5xl">Upcoming</h1>
           <p className="mt-2 text-sm text-muted">Soonest deadline first. Finished games are on Results.</p>
+          <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-mint" /> Entered</span>
+            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-danger" /> Open — not entered yet</span>
+          </p>
           <TickerMode mode="matches" />
         </div>
-        <span className="flex gap-2">
-          <Link href="/results" className="btn-ghost px-4 py-2 text-xs">Results</Link>
-          <Link href="/leagues" className="btn-ghost px-4 py-2 text-xs">Mini-leagues</Link>
-          <Link href="/top-performers" className="btn-ghost px-4 py-2 text-xs">Top performers</Link>
+        <span className="flex gap-2 overflow-x-auto">
+          <Link href="/results" className="btn-ghost whitespace-nowrap px-3 py-1.5 text-[11px]">Results</Link>
+          <Link href="/leagues" className="btn-ghost whitespace-nowrap px-3 py-1.5 text-[11px]">Mini-leagues</Link>
+          <Link href="/top-performers" className="btn-ghost whitespace-nowrap px-3 py-1.5 text-[11px]">Top performers</Link>
         </span>
       </div>
 
@@ -65,33 +69,35 @@ export default async function MatchesPage() {
         <EmptyState title="No matches open right now">New matches are added here before each deadline — check back soon.</EmptyState>
       ) : (
         <>
-          <p className="-mb-6 flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-xs text-muted">
-            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-mint" /> Entered</span>
-            <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-danger" /> Open — not entered yet</span>
-          </p>
           {groups.map(({ gw, comps: list }) => {
             const locksAt = list[0].locksAt;
             const open = stillOpen(locksAt);
             return (
               <section key={gw.id} className="space-y-3">
-                <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-ink-700 pb-2">
-                  <h2 className="flex items-center gap-2 text-2xl">
-                    {gw.simulated ? <>Sim matchday {gw.number} <SimBadge className="text-[10px]" /></> : <>Gameweek {gw.number}</>}
-                  </h2>
-                  <p className="text-sm text-muted">
-                    {open ? (
-                      <>
-                        Locks in <Countdown to={locksAt.toISOString()} className="font-bold text-lime" /> · {fmtDate(locksAt, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                      </>
-                    ) : (
-                      <span className="text-[#ff8a8a]">Live now — points are provisional</span>
-                    )}
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ink-700 bg-ink-900 px-4 py-3">
+                  <div className="min-w-0">
+                    <h2 className="flex items-center gap-2 text-2xl leading-none">
+                      {gw.simulated ? <>Sim matchday {gw.number} <SimBadge className="text-[10px]" /></> : <>Gameweek {gw.number}</>}
+                    </h2>
+                    <p className="mt-1 text-xs text-faint">
+                      {fmtDate(locksAt, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · {list.length} {list.length === 1 ? "game" : "games"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
                     {gw.simulated && (
-                      <Link href="/watch" className="ml-3 text-xs font-bold text-lime">
-                        ▶ Watch the sim
+                      <Link href="/watch" className="btn-glow px-3 py-1.5 text-[11px]">
+                        ▶ Watch
                       </Link>
                     )}
-                  </p>
+                    {open ? (
+                      <span className="rounded-xl bg-ink-800 px-3 py-1.5 text-right">
+                        <span className="block text-[9px] font-bold uppercase tracking-[0.16em] text-faint">Locks in</span>
+                        <Countdown to={locksAt.toISOString()} className="font-bold tabular-nums text-lime" />
+                      </span>
+                    ) : (
+                      <span className="rounded-xl bg-danger/15 px-3 py-1.5 text-xs font-bold text-[#ff8a8a]">Live now</span>
+                    )}
+                  </div>
                 </div>
                 <ul className="grid gap-4 md:grid-cols-2">
                   {list.map((c) => (
